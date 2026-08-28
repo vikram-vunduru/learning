@@ -294,8 +294,8 @@ git clone https://github.com/trailheadapps/dreamhouse-lwc
 
 | Resource | URL |
 |----------|-----|
-| PDI Credential Page | `trailhead.salesforce.com/credentials/platformdeveloperI` |
-| PDII Credential Page | `trailhead.salesforce.com/credentials/platformdeveloperII` |
+| PDI Credential Page | `trailhead.salesforce.com/credentials/platformdeveloperi` |
+| PDII Credential Page | `trailhead.salesforce.com/credentials/platformdeveloperiI` |
 | JS Dev I Credential Page | `trailhead.salesforce.com/credentials/javascriptdeveloperi` |
 | Exam Registration | `webassessor.com/salesforce` |
 | Developer Beginner Trail | `trailhead.salesforce.com/content/learn/trails/force_com_dev_beginner` |

@@ -39,7 +39,7 @@
 ### Official Trailhead Path
 
 Trailmix: "Prepare for Your Salesforce AI Associate Credential"  
-`trailhead.salesforce.com/users/strailhead/trailmixes/salesforce-ai-associate-cert-prep`
+`trailhead.salesforce.com/credentials/aiassociate`
 
 | Module | Time |
 |--------|------|
@@ -263,7 +263,7 @@ Trailmix: "Prepare for Your Salesforce AI Associate Credential"
 |----------|-----|
 | AI Associate Credential | `trailhead.salesforce.com/credentials/aiassociate` |
 | Admin Credential | `trailhead.salesforce.com/credentials/administrator` |
-| App Builder Credential | `trailhead.salesforce.com/credentials/platform-app-builder` |
+| App Builder Credential | `trailhead.salesforce.com/credentials/platformappbuilder` |
 | Admin Beginner Trail | `trailhead.salesforce.com/content/learn/trails/force_com_admin_beginner` |
 | Admin Intermediate Trail | `trailhead.salesforce.com/content/learn/trails/force_com_admin_intermediate` |
 | All Superbadges | `trailhead.salesforce.com/superbadges` |
