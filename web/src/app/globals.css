@@ -34,3 +34,11 @@
 .prose td { @apply px-3 py-2 border border-gray-200 dark:border-gray-700; }
 .prose tr:nth-child(even) { @apply bg-gray-50 dark:bg-gray-800/50; }
 .prose hr { @apply border-gray-200 dark:border-gray-700 my-8; }
+
+/* URL code spans converted to links */
+.prose a.code-link code {
+  @apply text-blue-400 hover:text-blue-300 underline underline-offset-2 decoration-dotted;
+}
+.prose a.code-link:hover code {
+  @apply bg-blue-950/50;
+}
