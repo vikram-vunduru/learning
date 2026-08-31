@@ -203,6 +203,52 @@ export const TRACKS: Track[] = [
       // Exam Prep
       { id: "app-builder-exam", title: "60-Question Practice Exam", file: "courses/salesforce/03-app-builder/exam-prep/practice-exam-60-questions.md", month: 3, course: "App Builder", section: "Exam Preparation", type: "exam" },
       { id: "app-builder-cheatsheet", title: "App Builder Cheat Sheet", file: "courses/salesforce/03-app-builder/exam-prep/app-builder-cheat-sheet.md", month: 3, course: "App Builder", section: "Exam Preparation", type: "exam" },
+
+      // ── Course 4: Platform Developer I ──────────────────────────────────────
+      { id: "pdi-overview", title: "Course Overview: Platform Developer I", file: "courses/salesforce/04-platform-developer-i/00-course-overview.md", month: 4, course: "Platform Developer I", section: "Course Overview", type: "study" },
+
+      // Section 01 — Developer Fundamentals
+      { id: "pdi-l01", title: "L01: Developer Console & Tools", file: "courses/salesforce/04-platform-developer-i/section-01-developer-fundamentals/lecture-01-developer-console-tools.md", month: 4, course: "Platform Developer I", section: "Developer Fundamentals", type: "lecture" },
+      { id: "pdi-l02", title: "L02: Apex Basics", file: "courses/salesforce/04-platform-developer-i/section-01-developer-fundamentals/lecture-02-apex-basics.md", month: 4, course: "Platform Developer I", section: "Developer Fundamentals", type: "lecture" },
+      { id: "pdi-l03", title: "L03: Apex Variables, Types & Collections", file: "courses/salesforce/04-platform-developer-i/section-01-developer-fundamentals/lecture-03-apex-variables-types-collections.md", month: 4, course: "Platform Developer I", section: "Developer Fundamentals", type: "lecture" },
+      { id: "pdi-l04", title: "L04: Control Flow & Loops", file: "courses/salesforce/04-platform-developer-i/section-01-developer-fundamentals/lecture-04-control-flow-loops.md", month: 4, course: "Platform Developer I", section: "Developer Fundamentals", type: "lecture" },
+
+      // Section 02 — Apex Core
+      { id: "pdi-l05", title: "L05: SOQL Fundamentals", file: "courses/salesforce/04-platform-developer-i/section-02-apex-core/lecture-05-soql-fundamentals.md", month: 4, course: "Platform Developer I", section: "Apex Core", type: "lecture" },
+      { id: "pdi-l06", title: "L06: SOQL Advanced", file: "courses/salesforce/04-platform-developer-i/section-02-apex-core/lecture-06-soql-advanced.md", month: 4, course: "Platform Developer I", section: "Apex Core", type: "lecture" },
+      { id: "pdi-l07", title: "L07: DML Operations", file: "courses/salesforce/04-platform-developer-i/section-02-apex-core/lecture-07-dml-operations.md", month: 4, course: "Platform Developer I", section: "Apex Core", type: "lecture" },
+      { id: "pdi-l08", title: "L08: Apex Triggers", file: "courses/salesforce/04-platform-developer-i/section-02-apex-core/lecture-08-apex-triggers.md", month: 4, course: "Platform Developer I", section: "Apex Core", type: "lecture" },
+      { id: "pdi-l09", title: "L09: Trigger Best Practices", file: "courses/salesforce/04-platform-developer-i/section-02-apex-core/lecture-09-trigger-best-practices.md", month: 4, course: "Platform Developer I", section: "Apex Core", type: "lecture" },
+
+      // Section 03 — Advanced Apex
+      { id: "pdi-l10", title: "L10: Asynchronous Apex", file: "courses/salesforce/04-platform-developer-i/section-03-advanced-apex/lecture-10-asynchronous-apex.md", month: 4, course: "Platform Developer I", section: "Advanced Apex", type: "lecture" },
+      { id: "pdi-l11", title: "L11: Apex Governor Limits", file: "courses/salesforce/04-platform-developer-i/section-03-advanced-apex/lecture-11-apex-governor-limits.md", month: 4, course: "Platform Developer I", section: "Advanced Apex", type: "lecture" },
+      { id: "pdi-l12", title: "L12: Exception Handling", file: "courses/salesforce/04-platform-developer-i/section-03-advanced-apex/lecture-12-exception-handling.md", month: 4, course: "Platform Developer I", section: "Advanced Apex", type: "lecture" },
+      { id: "pdi-l13", title: "L13: Apex Classes & OOP", file: "courses/salesforce/04-platform-developer-i/section-03-advanced-apex/lecture-13-apex-classes-oop.md", month: 4, course: "Platform Developer I", section: "Advanced Apex", type: "lecture" },
+      { id: "pdi-l14", title: "L14: Apex Integration & Callouts", file: "courses/salesforce/04-platform-developer-i/section-03-advanced-apex/lecture-14-apex-integration-callouts.md", month: 4, course: "Platform Developer I", section: "Advanced Apex", type: "lecture" },
+
+      // Section 04 — User Interface
+      { id: "pdi-l15", title: "L15: Visualforce Basics", file: "courses/salesforce/04-platform-developer-i/section-04-user-interface/lecture-15-visualforce-basics.md", month: 4, course: "Platform Developer I", section: "User Interface", type: "lecture" },
+      { id: "pdi-l16", title: "L16: Visualforce Controllers", file: "courses/salesforce/04-platform-developer-i/section-04-user-interface/lecture-16-visualforce-controllers.md", month: 4, course: "Platform Developer I", section: "User Interface", type: "lecture" },
+      { id: "pdi-l17", title: "L17: LWC Fundamentals", file: "courses/salesforce/04-platform-developer-i/section-04-user-interface/lecture-17-lwc-fundamentals.md", month: 4, course: "Platform Developer I", section: "User Interface", type: "lecture" },
+      { id: "pdi-l18", title: "L18: LWC Data Binding & Events", file: "courses/salesforce/04-platform-developer-i/section-04-user-interface/lecture-18-lwc-data-binding-events.md", month: 4, course: "Platform Developer I", section: "User Interface", type: "lecture" },
+      { id: "pdi-l19", title: "L19: LWC Wire Service & Apex", file: "courses/salesforce/04-platform-developer-i/section-04-user-interface/lecture-19-lwc-wire-service-apex.md", month: 4, course: "Platform Developer I", section: "User Interface", type: "lecture" },
+
+      // Section 05 — Testing & Deployment
+      { id: "pdi-l20", title: "L20: Apex Unit Testing", file: "courses/salesforce/04-platform-developer-i/section-05-testing-deployment/lecture-20-apex-unit-testing.md", month: 4, course: "Platform Developer I", section: "Testing & Deployment", type: "lecture" },
+      { id: "pdi-l21", title: "L21: Test Best Practices", file: "courses/salesforce/04-platform-developer-i/section-05-testing-deployment/lecture-21-test-best-practices.md", month: 4, course: "Platform Developer I", section: "Testing & Deployment", type: "lecture" },
+      { id: "pdi-l22", title: "L22: Debugging Tools", file: "courses/salesforce/04-platform-developer-i/section-05-testing-deployment/lecture-22-debugging-tools.md", month: 4, course: "Platform Developer I", section: "Testing & Deployment", type: "lecture" },
+      { id: "pdi-l23", title: "L23: Deployment & Change Management", file: "courses/salesforce/04-platform-developer-i/section-05-testing-deployment/lecture-23-deployment-change-management.md", month: 4, course: "Platform Developer I", section: "Testing & Deployment", type: "lecture" },
+      { id: "pdi-l24", title: "L24: Security in Apex", file: "courses/salesforce/04-platform-developer-i/section-05-testing-deployment/lecture-24-security-in-apex.md", month: 4, course: "Platform Developer I", section: "Testing & Deployment", type: "lecture" },
+
+      // Labs
+      { id: "pdi-lab01", title: "Lab 1: Apex Triggers & Bulk", file: "courses/salesforce/04-platform-developer-i/labs/lab-01-apex-triggers-bulk.md", month: 4, course: "Platform Developer I", section: "Hands-On Labs", type: "lab" },
+      { id: "pdi-lab02", title: "Lab 2: Async Apex Batch", file: "courses/salesforce/04-platform-developer-i/labs/lab-02-async-apex-batch.md", month: 4, course: "Platform Developer I", section: "Hands-On Labs", type: "lab" },
+      { id: "pdi-lab03", title: "Lab 3: LWC Component Build", file: "courses/salesforce/04-platform-developer-i/labs/lab-03-lwc-component-build.md", month: 4, course: "Platform Developer I", section: "Hands-On Labs", type: "lab" },
+
+      // Exam Prep
+      { id: "pdi-exam", title: "60-Question Practice Exam", file: "courses/salesforce/04-platform-developer-i/exam-prep/practice-exam-60-questions.md", month: 4, course: "Platform Developer I", section: "Exam Preparation", type: "exam" },
+      { id: "pdi-cheatsheet", title: "PDI Cheat Sheet", file: "courses/salesforce/04-platform-developer-i/exam-prep/pdi-cheat-sheet.md", month: 4, course: "Platform Developer I", section: "Exam Preparation", type: "exam" },
     ],
     certs: [
       { id: "ai-associate", name: "AI Associate", month: 1, cost: "$75", passScore: "65%", questions: 40 },
