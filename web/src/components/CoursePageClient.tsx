@@ -143,16 +143,6 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
             {/* Tab bar */}
             <div className="flex items-center border-b border-gray-800 flex-shrink-0" style={{ background: "#0d1117" }}>
               <button
-                onClick={() => setNotesTab('notes')}
-                className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  notesTab === 'notes'
-                    ? 'border-orange-500 text-orange-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-300'
-                }`}
-              >
-                📋 Notes
-              </button>
-              <button
                 onClick={() => setNotesTab('resources')}
                 className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
                   notesTab === 'resources'
@@ -166,6 +156,16 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
                     notesTab === 'resources' ? 'bg-sky-500/20 text-sky-300' : 'bg-gray-700 text-gray-400'
                   }`}>{resCount}</span>
                 )}
+              </button>
+              <button
+                onClick={() => setNotesTab('notes')}
+                className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  notesTab === 'notes'
+                    ? 'border-orange-500 text-orange-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                📋 Notes
               </button>
             </div>
 
@@ -230,16 +230,6 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
       {/* Tab bar */}
       <div className="flex items-center border-b border-gray-800 flex-shrink-0 px-8" style={{ background: "#0d1117" }}>
         <button
-          onClick={() => setReadTab('content')}
-          className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-            readTab === 'content'
-              ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-gray-500 hover:text-gray-300'
-          }`}
-        >
-          📖 Content
-        </button>
-        <button
           onClick={() => setReadTab('resources')}
           className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
             readTab === 'resources'
@@ -253,6 +243,16 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
               readTab === 'resources' ? 'bg-sky-500/20 text-sky-300' : 'bg-gray-700 text-gray-400'
             }`}>{resCount}</span>
           )}
+        </button>
+        <button
+          onClick={() => setReadTab('content')}
+          className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+            readTab === 'content'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          📖 Content
         </button>
       </div>
 
