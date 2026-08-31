@@ -2,6 +2,92 @@
 
 :root {
   --sidebar-width: 260px;
+
+  /* Salesforce brand palette */
+  --sf-navy:        #032d60;
+  --sf-navy-light:  #0a3d7a;
+  --sf-blue:        #0176d3;
+  --sf-blue-bright: #1589ee;
+  --sf-sky:         #00a1e0;
+  --sf-teal:        #06b6d4;
+  --sf-einstein:    #ff784f;   /* Einstein orange */
+  --sf-purple:      #9c59ff;
+  --sf-green:       #3ba755;
+  --sf-gold:        #ffb75d;
+  --sf-text:        #e8f4ff;
+  --sf-muted:       #7eb3d8;
+}
+
+/* ── Slide animations ─────────────────────────── */
+@keyframes slide-in-up {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(-12px) rotate(3deg); }
+}
+@keyframes orb-drift {
+  0%   { transform: translate(0, 0)   scale(1);   }
+  33%  { transform: translate(24px, -18px) scale(1.08); }
+  66%  { transform: translate(-16px, 14px) scale(0.94); }
+  100% { transform: translate(0, 0)   scale(1);   }
+}
+@keyframes border-glow {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.7;  }
+}
+@keyframes icon-pulse {
+  0%, 100% { opacity: 0.18; transform: scale(1);    }
+  50%       { opacity: 0.28; transform: scale(1.04); }
+}
+@keyframes data-stream {
+  0%   { stroke-dashoffset: 200; opacity: 0;   }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.6; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes dot-ping {
+  0%   { transform: scale(1);   opacity: 1; }
+  70%  { transform: scale(1.8); opacity: 0; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+.anim-slide-up        { animation: slide-in-up   0.45s cubic-bezier(.22,.68,0,1.2) both; }
+.anim-slide-left      { animation: slide-in-left 0.4s  cubic-bezier(.22,.68,0,1.2) both; }
+.anim-float           { animation: float-slow    6s    ease-in-out infinite; }
+.anim-icon-pulse      { animation: icon-pulse    4s    ease-in-out infinite; }
+
+/* Slide presentation card */
+.sf-slide-card {
+  background: linear-gradient(135deg, var(--sf-navy) 0%, #04245a 60%, #061f4a 100%);
+  border: 1px solid rgba(1, 118, 211, 0.35);
+  box-shadow: 0 0 0 1px rgba(1, 118, 211, 0.1), 0 20px 60px rgba(3, 45, 96, 0.6), 0 0 80px rgba(0, 161, 224, 0.05);
+}
+
+.sf-slide-title-bar {
+  background: linear-gradient(90deg, var(--sf-blue) 0%, var(--sf-sky) 100%);
+  height: 3px;
+}
+
+.sf-progress-bar {
+  background: linear-gradient(90deg, var(--sf-blue) 0%, var(--sf-sky) 70%, var(--sf-teal) 100%);
+}
+
+/* Slide bullet dot */
+.sf-bullet-dot {
+  background: var(--sf-sky);
+  box-shadow: 0 0 6px rgba(0, 161, 224, 0.8);
+}
+
+/* Speaker notes panel */
+.sf-notes-panel {
+  background: rgba(255, 120, 79, 0.08);
+  border: 1px solid rgba(255, 120, 79, 0.25);
 }
 
 /* Prose styles for markdown content */

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { TRACKS, getTrack, getModule } from "@/lib/tracks";
 import { getMarkdownSections } from "@/lib/content";
-import { CoursePageClient } from "@/components/CoursePageClient";
+import { FullScreenSlides } from "@/components/FullScreenSlides";
 
 export function generateStaticParams() {
   const params: { track: string; module: string }[] = [];
@@ -17,7 +17,7 @@ interface Props {
   params: Promise<{ track: string; module: string }>;
 }
 
-export default async function ModulePage({ params }: Props) {
+export default async function SlidesPage({ params }: Props) {
   const { track: trackId, module: moduleId } = await params;
   const track = getTrack(trackId);
   const mod = getModule(trackId, moduleId);
@@ -30,13 +30,12 @@ export default async function ModulePage({ params }: Props) {
   const next = currentIndex < track.modules.length - 1 ? track.modules[currentIndex + 1] : null;
 
   return (
-    <CoursePageClient
+    <FullScreenSlides
       sections={sections}
-      track={track}
       mod={mod}
-      prev={prev}
-      next={next}
       trackId={trackId}
+      prevId={prev?.id ?? null}
+      nextId={next?.id ?? null}
     />
   );
 }
