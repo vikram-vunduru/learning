@@ -158,6 +158,51 @@ export const TRACKS: Track[] = [
       // Exam Prep
       { id: "admin-exam", title: "60-Question Practice Exam", file: "courses/salesforce/02-administrator/exam-prep/practice-exam-60-questions.md", month: 2, course: "Administrator", section: "Exam Preparation", type: "exam" },
       { id: "admin-cheatsheet", title: "Admin Cheat Sheet", file: "courses/salesforce/02-administrator/exam-prep/admin-cheat-sheet.md", month: 2, course: "Administrator", section: "Exam Preparation", type: "exam" },
+
+      // ── Course 3: Platform App Builder ──────────────────────────────────────
+      { id: "app-builder-overview", title: "Course Overview: Platform App Builder", file: "courses/salesforce/03-app-builder/00-course-overview.md", month: 3, course: "App Builder", section: "Course Overview", type: "study" },
+
+      // Section 01 — Platform Fundamentals
+      { id: "app-builder-l01", title: "L01: Salesforce Platform Overview", file: "courses/salesforce/03-app-builder/section-01-platform-fundamentals/lecture-01-salesforce-platform-overview.md", month: 3, course: "App Builder", section: "Platform Fundamentals", type: "lecture" },
+      { id: "app-builder-l02", title: "L02: Data Modeling Fundamentals", file: "courses/salesforce/03-app-builder/section-01-platform-fundamentals/lecture-02-data-modeling-fundamentals.md", month: 3, course: "App Builder", section: "Platform Fundamentals", type: "lecture" },
+      { id: "app-builder-l03", title: "L03: Salesforce Security Model", file: "courses/salesforce/03-app-builder/section-01-platform-fundamentals/lecture-03-salesforce-security-model.md", month: 3, course: "App Builder", section: "Platform Fundamentals", type: "lecture" },
+      { id: "app-builder-l04", title: "L04: Environment Strategy", file: "courses/salesforce/03-app-builder/section-01-platform-fundamentals/lecture-04-environment-strategy.md", month: 3, course: "App Builder", section: "Platform Fundamentals", type: "lecture" },
+
+      // Section 02 — Data Modeling
+      { id: "app-builder-l05", title: "L05: Custom Objects & Fields", file: "courses/salesforce/03-app-builder/section-02-data-modeling/lecture-05-custom-objects-fields.md", month: 3, course: "App Builder", section: "Data Modeling", type: "lecture" },
+      { id: "app-builder-l06", title: "L06: Object Relationships", file: "courses/salesforce/03-app-builder/section-02-data-modeling/lecture-06-object-relationships.md", month: 3, course: "App Builder", section: "Data Modeling", type: "lecture" },
+      { id: "app-builder-l07", title: "L07: Schema Builder", file: "courses/salesforce/03-app-builder/section-02-data-modeling/lecture-07-schema-builder.md", month: 3, course: "App Builder", section: "Data Modeling", type: "lecture" },
+      { id: "app-builder-l08", title: "L08: Data Management Tools", file: "courses/salesforce/03-app-builder/section-02-data-modeling/lecture-08-data-management-tools.md", month: 3, course: "App Builder", section: "Data Modeling", type: "lecture" },
+      { id: "app-builder-l09", title: "L09: Formula & Rollup Fields", file: "courses/salesforce/03-app-builder/section-02-data-modeling/lecture-09-formula-rollup-fields.md", month: 3, course: "App Builder", section: "Data Modeling", type: "lecture" },
+
+      // Section 03 — Business Logic & Automation
+      { id: "app-builder-l10", title: "L10: Validation Rules", file: "courses/salesforce/03-app-builder/section-03-business-logic-automation/lecture-10-validation-rules.md", month: 3, course: "App Builder", section: "Business Logic & Automation", type: "lecture" },
+      { id: "app-builder-l11", title: "L11: Flow Builder Fundamentals", file: "courses/salesforce/03-app-builder/section-03-business-logic-automation/lecture-11-flow-builder-fundamentals.md", month: 3, course: "App Builder", section: "Business Logic & Automation", type: "lecture" },
+      { id: "app-builder-l12", title: "L12: Record-Triggered Flows", file: "courses/salesforce/03-app-builder/section-03-business-logic-automation/lecture-12-record-triggered-flows.md", month: 3, course: "App Builder", section: "Business Logic & Automation", type: "lecture" },
+      { id: "app-builder-l13", title: "L13: Screen Flows", file: "courses/salesforce/03-app-builder/section-03-business-logic-automation/lecture-13-screen-flows.md", month: 3, course: "App Builder", section: "Business Logic & Automation", type: "lecture" },
+      { id: "app-builder-l14", title: "L14: Approval Processes", file: "courses/salesforce/03-app-builder/section-03-business-logic-automation/lecture-14-approval-processes.md", month: 3, course: "App Builder", section: "Business Logic & Automation", type: "lecture" },
+      { id: "app-builder-l15", title: "L15: When to Use Which Tool", file: "courses/salesforce/03-app-builder/section-03-business-logic-automation/lecture-15-when-to-use-which-tool.md", month: 3, course: "App Builder", section: "Business Logic & Automation", type: "lecture" },
+
+      // Section 04 — User Interface
+      { id: "app-builder-l16", title: "L16: Lightning App Builder", file: "courses/salesforce/03-app-builder/section-04-user-interface/lecture-16-lightning-app-builder.md", month: 3, course: "App Builder", section: "User Interface", type: "lecture" },
+      { id: "app-builder-l17", title: "L17: Lightning Components Overview", file: "courses/salesforce/03-app-builder/section-04-user-interface/lecture-17-lightning-components-overview.md", month: 3, course: "App Builder", section: "User Interface", type: "lecture" },
+      { id: "app-builder-l18", title: "L18: Page Layouts & Record Types", file: "courses/salesforce/03-app-builder/section-04-user-interface/lecture-18-page-layouts-record-types.md", month: 3, course: "App Builder", section: "User Interface", type: "lecture" },
+      { id: "app-builder-l19", title: "L19: List Views & Search Layouts", file: "courses/salesforce/03-app-builder/section-04-user-interface/lecture-19-list-views-search-layouts.md", month: 3, course: "App Builder", section: "User Interface", type: "lecture" },
+      { id: "app-builder-l20", title: "L20: App Manager & Navigation", file: "courses/salesforce/03-app-builder/section-04-user-interface/lecture-20-app-manager-navigation.md", month: 3, course: "App Builder", section: "User Interface", type: "lecture" },
+
+      // Section 05 — App Deployment
+      { id: "app-builder-l21", title: "L21: Change Sets & Deployment", file: "courses/salesforce/03-app-builder/section-05-app-deployment/lecture-21-change-sets-deployment.md", month: 3, course: "App Builder", section: "App Deployment", type: "lecture" },
+      { id: "app-builder-l22", title: "L22: Packages & AppExchange", file: "courses/salesforce/03-app-builder/section-05-app-deployment/lecture-22-packages-appexchange.md", month: 3, course: "App Builder", section: "App Deployment", type: "lecture" },
+      { id: "app-builder-l23", title: "L23: Release Management", file: "courses/salesforce/03-app-builder/section-05-app-deployment/lecture-23-release-management.md", month: 3, course: "App Builder", section: "App Deployment", type: "lecture" },
+
+      // Labs
+      { id: "app-builder-lab01", title: "Lab 1: Data Model Design", file: "courses/salesforce/03-app-builder/labs/lab-01-data-model-design.md", month: 3, course: "App Builder", section: "Hands-On Labs", type: "lab" },
+      { id: "app-builder-lab02", title: "Lab 2: Flow Builder Automation", file: "courses/salesforce/03-app-builder/labs/lab-02-flow-builder-automation.md", month: 3, course: "App Builder", section: "Hands-On Labs", type: "lab" },
+      { id: "app-builder-lab03", title: "Lab 3: Lightning App Build", file: "courses/salesforce/03-app-builder/labs/lab-03-lightning-app-build.md", month: 3, course: "App Builder", section: "Hands-On Labs", type: "lab" },
+
+      // Exam Prep
+      { id: "app-builder-exam", title: "60-Question Practice Exam", file: "courses/salesforce/03-app-builder/exam-prep/practice-exam-60-questions.md", month: 3, course: "App Builder", section: "Exam Preparation", type: "exam" },
+      { id: "app-builder-cheatsheet", title: "App Builder Cheat Sheet", file: "courses/salesforce/03-app-builder/exam-prep/app-builder-cheat-sheet.md", month: 3, course: "App Builder", section: "Exam Preparation", type: "exam" },
     ],
     certs: [
       { id: "ai-associate", name: "AI Associate", month: 1, cost: "$75", passScore: "65%", questions: 40 },

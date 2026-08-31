@@ -4,9 +4,11 @@ import Link from 'next/link';
 import type { ContentSections } from '@/lib/content';
 import type { Track, Module } from '@/lib/tracks';
 import { SlideView } from '@/components/SlideView';
-import { InstructorResources } from '@/components/InstructorResources';
+import { InstructorResources, resourceCount } from '@/components/InstructorResources';
 
 type Mode = 'read' | 'record';
+type ReadTab = 'content' | 'resources';
+type NotesTab = 'notes' | 'resources';
 
 interface Props {
   sections: ContentSections;
@@ -19,7 +21,10 @@ interface Props {
 
 export function CoursePageClient({ sections, track, mod, prev, next, trackId }: Props) {
   const [mode, setMode] = useState<Mode>('read');
+  const [readTab, setReadTab] = useState<ReadTab>('content');
+  const [notesTab, setNotesTab] = useState<NotesTab>('notes');
   const [mounted, setMounted] = useState(false);
+  const resCount = resourceCount(mod.id);
 
   useEffect(() => {
     setMounted(true);
@@ -133,43 +138,72 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
             )}
           </div>
 
-          {/* Right — Recording Notes/Script */}
-          <div className="w-2/5 overflow-y-auto bg-gray-950">
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-orange-400 text-sm font-semibold">📋 RECORDING NOTES</span>
-                <span className="text-gray-600 text-xs">Read aloud while recording</span>
-              </div>
+          {/* Right — Tab bar: Notes | Resources */}
+          <div className="w-2/5 flex flex-col bg-gray-950 overflow-hidden">
+            {/* Tab bar */}
+            <div className="flex items-center border-b border-gray-800 flex-shrink-0" style={{ background: "#0d1117" }}>
+              <button
+                onClick={() => setNotesTab('notes')}
+                className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  notesTab === 'notes'
+                    ? 'border-orange-500 text-orange-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                📋 Notes
+              </button>
+              <button
+                onClick={() => setNotesTab('resources')}
+                className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  notesTab === 'resources'
+                    ? 'border-sky-500 text-sky-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                📚 Resources
+                {resCount > 0 && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-mono ${
+                    notesTab === 'resources' ? 'bg-sky-500/20 text-sky-300' : 'bg-gray-700 text-gray-400'
+                  }`}>{resCount}</span>
+                )}
+              </button>
+            </div>
 
-              {sections.isLecture && sections.script ? (
-                <>
-                  <article className="prose prose-sm text-gray-200 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: sections.script }} />
-
-                  {sections.examTips && (
-                    <div className="mt-6 bg-yellow-950/40 border border-yellow-800/50 rounded-lg p-4">
-                      <h4 className="text-yellow-400 font-semibold text-sm mb-2">🔔 EXAM TIPS</h4>
-                      <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: sections.examTips }} />
+            {/* Tab content */}
+            <div className="flex-1 overflow-y-auto">
+              {notesTab === 'notes' ? (
+                <div className="p-5">
+                  {sections.isLecture && sections.script ? (
+                    <>
+                      <article className="prose prose-sm text-gray-200 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: sections.script }} />
+                      {sections.examTips && (
+                        <div className="mt-6 bg-yellow-950/40 border border-yellow-800/50 rounded-lg p-4">
+                          <h4 className="text-yellow-400 font-semibold text-sm mb-2">🔔 EXAM TIPS</h4>
+                          <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: sections.examTips }} />
+                        </div>
+                      )}
+                      {sections.summary && (
+                        <div className="mt-4 bg-green-950/40 border border-green-800/50 rounded-lg p-4">
+                          <h4 className="text-green-400 font-semibold text-sm mb-2">✅ SUMMARY</h4>
+                          <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: sections.summary }} />
+                        </div>
+                      )}
+                      {sections.quiz && (
+                        <div className="mt-4 bg-purple-950/40 border border-purple-800/50 rounded-lg p-4">
+                          <h4 className="text-purple-400 font-semibold text-sm mb-2">❓ MINI QUIZ</h4>
+                          <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: sections.quiz }} />
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-gray-500 text-sm italic">
+                      No recording script found for this module.
                     </div>
                   )}
-                  {sections.summary && (
-                    <div className="mt-4 bg-green-950/40 border border-green-800/50 rounded-lg p-4">
-                      <h4 className="text-green-400 font-semibold text-sm mb-2">✅ SUMMARY</h4>
-                      <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: sections.summary }} />
-                    </div>
-                  )}
-                  {sections.quiz && (
-                    <div className="mt-4 bg-purple-950/40 border border-purple-800/50 rounded-lg p-4">
-                      <h4 className="text-purple-400 font-semibold text-sm mb-2">❓ MINI QUIZ</h4>
-                      <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: sections.quiz }} />
-                    </div>
-                  )}
-                  <InstructorResources moduleId={mod.id} compact={true} />
-                </>
-              ) : (
-                <div className="text-gray-500 text-sm italic">
-                  No recording script found. This content doesn&apos;t have a dedicated script section.
                 </div>
+              ) : (
+                <InstructorResources moduleId={mod.id} variant="tab" />
               )}
             </div>
           </div>
@@ -180,9 +214,9 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
 
   // Read Mode
   return (
-    <div className="p-8">
+    <div className="flex flex-col min-h-screen">
       {/* Breadcrumb + Mode Toggle */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between px-8 py-4 border-b border-gray-800 flex-shrink-0">
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <Link href="/" className="hover:text-gray-300 transition-colors">Home</Link>
           <span>›</span>
@@ -193,12 +227,49 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
         <ModeToggle />
       </div>
 
-      <div className="max-w-4xl">
-        <article className="prose bg-gray-800 rounded-xl p-8 border border-gray-700"
-          dangerouslySetInnerHTML={{ __html: sections.fullHtml }} />
-        <InstructorResources moduleId={mod.id} />
-        <NavButtons className="mt-6" />
+      {/* Tab bar */}
+      <div className="flex items-center border-b border-gray-800 flex-shrink-0 px-8" style={{ background: "#0d1117" }}>
+        <button
+          onClick={() => setReadTab('content')}
+          className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+            readTab === 'content'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          📖 Content
+        </button>
+        <button
+          onClick={() => setReadTab('resources')}
+          className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+            readTab === 'resources'
+              ? 'border-sky-500 text-sky-400'
+              : 'border-transparent text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          📚 Resources
+          {resCount > 0 && (
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-mono ${
+              readTab === 'resources' ? 'bg-sky-500/20 text-sky-300' : 'bg-gray-700 text-gray-400'
+            }`}>{resCount}</span>
+          )}
+        </button>
       </div>
+
+      {/* Tab content */}
+      {readTab === 'content' ? (
+        <div className="p-8">
+          <div className="max-w-4xl">
+            <article className="prose bg-gray-800 rounded-xl p-8 border border-gray-700"
+              dangerouslySetInnerHTML={{ __html: sections.fullHtml }} />
+            <NavButtons className="mt-6" />
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 max-w-4xl w-full px-8 py-4">
+          <InstructorResources moduleId={mod.id} variant="tab" />
+        </div>
+      )}
     </div>
   );
 }

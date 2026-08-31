@@ -5,7 +5,12 @@ import { getResources, RESOURCE_META, type Resource, type ResourceType } from "@
 
 interface Props {
   moduleId: string;
-  compact?: boolean; // compact = record-mode right panel; !compact = read-mode collapsible
+  compact?: boolean;   // compact = old collapsible in record panel (kept for fallback)
+  variant?: "collapsible" | "tab"; // tab = fully expanded, used inside a dedicated tab
+}
+
+export function resourceCount(moduleId: string): number {
+  return getResources(moduleId).length;
 }
 
 const TYPE_ORDER: ResourceType[] = ["docs", "trailhead", "youtube", "video", "blog", "udemy"];
@@ -101,11 +106,18 @@ function ResourceCard({ r, compact }: { r: Resource; compact: boolean }) {
   );
 }
 
-export function InstructorResources({ moduleId, compact = false }: Props) {
+export function InstructorResources({ moduleId, compact = false, variant = "collapsible" }: Props) {
   const [open, setOpen] = useState(false);
   const resources = getResources(moduleId);
 
-  if (resources.length === 0) return null;
+  if (resources.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <span className="text-4xl mb-3">📭</span>
+        <p className="text-sm" style={{ color: "rgba(126,179,216,0.5)" }}>No resources added for this module yet.</p>
+      </div>
+    );
+  }
 
   // Group by type, maintaining TYPE_ORDER
   const grouped: Partial<Record<ResourceType, Resource[]>> = {};
@@ -114,6 +126,54 @@ export function InstructorResources({ moduleId, compact = false }: Props) {
     grouped[r.type]!.push(r);
   }
   const presentTypes = TYPE_ORDER.filter((t) => grouped[t]?.length);
+
+  // ── Tab variant — fully expanded, no toggle needed ───────────────────────
+  if (variant === "tab") {
+    return (
+      <div className="h-full overflow-y-auto px-5 py-4">
+        {/* Type legend pills */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {presentTypes.map((t) => {
+            const meta = RESOURCE_META[t];
+            return (
+              <span key={t} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+                style={{ background: `${meta.color}15`, color: meta.color, border: `1px solid ${meta.color}30` }}>
+                {meta.icon} {meta.label}
+                <span className="ml-1 opacity-60">{grouped[t]!.length}</span>
+              </span>
+            );
+          })}
+        </div>
+
+        {presentTypes.map((type) => {
+          const meta = RESOURCE_META[type];
+          const items = grouped[type]!;
+          return (
+            <div key={type} className="mb-6 last:mb-2">
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="w-6 h-6 rounded flex items-center justify-center text-sm flex-shrink-0"
+                  style={{ background: `${meta.color}20`, border: `1px solid ${meta.color}35` }}>
+                  {meta.icon}
+                </span>
+                <h3 className="text-xs font-bold tracking-widest uppercase" style={{ color: meta.color }}>
+                  {meta.label}
+                </h3>
+                <span className="text-xs px-1.5 py-0.5 rounded-full"
+                  style={{ background: `${meta.color}12`, color: meta.color, fontSize: 10 }}>
+                  {items.length}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {items.map((r, i) => (
+                  <ResourceCard key={i} r={r} compact={false} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   // ── Compact (Record Mode) ─────────────────────────────────────────────────
   if (compact) {
