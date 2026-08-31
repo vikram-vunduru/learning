@@ -32,6 +32,20 @@ function getColors(title: string) {
   return SECTION_COLORS.default;
 }
 
+// Render inline markdown: **bold**, `code`, _italic_
+function md(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|_[^_]+_)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**"))
+      return <strong key={i} style={{ color: "#fff", fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith("`") && part.endsWith("`"))
+      return <code key={i} style={{ background: "rgba(1,118,211,0.25)", color: "#7dd3fc", padding: "0 4px", borderRadius: 3, fontSize: "0.85em", fontFamily: "monospace" }}>{part.slice(1, -1)}</code>;
+    if (part.startsWith("_") && part.endsWith("_"))
+      return <em key={i} style={{ color: "#a5c8f0" }}>{part.slice(1, -1)}</em>;
+    return part;
+  });
+}
+
 // Salesforce cloud SVG icon (inline, lightweight)
 function SFCloud({ size = 20, color = "#00a1e0" }: { size?: number; color?: string }) {
   return (
@@ -204,7 +218,7 @@ export function SlideView({ slides, title, trackId, moduleId }: Props) {
                   style={{ animationDelay: `${i * 80}ms` }}>
                   <span className="mt-2 w-1.5 h-1.5 rounded-full flex-shrink-0"
                     style={{ background: colors.dot, boxShadow: `0 0 6px ${colors.dot}99` }} />
-                  <span className="text-sm leading-relaxed" style={{ color: "#cce4f7" }}>{bullet}</span>
+                  <span className="text-sm leading-relaxed" style={{ color: "#cce4f7" }}>{md(bullet)}</span>
                 </li>
               ))}
             </ul>
@@ -215,7 +229,7 @@ export function SlideView({ slides, title, trackId, moduleId }: Props) {
             <div className="mx-5 mb-5 rounded-xl px-4 py-3 flex items-start gap-2.5 relative"
               style={{ background: "rgba(3,45,96,0.8)", border: "1px solid rgba(1,118,211,0.2)" }}>
               <span className="text-base flex-shrink-0">🖼️</span>
-              <p className="text-xs italic leading-relaxed" style={{ color: "#7eb3d8" }}>{slide.visual}</p>
+              <p className="text-xs italic leading-relaxed" style={{ color: "#7eb3d8" }}>{md(slide.visual)}</p>
             </div>
           )}
         </div>
@@ -227,7 +241,7 @@ export function SlideView({ slides, title, trackId, moduleId }: Props) {
               <span style={{ color: "#ff784f" }} className="text-xs font-bold tracking-wide">🎙️ SPEAKER NOTES</span>
             </div>
             <p className="text-xs leading-relaxed" style={{ color: "rgba(255,180,140,0.75)" }}>
-              {slide.speakerNotes}
+              {md(slide.speakerNotes)}
             </p>
           </div>
         )}

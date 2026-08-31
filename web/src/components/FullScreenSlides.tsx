@@ -34,6 +34,20 @@ function getColors(title: string) {
   return SECTION_COLORS.default;
 }
 
+// Render inline markdown: **bold**, `code`, _italic_
+function md(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|_[^_]+_)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**"))
+      return <strong key={i} style={{ color: "#fff", fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith("`") && part.endsWith("`"))
+      return <code key={i} style={{ background: "rgba(1,118,211,0.25)", color: "#7dd3fc", padding: "0 5px", borderRadius: 3, fontSize: "0.82em", fontFamily: "monospace" }}>{part.slice(1, -1)}</code>;
+    if (part.startsWith("_") && part.endsWith("_"))
+      return <em key={i} style={{ color: "#a5c8f0" }}>{part.slice(1, -1)}</em>;
+    return part;
+  });
+}
+
 function SFCloud({ size = 24, color = "#00a1e0" }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size * 0.68} viewBox="0 0 52 35" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -216,7 +230,7 @@ export function FullScreenSlides({ sections, mod, trackId, prevId, nextId }: Pro
                     style={{ animationDelay: `${i * 100}ms` }}>
                     <span className="mt-2.5 w-2 h-2 rounded-full flex-shrink-0"
                       style={{ background: colors.dot, boxShadow: `0 0 10px ${colors.dot}` }} />
-                    <span className="text-xl leading-relaxed" style={{ color: "#cce4f7" }}>{bullet}</span>
+                    <span className="text-xl leading-relaxed" style={{ color: "#cce4f7" }}>{md(bullet)}</span>
                   </li>
                 ))}
               </ul>
@@ -227,7 +241,7 @@ export function FullScreenSlides({ sections, mod, trackId, prevId, nextId }: Pro
               <div className="mx-8 mb-7 rounded-2xl px-6 py-4 flex items-start gap-3 relative"
                 style={{ background: "rgba(3,45,96,0.7)", border: `1px solid ${colors.accent}30` }}>
                 <span className="text-xl flex-shrink-0 mt-0.5">🖼️</span>
-                <p className="text-sm italic leading-relaxed" style={{ color: "#7eb3d8" }}>{slide.visual}</p>
+                <p className="text-sm italic leading-relaxed" style={{ color: "#7eb3d8" }}>{md(slide.visual)}</p>
               </div>
             )}
           </div>
@@ -241,7 +255,7 @@ export function FullScreenSlides({ sections, mod, trackId, prevId, nextId }: Pro
                 🎙️ SPEAKER NOTES
               </p>
               <p className="text-sm leading-relaxed" style={{ color: "rgba(255,180,140,0.7)" }}>
-                {slide.speakerNotes}
+                {md(slide.speakerNotes)}
               </p>
             </div>
           )}
