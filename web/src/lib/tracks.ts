@@ -88,6 +88,76 @@ export const TRACKS: Track[] = [
       // Exam Prep
       { id: "ai-assoc-exam", title: "40-Question Practice Exam", file: "courses/salesforce/01-ai-associate/exam-prep/practice-exam-full-40-questions.md", month: 1, course: "AI Associate", section: "Exam Preparation", type: "exam" },
       { id: "ai-assoc-cheatsheet", title: "Cheat Sheet — Top Concepts", file: "courses/salesforce/01-ai-associate/exam-prep/top-concepts-cheat-sheet.md", month: 1, course: "AI Associate", section: "Exam Preparation", type: "exam" },
+
+      // ── Salesforce Administrator ──────────────────────────────────────────
+      { id: "admin-overview", title: "Course Overview", file: "courses/salesforce/02-administrator/00-course-overview.md", month: 2, course: "Administrator", type: "study" },
+
+      // Section 01 — Org Setup
+      { id: "admin-l01", title: "L1: Salesforce Org Setup", file: "courses/salesforce/02-administrator/section-01-org-setup/lecture-01-salesforce-org-setup.md", month: 2, course: "Administrator", section: "Org Setup", type: "lecture" },
+      { id: "admin-l02", title: "L2: Company Information & Settings", file: "courses/salesforce/02-administrator/section-01-org-setup/lecture-02-company-information-settings.md", month: 2, course: "Administrator", section: "Org Setup", type: "lecture" },
+      { id: "admin-l03", title: "L3: Lightning Experience", file: "courses/salesforce/02-administrator/section-01-org-setup/lecture-03-lightning-experience.md", month: 2, course: "Administrator", section: "Org Setup", type: "lecture" },
+      { id: "admin-l04", title: "L4: AppExchange", file: "courses/salesforce/02-administrator/section-01-org-setup/lecture-04-appexchange.md", month: 2, course: "Administrator", section: "Org Setup", type: "lecture" },
+
+      // Section 02 — User Management
+      { id: "admin-l05", title: "L5: User Setup & Management", file: "courses/salesforce/02-administrator/section-02-user-management/lecture-05-user-setup-management.md", month: 2, course: "Administrator", section: "User Management", type: "lecture" },
+      { id: "admin-l06", title: "L6: Profiles & Permission Sets", file: "courses/salesforce/02-administrator/section-02-user-management/lecture-06-profiles-permission-sets.md", month: 2, course: "Administrator", section: "User Management", type: "lecture" },
+      { id: "admin-l07", title: "L7: Roles & Hierarchy", file: "courses/salesforce/02-administrator/section-02-user-management/lecture-07-roles-hierarchy.md", month: 2, course: "Administrator", section: "User Management", type: "lecture" },
+      { id: "admin-l08", title: "L8: Delegated Administration", file: "courses/salesforce/02-administrator/section-02-user-management/lecture-08-delegated-administration.md", month: 2, course: "Administrator", section: "User Management", type: "lecture" },
+
+      // Section 03 — Security & Access
+      { id: "admin-l09", title: "L9: Org-Wide Defaults", file: "courses/salesforce/02-administrator/section-03-security-access/lecture-09-org-wide-defaults.md", month: 2, course: "Administrator", section: "Security & Access", type: "lecture" },
+      { id: "admin-l10", title: "L10: Sharing Rules", file: "courses/salesforce/02-administrator/section-03-security-access/lecture-10-sharing-rules.md", month: 2, course: "Administrator", section: "Security & Access", type: "lecture" },
+      { id: "admin-l11", title: "L11: Manual Sharing & Teams", file: "courses/salesforce/02-administrator/section-03-security-access/lecture-11-manual-sharing-teams.md", month: 2, course: "Administrator", section: "Security & Access", type: "lecture" },
+      { id: "admin-l12", title: "L12: Field & Record Level Security", file: "courses/salesforce/02-administrator/section-03-security-access/lecture-12-field-record-level-security.md", month: 2, course: "Administrator", section: "Security & Access", type: "lecture" },
+
+      // Section 04 — Standard & Custom Objects
+      { id: "admin-l13", title: "L13: Object Manager & Fields", file: "courses/salesforce/02-administrator/section-04-standard-custom-objects/lecture-13-object-manager-fields.md", month: 2, course: "Administrator", section: "Objects & Fields", type: "lecture" },
+      { id: "admin-l14", title: "L14: Custom Fields & Data Types", file: "courses/salesforce/02-administrator/section-04-standard-custom-objects/lecture-14-custom-fields-data-types.md", month: 2, course: "Administrator", section: "Objects & Fields", type: "lecture" },
+      { id: "admin-l15", title: "L15: Page Layouts & Record Types", file: "courses/salesforce/02-administrator/section-04-standard-custom-objects/lecture-15-page-layouts-record-types.md", month: 2, course: "Administrator", section: "Objects & Fields", type: "lecture" },
+      { id: "admin-l16", title: "L16: Relationships & Junction Objects", file: "courses/salesforce/02-administrator/section-04-standard-custom-objects/lecture-16-relationships-junction-objects.md", month: 2, course: "Administrator", section: "Objects & Fields", type: "lecture" },
+      { id: "admin-l17", title: "L17: Formula & Roll-Up Summary Fields", file: "courses/salesforce/02-administrator/section-04-standard-custom-objects/lecture-17-formula-rollup-fields.md", month: 2, course: "Administrator", section: "Objects & Fields", type: "lecture" },
+
+      // Section 05 — Sales & Marketing
+      { id: "admin-l18", title: "L18: Leads & Campaigns", file: "courses/salesforce/02-administrator/section-05-sales-marketing/lecture-18-leads-campaigns.md", month: 2, course: "Administrator", section: "Sales & Marketing", type: "lecture" },
+      { id: "admin-l19", title: "L19: Accounts & Contacts", file: "courses/salesforce/02-administrator/section-05-sales-marketing/lecture-19-accounts-contacts.md", month: 2, course: "Administrator", section: "Sales & Marketing", type: "lecture" },
+      { id: "admin-l20", title: "L20: Opportunities & Products", file: "courses/salesforce/02-administrator/section-05-sales-marketing/lecture-20-opportunities-products.md", month: 2, course: "Administrator", section: "Sales & Marketing", type: "lecture" },
+      { id: "admin-l21", title: "L21: Quotes & Contracts", file: "courses/salesforce/02-administrator/section-05-sales-marketing/lecture-21-quotes-contracts.md", month: 2, course: "Administrator", section: "Sales & Marketing", type: "lecture" },
+
+      // Section 06 — Service & Support
+      { id: "admin-l22", title: "L22: Cases & Case Management", file: "courses/salesforce/02-administrator/section-06-service-support/lecture-22-cases-case-management.md", month: 2, course: "Administrator", section: "Service & Support", type: "lecture" },
+      { id: "admin-l23", title: "L23: Queues & Assignment Rules", file: "courses/salesforce/02-administrator/section-06-service-support/lecture-23-queues-assignment-rules.md", month: 2, course: "Administrator", section: "Service & Support", type: "lecture" },
+      { id: "admin-l24", title: "L24: Entitlements & Milestones", file: "courses/salesforce/02-administrator/section-06-service-support/lecture-24-entitlements-milestones.md", month: 2, course: "Administrator", section: "Service & Support", type: "lecture" },
+      { id: "admin-l25", title: "L25: Salesforce Knowledge", file: "courses/salesforce/02-administrator/section-06-service-support/lecture-25-knowledge-articles.md", month: 2, course: "Administrator", section: "Service & Support", type: "lecture" },
+
+      // Section 07 — Activity & Chatter
+      { id: "admin-l26", title: "L26: Activities, Tasks & Events", file: "courses/salesforce/02-administrator/section-07-activity-chatter/lecture-26-activities-tasks-events.md", month: 2, course: "Administrator", section: "Productivity & Collaboration", type: "lecture" },
+      { id: "admin-l27", title: "L27: Chatter & Collaboration", file: "courses/salesforce/02-administrator/section-07-activity-chatter/lecture-27-chatter-collaboration.md", month: 2, course: "Administrator", section: "Productivity & Collaboration", type: "lecture" },
+
+      // Section 08 — Data & Analytics
+      { id: "admin-l28", title: "L28: Reports Basics", file: "courses/salesforce/02-administrator/section-08-data-analytics/lecture-28-reports-basics.md", month: 2, course: "Administrator", section: "Data & Analytics", type: "lecture" },
+      { id: "admin-l29", title: "L29: Report Types & Formats", file: "courses/salesforce/02-administrator/section-08-data-analytics/lecture-29-report-types-formats.md", month: 2, course: "Administrator", section: "Data & Analytics", type: "lecture" },
+      { id: "admin-l30", title: "L30: Dashboards", file: "courses/salesforce/02-administrator/section-08-data-analytics/lecture-30-dashboards.md", month: 2, course: "Administrator", section: "Data & Analytics", type: "lecture" },
+      { id: "admin-l31", title: "L31: List Views & Filters", file: "courses/salesforce/02-administrator/section-08-data-analytics/lecture-31-list-views-filters.md", month: 2, course: "Administrator", section: "Data & Analytics", type: "lecture" },
+
+      // Section 09 — Automation
+      { id: "admin-l32", title: "L32: Validation Rules", file: "courses/salesforce/02-administrator/section-09-automation/lecture-32-validation-rules.md", month: 2, course: "Administrator", section: "Automation", type: "lecture" },
+      { id: "admin-l33", title: "L33: Workflow Rules", file: "courses/salesforce/02-administrator/section-09-automation/lecture-33-workflow-rules.md", month: 2, course: "Administrator", section: "Automation", type: "lecture" },
+      { id: "admin-l34", title: "L34: Process Builder & Flows", file: "courses/salesforce/02-administrator/section-09-automation/lecture-34-process-builder-flows.md", month: 2, course: "Administrator", section: "Automation", type: "lecture" },
+      { id: "admin-l35", title: "L35: Approval Processes", file: "courses/salesforce/02-administrator/section-09-automation/lecture-35-approval-processes.md", month: 2, course: "Administrator", section: "Automation", type: "lecture" },
+
+      // Section 10 — Data Management
+      { id: "admin-l36", title: "L36: Data Import & Export", file: "courses/salesforce/02-administrator/section-10-data-management/lecture-36-data-import-export.md", month: 2, course: "Administrator", section: "Data Management", type: "lecture" },
+      { id: "admin-l37", title: "L37: Data Quality & Duplicate Management", file: "courses/salesforce/02-administrator/section-10-data-management/lecture-37-data-quality-duplicate-management.md", month: 2, course: "Administrator", section: "Data Management", type: "lecture" },
+      { id: "admin-l38", title: "L38: Sandboxes & Change Sets", file: "courses/salesforce/02-administrator/section-10-data-management/lecture-38-sandboxes-change-sets.md", month: 2, course: "Administrator", section: "Data Management", type: "lecture" },
+
+      // Labs
+      { id: "admin-lab01", title: "Lab 1: Admin Org Setup", file: "courses/salesforce/02-administrator/labs/lab-01-admin-org-setup.md", month: 2, course: "Administrator", section: "Hands-On Labs", type: "lab" },
+      { id: "admin-lab02", title: "Lab 2: Security Model Setup", file: "courses/salesforce/02-administrator/labs/lab-02-security-model-setup.md", month: 2, course: "Administrator", section: "Hands-On Labs", type: "lab" },
+      { id: "admin-lab03", title: "Lab 3: Custom Objects & Automation", file: "courses/salesforce/02-administrator/labs/lab-03-custom-objects-automation.md", month: 2, course: "Administrator", section: "Hands-On Labs", type: "lab" },
+
+      // Exam Prep
+      { id: "admin-exam", title: "60-Question Practice Exam", file: "courses/salesforce/02-administrator/exam-prep/practice-exam-60-questions.md", month: 2, course: "Administrator", section: "Exam Preparation", type: "exam" },
+      { id: "admin-cheatsheet", title: "Admin Cheat Sheet", file: "courses/salesforce/02-administrator/exam-prep/admin-cheat-sheet.md", month: 2, course: "Administrator", section: "Exam Preparation", type: "exam" },
     ],
     certs: [
       { id: "ai-associate", name: "AI Associate", month: 1, cost: "$75", passScore: "65%", questions: 40 },
