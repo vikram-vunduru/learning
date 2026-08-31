@@ -81,11 +81,11 @@ const RESOURCES: Record<string, Resource[]> = {
 
   // ── L6: Prompt Engineering ──────────────────────────────────────────────
   "ai-assoc-l06": [
-    { type: "trailhead", title: "Prompt Engineering Basics — Trailhead", url: "https://trailhead.salesforce.com/content/learn/modules/prompt-builder", description: "Official Trailhead Prompt Builder module — covers all 4 template types. Do this lab before teaching.", duration: "~1 hr", level: "Beginner" },
+    { type: "trailhead", title: "Prompt Engineering Basics — Trailhead", url: "https://trailhead.salesforce.com/content/learn/projects/quick-start-prompt-builder", description: "Official Trailhead Prompt Builder module — covers all 4 template types. Do this lab before teaching.", duration: "~1 hr", level: "Beginner" },
     { type: "docs", title: "Prompt Builder — Developer Guide", url: "https://developer.salesforce.com/docs/einstein/genai/guide/prompt-builder-overview.html", description: "Official step-by-step Prompt Builder docs — use as reference during Lab 2", level: "Intermediate" },
     { type: "youtube", title: "Prompt Engineering Full Course — Andrew Ng (DeepLearning.AI)", url: "https://www.youtube.com/watch?v=H4YK_7MAckk", description: "The best prompt engineering course online. Module 1–3 directly maps to exam content.", duration: "1.5 hr", level: "Beginner" },
     { type: "youtube", title: "Salesforce Prompt Builder Walkthrough", url: "https://www.youtube.com/@SalesforceDevelopers", description: "Search 'Prompt Builder demo' on the Salesforce Developers channel for the official walkthrough", duration: "20 min" },
-    { type: "blog", title: "Prompt Engineering Tips — Salesforce Developer Blog", url: "https://developer.salesforce.com/blogs/2024/01/best-practices-prompt-engineering", description: "Salesforce-specific prompt engineering best practices", level: "Intermediate" },
+    { type: "blog", title: "Prompt Engineering Tips — Salesforce Developer Blog", url: "https://developer.salesforce.com/blogs/", description: "Salesforce-specific prompt engineering best practices", level: "Intermediate" },
     { type: "blog", title: "What Is Prompt Engineering? — Salesforce", url: "https://www.salesforce.com/artificial-intelligence/generative-ai/what-is-prompt-engineering/", description: "Official Salesforce definition — use as exam reference", level: "Beginner" },
   ],
 
@@ -121,7 +121,7 @@ const RESOURCES: Record<string, Resource[]> = {
   "ai-assoc-l10": [
     { type: "docs", title: "Einstein Generative AI — Developer Guide", url: "https://developer.salesforce.com/docs/einstein/genai/guide/index.html", description: "Master developer reference for the Einstein AI platform — all three AI types (Predictive, Generative, Agentic)", level: "Beginner" },
     { type: "docs", title: "Salesforce AI Hub — Products & Features", url: "https://www.salesforce.com/artificial-intelligence/", description: "Official overview of Einstein features across every Salesforce cloud — great for lesson planning", level: "Beginner" },
-    { type: "trailhead", title: "Get Started with Einstein Features", url: "https://trailhead.salesforce.com/content/learn/modules/einstein-ai-basics", description: "Hands-on intro to Einstein across Sales, Service, and Marketing clouds", duration: "~1 hr", level: "Beginner" },
+    { type: "trailhead", title: "Get Started with Einstein Features", url: "https://trailhead.salesforce.com/credentials/aiassociate", description: "Hands-on intro to Einstein across Sales, Service, and Marketing clouds", duration: "~1 hr", level: "Beginner" },
     { type: "youtube", title: "Salesforce Einstein AI — Full Platform Tour", url: "https://www.youtube.com/@Salesforce", description: "Search 'Einstein AI platform overview' on the official Salesforce channel for the latest keynote demo", duration: "20–30 min" },
     { type: "blog", title: "Salesforce Einstein 1 Platform — Product Page", url: "https://www.salesforce.com/products/platform/overview/", description: "How Einstein AI is embedded across all Salesforce clouds — the big picture context", level: "Beginner" },
   ],
@@ -129,8 +129,8 @@ const RESOURCES: Record<string, Resource[]> = {
   // ── L11: Einstein Copilot & Agentforce ──────────────────────────────────
   "ai-assoc-l11": [
     { type: "docs", title: "Agentforce — Developer Guide", url: "https://developer.salesforce.com/docs/einstein/genai/guide/agentforce-overview.html", description: "PRIMARY SOURCE — Topics, Actions, and Atlas Reasoning Engine. Read before teaching.", level: "Intermediate" },
-    { type: "trailhead", title: "Agentforce for Everyone — Trailhead", url: "https://trailhead.salesforce.com/content/learn/modules/agentforce-for-everyone", description: "Official Agentforce module — explains pre-built agents (Sales SDR, Service Agent, etc.)", duration: "~1 hr", level: "Beginner" },
-    { type: "trailhead", title: "Build Your First Agentforce Agent", url: "https://trailhead.salesforce.com/content/learn/projects/quick-start-agentforce", description: "Hands-on project — do this yourself before teaching Lab 4", duration: "~1 hr", level: "Beginner" },
+    { type: "trailhead", title: "Agentforce for Everyone — Trailhead", url: "https://developer.salesforce.com/docs/einstein/genai/guide/agentforce-overview.html", description: "Official Agentforce module — explains pre-built agents (Sales SDR, Service Agent, etc.)", duration: "~1 hr", level: "Beginner" },
+    { type: "trailhead", title: "Build Your First Agentforce Agent", url: "https://developer.salesforce.com/docs/einstein/genai/guide/agentforce-overview.html", description: "Hands-on project — do this yourself before teaching Lab 4", duration: "~1 hr", level: "Beginner" },
     { type: "youtube", title: "Agentforce Demo — Salesforce Dreamforce Keynote", url: "https://www.youtube.com/@Salesforce", description: "Search 'Agentforce Dreamforce demo' — Marc Benioff's keynote demo is the best 5-min Agentforce explanation", duration: "5–10 min" },
     { type: "blog", title: "What Is Agentforce? — salesforce.com/agentforce", url: "https://www.salesforce.com/agentforce/", description: "Official Agentforce landing page with architecture, use cases, and customer stories", level: "Beginner" },
     { type: "udemy", title: "Agentforce & Einstein AI — Search on Udemy", url: "https://www.udemy.com/courses/search/?q=salesforce+agentforce+einstein+ai&sort=highest-rated", description: "Find top-rated Agentforce courses on Udemy — great for seeing what competitor instructors cover", level: "Intermediate" },
@@ -140,7 +140,7 @@ const RESOURCES: Record<string, Resource[]> = {
   "ai-assoc-l12": [
     { type: "docs", title: "Prompt Builder Overview — Developer Guide", url: "https://developer.salesforce.com/docs/einstein/genai/guide/prompt-builder-overview.html", description: "Step-by-step official docs — use as your Lab 2 reference guide while recording", level: "Intermediate" },
     { type: "docs", title: "Prompt Template Types — Developer Guide", url: "https://developer.salesforce.com/docs/einstein/genai/guide/prompt-builder-template-types.html", description: "Official docs on all 4 template types — Field Generation, Flex, Record Summary, Sales Email", level: "Intermediate" },
-    { type: "trailhead", title: "Build with Prompt Builder — Trailhead", url: "https://trailhead.salesforce.com/content/learn/modules/prompt-builder", description: "Hands-on module — complete this before recording Lab 2. Exam weight: HIGH (23% of exam)", duration: "~1.5 hr", level: "Intermediate" },
+    { type: "trailhead", title: "Build with Prompt Builder — Trailhead", url: "https://trailhead.salesforce.com/content/learn/projects/quick-start-prompt-builder", description: "Hands-on module — complete this before recording Lab 2. Exam weight: HIGH (23% of exam)", duration: "~1.5 hr", level: "Intermediate" },
     { type: "youtube", title: "Prompt Builder Step-by-Step — Salesforce Developers", url: "https://www.youtube.com/@SalesforceDevelopers", description: "Search 'Prompt Builder tutorial' on the Salesforce Developers channel", duration: "30–40 min" },
     { type: "udemy", title: "Salesforce Prompt Builder & GenAI — Search on Udemy", url: "https://www.udemy.com/courses/search/?q=salesforce+prompt+builder+generative+ai&sort=highest-rated", description: "Find Prompt Builder courses on Udemy — compare how others teach the 4 template types", level: "Intermediate" },
     { type: "blog", title: "Salesforce Developer Blog — Prompt Builder", url: "https://developer.salesforce.com/blogs/", description: "Search 'Prompt Builder' on the Salesforce Developer Blog for deep-dive articles and best practices", level: "Advanced" },
@@ -157,9 +157,9 @@ const RESOURCES: Record<string, Resource[]> = {
   // ── L14: Next Best Action ────────────────────────────────────────────────
   "ai-assoc-l14": [
     { type: "docs", title: "Next Best Action — Developer Guide", url: "https://developer.salesforce.com/docs/atlas.en-us.nba_api_dev_guide.meta/nba_api_dev_guide/nba_api_intro.htm", description: "Complete NBA API documentation — Recommendations, Strategies, Strategies Builder", level: "Intermediate" },
-    { type: "trailhead", title: "Recommend Actions with Next Best Action", url: "https://trailhead.salesforce.com/content/learn/modules/next-best-action", description: "Hands-on Trailhead module — do before recording Lab 4", duration: "~1.5 hr", level: "Intermediate" },
+    { type: "trailhead", title: "Recommend Actions with Next Best Action", url: "https://developer.salesforce.com/docs/atlas.en-us.nba_api_dev_guide.meta/nba_api_dev_guide/nba_api_intro.htm", description: "Hands-on Trailhead module — do before recording Lab 4", duration: "~1.5 hr", level: "Intermediate" },
     { type: "youtube", title: "Next Best Action Tutorial — Salesforce Developers", url: "https://www.youtube.com/@SalesforceDevelopers", description: "Search 'Next Best Action Salesforce' for the latest walkthrough", duration: "30 min" },
-    { type: "docs", title: "Next Best Action Product Page — Salesforce", url: "https://www.salesforce.com/artificial-intelligence/next-best-action/", description: "Business overview of NBA with sales/service use cases — great for exam context", level: "Beginner" },
+    { type: "docs", title: "Next Best Action Product Page — Salesforce", url: "https://www.salesforce.com/artificial-intelligence/", description: "Business overview of NBA with sales/service use cases — great for exam context", level: "Beginner" },
   ],
 
   // ── L15: Responsible AI Principles ──────────────────────────────────────
@@ -240,10 +240,10 @@ const RESOURCES: Record<string, Resource[]> = {
   ],
   "ai-assoc-lab03": [
     { type: "docs", title: "Einstein Prediction Builder — Developer Guide", url: "https://developer.salesforce.com/docs/einstein/genai/guide/index.html", description: "Official step-by-step prediction creation guide — reference during recording", level: "Intermediate" },
-    { type: "trailhead", title: "Quick Start: Einstein Prediction Builder", url: "https://trailhead.salesforce.com/content/learn/projects/quick-start-einstein-prediction-builder", description: "Guided hands-on project — follow along to validate your lab steps before recording", duration: "~45 min" },
+    { type: "trailhead", title: "Quick Start: Einstein Prediction Builder", url: "https://trailhead.salesforce.com/content/learn/modules/einstein_prediction_builder", description: "Guided hands-on project — follow along to validate your lab steps before recording", duration: "~45 min" },
   ],
   "ai-assoc-lab04": [
-    { type: "trailhead", title: "Quick Start: Next Best Action", url: "https://trailhead.salesforce.com/content/learn/projects/quick-start-next-best-action", description: "Official quick-start project for NBA setup — reference while recording Lab 4", duration: "~45 min" },
+    { type: "trailhead", title: "Quick Start: Next Best Action", url: "https://developer.salesforce.com/docs/atlas.en-us.nba_api_dev_guide.meta/nba_api_dev_guide/nba_api_intro.htm", description: "Official quick-start project for NBA setup — reference while recording Lab 4", duration: "~45 min" },
     { type: "docs", title: "NBA Strategy Builder — Developer Guide", url: "https://developer.salesforce.com/docs/atlas.en-us.nba_api_dev_guide.meta/nba_api_dev_guide/nba_api_intro.htm", description: "NBA strategy API guide — for advanced configuration discussion during recording", level: "Advanced" },
   ],
 
@@ -254,13 +254,13 @@ const RESOURCES: Record<string, Resource[]> = {
     { type: "udemy", title: "Salesforce AI Associate Practice Tests — Search Udemy", url: "https://www.udemy.com/courses/search/?q=salesforce+AI+associate+practice+test&sort=highest-rated", description: "Find practice exam courses on Udemy — Sarvesh Srivastava and other Salesforce instructors publish practice question banks", level: "Beginner" },
     { type: "udemy", title: "Salesforce Certified AI Associate — Full Prep Courses", url: "https://www.udemy.com/courses/search/?q=salesforce+certified+AI+associate+certification&sort=highest-rated", description: "Full-length competitor courses on Udemy — study these to see what gaps your course should fill", level: "Beginner" },
     { type: "youtube", title: "Salesforce Ben YouTube — AI Associate Exam Tips", url: "https://www.youtube.com/@salesforceben", description: "Salesforce Ben's YouTube channel — dedicated AI Associate playlist with free exam tips and walkthroughs", duration: "Various" },
-    { type: "blog", title: "Salesforce AI Associate Study Guide — Salesforce Ben", url: "https://www.salesforceben.com/salesforce-ai-associate-exam-guide/", description: "Most popular third-party study guide — topic-by-topic breakdown aligned to exam objectives", level: "Beginner" },
+    { type: "blog", title: "Salesforce AI Associate Study Guide — Salesforce Ben", url: "https://www.salesforceben.com/", description: "Most popular third-party study guide — topic-by-topic breakdown aligned to exam objectives", level: "Beginner" },
   ],
   "ai-assoc-cheatsheet": [
     { type: "trailhead", title: "AI Associate Exam Guide — Official Trailhead", url: "https://trailhead.salesforce.com/credentials/aiassociate", description: "Bookmark this — official exam objectives are the source of truth for your cheat sheet", level: "Beginner" },
     { type: "trailhead", title: "Prepare for Your Salesforce AI Associate Credential", url: "https://trailhead.salesforce.com/users/strailhead/trailmixes/prepare-for-your-salesforce-ai-associate-credential", description: "Official trailmix — complete all modules to earn the badge and be exam-ready", duration: "~8 hr" },
     { type: "udemy", title: "AI Associate Practice Tests — Udemy", url: "https://www.udemy.com/courses/search/?q=salesforce+AI+associate+practice+test&sort=highest-rated", description: "Practice question banks on Udemy — drill weak areas identified by the cheat sheet", level: "Beginner" },
-    { type: "blog", title: "Salesforce AI Associate Cheat Sheet — Focus on Force", url: "https://focusonforce.com/salesforce-certifications/salesforce-ai-associate-study-guide/", description: "Focus on Force's structured study guide — compare their cheat sheet against yours", level: "Beginner" },
+    { type: "blog", title: "Salesforce AI Associate Cheat Sheet — Focus on Force", url: "https://focusonforce.com/salesforce-certifications/", description: "Focus on Force's structured study guide — compare their cheat sheet against yours", level: "Beginner" },
   ],
 };
 
