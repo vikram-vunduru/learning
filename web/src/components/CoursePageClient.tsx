@@ -81,12 +81,25 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
   );
 
   if (!mounted) {
-    // SSR fallback — Read Mode
+    // SSR fallback — show tab bar immediately, default to Content tab
     return (
-      <div className="p-8">
-        <div className="max-w-4xl">
-          <article className="prose bg-gray-800 rounded-xl p-8 border border-gray-700"
-            dangerouslySetInnerHTML={{ __html: sections.fullHtml }} />
+      <div className="flex flex-col min-h-screen">
+        <div className="flex items-center justify-between px-8 py-4 border-b border-gray-800 flex-shrink-0">
+          <div className="text-sm text-gray-500">{mod.title}</div>
+        </div>
+        <div className="flex items-center border-b border-gray-800 flex-shrink-0 px-8" style={{ background: "#0d1117" }}>
+          <div className="flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 cursor-pointer">
+            📚 Resources
+          </div>
+          <div className="flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-400">
+            📖 Content
+          </div>
+        </div>
+        <div className="p-8">
+          <div className="max-w-4xl">
+            <article className="prose bg-gray-800 rounded-xl p-8 border border-gray-700"
+              dangerouslySetInnerHTML={{ __html: sections.fullHtml }} />
+          </div>
         </div>
       </div>
     );
