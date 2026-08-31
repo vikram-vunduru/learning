@@ -1,3 +1,7 @@
+import { ADMIN_RESOURCES } from "./resources-admin";
+import { APP_BUILDER_RESOURCES } from "./resources-app-builder";
+import { PDI_RESOURCES } from "./resources-pdi";
+
 export type ResourceType = "docs" | "trailhead" | "youtube" | "blog" | "udemy" | "video";
 
 export interface Resource {
@@ -260,6 +264,13 @@ const RESOURCES: Record<string, Resource[]> = {
   ],
 };
 
+const ALL_RESOURCES: Record<string, Resource[]> = {
+  ...RESOURCES,
+  ...ADMIN_RESOURCES,
+  ...APP_BUILDER_RESOURCES,
+  ...PDI_RESOURCES,
+};
+
 export function getResources(moduleId: string): Resource[] {
-  return RESOURCES[moduleId] ?? [];
+  return ALL_RESOURCES[moduleId] ?? [];
 }
