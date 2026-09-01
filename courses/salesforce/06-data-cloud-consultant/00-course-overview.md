@@ -1,8 +1,8 @@
-# Course 6: Salesforce Data Cloud Consultant (CRT-251)
+# Course 6: Salesforce Certified Data 360 Consultant (CRT-251)
 
 ## Course Overview
 
-This course prepares you for the **Salesforce Data Cloud Consultant** certification exam (CRT-251). Data Cloud is Salesforce's real-time data platform that unifies customer data from multiple sources into a single Unified Customer Profile. This certification validates your ability to design, implement, and manage Data Cloud solutions for enterprise customers.
+This course prepares you for the **Salesforce Certified Data 360 Consultant** certification exam (CRT-251). Data Cloud is Salesforce's real-time data platform that unifies customer data from multiple sources into a single Unified Customer Profile. This certification validates your ability to design, implement, and manage Data Cloud solutions for enterprise customers.
 
 ---
 
@@ -23,7 +23,7 @@ This course prepares you for the **Salesforce Data Cloud Consultant** certificat
 
 ## Who This Exam Is For
 
-The Data Cloud Consultant certification is designed for professionals who:
+The Data 360 Consultant certification is designed for professionals who:
 
 - Implement and configure Salesforce Data Cloud for enterprise organizations
 - Have hands-on experience with data ingestion, identity resolution, and segmentation

@@ -3,7 +3,7 @@
 ## Learning Objectives
 - Explain how Data Cloud grounds Agentforce and Einstein AI with unified customer data
 - Describe Data Cloud's vector database capability and its role in semantic search
-- Identify the Einstein use cases powered by Data Cloud (Next Best Action, Einstein Copilot)
+- Identify the Einstein use cases powered by Data Cloud (Next Best Action, Agentforce)
 - Understand Model Builder and how it connects custom AI models to Data Cloud data
 
 ---
@@ -15,7 +15,7 @@
 ```
   ┌──────────────────────────────────────────────────────────┐
   │      TOP LAYER: AI AGENTS & ASSISTANTS                   │
-  │   Agentforce (autonomous agents)  Einstein Copilot       │
+  │   Agentforce Agents (autonomous)  Agentforce Assistants  │
   │   (takes actions on behalf of users) (assists users)     │
   └────────────────────────────┬─────────────────────────────┘
                                │  grounding (retrieves context)
@@ -43,7 +43,7 @@
 - Data Cloud provides: structured profile data (DMOs), behavioral context (CIs), and semantic search (vector database)
 - Einstein and Agentforce "reach into" Data Cloud to retrieve context before generating responses
 
-**Speaker Notes:** This lecture is about the intersection of Data Cloud and Salesforce's AI capabilities, which is increasingly prominent on the exam. The core concept is "grounding" — when an AI assistant (Agentforce, Einstein Copilot) needs to respond to a customer inquiry, it first retrieves relevant context from Data Cloud to inform its response. Without that grounding, the AI doesn't know who the specific customer is or what their history looks like. With grounding, it can say "I see your last order was placed on the 15th and is currently shipping — would you like me to check the tracking status?" Grounding is what makes AI personalized rather than generic.
+**Speaker Notes:** This lecture is about the intersection of Data Cloud and Salesforce's AI capabilities, which is increasingly prominent on the exam. The core concept is "grounding" — when an Agentforce agent needs to respond to a customer inquiry, it first retrieves relevant context from Data Cloud to inform its response. Without that grounding, the AI doesn't know who the specific customer is or what their history looks like. With grounding, it can say "I see your last order was placed on the 15th and is currently shipping — would you like me to check the tracking status?" Grounding is what makes AI personalized rather than generic.
 
 ---
 
@@ -129,17 +129,17 @@
 
 ---
 
-### Slide 4: Einstein Copilot & Data Cloud
+### Slide 4: Agentforce & Data Cloud (CRM Assistant)
 **Visual:**
 ```
-  EINSTEIN COPILOT — Sales Rep Experience
+  AGENTFORCE — Sales Rep Assistant Experience
   ──────────────────────────────────────────────────────────
   Sales Rep in Salesforce CRM:
   ┌──────────────────────────────────────────────────────┐
-  │ Ask Copilot: "What's the latest on this account?"    │
+  │ Ask Agentforce: "What's the latest on this account?" │
   └──────────────────────────────────────────────────────┘
                          │
-                         ▼ Copilot queries Data Cloud (grounding)
+                         ▼ Agentforce queries Data Cloud (grounding)
   Data Cloud returns:
   • Unified Individual profile (name, tier, contact)
   • CI: TotalSpend90d = $8,200
@@ -148,26 +148,26 @@
                          │
                          ▼ LLM assembles personalized summary
   ┌──────────────────────────────────────────────────────┐
-  │ Copilot response:                                    │
+  │ Agentforce response:                                 │
   │ "Acme Corp is a Gold tier customer with $8,200 in    │
   │  spend this quarter. They purchased Product X on     │
   │  9/10. Note: churn risk is elevated at 72% —         │
   │  consider a proactive check-in call."                │
   └──────────────────────────────────────────────────────┘
-  No-code integration: configured in Copilot setup
+  No-code integration: configured in Agentforce Studio
 ```
 
 **Content:**
-- **Einstein Copilot** is an AI assistant embedded in the Salesforce CRM experience
-- Data Cloud provides the customer context that Copilot uses to give data-informed answers
+- **Agentforce** (formerly Einstein Copilot) is the AI assistant embedded in the Salesforce CRM experience
+- Data Cloud provides the customer context that Agentforce uses to give data-informed answers
 - Example capabilities with Data Cloud grounding:
   - Summarize a customer's purchase history and loyalty status for a sales rep
   - Identify top at-risk accounts based on CRM + Data Cloud behavioral signals
   - Recommend next best actions based on unified customer profile data
-- Copilot actions can retrieve Data Cloud Unified Individual data directly
-- No-code integration: Copilot can be configured to include Data Cloud context without custom code
+- Agentforce actions can retrieve Data Cloud Unified Individual data directly
+- No-code integration: Agentforce can be configured to include Data Cloud context without custom code
 
-**Speaker Notes:** Einstein Copilot is a high-profile Salesforce feature and the exam tests its connection to Data Cloud. The key capability: Copilot can be connected to Data Cloud as a "data source" — so when a user asks Copilot a question about a customer, it retrieves the Unified Individual profile and CI metrics from Data Cloud as part of its answer. This is the exam-tested pattern: "which Salesforce feature would a consultant use to give sales reps AI-generated account summaries that include Data Cloud behavioral data?" The answer: Einstein Copilot with Data Cloud grounding.
+**Speaker Notes:** Agentforce (which replaced Einstein Copilot in 2024) is a high-profile Salesforce feature and the exam tests its connection to Data Cloud. The key capability: Agentforce can be connected to Data Cloud as a "data source" — so when a user asks Agentforce a question about a customer, it retrieves the Unified Individual profile and CI metrics from Data Cloud as part of its answer. This is the exam-tested pattern: "which Salesforce feature would a consultant use to give sales reps AI-generated account summaries that include Data Cloud behavioral data?" The answer: Agentforce with Data Cloud grounding.
 
 ---
 
@@ -197,13 +197,13 @@
   customer has consented to automated communications
   before sending confirmation
 
-  Agentforce vs. Copilot:
-  Copilot = assists users (suggests, answers)
-  Agentforce = takes ACTIONS autonomously
+  Agentforce Agent Types:
+  Assistant mode = assists users in CRM (suggests, answers)
+  Autonomous Agent = takes ACTIONS on behalf of users
 ```
 
 **Content:**
-- **Agentforce** is Salesforce's autonomous AI agent platform (goes beyond Copilot responses to full task execution)
+- **Agentforce** is Salesforce's autonomous AI agent platform — agents take actions, not just provide answers
 - Data Cloud is the primary grounding source for Agentforce agents
 - Agent topics and actions can be configured to query Data Cloud as part of their workflow
 - Use cases:
@@ -212,7 +212,7 @@
   - Marketing agent: determines channel and message personalization using Data Cloud segments
 - Data Cloud's consent data ensures Agentforce respects opt-out preferences in its actions
 
-**Speaker Notes:** Agentforce is the most current AI topic on the exam. The distinction from Einstein Copilot is important: Copilot is an assistant that helps users; Agentforce is an autonomous agent that takes actions on behalf of users. For Data Cloud, the connection is that Agentforce needs rich customer data to act intelligently — and Data Cloud provides that data. An exam question might describe an Agentforce service agent that needs to identify which customers to proactively outreach to based on service history patterns — the answer involves creating a Data Cloud segment based on service CIs and using that segment as the Agentforce agent's target list.
+**Speaker Notes:** Agentforce is the most current AI topic on the exam. Key distinction: Agentforce in assistant mode helps users by surfacing information and suggestions; Agentforce in autonomous agent mode takes full actions on behalf of users without requiring a human to trigger each step. For Data Cloud, the connection is that Agentforce needs rich customer data to act intelligently — and Data Cloud provides that data. An exam question might describe an Agentforce service agent that needs to identify which customers to proactively outreach to based on service history patterns — the answer involves creating a Data Cloud segment based on service CIs and using that segment as the Agentforce agent's target list.
 
 ---
 
@@ -341,11 +341,11 @@
 
 Welcome to Lecture 12. This is where Data Cloud gets exciting — the AI and personalization use cases that represent the frontier of Salesforce capability.
 
-The fundamental concept is **grounding**. When an AI model — whether it's Einstein Copilot helping a sales rep or an Agentforce agent autonomously resolving a service case — needs to generate a personalized response, it first retrieves relevant context about the specific customer from Data Cloud. That context includes the Unified Individual profile, behavioral history captured in CIs, and semantic matches from the vector database. This context "grounds" the AI in the specific customer's reality, rather than generating generic responses.
+The fundamental concept is **grounding**. When an AI model — whether it's Agentforce assisting a sales rep or an Agentforce agent autonomously resolving a service case — needs to generate a personalized response, it first retrieves relevant context about the specific customer from Data Cloud. That context includes the Unified Individual profile, behavioral history captured in CIs, and semantic matches from the vector database. This context "grounds" the AI in the specific customer's reality, rather than generating generic responses.
 
 Let's talk about the vector database specifically. Traditional CRM search is keyword-based. The vector database enables semantic search — finding content that is conceptually similar rather than word-for-word matching. When an Agentforce service agent needs to find the right knowledge article for a customer's problem, it uses vector search to find semantically similar articles even if the customer used different words than the article title.
 
-Einstein Copilot is the AI assistant embedded in the CRM. With Data Cloud grounding, a rep can ask "What's the current status of this customer?" and Copilot retrieves the Unified Individual profile, recent CI metrics like purchase history and loyalty tier, and generates a natural language summary. All sourced from Data Cloud.
+Agentforce is the AI assistant embedded in the CRM. With Data Cloud grounding, a rep can ask "What's the current status of this customer?" and Agentforce retrieves the Unified Individual profile, recent CI metrics like purchase history and loyalty tier, and generates a natural language summary. All sourced from Data Cloud.
 
 Agentforce goes further — it's not just answering questions, it's taking actions. An Agentforce service agent might be configured to proactively reach out to customers identified by a Data Cloud segment as at-risk for churn. Data Cloud both identifies the audience AND provides the customer context for each interaction.
 
@@ -359,7 +359,7 @@ In our final lecture of Section 4, we look at real-world industry use cases. See
 
 ## Exam Tips
 
-- **Grounding** is the process of retrieving Data Cloud customer context to inform AI (Agentforce, Copilot) responses
+- **Grounding** is the process of retrieving Data Cloud customer context to inform Agentforce responses
 - The **vector database** in Data Cloud enables semantic search over unstructured content (not keyword-based)
 - **Model Builder** uses Data Cloud DMOs and CIs as training data sources; model predictions can be stored back in Data Cloud
 - **Consent must be respected** when using customer data for AI personalization — opted-out data should not be used for AI grounding
@@ -369,7 +369,7 @@ In our final lecture of Section 4, we look at real-world industry use cases. See
 
 ## Lecture Summary
 
-Data Cloud serves as the AI foundation for Salesforce's Einstein and Agentforce platforms through the process of grounding — retrieving unified customer context from Data Cloud to personalize AI responses and actions. The vector database enables semantic search over unstructured content, complementing the structured DMO and CI data for comprehensive grounding. Einstein Copilot uses Data Cloud profiles and CIs to provide sales and service reps with data-informed AI assistance. Agentforce autonomous agents use Data Cloud segments and profiles to identify target customers and personalize interactions. Model Builder uses Data Cloud DMOs and CIs as training data and can store predictions back in Data Cloud to power smarter segments. Effective AI use cases require well-executed Data Cloud fundamentals — complete identity resolution, current CI values, and properly respected consent preferences.
+Data Cloud serves as the AI foundation for Salesforce's Einstein and Agentforce platforms through the process of grounding — retrieving unified customer context from Data Cloud to personalize AI responses and actions. The vector database enables semantic search over unstructured content, complementing the structured DMO and CI data for comprehensive grounding. Agentforce uses Data Cloud profiles and CIs to provide sales and service reps with data-informed AI assistance. Agentforce autonomous agents use Data Cloud segments and profiles to identify target customers and personalize interactions. Model Builder uses Data Cloud DMOs and CIs as training data and can store predictions back in Data Cloud to power smarter segments. Effective AI use cases require well-executed Data Cloud fundamentals — complete identity resolution, current CI values, and properly respected consent preferences.
 
 ---
 

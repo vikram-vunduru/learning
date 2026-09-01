@@ -363,7 +363,7 @@
 
 Welcome to Lecture 13 and the final lecture of the course. This is where we tie everything together for the exam.
 
-The Salesforce Data Cloud Consultant exam is heavily scenario-based. You won't be asked "what does a DMO stand for?" — you'll be asked "a consultant is designing a data model for a retailer with three data sources and needs to merge customer records across systems. What should the consultant configure?" Your job is to apply knowledge, not recite it.
+The Salesforce Certified Data 360 Consultant exam is heavily scenario-based. You won't be asked "what does a DMO stand for?" — you'll be asked "a consultant is designing a data model for a retailer with three data sources and needs to merge customer records across systems. What should the consultant configure?" Your job is to apply knowledge, not recite it.
 
 The four-step approach I outlined works consistently: identify the domain, identify the constraint, eliminate wrong answers, apply the principle. Most wrong answers fail because they suggest doing something that violates a core Data Cloud rule — using DLOs where DMOs are needed, running CI refresh before the Data Stream completes, using fuzzy matching on email identifiers.
 
@@ -377,7 +377,7 @@ For each industry use case we covered, remember the pattern:
 
 The connector and criteria decision trees give you quick answers for the most frequently tested "which feature" questions.
 
-You've now covered all 13 lectures in this course. The architecture, ingestion, data modeling, identity resolution, segmentation, activation, governance, monitoring, analytics, AI, and use case applications of Salesforce Data Cloud Consultant. That's the complete picture.
+You've now covered all 13 lectures in this course. The architecture, ingestion, data modeling, identity resolution, segmentation, activation, governance, monitoring, analytics, AI, and use case applications of Salesforce Certified Data 360 Consultant. That's the complete picture.
 
 Good luck on the exam. You're ready.
 

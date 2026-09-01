@@ -1,4 +1,4 @@
-# Practice Exam: Salesforce Data Cloud Consultant (CRT-251)
+# Practice Exam: Salesforce Certified Data 360 Consultant (CRT-251)
 
 **Instructions:** 60 questions. Allow 105 minutes. Passing score: 67% (40/60). Answers and explanations at the end.
 

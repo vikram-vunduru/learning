@@ -12,7 +12,32 @@
 ## Slides
 
 ### Slide 1: Outbound Voice Dialing with Agentforce
-**Visual:** Side-by-side comparison of Predictive Dialing and Progressive Dialing — each showing a dial queue, connected call rate percentage, and agent availability indicator
+**Visual:**
+```
+  OUTBOUND DIALING MODES
+  ┌──────────────────────────────┐    ┌──────────────────────────────┐
+  │   PROGRESSIVE DIALING        │    │   PREDICTIVE DIALING         │
+  ├──────────────────────────────┤    ├──────────────────────────────┤
+  │  Dial queue                  │    │  Dial queue                  │
+  │  ┌───┐ ┌───┐ ┌───┐ ┌───┐    │    │  ┌─┐ ┌─┐ ┌─┐ ┌─┐ ┌─┐ ┌─┐   │
+  │  │ 1 │ │ 2 │ │ 3 │ │ 4 │    │    │  │1│ │2│ │3│ │4│ │5│ │6│   │
+  │  └───┘ └───┘ └───┘ └───┘    │    │  └─┘ └─┘ └─┘ └─┘ └─┘ └─┘   │
+  │                              │    │                              │
+  │  1 dial per ready session    │    │  Multiple dials at once      │
+  │          │                   │    │  (more than agents ready)    │
+  │  Connected ──▶ Agent/Bot     │    │          │                   │
+  │  No answer ──▶ skip          │    │  Connected ──▶ Agent match   │
+  │                              │    │  No answer ──▶ skip          │
+  │  Connect rate: ~65%          │    │  Abandoned ──▶ ⚠ TCPA risk  │
+  │  Abandon risk:  LOW          │    │  Connect rate: ~80%          │
+  │                              │    │  Abandon risk: HIGHER        │
+  │  Use for: low volume,        │    │  Use for: high volume        │
+  │  structured outbound,        │    │  campaigns; requires careful │
+  │  autonomous AI calls         │    │  tuning for compliance       │
+  └──────────────────────────────┘    └──────────────────────────────┘
+  TCPA (US): prior consent required for automated outbound calls
+  Autonomous outbound: appointment reminders, surveys, delivery confirmations
+```
 
 **Content:**
 - **Progressive Dialing:** system dials one number per available agent; when agent is ready, next number is dialed; lower abandon risk
@@ -27,7 +52,39 @@
 ---
 
 ### Slide 2: Blended Inbound/Outbound Voice Campaigns
-**Visual:** Architecture diagram: Campaign record with Contact list → Outbound dialer → Connected calls routed to Omni-Channel → agents handle inbound and outbound in unified queue
+**Visual:**
+```
+  BLENDED INBOUND / OUTBOUND ARCHITECTURE
+  ┌──────────────────────────────────────────────────────────┐
+  │                                                          │
+  │  Campaign record + Contact list                          │
+  │       │                                                  │
+  │       ▼                                                  │
+  │  Outbound Dialer ─────────────────────────────┐          │
+  │                                               │          │
+  │  Inbound Calls ───────────────────────────────┤          │
+  │                                               │          │
+  │                                               ▼          │
+  │                             ┌─────────────────────────┐  │
+  │                             │  OMNI-CHANNEL ROUTING   │  │
+  │                             │  (unified work queue)   │  │
+  │                             └──────────┬──────────────┘  │
+  │                                        │                  │
+  │                             ┌──────────┴──────────┐       │
+  │                             │                     │       │
+  │                        Inbound               Outbound     │
+  │                        priority              campaign      │
+  │                        (preempts             (fills idle  │
+  │                         outbound)             capacity)   │
+  │                             │                     │       │
+  │                             └──────────┬──────────┘       │
+  │                                        │                  │
+  │                                        ▼                  │
+  │                               Blended Agent Pool          │
+  └──────────────────────────────────────────────────────────┘
+  ACW applies to outbound calls │ Disposition codes captured during ACW
+  Reporting: connect rate, conversion, campaign completion on VoiceCall records
+```
 
 **Content:**
 - Blended agents: same agent pool handles inbound calls and outbound campaign calls
@@ -42,7 +99,43 @@
 ---
 
 ### Slide 3: Voice + Data Cloud Integration
-**Visual:** Data flow diagram: Data Cloud Unified Profile → Real-time activation → Salesforce Voice Channel event → VoiceCall enrichment → Screen pop includes Data Cloud attributes (churn score, LTV, product ownership)
+**Visual:**
+```
+  DATA CLOUD INTEGRATION FOR VOICE
+  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
+  │   CRM    │  │  Web /   │  │ Purchase │  │ Service  │
+  │  Data    │  │  Mobile  │  │ History  │  │ History  │
+  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘
+       └──────────────┴─────────────┴──────────────┘
+                            │
+                            ▼
+              ┌─────────────────────────┐
+              │   DATA CLOUD            │
+              │   Unified Customer      │
+              │   Profile               │
+              └────────────┬────────────┘
+                           │ real-time activation on call arrival
+                           ▼
+  ┌────────────────────────────────────────────────────────┐
+  │  VoiceCall Enrichment (at call start)                  │
+  │  • Churn risk score:  HIGH                             │
+  │  • Lifetime value:    $4,200/yr  (top 20%)             │
+  │  • Last web visit:    2 days ago (viewed Plan Upgrade) │
+  │  • Last service:      3 contacts, same issue           │
+  │  • Product owned:     Basic Plan                       │
+  └─────────────────┬──────────────────────────────────────┘
+                    │
+       ┌────────────┴─────────────┐
+       │                          │
+       ▼                          ▼
+  Voice Flow /              Human Agent
+  Agentforce Agent          Screen Pop
+  • Skip irrelevant menus   • Full context +
+  • Personalized greeting     Data Cloud attrs
+  • Proactive offer         • Retention offer
+    (retention discount)      pre-loaded
+  Latency: Data Cloud lookup must complete before Flow continues (sub-second)
+```
 
 **Content:**
 - Data Cloud builds a unified customer profile from multiple data sources (CRM, web behavior, purchase history, service interactions)
@@ -57,7 +150,35 @@
 ---
 
 ### Slide 4: Multi-Language Voice Support
-**Visual:** Architecture diagram showing language detection flow: caller speaks → Amazon Transcribe language detection → Flow Decision routes to language-specific agent/queue → language-specific Knowledge base used for suggestions
+**Visual:**
+```
+  MULTI-LANGUAGE VOICE ARCHITECTURE
+  ┌──────────────────────────────────────────────────────────┐
+  │                                                          │
+  │  Caller speaks                                           │
+  │       │                                                  │
+  │       ▼                                                  │
+  │  Amazon Transcribe                                       │
+  │  Language Detection ──▶ Detected: "Spanish (es-US)"     │
+  │  (automatic, no menu       OR                            │
+  │   required for caller)  Prompted: "Para Español, marque 2"│
+  │       │                                                  │
+  │       ▼                                                  │
+  │  Flow Decision: Language detected?                       │
+  │  ┌──────────┬──────────┬──────────┬──────────┐           │
+  │  │ English  │ Spanish  │  French  │  Other   │           │
+  │  └────┬─────┴────┬─────┴────┬─────┴────┬─────┘           │
+  │       │          │          │          │                  │
+  │       ▼          ▼          ▼          ▼                  │
+  │  EN Queue   ES Queue   FR Queue   General Queue           │
+  │  EN Agent   ES Agent   FR Agent   (EN fallback)           │
+  │  EN TTS     ES TTS     FR TTS                             │
+  │  EN Knowledge ES Knowledge FR Knowledge                   │
+  │  articles   articles   articles                           │
+  └──────────────────────────────────────────────────────────┘
+  Language = Routing Skill; relaxation applies if no language match
+  Knowledge: tag articles by language for Agent Assist filtering
+```
 
 **Content:**
 - Amazon Connect supports multiple languages for STT — configure in the Contact Flow
@@ -73,7 +194,33 @@
 ---
 
 ### Slide 5: Voice for Field Service
-**Visual:** Process diagram: Field service mobile worker → check-in call → Agentforce autonomous agent → work order status lookup → next job assignment → ETA notification to customer
+**Visual:**
+```
+  VOICE FOR FIELD SERVICE — HANDS-FREE TECHNICIAN WORKFLOW
+  ┌──────────────────────────────────────────────────────────┐
+  │                                                          │
+  │  Technician (driving)  ──calls──▶  Agentforce            │
+  │                                   Autonomous Agent       │
+  │                                        │                 │
+  │  "Complete job 4521"   ──────────▶  Work Order lookup    │
+  │  "What's my next job?" ──────────▶  ServiceAppt SOQL     │
+  │  "Check part #BRK-44"  ──────────▶  Inventory lookup     │
+  │  "ETA is 2:30pm"       ──────────▶  Update record +      │
+  │                                    SMS to customer        │
+  │                                                          │
+  │  HANDS-FREE WORKFLOW CYCLE:                              │
+  │  ┌──────────────────────────────────────────────────┐    │
+  │  │ Drive to job ──▶ Voice check-in ──▶ WO opens    │    │
+  │  │       ▼                                         │    │
+  │  │ Complete job ──▶ Voice confirm ──▶ WO closes    │    │
+  │  │       ▼                                         │    │
+  │  │ Route to next ──▶ Voice lookup ──▶ Next appt.   │    │
+  │  └──────────────────────────────────────────────────┘    │
+  └──────────────────────────────────────────────────────────┘
+  Safety: eliminates screen interaction while driving
+  FSL objects (Work Order, Service Appointment) accessible via
+  SOQL Record Lookup in Voice Flow — same as any other object
+```
 
 **Content:**
 - Use case: field service technicians use voice (hands-free) to check in, complete, or report on work orders while in the field
@@ -88,7 +235,40 @@
 ---
 
 ### Slide 6: PCI-DSS Compliance for Voice Payment Capture
-**Visual:** Compliance architecture diagram showing the recording pause/resume mechanism with a timeline: Call starts → Recording on → Payment section begins → Recording pauses → Tone detection confirms DTMF entry → Recording resumes → Call ends
+**Visual:**
+```
+  PCI-DSS VOICE PAYMENT COMPLIANCE ARCHITECTURE
+  ┌──────────────────────────────────────────────────────────┐
+  │  CALL RECORDING TIMELINE                                 │
+  │                                                          │
+  │  ├─────────────────────────────────────────────────────▶ │
+  │  │                  │               │            │       │
+  │  Call start         │               │        Call end    │
+  │  Recording: ON ●    │               │  Recording: ON ●   │
+  │                     │               │                    │
+  │             Payment section         │                    │
+  │             begins                  │                    │
+  │             Recording: PAUSE ◼      │                    │
+  │             DTMF ONLY accepted      │                    │
+  │             (no speech-to-text      │                    │
+  │              of card digits)        │                    │
+  │                          Payment done                    │
+  │                          Recording: RESUME ●             │
+  │                          Transcript: auto-redacted        │
+  └──────────────────────────────────────────────────────────┘
+  CONFIGURED IN: Amazon Connect Contact Flow (not Salesforce Flow)
+
+  PCI-DSS REQUIREMENTS FOR VOICE:
+  ┌────┬────────────────────────────────────────────────────┐
+  │  1 │ Pause recording during DTMF card entry             │
+  │  2 │ DTMF-only card input (no speech capture)           │
+  │  3 │ Amazon Transcribe auto-redaction of financial data  │
+  │  4 │ Tokenize card numbers — no raw PAN in Salesforce   │
+  │  5 │ Engage Qualified Security Assessor before launch   │
+  └────┴────────────────────────────────────────────────────┘
+  Scope warning: voice system touching cardholder data may put entire
+  Salesforce environment and Amazon Connect instance in PCI scope
+```
 
 **content:**
 - PCI-DSS: Payment Card Industry Data Security Standard — applies when voice interactions involve cardholder data
@@ -104,7 +284,42 @@
 ---
 
 ### Slide 7: Cost Modeling and ROI for Voice Automation
-**Visual:** ROI waterfall chart: Baseline cost (cost per call × annual volume) → Autonomous containment savings → Reduced AHT savings → Reduced training cost → Infrastructure cost → Net annual benefit → Payback period
+**Visual:**
+```
+  ROI WATERFALL — AGENTFORCE VOICE AUTOMATION
+  (Example: 1M calls/year at $8/call baseline)
+  ┌──────────────────────────────────────────────────────────┐
+  │                                                          │
+  │  $8.0M ████████████████████████  Baseline cost          │
+  │         (1M calls × $8/call)                             │
+  │                                                          │
+  │  $7.2M ████████████████████░░░░  After containment       │
+  │         Autonomous containment:  savings                 │
+  │         200K calls × ($8−$4)     = −$800K               │
+  │                                                          │
+  │  $6.4M ███████████████████░░░░░  After AHT reduction     │
+  │         AHT reduction:           savings                 │
+  │         800K calls × 2min × $0.50= −$800K               │
+  │                                                          │
+  │  $6.8M █████████████████████░░░  After infrastructure    │
+  │         Licensing + impl. cost   = +$400K               │
+  │                                                          │
+  │  Net annual benefit:  ~$1.2M                             │
+  │  Payback period:      12-18 months                       │
+  └──────────────────────────────────────────────────────────┘
+
+  ROI CALCULATION INPUTS:
+  ┌─────────────────────────────────┬──────────────────────┐
+  │  Annual call volume             │  1,000,000           │
+  │  Current cost per call          │  $8.00               │
+  │  Target containment rate        │  20%                 │
+  │  AI cost per contained call     │  $4.00               │
+  │  AHT reduction (minutes)        │  2 min               │
+  │  Agent cost per minute          │  $0.50               │
+  │  Implementation + licensing     │  $400K               │
+  └─────────────────────────────────┴──────────────────────┘
+  Quick rule: 10% containment improvement on 1M calls at $8/call = $800K gross savings
+```
 
 **Content:**
 - **Baseline cost:** fully loaded cost per agent-handled call (typically $5–$15 depending on geography and complexity)

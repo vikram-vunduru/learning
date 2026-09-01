@@ -1,4 +1,4 @@
-# Data Cloud Consultant Cheat Sheet (CRT-251)
+# Data 360 Consultant Cheat Sheet (CRT-251)
 
 ## Exam Quick Facts
 - **Exam code:** CRT-251
@@ -40,7 +40,7 @@ Destinations (CRM, MC, Facebook, Google)
 | Calculated Insight | SQL-based pre-computed aggregate metric (per customer) |
 | Activation Target | Configured destination for publishing segments (CRM, MC, Ad platforms) |
 | Data Space | Logical partition in Data Cloud for data access isolation |
-| Grounding | Providing AI (Agentforce/Copilot) with customer context from Data Cloud |
+| Grounding | Providing Agentforce with unified customer context from Data Cloud to personalize responses |
 
 ---
 

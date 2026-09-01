@@ -12,7 +12,38 @@
 ## Slides
 
 ### Slide 1: The Voice Analytics Ecosystem
-**Visual:** Ecosystem diagram with VoiceCall object at the center, arrows pointing to: Einstein Conversation Mining, CRM Analytics Dashboards, Agentforce Analytics, Post-Call Surveys, Call Recording Storage, and SLA Alert Flows
+**Visual:**
+```
+  VOICE ANALYTICS ECOSYSTEM
+                        ┌─────────────────────┐
+         ┌──────────────│    VoiceCall         │──────────────┐
+         │              │    (object anchor)   │              │
+         │              └──────────┬──────────┘              │
+         │                         │                          │
+         ▼                         │                          ▼
+  ┌──────────────────┐             │              ┌──────────────────┐
+  │ Einstein Conv.   │             │              │ CRM Analytics    │
+  │ Mining           │             │              │ Dashboards       │
+  │ • Topic clusters │             │              │ • AHT, FCR       │
+  │ • Containment    │             │              │ • CSAT trends    │
+  │ • Escalation rate│             │              │ • Cohort analysis│
+  └──────────────────┘             │              └──────────────────┘
+         ▲                         │                          ▲
+         │               ┌─────────▼─────────┐               │
+  ┌──────────────────┐   │  Call Recording   │   ┌──────────────────┐
+  │ Agentforce       │   │  Storage          │   │ SLA Alert Flows  │
+  │ Analytics        │   │  (Amazon S3 /     │   │ • Real-time      │
+  │ • Containment    │   │   provider)       │   │   notifications  │
+  │ • Intent dist.   │   └───────────────────┘   │ • Threshold      │
+  │ • Resolution     │             │              │   breach alerts  │
+  └──────────────────┘             │              └──────────────────┘
+                          ┌────────▼────────┐
+                          │ Post-Call       │
+                          │ Surveys         │
+                          │ (CSAT data)     │
+                          └─────────────────┘
+  3 analytics layers: Operational | Quality | AI Performance
+```
 
 **Content:**
 - Every call generates a VoiceCall record — the anchor for all voice analytics
@@ -27,7 +58,30 @@
 ---
 
 ### Slide 2: The VoiceCall Object
-**Visual:** Object schema diagram showing VoiceCall standard fields: Id, CallerId (ANI), CalledNumber (DNIS), Status, Duration, TranscriptAvailable, RecordingUrl, Intent, SentimentScore, AgentId, QueueId, StartTime, EndTime
+**Visual:**
+```
+  VoiceCall (object)
+  ┌──────────────────────────────────────────────────────────┐
+  │  Id              CallType (Inbound/Outbound/Transfer)    │
+  │  Status          FromPhoneNumber (ANI)                   │
+  │  Duration        ToPhoneNumber (DNIS)                    │
+  │  StartTime       RelatedRecordId (linked Case/Contact)   │
+  │  EndTime         OwnerId (assigned agent)                │
+  │  CallDisposition CallResolution                          │
+  └──────────────────────────────────────────────────────────┘
+           │
+           ▼
+  VoiceCallRecording               ConversationEntry
+  ┌────────────────────┐           ┌────────────────────────┐
+  │  AudioFile (link)  │           │  TranscriptText        │
+  │  Duration          │           │  Speaker (agent/cust.) │
+  │  ConsentStatus     │           │  Timestamp             │
+  └────────────────────┘           │  Confidence            │
+                                   └────────────────────────┘
+  AI fields: Intent (detected by Agentforce agent)
+             SentimentScore (from real-time analysis)
+  Custom fields: add for disposition codes, escalation reason, IVR data
+```
 
 **Content:**
 - VoiceCall is a standard Salesforce object created for every inbound and outbound call
@@ -43,7 +97,29 @@
 ---
 
 ### Slide 3: Einstein Conversation Mining for Voice
-**Visual:** Conversation Mining dashboard showing: topic cluster bubble chart, resolution rate bar chart per topic, escalation rate per topic heatmap, trend lines for top 5 topics over 90 days
+**Visual:**
+```
+  EINSTEIN CONVERSATION MINING — VOICE ANALYTICS
+  ┌──────────────────────────────────────────────────────────┐
+  │  TOPIC CLUSTERS                                          │
+  │  ┌──────────────────┬─────────┬────────────┬──────────┐  │
+  │  │ Topic            │ Calls   │ Resolution │ Escalate │  │
+  │  ├──────────────────┼─────────┼────────────┼──────────┤  │
+  │  │ Billing Dispute  │  3,210  │   71 %     │  18 %    │  │
+  │  │ Tech Support     │  2,400  │   58 %     │  31 %  ◀─┤  │ automation gap
+  │  │ Account Cancel   │  1,800  │   48 %     │  44 %  ◀─┤  │ automation gap
+  │  │ New Service Req  │  1,500  │   89 %     │   6 %    │  │
+  │  │ Plan Changes     │    900  │   76 %     │  12 %    │  │
+  │  └──────────────────┴─────────┴────────────┴──────────┘  │
+  │                                                          │
+  │  CONTAINMENT RATE TREND (key ROI metric)                 │
+  │  Month 1  ████░░░░░░░░░░░░░░░  22%                       │
+  │  Month 3  ███████░░░░░░░░░░░░  35%                       │
+  │  Month 6  ██████████░░░░░░░░░  51%                       │
+  └──────────────────────────────────────────────────────────┘
+  Containment rate = % of calls resolved without human agent transfer
+  Use output to: find automation gaps, train Knowledge articles, ID agent training needs
+```
 
 **Content:**
 - Analyzes call transcripts stored on VoiceCall records
@@ -59,7 +135,39 @@
 ---
 
 ### Slide 4: Call Recording — Storage, Access, and Playback
-**Visual:** Architecture diagram: Call audio → Amazon S3 (for Amazon Connect) → Salesforce Call Recording object → Service Console Recording tab with playback controls
+**Visual:**
+```
+  CALL RECORDING ARCHITECTURE
+  ┌──────────────────────────────────────────────────────────┐
+  │                                                          │
+  │  Live Call (Amazon Connect deployment)                   │
+  │       │                                                  │
+  │       ├──audio stream──▶ Amazon Connect                  │
+  │       │                        │                         │
+  │       │                        ▼                         │
+  │       │                  Amazon S3                       │
+  │       │                  (recording storage)             │
+  │       │                        │                         │
+  │       │                 RecordingUrl stored              │
+  │       │                 on VoiceCall record              │
+  │       │                        │                         │
+  │       ▼                        ▼                         │
+  │  Agent Desktop         SERVICE CONSOLE                   │
+  │                         ┌──────────────────────┐         │
+  │                         │  Call Recording Tab  │         │
+  │                         │  [▶ Play]  [⬇ DL]   │         │
+  │                         │  No download req.    │         │
+  │                         └──────────────────────┘         │
+  │                                                          │
+  │  PCI-DSS:                                                │
+  │  Recording ON ──▶ payment section ──▶ Recording PAUSED  │
+  │  DTMF entry ──▶ payment complete ──▶ Recording RESUMED  │
+  │                                                          │
+  │  ACCESS: Permission Set controls playback                │
+  │  Restrict to: Supervisors, QA analysts, Compliance only  │
+  └──────────────────────────────────────────────────────────┘
+  Genesys / NICE CXone: recordings stored in provider; URL still in VoiceCall
+```
 
 **Content:**
 - Amazon Connect stores call recordings in Amazon S3 by default
@@ -75,7 +183,37 @@
 ---
 
 ### Slide 5: Post-Call Surveys and Satisfaction Metrics
-**Visual:** Flow diagram: Call ends → VoiceCall status = Completed → Flow trigger → Initiate IVR survey call → Survey responses stored on VoiceCall custom fields → CSAT score aggregated in CRM Analytics
+**Visual:**
+```
+  POST-CALL SURVEY FLOW
+  ┌──────────┐  Status=       ┌────────────────┐  initiates  ┌─────────────────┐
+  │VoiceCall │──Completed────▶│  Flow Trigger  │────────────▶│  IVR Survey     │
+  │ (object) │                └────────────────┘             │  Call / SMS /   │
+  └──────────┘                                               │  Email link     │
+                                                             └───────┬─────────┘
+                                                                     │
+                                                             Caller responds
+                                                                     │
+                                                                     ▼
+                                                          ┌──────────────────────┐
+                                                          │  Survey Responses    │
+                                                          │  stored on:          │
+                                                          │  • VoiceCall custom  │
+                                                          │    fields (CSAT,     │
+                                                          │    resolved Y/N,     │
+                                                          │    agent rating)     │
+                                                          │  • Survey object     │
+                                                          └───────────┬──────────┘
+                                                                      │
+                                                                      ▼
+                                                          ┌──────────────────────┐
+                                                          │  CRM Analytics       │
+                                                          │  CSAT Dashboard      │
+                                                          │  Voice vs Chat vs    │
+                                                          │  Email comparison    │
+                                                          └──────────────────────┘
+  Sample rate: 20-30% of calls to avoid survey fatigue while maintaining data quality
+```
 
 **Content:**
 - Post-call surveys: initiated automatically via a triggered Flow when call status = Completed
@@ -90,7 +228,28 @@
 ---
 
 ### Slide 6: SLA Breach Alerts and Agentforce Voice Dashboards
-**Visual:** Two panels — left: Flow Builder canvas showing a trigger on VoiceCall with a Decision checking wait time > SLA threshold and a Notification action; right: CRM Analytics dashboard with voice metrics tiles
+**Visual:**
+```
+  SLA BREACH ALERT FLOW              CRM ANALYTICS VOICE DASHBOARD
+  ┌─────────────────────────┐        ┌───────────────────────────────┐
+  │  Trigger:               │        │  KEY VOICE KPIs               │
+  │  VoiceCall created      │        │  ─────────────────────────    │
+  │          │              │        │  AHT:        4m 32s   ✓       │
+  │          ▼              │        │  FCR:          73 %   ✓       │
+  │  Decision:              │        │  Containment:  41 %   ✓       │
+  │  Wait Time > SLA?       │        │  CSAT:        4.2/5   ✓       │
+  │  ┌────────┴────────┐    │        │  Escalation:   18 %   ✓       │
+  │  │                │     │        │  Abandonment:  6.2 %  ⚠       │
+  │  No              Yes    │        │  ─────────────────────────    │
+  │  │                │     │        │  90-Day Trend                 │
+  │  End      Notification  │        │  AHT   ▄▄▄▃▃▃▂▂▂              │
+  │           to supervisor │        │  CSAT  ▂▂▃▃▄▄▄▄▄              │
+  │           (Chatter /    │        │        improving →             │
+  │            Email / SMS) │        └───────────────────────────────┘
+  └─────────────────────────┘        Refresh: hourly (configurable)
+  Alert threshold: set to match SLA  Key metric: containment rate trend
+  (e.g., 80% answered in 20 seconds) post-launch week-over-week
+```
 
 **Content:**
 - **SLA alert Flow:** triggered on VoiceCall creation; monitors queue wait time field; fires notification when threshold exceeded
@@ -105,7 +264,31 @@
 ---
 
 ### Slide 7: Governance — Retention Policies for Recordings and Transcripts
-**Visual:** Governance matrix table: Data Type | Typical Retention Period | Legal Hold Capability | Access Control | Deletion Method
+**Visual:**
+```
+  VOICE DATA GOVERNANCE MATRIX
+  ┌──────────────────┬─────────────────┬─────────────┬──────────────────┬──────────────────┐
+  │  Data Type       │ Retention       │ Legal Hold  │ Access Control   │ Deletion Method  │
+  ├──────────────────┼─────────────────┼─────────────┼──────────────────┼──────────────────┤
+  │  Call            │ 1-3 years       │ Flag on     │ Supervisors,     │ S3 lifecycle     │
+  │  Recordings      │ Fin svcs: 7 yr  │ VoiceCall   │ QA, Compliance   │ rules            │
+  │                  │ Healthcare: per │ record      │ only             │                  │
+  │                  │ HIPAA           │             │                  │                  │
+  ├──────────────────┼─────────────────┼─────────────┼──────────────────┼──────────────────┤
+  │  Call            │ Longer than     │ Flag on     │ Supervisors,     │ Flow-based field │
+  │  Transcripts     │ recordings      │ VoiceCall   │ QA, Compliance   │ deletion         │
+  │                  │ (text is cheaper│             │                  │                  │
+  │                  │  to store)      │             │                  │                  │
+  ├──────────────────┼─────────────────┼─────────────┼──────────────────┼──────────────────┤
+  │  PII in          │ Apply masking / │  —          │ Masked before    │ Redaction at     │
+  │  Transcripts     │ redaction       │             │ archiving        │ transcription    │
+  │  (SSN, DOB,      │                 │             │                  │ (Transcribe)     │
+  │   payment info)  │                 │             │                  │                  │
+  └──────────────────┴─────────────────┴─────────────┴──────────────────┴──────────────────┘
+  GDPR: right to erasure applies to voice recordings containing personal data
+  Legal Hold: suspend deletion for calls related to active litigation
+  Annual Review: re-evaluate retention schedules with Legal and Compliance yearly
+```
 
 **Content:**
 - Call recordings: typical retention 1-3 years; financial services may require 7 years; healthcare may require longer under HIPAA
