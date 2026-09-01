@@ -249,6 +249,48 @@ export const TRACKS: Track[] = [
       // Exam Prep
       { id: "pdi-exam", title: "60-Question Practice Exam", file: "courses/salesforce/04-platform-developer-i/exam-prep/practice-exam-60-questions.md", month: 4, course: "Platform Developer I", section: "Exam Preparation", type: "exam" },
       { id: "pdi-cheatsheet", title: "PDI Cheat Sheet", file: "courses/salesforce/04-platform-developer-i/exam-prep/pdi-cheat-sheet.md", month: 4, course: "Platform Developer I", section: "Exam Preparation", type: "exam" },
+
+      // ── Course 5: JavaScript Developer I ────────────────────────────────────
+      { id: "jsi-overview", title: "Course Overview: JavaScript Developer I", file: "courses/salesforce/05-javascript-developer-i/00-course-overview.md", month: 5, course: "JavaScript Developer I", section: "Course Overview", type: "study" },
+
+      // Section 1: JS Fundamentals
+      { id: "jsi-l01", title: "L01: Variables, Types & Operators", file: "courses/salesforce/05-javascript-developer-i/section-01-js-fundamentals/lecture-01-variables-types-operators.md", month: 5, course: "JavaScript Developer I", section: "JS Fundamentals", type: "lecture" },
+      { id: "jsi-l02", title: "L02: Conditionals, Loops & Error Handling", file: "courses/salesforce/05-javascript-developer-i/section-01-js-fundamentals/lecture-02-conditionals-loops-error-handling.md", month: 5, course: "JavaScript Developer I", section: "JS Fundamentals", type: "lecture" },
+      { id: "jsi-l03", title: "L03: Functions", file: "courses/salesforce/05-javascript-developer-i/section-01-js-fundamentals/lecture-03-functions.md", month: 5, course: "JavaScript Developer I", section: "JS Fundamentals", type: "lecture" },
+      { id: "jsi-l04", title: "L04: Scope, Hoisting & Closures", file: "courses/salesforce/05-javascript-developer-i/section-01-js-fundamentals/lecture-04-scope-hoisting-closures.md", month: 5, course: "JavaScript Developer I", section: "JS Fundamentals", type: "lecture" },
+
+      // Section 2: Classes & Modules
+      { id: "jsi-l05", title: "L05: Classes & OOP", file: "courses/salesforce/05-javascript-developer-i/section-02-classes-modules/lecture-05-classes-oop.md", month: 5, course: "JavaScript Developer I", section: "Classes & Modules", type: "lecture" },
+      { id: "jsi-l06", title: "L06: Prototypes & Inheritance", file: "courses/salesforce/05-javascript-developer-i/section-02-classes-modules/lecture-06-prototypes-inheritance.md", month: 5, course: "JavaScript Developer I", section: "Classes & Modules", type: "lecture" },
+      { id: "jsi-l07", title: "L07: ES Modules", file: "courses/salesforce/05-javascript-developer-i/section-02-classes-modules/lecture-07-modules.md", month: 5, course: "JavaScript Developer I", section: "Classes & Modules", type: "lecture" },
+      { id: "jsi-l08", title: "L08: Iterators & Generators", file: "courses/salesforce/05-javascript-developer-i/section-02-classes-modules/lecture-08-iterators-generators.md", month: 5, course: "JavaScript Developer I", section: "Classes & Modules", type: "lecture" },
+
+      // Section 3: Async JavaScript & Browser
+      { id: "jsi-l09", title: "L09: Collections — Arrays, Map & Set", file: "courses/salesforce/05-javascript-developer-i/section-03-async-browser/lecture-09-collections-arrays.md", month: 5, course: "JavaScript Developer I", section: "Async JavaScript & Browser", type: "lecture" },
+      { id: "jsi-l10", title: "L10: Async JavaScript & Promises", file: "courses/salesforce/05-javascript-developer-i/section-03-async-browser/lecture-10-async-promises.md", month: 5, course: "JavaScript Developer I", section: "Async JavaScript & Browser", type: "lecture" },
+      { id: "jsi-l11", title: "L11: Browser, DOM & Events", file: "courses/salesforce/05-javascript-developer-i/section-03-async-browser/lecture-11-browser-dom-events.md", month: 5, course: "JavaScript Developer I", section: "Async JavaScript & Browser", type: "lecture" },
+      { id: "jsi-l12", title: "L12: Debugging & Dev Tools", file: "courses/salesforce/05-javascript-developer-i/section-03-async-browser/lecture-12-debugging-dev-tools.md", month: 5, course: "JavaScript Developer I", section: "Async JavaScript & Browser", type: "lecture" },
+
+      // Section 4: Node.js, Testing & TypeScript
+      { id: "jsi-l13", title: "L13: Node.js Fundamentals", file: "courses/salesforce/05-javascript-developer-i/section-04-nodejs-testing/lecture-13-nodejs-fundamentals.md", month: 5, course: "JavaScript Developer I", section: "Node.js, Testing & TypeScript", type: "lecture" },
+      { id: "jsi-l14", title: "L14: Testing with Jest", file: "courses/salesforce/05-javascript-developer-i/section-04-nodejs-testing/lecture-14-testing-javascript.md", month: 5, course: "JavaScript Developer I", section: "Node.js, Testing & TypeScript", type: "lecture" },
+      { id: "jsi-l15", title: "L15: TypeScript Basics", file: "courses/salesforce/05-javascript-developer-i/section-04-nodejs-testing/lecture-15-typescript-basics.md", month: 5, course: "JavaScript Developer I", section: "Node.js, Testing & TypeScript", type: "lecture" },
+      { id: "jsi-l16", title: "L16: Design Patterns", file: "courses/salesforce/05-javascript-developer-i/section-04-nodejs-testing/lecture-16-design-patterns.md", month: 5, course: "JavaScript Developer I", section: "Node.js, Testing & TypeScript", type: "lecture" },
+
+      // Section 5: Advanced Topics
+      { id: "jsi-l17", title: "L17: Advanced Functions", file: "courses/salesforce/05-javascript-developer-i/section-05-advanced-topics/lecture-17-advanced-functions.md", month: 5, course: "JavaScript Developer I", section: "Advanced Topics", type: "lecture" },
+      { id: "jsi-l18", title: "L18: Modern JS Features", file: "courses/salesforce/05-javascript-developer-i/section-05-advanced-topics/lecture-18-modern-js-features.md", month: 5, course: "JavaScript Developer I", section: "Advanced Topics", type: "lecture" },
+      { id: "jsi-l19", title: "L19: LWC JavaScript", file: "courses/salesforce/05-javascript-developer-i/section-05-advanced-topics/lecture-19-lwc-javascript.md", month: 5, course: "JavaScript Developer I", section: "Advanced Topics", type: "lecture" },
+      { id: "jsi-l20", title: "L20: Performance & Security", file: "courses/salesforce/05-javascript-developer-i/section-05-advanced-topics/lecture-20-performance-security.md", month: 5, course: "JavaScript Developer I", section: "Advanced Topics", type: "lecture" },
+
+      // Labs
+      { id: "jsi-lab01", title: "Lab 01: OOP Todo App", file: "courses/salesforce/05-javascript-developer-i/labs/lab-01-oop-todo-app.md", month: 5, course: "JavaScript Developer I", section: "Labs", type: "lab" },
+      { id: "jsi-lab02", title: "Lab 02: Async API Fetcher", file: "courses/salesforce/05-javascript-developer-i/labs/lab-02-async-api-fetcher.md", month: 5, course: "JavaScript Developer I", section: "Labs", type: "lab" },
+      { id: "jsi-lab03", title: "Lab 03: Node.js REST Server", file: "courses/salesforce/05-javascript-developer-i/labs/lab-03-node-rest-server.md", month: 5, course: "JavaScript Developer I", section: "Labs", type: "lab" },
+
+      // Exam Prep
+      { id: "jsi-exam", title: "60-Question Practice Exam", file: "courses/salesforce/05-javascript-developer-i/exam-prep/practice-exam-60-questions.md", month: 5, course: "JavaScript Developer I", section: "Exam Preparation", type: "exam" },
+      { id: "jsi-cheatsheet", title: "JSI Cheat Sheet", file: "courses/salesforce/05-javascript-developer-i/exam-prep/jsi-cheat-sheet.md", month: 5, course: "JavaScript Developer I", section: "Exam Preparation", type: "exam" },
     ],
     certs: [
       { id: "ai-associate", name: "AI Associate", month: 1, cost: "$75", passScore: "65%", questions: 40 },

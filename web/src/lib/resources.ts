@@ -1,6 +1,7 @@
 import { ADMIN_RESOURCES } from "./resources-admin";
 import { APP_BUILDER_RESOURCES } from "./resources-app-builder";
 import { PDI_RESOURCES } from "./resources-pdi";
+import { JSI_RESOURCES } from "./resources-jsi";
 
 export type ResourceType = "docs" | "trailhead" | "youtube" | "blog" | "udemy" | "video";
 
@@ -269,6 +270,7 @@ const ALL_RESOURCES: Record<string, Resource[]> = {
   ...ADMIN_RESOURCES,
   ...APP_BUILDER_RESOURCES,
   ...PDI_RESOURCES,
+  ...JSI_RESOURCES,
 };
 
 export function getResources(moduleId: string): Resource[] {
