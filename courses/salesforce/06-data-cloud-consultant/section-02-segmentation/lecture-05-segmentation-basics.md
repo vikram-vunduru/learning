@@ -11,7 +11,25 @@
 ## Slides
 
 ### Slide 1: What Is a Segment?
-**Visual:** A Venn diagram showing a large circle labeled "All Unified Individuals" with a smaller highlighted subset circle labeled "Segment: High-Value Customers (Last 30 Days)" showing 12,450 members.
+**Visual:**
+```
+  ALL UNIFIED INDIVIDUALS
+  ┌──────────────────────────────────────────────────────────┐
+  │  ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○    │
+  │  ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○    │
+  │  ○ ○ ○  ┌──────────────────────────────┐  ○ ○ ○ ○ ○    │
+  │  ○ ○ ○  │  SEGMENT: High-Value         │  ○ ○ ○ ○ ○    │
+  │  ○ ○ ○  │  Customers (Last 30 Days)    │  ○ ○ ○ ○ ○    │
+  │  ○ ○ ○  │  ● ● ● ● ● ● ● ● ● ● ● ●   │  ○ ○ ○ ○ ○    │
+  │  ○ ○ ○  │  ● ● ● ● ● ● ● ● ● ● ● ●   │  ○ ○ ○ ○ ○    │
+  │  ○ ○ ○  │  12,450 members              │  ○ ○ ○ ○ ○    │
+  │  ○ ○ ○  └──────────────────────────────┘  ○ ○ ○ ○ ○    │
+  │  ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○    │
+  └──────────────────────────────────────────────────────────┘
+  ○ = All Unified Individuals
+  ● = Segment members (meet the criteria)
+  Membership is DYNAMIC — updates on refresh schedule
+```
 
 **Content:**
 - A **Segment** in Data Cloud is a filtered subset of Unified Individual records
@@ -26,7 +44,26 @@
 ---
 
 ### Slide 2: Segment Criteria Types
-**Visual:** Three boxes arranged horizontally: Box 1 "Attribute Filters" showing a simple dropdown filter (e.g., LoyaltyTier = "Gold"). Box 2 "Related Attribute Filters" showing a filter on a related DMO (e.g., "Has a Sales Order where TotalAmount > 500"). Box 3 "Calculated Insights" showing a metric (e.g., TotalSpend_90d >= 1000).
+**Visual:**
+```
+  ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
+  │  ATTRIBUTE FILTER    │  │ RELATED ATTR FILTER  │  │ CALCULATED INSIGHT   │
+  │  ──────────────────  │  │  ──────────────────  │  │  ──────────────────  │
+  │  Fields directly on  │  │  Fields from a       │  │  Pre-computed        │
+  │  Unified Individual  │  │  related DMO         │  │  aggregate metric    │
+  │  or Individual DMO   │  │  (via relationship)  │  │  (SQL-based)         │
+  │                      │  │                      │  │                      │
+  │  Example:            │  │  Example:            │  │  Example:            │
+  │  LoyaltyTier = "Gold"│  │  Has SalesOrder      │  │  TotalSpend_90d      │
+  │  BirthDate in range  │  │  WHERE Amount > $500 │  │  >= $1,000           │
+  │  City = "Chicago"    │  │  in last 30 days     │  │                      │
+  └──────────────────────┘  └──────────────────────┘  └──────────────────────┘
+              │                         │                         │
+              └─────────────────────────┼─────────────────────────┘
+                                        │
+                           Combined with AND / OR logic
+                           + Exclusion criteria
+```
 
 **Content:**
 - **Attribute Filters:** Filters on fields directly on the Unified Individual or Individual DMO
@@ -43,7 +80,30 @@
 ---
 
 ### Slide 3: Building an Attribute Filter
-**Visual:** Segment Builder UI mockup showing a criteria row with three dropdowns: "Individual" → "LoyaltyTier" → "equals" → "Gold." A second row shows "AND" → "Individual" → "BirthDate" → "is between" → "1980-01-01" → "and" → "1995-12-31."
+**Visual:**
+```
+  SEGMENT BUILDER — Criteria Panel
+  ─────────────────────────────────────────────────────────
+  + Add Criteria
+
+  ┌──────────────────┬──────────────────┬──────────────────┐
+  │ Individual       │ LoyaltyTier      │ equals  "Gold"   │
+  └──────────────────┴──────────────────┴──────────────────┘
+  AND
+  ┌──────────────────┬──────────────────┬──────────────────┐
+  │ Individual       │ BirthDate        │ is between       │
+  └──────────────────┴──────────────────┴──────────────────┘
+    1980-01-01   and   1995-12-31
+
+  AND
+  ┌──────────────────┬──────────────────┬──────────────────┐
+  │ Individual       │ City             │ equals  "Chicago"│
+  └──────────────────┴──────────────────┴──────────────────┘
+
+  Structure: [ DMO ] → [ Field ] → [ Operator ] → [ Value ]
+  AND = all conditions true (narrows segment)
+  OR  = at least one true (widens segment)
+```
 
 **Content:**
 - Attribute filters use a **DMO → Field → Operator → Value** structure
@@ -58,7 +118,31 @@
 ---
 
 ### Slide 4: Related Attribute Filters — Direct Relationships
-**Visual:** A relationship diagram showing Unified Individual linked to Sales Order DMO via a direct relationship arrow labeled "has Sales Orders." The segment criteria panel shows: "Related: Sales Order WHERE OrderDate is in last 30 days AND TotalAmount >= 500."
+**Visual:**
+```
+  UNIFIED INDIVIDUAL
+  ┌───────────────────────────────┐
+  │  ID: 00UXXXXXXXXXXXXX         │
+  │  Name: John Smith             │
+  └───────────────┬───────────────┘
+                  │ (direct relationship)
+                  │ IndividualId links SalesOrder to Individual
+                  │
+                  ▼
+  ┌───────────────────────────────┐
+  │    SALES ORDER DMO            │
+  │  OrderDate: 2024-09-01        │◀── Filter: OrderDate
+  │  TotalAmount: $750            │◀── Filter: TotalAmount >= 500
+  │  IndividualId: 00UXXXXX       │
+  └───────────────────────────────┘
+
+  Segment criteria: "Include customers who have AT LEAST ONE
+  Sales Order WHERE OrderDate is in last 30 days
+  AND TotalAmount >= 500"
+
+  Also supports: "have NO related records" (absence filter)
+  and "have AT LEAST N records" (count filter)
+```
 
 **Content:**
 - A **direct relationship** exists when a DMO is directly linked to the Unified Individual or Individual
@@ -73,7 +157,31 @@
 ---
 
 ### Slide 5: Related Attribute Filters — Indirect Relationships
-**Visual:** A three-tier relationship diagram: Unified Individual → Sales Order → Sales Order Product (linked through Sales Order). Segment criteria shows filter on Sales Order Product fields traversing through Sales Order.
+**Visual:**
+```
+  UNIFIED INDIVIDUAL
+  ┌──────────────────┐
+  │  John Smith      │
+  └────────┬─────────┘
+           │  hop 1 (direct)
+           ▼
+  ┌──────────────────┐
+  │  SALES ORDER     │
+  │  Order #SO-001   │
+  └────────┬─────────┘
+           │  hop 2 (indirect)
+           ▼
+  ┌──────────────────┐
+  │ SALES ORDER      │
+  │ PRODUCT          │◀── Filter: ProductCategory = "Electronics"
+  │  SKU: ELEC-101   │◀── Filter: Quantity > 1
+  └──────────────────┘
+
+  Segment: "Customers who purchased Electronics in last 90 days"
+  → Requires traversal: Individual → SalesOrder → SalesOrderProduct
+  → This is a 2-hop indirect relationship
+  → Data Cloud supports up to 2 hops from Unified Individual
+```
 
 **Content:**
 - An **indirect relationship** exists when you filter on a DMO that is related through an intermediate DMO
@@ -88,7 +196,26 @@
 ---
 
 ### Slide 6: Segment Membership & Refresh
-**Visual:** A timeline diagram showing segment membership at three points: T1 (initial run) = 12,450 members. T2 (next run after data refresh) = 13,100 members (new customers met criteria). T3 (next run) = 12,800 members (some customers no longer meet criteria).
+**Visual:**
+```
+  SEGMENT MEMBERSHIP OVER TIME
+  ──────────────────────────────────────────────────────────
+  T1 (Initial run)     T2 (After data refresh)    T3 (Next run)
+  ┌─────────────┐      ┌─────────────┐            ┌─────────────┐
+  │  12,450     │      │  13,100     │            │  12,800     │
+  │  members    │ ──▶  │  members    │  ──▶       │  members    │
+  │             │      │  (+650 new  │            │  (-300 aged │
+  │             │      │  customers  │            │   out of    │
+  │             │      │  qualified) │            │   window)   │
+  └─────────────┘      └─────────────┘            └─────────────┘
+
+  Refresh schedule: every 12 or 24 hours (configurable)
+  Status: DRAFT → cannot activate
+  Status: PUBLISHED → can activate to targets
+
+  NOTE: Segment refresh ≠ Data Stream refresh
+        Both schedules affect membership currency
+```
 
 **Content:**
 - Segment membership is **dynamic** — it changes when the segment is recalculated
@@ -103,7 +230,27 @@
 ---
 
 ### Slide 7: Segment Exclusions
-**Visual:** A set diagram: Large circle "All Gold Tier Customers" minus an inner circle "Customers who received email in last 7 days" = the shaded region labeled "Final Segment for Campaign."
+**Visual:**
+```
+  BUILDING THE FINAL SEGMENT
+  ──────────────────────────────────────────────────────────
+  STEP 1 — INCLUDE:              STEP 2 — EXCLUDE:
+  All Gold Tier Customers        Customers who received
+  ┌─────────────────────┐        email in last 7 days
+  │  ● ● ● ● ● ● ● ●   │        ┌──────────────┐
+  │  ● ● ● ● ● ● ● ●   │  minus │ ● ● ● ● ●    │
+  │  ● ● ● ● ● ● ● ●   │        └──────────────┘
+  │  ● ● ● ● ● ● ● ●   │
+  └─────────────────────┘
+           │
+           ▼  Apply Exclusion
+  ┌────────────────────────────────────┐
+  │  FINAL SEGMENT FOR CAMPAIGN        │
+  │  Gold Tier, NOT recently emailed   │
+  │  ● ● ● ● ● ● ● ● ● ● ● ●         │
+  └────────────────────────────────────┘
+  KEY: Exclude HasOptedOutOfEmail = true for all email campaigns
+```
 
 **Content:**
 - **Exclusion criteria** remove matching Unified Individuals from a segment
@@ -118,7 +265,27 @@
 ---
 
 ### Slide 8: Segment Best Practices
-**Visual:** A "DOs and DON'Ts" table with four rows covering segment design best practices.
+**Visual:**
+```
+  ┌──────────────────────────────────┬──────────────────────────────────┐
+  │                DO                │              DON'T               │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │ Publish segments before          │ Try to activate a Draft segment  │
+  │ activation (not Draft)           │ — it will not appear in ATs      │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │ Include HasOptedOutOfEmail=false  │ Send email campaigns without     │
+  │ exclusion in email segments       │ consent exclusion filters        │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │ Test with simple criteria first, │ Build deeply nested OR logic     │
+  │ add complexity incrementally     │ that makes intent unreadable     │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │ Monitor segment counts for       │ Assume real-time membership —    │
+  │ unexpected spikes or drops       │ check refresh schedules first    │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │ Build segments on DMOs via       │ Try to build segments on DLO     │
+  │ Segment Builder                  │ raw data — not supported         │
+  └──────────────────────────────────┴──────────────────────────────────┘
+```
 
 **Content:**
 - **Do:** Use Published segments for activation — Draft segments cannot be activated

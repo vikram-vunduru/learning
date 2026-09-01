@@ -29,7 +29,35 @@
 ---
 
 ### Slide 2: What Is Prompt Builder?
-**Visual:** Diagram showing the flow: CRM Record (contains real data) → Prompt Template (your instructions + merge fields) → Trust Layer (data masking) → LLM (generates content) → Salesforce UI (shows output to user). Each step has an icon.
+**Visual:**
+```
+   PROMPT BUILDER — DATA FLOW
+
+   ┌────────────────────────────────────────────────────────────┐
+   │  1. ADMIN CREATES template in Prompt Builder               │
+   │     (Role + Context + Instructions + Format)               │
+   │              │                                             │
+   │              ▼                                             │
+   │  2. MERGE FIELDS pull live CRM data at runtime             │
+   │     {!$Record.Account.Name} → "Acme Corp"                  │
+   │     {!$Record.Amount} → "$45,000"                          │
+   │              │                                             │
+   │              ▼                                             │
+   │  3. EINSTEIN TRUST LAYER processes prompt                  │
+   │     ● PII masking                                          │
+   │     ● Grounding with Data Cloud context                    │
+   │              │                                             │
+   │              ▼                                             │
+   │  4. LLM GENERATES content (under ZDR agreement)            │
+   │              │                                             │
+   │              ▼                                             │
+   │  5. RESPONSE returned through Trust Layer                  │
+   │     ● Toxicity check ● Audit logged                        │
+   │              │                                             │
+   │              ▼                                             │
+   │  6. OUTPUT displayed to user / stored in field             │
+   └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 **Prompt Builder** is a tool in Salesforce Setup that lets admins and developers:
 - Create reusable prompt templates that combine instructions with live CRM data
@@ -48,7 +76,31 @@
 ---
 
 ### Slide 3: The Four Template Types
-**Visual:** 2x2 grid showing four boxes, each with an icon and short description. Top left: Field Generation (form icon). Top right: Flex (flexible puzzle piece). Bottom left: Record Summary (document icon). Bottom right: Sales Email (envelope icon).
+**Visual:**
+```
+   PROMPT BUILDER — FOUR TEMPLATE TYPES
+
+   ┌────────────────────────────┬────────────────────────────┐
+   │      FIELD GENERATION      │       FLEX TEMPLATE        │
+   │                            │                            │
+   │ Populates a specific       │ Flexible placement —       │
+   │ Salesforce FIELD with AI   │ used anywhere configured   │
+   │ generated content          │ (sidebar, panel, etc.)     │
+   │                            │                            │
+   │ Ex: Account Summary field  │ Ex: Einstein Copilot       │
+   │ auto-populated from CRM    │ context suggestions        │
+   │ data via AI                │                            │
+   ├────────────────────────────┼────────────────────────────┤
+   │      RECORD SUMMARY        │       SALES EMAIL          │
+   │                            │                            │
+   │ Summarizes a full RECORD   │ Generates personalized     │
+   │ using related data as      │ SALES OUTREACH emails in   │
+   │ AI context                 │ Sales Engagement           │
+   │                            │                            │
+   │ Ex: Case summary from      │ Ex: Follow-up email after  │
+   │ case + related emails      │ a discovery call           │
+   └────────────────────────────┴────────────────────────────┘
+```
 **Content:**
 **1. Field Generation**
 - Auto-fills a specific record field using AI

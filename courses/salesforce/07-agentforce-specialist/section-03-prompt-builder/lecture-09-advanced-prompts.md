@@ -10,7 +10,31 @@
 ## Slides
 
 ### Slide 1: Merge Fields — Syntax and Scope
-**Visual:** A merge field syntax reference card. Shows the base format: `{!ObjectName.FieldName}`. Then variations: related object traversal `{!Case.Account.Name}`, custom field `{!Account.Customer_Tier__c}`, contact relationship `{!Opportunity.Account.PrimaryContact.Email}`. Each example has a green "resolves to" arrow showing the actual value. A "common mistakes" callout: missing `!` prefix, wrong API name casing, traversing a null relationship.
+**Visual:**
+```
+  MERGE FIELD SYNTAX REFERENCE
+
+  Base format:   {!ObjectName.FieldName}
+                   ↑                ↑
+                 Note the !      Exact API name
+                 required
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Type              │ Example                  │ Resolves to  │
+  ├──────────────────────────────────────────────────────────────┤
+  │ Standard field     │ {!Account.Name}           │ "Acme Inc"  │
+  │ Standard field     │ {!Case.Status}            │ "Open"      │
+  │ Custom field       │ {!Account.Loyalty_Tier__c}│ "Gold"      │
+  │ Related obj (1 up) │ {!Case.Account.Name}      │ "Acme Inc"  │
+  │ Related obj (2 up) │ {!Opp.Account.BillingCity}│ "San Jose"  │
+  └──────────────────────────────────────────────────────────────┘
+
+  COMMON MISTAKES:
+  ✗ Missing !:    {Account.Name}       → will not resolve
+  ✗ Wrong case:   {!account.name}      → may fail on some objects
+  ✗ Null traverse:{!Case.Account.Name} → empty if Case.Account is null
+  ✗ Wrong suffix: {!Account.Tier}      → use {!Account.Loyalty_Tier__c}
+```
 **Content:**
 - **Merge field syntax:** `{!ObjectName.FieldName}` — note the exclamation point is required
 - **Standard fields:** `{!Account.Name}`, `{!Case.Status}`, `{!Contact.Email}`
@@ -22,7 +46,36 @@
 **Speaker Notes:** Merge fields in Prompt Builder work very similarly to merge fields in Salesforce email templates or Flows — the same `{!Object.Field}` syntax with the same traversal rules. The most common debugging task in Prompt Builder testing is tracing why a merge field shows empty in the output. Always check: Is the field populated on the test record? Does the relationship exist? Is the API name correct (custom fields need `__c`)? Is the field accessible to the running user (FLS)? Work through these four checks in order when merge fields do not resolve.
 
 ### Slide 2: Advanced Merge Field Patterns
-**Visual:** Three code/content examples showing advanced merge field usage. Example 1: List of related records — a description note: "Prompt Builder does not natively iterate over related lists — pre-process with a Flow and pass as a formatted text string." Example 2: Conditional content — shows instructions in the System Prompt: "If the {!Account.Industry} field contains 'Healthcare', emphasize HIPAA compliance considerations." Example 3: Formatted data — a merge field for a date field showing both raw API format and a note to include formatting instructions in the template body.
+**Visual:**
+```
+  PATTERN 1: Related Lists (child record sets)
+  ─────────────────────────────────────────────
+  ✗ Does NOT work:   {!Account.Contacts[].Name}
+  ✓ Workaround:
+    Flow step → query Contacts for Account
+             → format as text string:
+               "Contacts: Alice Smith (VP), Bob Jones (Fin)"
+             → store in field or pass as template input
+             → use as merge field in template body
+
+  PATTERN 2: Conditional Instructions
+  ─────────────────────────────────────────────
+  Template body can include LLM-interpreted conditions:
+  "If {!Lead.Industry} is 'Financial Services', include
+   a note about compliance requirements."
+  The LLM interprets this — no special syntax needed
+
+  PATTERN 3: Date Formatting
+  ─────────────────────────────────────────────
+  Date fields → ISO format string by default
+  Add instruction: "When displaying dates, use
+  Month Day, Year format (e.g., December 15, 2024)"
+
+  PATTERN 4: Multiple SObjects (Flex templates)
+  ─────────────────────────────────────────────
+  A Flex template can accept multiple input SObject types,
+  enabling cross-object context in one template
+```
 **Content:**
 - **Related lists / child records:** Prompt Builder merge fields access fields on a single record and its parent lookups — they do not natively iterate over child records (e.g., list of Contacts on an Account)
   - Workaround: pre-process the list in a Flow, concatenate into a text string, store in a Text field or pass as a template parameter
@@ -34,7 +87,31 @@
 **Speaker Notes:** The related list limitation is the most common advanced merge field issue. Developers who expect merge fields to work like SOQL JOIN queries are surprised to discover that you cannot do `{!Account.Contacts[].Name}`. The platform-standard solution is a Flow step: query the related records, build a formatted string (e.g., "Contacts: Alice Smith (VP Sales), Bob Jones (Finance Director)"), and pass that string to the template as a text input or store it in a temporary field. This is a design pattern worth memorizing for the exam.
 
 ### Slide 3: Grounding Within Prompt Templates
-**Visual:** Prompt Builder template with the Grounding section expanded. Shows: Grounding Source dropdown (selected: Einstein Knowledge), Search Query field (shows a merge field: `{!Case.Subject}` — the case subject is used as the search query), Top N Articles slider (set to 3), Article Types multi-select. Below: a preview showing that when the template runs, the Knowledge search fires first, then the retrieved article content is injected into the prompt before the LLM generates.
+**Visual:**
+```
+  Prompt Builder — Grounding Section (expanded)
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  GROUNDING  (purple section)                                 │
+  │                                                              │
+  │  Grounding Source:  [ Einstein Knowledge ▼ ]                 │
+  │  Search Query:      [ {!Case.Subject}     ]  ◀── merge field │
+  │                      (dynamic per case — each case pulls     │
+  │                       articles relevant to ITS subject)      │
+  │  Top N Articles:    [ 3 ]                                    │
+  │  Article Types:     [ ✓ FAQ ] [ ✓ Policy ] [ How-To ]       │
+  └──────────────────────────────────────────────────────────────┘
+
+  Template execution flow:
+  ① Search query resolved: {!Case.Subject} → "Cannot log in"
+  ② Knowledge search runs: finds 3 relevant articles
+  ③ Retrieved articles injected into prompt context
+  ④ LLM generates response from Instructions + article content
+  ⑤ Output returned — grounded, not hallucinated
+
+  Template-level grounding: always applied when template runs
+  Agent-level grounding: applied when Atlas invokes the action
+```
 **Content:**
 - Prompt Templates can include **grounding** that retrieves relevant content before the LLM generates the response
 - **Grounding sources available in templates:** Einstein Knowledge, Data Cloud, Salesforce Records (related object data)
@@ -47,7 +124,34 @@
 **Speaker Notes:** Grounding within templates is a powerful combination — you can build a case summary template that automatically pulls the relevant Knowledge articles for that case and incorporates their guidance into the summary, without the agent needing to explicitly invoke a Knowledge Action first. For the exam, understand that grounding can happen either at the Agent Action level (Knowledge Search Action in a Topic) or within the Prompt Template itself. Both use the same RAG pattern. The choice is about where the grounding logic lives: agent-level grounding is dynamic and context-driven; template-level grounding is always applied whenever the template runs.
 
 ### Slide 4: Using Salesforce Records as Template Context
-**Visual:** A template configuration showing the "Add Related Records" section. The primary object is Case. Added related records: Account (parent lookup), Contact (lookup via Case.ContactId), and most recent CaseComment (child record, configured with a filter: Created Date descending, limit 1). Each added record shows which fields will be available as merge fields. An annotation: "Related records pre-loaded — no separate Flow step needed for direct parent/lookup relationships."
+**Visual:**
+```
+  Template: Case Resolution Summary
+  Primary Object: Case
+
+  ┌────────────────────────────────────────────────────────────────┐
+  │  RELATED OBJECTS CONFIGURATION                                 │
+  ├────────────────────────────────────────────────────────────────┤
+  │  Primary:  Case                                                │
+  │  ┌─────────────────────────────────────────────────────────┐  │
+  │  │  + Account (parent lookup via Case.AccountId)           │  │
+  │  │    Fields available: {!Account.Name}, {!Account.Industry}│  │
+  │  │                                                         │  │
+  │  │  + Contact (lookup via Case.ContactId)                  │  │
+  │  │    Fields available: {!Contact.Name}, {!Contact.Phone}  │  │
+  │  │                                                         │  │
+  │  │  + Most Recent CaseComment (child, filter: Created Date │  │
+  │  │    DESC, limit 1)                                        │  │
+  │  │    Fields available: {!CaseComment.Body}                │  │
+  │  └─────────────────────────────────────────────────────────┘  │
+  └────────────────────────────────────────────────────────────────┘
+
+  Each related object = 1 SOQL query at execution time
+  Keep related objects reasonable — avoid over-fetching
+
+  For complex needs (all contacts on account, all cases in 90 days)
+  → still need Flow pre-processing approach
+```
 **Content:**
 - Prompt Templates support **related object contexts** beyond simple field traversal — you can configure related records to be loaded and their fields made available as merge fields
 - Configuration:
@@ -59,7 +163,32 @@
 **Speaker Notes:** The related record context configuration is a step up from basic merge fields and worth understanding for both the exam and real implementations. It handles the most common related-record scenario (parent lookups) natively without a pre-processing Flow step. For scenarios with more complex related record needs — like all contacts on an account, or all opportunities in the last 90 days — you still need the Flow pre-processing approach. But for controlled cases like "the Case's associated Account and Contact" or "the most recent note," related object contexts are the cleaner solution.
 
 ### Slide 5: Testing Prompt Templates Effectively
-**Visual:** A testing workflow diagram: Step 1 — Select test record (pick a representative Case). Step 2 — Run preview (see merge fields resolved, see generated output). Step 3 — Evaluate output (quality checklist: accurate facts? correct tone? appropriate length? merge fields resolved?). Step 4 — Document test cases (create a test matrix with 5-10 representative records). Step 5 — Fix and re-run. Step 6 — Multi-record testing with varied records. Below: a table showing test matrix with Record Type, Expected behavior, Actual behavior, Pass/Fail.
+**Visual:**
+```
+  Testing Workflow
+
+  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐
+  │ STEP 1  │   │ STEP 2  │   │ STEP 3  │   │ STEP 4  │   │ STEP 5  │
+  │         │   │         │   │         │   │         │   │         │
+  │ Select  │──▶│  Run    │──▶│Evaluate │──▶│  Fix &  │──▶│  Multi- │
+  │ typical │   │ Preview │   │ output  │   │ re-run  │   │ record  │
+  │ record  │   │         │   │         │   │         │   │ testing │
+  └─────────┘   └─────────┘   └─────────┘   └─────────┘   └─────────┘
+
+  Test Matrix (build 5–10 records)
+  ┌──────────────────────────┬────────────────────┬────────────┐
+  │ Record Type              │ Expected Output    │ Pass/Fail  │
+  ├──────────────────────────┼────────────────────┼────────────┤
+  │ Typical Case (complete)  │ Full summary       │ Pass       │
+  │ Case with no Contact     │ "Contact N/A"      │ Pass       │
+  │ Case with very long desc │ Truncated, clear   │ ⚠ review   │
+  │ Case in different lang.  │ Language match?    │ Review     │
+  │ New Case (no history)    │ "No prior history" │ Pass       │
+  └──────────────────────────┴────────────────────┴────────────┘
+
+  Quality checks: merge fields resolve? tone appropriate?
+  length correct? grounding returns right articles?
+```
 **Content:**
 - **Testing process:**
   1. Select a realistic test record — not the simplest possible case, a typical one
@@ -77,7 +206,33 @@
 **Speaker Notes:** The test matrix concept — testing with 5-10 representative records systematically — is a best practice that separates enterprise-grade prompt templates from quick prototypes. The most common production quality issue is a template that works great for the typical case but fails for edge cases: records with missing fields, records with unusually long content, records for customers in a different region. Test the breadth of your data, not just the clean center. For the exam, testing in Prompt Builder is likely to appear in scenario questions about deployment readiness — "what should a developer do before activating a Prompt Template for production?" Answer: test with multiple representative records using the Prompt Builder preview panel.
 
 ### Slide 6: Deploying Templates — Sandbox to Production
-**Visual:** A deployment pipeline diagram showing three environments: left (Developer Sandbox), middle (UAT Sandbox), right (Production). Arrows between them labeled: (1) Change Set (Package contains Prompt Template metadata), (2) Salesforce DX (sfdx project with Prompt Template metadata in source), (3) Direct metadata deploy via CLI. Below: a warning callout "Templates deployed as Inactive — must be Activated in target org."
+**Visual:**
+```
+  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+  │  Developer      │     │   UAT Sandbox   │     │   Production    │
+  │  Sandbox        │     │                 │     │                 │
+  │                 │     │                 │     │                 │
+  │  Build template │────▶│ Test with real  │────▶│  Activate in    │
+  │  Test iteratively│    │ users / data    │     │  production     │
+  │  Draft status   │     │ Get sign-off    │     │                 │
+  └─────────────────┘     └─────────────────┘     └─────────────────┘
+       │ Change Set / SF CLI / Metadata API
+       │ sfdx: promptTemplates/ directory
+       │ sf project deploy start
+       │
+       ▼  IMPORTANT:
+  Templates arrive in target org as INACTIVE
+  Must be manually ACTIVATED after deployment
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Post-deployment checklist:                                  │
+  │  1. Template shows as Inactive in target org                 │
+  │  2. Open template in Prompt Builder                          │
+  │  3. Run preview with production-representative records       │
+  │  4. Verify merge fields resolve (field API names must exist) │
+  │  5. Activate template                                        │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Prompt Templates are **Salesforce metadata** — they can be moved between orgs using the same deployment mechanisms as any other metadata
 - **Change Sets:** Include Prompt Template in the outbound change set; templates are included in the "Prompt Templates" metadata type
@@ -91,7 +246,35 @@
 **Speaker Notes:** The "templates arrive Inactive" behavior is a frequent exam topic. Just as Flows arrive as Inactive when deployed, Prompt Templates arrive Inactive and must be manually activated in the target org. This is by design — it requires a human review step in the target environment rather than having AI-generated content go live automatically. Always include the activation step and post-deployment testing in your deployment checklist. For the exam, if a question asks "after deploying a Prompt Template to production, what must an admin do before it can be used?" — the answer is Activate the template.
 
 ### Slide 7: Common Merge Field Errors and Fixes
-**Visual:** An error card layout showing six common errors with icon, description, and fix. Error 1: Empty output for merge field — icon: empty box — cause: field not populated or wrong API name — fix: verify field value on record and API name spelling. Error 2: "Unknown field" error — cause: API name typo or field does not exist on that object — fix: use field API browser in Prompt Builder to get exact names. Error 3: Related record not found — cause: relationship field is null — fix: add null handling instruction in template body. Error 4: Output too long — cause: Long Text Area field has very long content — fix: add character limit instruction or pre-truncate in Flow. Error 5: Template outputs same content regardless of record — cause: merge fields not in body (only in system prompt) — fix: move dynamic fields to body. Error 6: Access denied error — cause: FLS or OLS blocks a field for the running user — fix: check field permissions.
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  ERROR                    │ CAUSE               │ FIX              │
+  ├────────────────────────────────────────────────────────────────────┤
+  │  Empty output for field   │ Field not populated │ Check record     │
+  │  {!Account.Industry}→""   │ or wrong API name   │ data; verify API │
+  │                           │                     │ name in Schema   │
+  ├────────────────────────────────────────────────────────────────────┤
+  │  "Unknown field" error    │ Typo in API name    │ Use Prompt       │
+  │                           │ or field doesn't    │ Builder's merge  │
+  │                           │ exist on object     │ field picker     │
+  ├────────────────────────────────────────────────────────────────────┤
+  │  Related record null      │ Lookup field is     │ Add null-handling│
+  │  {!Case.Account.Name}→""  │ blank on record     │ instruction in   │
+  │                           │                     │ template body    │
+  ├────────────────────────────────────────────────────────────────────┤
+  │  Same output for all      │ Merge fields in     │ Move record-     │
+  │  records                  │ System Prompt       │ specific fields  │
+  │                           │ (static section)    │ to Template Body │
+  ├────────────────────────────────────────────────────────────────────┤
+  │  Truncated long field     │ Long Text Area      │ Add char limit   │
+  │  content                  │ content too large   │ instruction or   │
+  │                           │                     │ pre-truncate     │
+  ├────────────────────────────────────────────────────────────────────┤
+  │  Access denied error      │ FLS blocks field    │ Check field      │
+  │                           │ for running user    │ permissions      │
+  └────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Empty merge field** — field not populated on test record, or incorrect API name; verify in record and cross-check with Schema Builder
 - **"Unknown field" error** — typo in API name or field does not exist on the object; use the merge field picker in Prompt Builder to avoid typos
@@ -102,7 +285,36 @@
 **Speaker Notes:** The "same output for all records" error is a subtle one that catches developers who put all their merge fields in the System Prompt thinking it establishes context. The System Prompt is evaluated once for all invocations with the same template — it does not refresh per record. Record-specific merge fields must be in the Template Body. If you find yourself asking "why does every Case get the same summary?" — check where your merge fields are placed.
 
 ### Slide 8: Prompt Template Quality Checklist
-**Visual:** A quality assurance checklist card with 10 items, each with a checkbox. Items: 1) System prompt clearly defines the AI's role. 2) Template body contains all necessary merge fields. 3) Merge fields tested and verified to resolve correctly. 4) Null handling instructions included for optional fields. 5) Output length guidance included in instructions. 6) Tone/style guidance matches audience. 7) Grounding configured and tested if needed. 8) Tested with 5+ representative records. 9) Tested with edge-case records (missing data, unusual content). 10) Template reviewed and approved before activation.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │              PRE-DEPLOYMENT QUALITY CHECKLIST                    │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  System Prompt                                                   │
+  │  □  1. Clearly defines AI's role and task objective             │
+  │  □  2. Specifies tone/style and target audience                 │
+  │  □  3. Includes output length guidance                          │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  Template Body & Merge Fields                                    │
+  │  □  4. All required merge fields present with correct API names  │
+  │  □  5. Merge fields verified to resolve with correct values     │
+  │  □  6. Null/empty field handling instructions included          │
+  │  □  7. Record-specific fields in Template Body (not Sys Prompt) │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  Grounding                                                       │
+  │  □  8. Grounding source configured (if needed)                  │
+  │  □  9. Grounding returns relevant content in preview            │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  Testing                                                         │
+  │  □ 10. At least 5 representative test records previewed         │
+  │  □ 11. Edge cases tested (empty fields, long content)           │
+  │  □ 12. Output reviewed and meets quality standards              │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  Deployment                                                      │
+  │  □ 13. Template signed off by stakeholders                      │
+  │  □ 14. Activated only after quality standards met               │
+  └──────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Pre-deployment checklist for Prompt Templates:
   1. System prompt is specific about the AI's role and task objective

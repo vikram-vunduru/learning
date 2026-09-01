@@ -9,7 +9,21 @@
 ## Slides
 
 ### Slide 1: Why Asynchronous Apex?
-**Visual:** Diagram showing a synchronous call stack hitting a governor limit wall vs. an async job running in a separate governor context
+**Visual:**
+```
+  SYNCHRONOUS (one governor context)
+  ┌───────────────────────────────────────┐
+  │  Trigger → Logic → SOQL → DML → ...  │───► LimitException if too large
+  └───────────────────────────────────────┘
+           ↑ limited to 100 SOQL, 6MB heap, etc.
+
+  ASYNCHRONOUS (separate governor context)
+  ┌─────────────┐   enqueue   ┌────────────────────────────────┐
+  │   Trigger   │ ──────────► │  @future / Batch / Queueable   │
+  │  (returns   │             │  Fresh limits per job:         │
+  │   quickly)  │             │  200 SOQL, 12MB heap, etc.     │
+  └─────────────┘             └────────────────────────────────┘
+```
 **Content:**
 - Synchronous transactions share one set of governor limits
 - Long-running or resource-intensive work needs its own context
@@ -28,7 +42,19 @@
 **Speaker Notes:** The most common use of @future in triggers is making an HTTP callout after a DML event, because Salesforce does not allow callouts after uncommitted DML in the same synchronous transaction. Pass record IDs as a Set<Id> instead of sObjects — sObject parameters are not allowed because the data may have changed by the time the job runs.
 
 ### Slide 3: Batch Apex
-**Visual:** Three-step pipeline diagram: start() returns a Database.QueryLocator, execute() processes each chunk, finish() runs cleanup
+**Visual:**
+```
+  ┌──────────────────┐     ┌───────────────────────┐     ┌─────────────────┐
+  │    start()       │────►│    execute()           │────►│   finish()      │
+  │                  │     │   (called per chunk)   │     │                 │
+  │  Returns         │     │                        │     │  Runs once      │
+  │  QueryLocator    │     │  200 records/chunk     │     │  after all      │
+  │  (up to 50M      │     │  (default; max 2,000)  │     │  chunks done    │
+  │   records)       │     │                        │     │                 │
+  │                  │     │  Each chunk = its own  │     │  Send summary,  │
+  │  Runs once       │     │  transaction + limits  │     │  clean up, etc. │
+  └──────────────────┘     └───────────────────────┘     └─────────────────┘
+```
 **Content:**
 - Implements `Database.Batchable<sObject>` interface
 - Three required methods: `start()`, `execute()`, `finish()`
@@ -48,7 +74,23 @@
 **Speaker Notes:** Queueable fills the gap between @future and Batch. Unlike @future, it accepts complex object parameters and lets you chain jobs together. Unlike Batch, the setup is simpler for jobs that don't need to iterate over millions of records. In test classes, use Test.getEventBus().deliver() or wrap enqueue calls in Test.startTest()/Test.stopTest() to execute the queue synchronously.
 
 ### Slide 5: Scheduled Apex
-**Visual:** Calendar icon with a CRON expression broken down: seconds, minutes, hours, day-of-month, month, day-of-week, year
+**Visual:**
+```
+  CRON Expression Format (7 fields):
+
+  '0  0  2  *  *  ?'
+   │  │  │  │  │  └── Day-of-week  (? = any, SUN-SAT, 1-7)
+   │  │  │  │  └───── Month        (* = every month, 1-12)
+   │  │  │  └──────── Day-of-month (* = every day, 1-31)
+   │  │  └─────────── Hours        (0-23)
+   │  └────────────── Minutes      (0-59)
+   └───────────────── Seconds      (0-59)
+
+  Examples:
+  '0 0 2 * * ?'       every day at 2:00 AM
+  '0 0 8 ? * MON'     every Monday at 8:00 AM
+  '0 0 0 1 * ? *'     first day of every month at midnight
+```
 **Content:**
 - Implements `System.Schedulable` interface with one `execute(SchedulableContext ctx)` method
 - Schedule with `System.schedule(name, cronExpression, instance)`
@@ -58,7 +100,30 @@
 **Speaker Notes:** Scheduled Apex is ideal for time-based operations like nightly batch kicks, daily reports, or weekly data syncs. The CRON expression follows a seven-field format similar to Unix cron but with seconds as the first field. Remember: you cannot schedule a job from a test class without using Test.startTest()/Test.stopTest(), and scheduled jobs created in tests are not actually executed unless explicitly stopped.
 
 ### Slide 6: Choosing the Right Async Type
-**Visual:** Decision tree: "Need to make a callout from a trigger?" → @future; "Processing millions of records?" → Batch; "Need object params or chaining?" → Queueable; "Time-based execution?" → Scheduled
+**Visual:**
+```
+  Need to run Apex asynchronously?
+           │
+           ▼
+  Need to make an HTTP callout from a DML trigger?
+  ├─ YES ──► @future(callout=true)
+  └─ NO
+           │
+           ▼
+  Processing millions of records?
+  ├─ YES ──► Batch Apex (Database.Batchable)
+  └─ NO
+           │
+           ▼
+  Need object parameters or job chaining?
+  ├─ YES ──► Queueable Apex (System.Queueable)
+  └─ NO
+           │
+           ▼
+  Time-based / scheduled execution?
+  ├─ YES ──► Scheduled Apex (System.Schedulable)
+  └─ NO  ──► @future (simplest option)
+```
 **Content:**
 - **@future**: HTTP callout triggered by DML; simplest async option
 - **Batch Apex**: Mass data processing (thousands to millions of records)

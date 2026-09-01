@@ -9,7 +9,21 @@
 ## Slides
 
 ### Slide 1: What Are Governor Limits?
-**Visual:** Multitenant architecture diagram showing multiple orgs sharing one Salesforce server pool, with a limit "cap" over each org's transaction bubble
+**Visual:**
+```
+  Salesforce Multitenant Platform
+  ┌──────────────────────────────────────────────────────────┐
+  │  Shared Server Pool (CPU / DB / Memory)                  │
+  │  ┌────────────┐  ┌────────────┐  ┌────────────┐         │
+  │  │   Org A    │  │   Org B    │  │   Org C    │         │
+  │  │ ┌────────┐ │  │ ┌────────┐ │  │ ┌────────┐ │         │
+  │  │ │  cap   │ │  │ │  cap   │ │  │ │  cap   │ │         │
+  │  │ │ limit  │ │  │ │ limit  │ │  │ │ limit  │ │         │
+  │  │ └────────┘ │  │ └────────┘ │  │ └────────┘ │         │
+  │  └────────────┘  └────────────┘  └────────────┘         │
+  └──────────────────────────────────────────────────────────┘
+  Each transaction is capped — LimitException if exceeded
+```
 **Content:**
 - Salesforce is a multitenant platform — orgs share compute resources
 - Governor limits prevent one transaction from monopolizing shared resources
@@ -19,7 +33,32 @@
 **Speaker Notes:** Governor limits exist because Salesforce runs thousands of customer orgs on the same infrastructure. Without limits, a poorly written loop could starve other orgs of CPU or database connections. Every Apex developer must internalize the most common limits — they are a fixture on the PDI exam and a daily reality in development.
 
 ### Slide 2: Query and DML Limits (Synchronous)
-**Visual:** Two-column table: left column lists limit names, right column shows sync and async values side by side highlighted in different colors
+**Visual:**
+```
+  SYNCHRONOUS TRANSACTION
+  ┌────────────────────────────────────────────────────┐
+  │  Resource            Limit       Best Practice     │
+  ├────────────────────────────────────────────────────┤
+  │  SOQL queries        100         Bulkify: 1 query  │
+  │  DML statements      150         per trigger       │
+  │  CPU time            10,000 ms   Use collections   │
+  │  Heap size           6 MB        Avoid loops+SOQL  │
+  │  Callouts            100         Use @future        │
+  └────────────────────────────────────────────────────┘
+
+  ┌───────────────────────────────────────────────────────────┐
+  │  Resource              Synchronous     Asynchronous       │
+  ├───────────────────────────────────────────────────────────┤
+  │  SOQL queries               100             200           │
+  │  SOSL searches               20              20           │
+  │  DML statements             150             150           │
+  │  DML rows                10,000          10,000           │
+  │  CPU time             10,000 ms       60,000 ms           │
+  │  Heap size                6 MB            12 MB           │
+  │  HTTP callouts              100             100           │
+  │  @future calls               50               -           │
+  └───────────────────────────────────────────────────────────┘
+```
 **Content:**
 - SOQL queries: **100** (sync) / **200** (async)
 - SOSL searches: **20** (sync) / **20** (async)
@@ -30,7 +69,19 @@
 **Speaker Notes:** These are the most-tested limits. Know them cold: 100 SOQL queries synchronously, 150 DML statements, 10,000 DML rows. The distinction between DML statements and DML rows trips up many developers — you could insert 10,000 records in a single DML statement (1 statement, 10,000 rows), or insert 10 records with 150 separate DML calls (150 statements, 10 rows). Both limits are tracked independently.
 
 ### Slide 3: Compute and Memory Limits
-**Visual:** Speedometer-style gauges for CPU time and heap size, showing the sync needle at a lower limit and the async needle at a higher one
+**Visual:**
+```
+  CPU TIME                         HEAP SIZE
+  ┌───────────────────────────┐    ┌───────────────────────────┐
+  │  Sync:  [████░░░░░░]      │    │  Sync:  [████░░░░░░]      │
+  │         10,000 ms limit   │    │         6 MB limit         │
+  │                           │    │                           │
+  │  Async: [████░░░░░░░░░░░] │    │  Async: [████░░░░░░░░░░░] │
+  │         60,000 ms limit   │    │         12 MB limit        │
+  └───────────────────────────┘    └───────────────────────────┘
+  CPU time = active execution only (not waiting for SOQL/callouts)
+  Heap size = all objects in memory; large sObject lists fill it fast
+```
 **Content:**
 - CPU time: **10,000 ms** (sync) / **60,000 ms** (async)
 - Heap size: **6 MB** (sync) / **12 MB** (async)
@@ -61,7 +112,23 @@
 **Speaker Notes:** The Limits class lets you write defensive code that checks how close you are to a limit before performing an operation. The pattern is: if (Limits.getQueries() < Limits.getLimitQueries()) — proceed; otherwise, short-circuit or log and bail. On the exam, questions about the Limits class focus on method names; note that every limit has a getLimitX() counterpart that returns the ceiling for the current transaction context.
 
 ### Slide 6: Bulkification — Queries Outside Loops
-**Visual:** Side-by-side code: "BAD" shows a for loop with a SOQL inside it hitting 101 records and throwing LimitException; "GOOD" shows a single SOQL before the loop populating a Map
+**Visual:**
+```
+  BAD pattern (SOQL in loop):       GOOD pattern (bulkified):
+  ─────────────────────────         ──────────────────────────────────
+  for(Contact c : contacts) {       Set<Id> accIds = new Set<Id>();
+    Account a = [SELECT Id          for(Contact c : contacts) {
+      FROM Account                    accIds.add(c.AccountId);
+      WHERE Id = :c.AccountId];  ←  }
+  }   ↑ 1 query per record          Map<Id,Account> accMap =
+      101 records = 101 queries        new Map<Id,Account>(
+      → LimitException at 101!          [SELECT Id, Name
+                                         FROM Account
+                                         WHERE Id IN :accIds]);  ← 1 query
+                                   for(Contact c : contacts) {
+                                     Account a = accMap.get(c.AccountId);
+                                   }
+```
 **Content:**
 - **Never** put a SOQL query inside a for loop
 - Collect all IDs into a Set, run one query before the loop
@@ -71,7 +138,19 @@
 **Speaker Notes:** Bulkification is the single most important Apex best practice and the most common source of LimitException errors in production. A trigger that queries inside a loop will work fine in developer testing with one record but will explode on a data import of 200 records. The fix is always the same: collect IDs before the loop, query once, put results in a Map, look up by ID inside the loop.
 
 ### Slide 7: Bulkification — DML Outside Loops
-**Visual:** Side-by-side code: "BAD" shows insert inside a for loop incrementing DML statements; "GOOD" shows a List built inside the loop with a single insert list after the loop
+**Visual:**
+```
+  BAD pattern:                   GOOD pattern:
+  ────────────────────────────   ────────────────────────────────────
+  for(Contact c : contacts) {    List<Contact> toUpdate = new List<Contact>();
+    c.Title = 'Updated';         for(Contact c : contacts) {
+    update c;  ← 1 DML each        c.Title = 'Updated';
+  }                                toUpdate.add(c);
+  ↑ 200 records = 200 DML       }
+    statements!                  update toUpdate;  ← 1 DML statement
+    150 limit exceeded
+    → LimitException             ↑ handles 200 records as 1 statement
+```
 **Content:**
 - **Never** execute a DML statement inside a for loop
 - Build a `List<sObject>` inside the loop, insert/update the list once after

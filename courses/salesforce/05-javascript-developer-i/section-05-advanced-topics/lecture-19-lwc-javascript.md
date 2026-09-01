@@ -40,7 +40,27 @@ export default class MyComp extends LightningElement {
 **Speaker Notes:** The three decorators are the most-tested LWC topic in the JSI exam. The key distinction is: @api is for the component's public interface (parent can set it), @wire is for connecting to Salesforce data or services automatically, and @track is largely historical but still valid. The `$` prefix on wire parameters is how you make a wire call refresh when a property changes — without `$`, the parameter is a static value set at component mount time.
 
 ### Slide 3: Lifecycle Hooks
-**Visual:** Vertical timeline diagram showing the LWC component lifecycle: constructor → connectedCallback → render → renderedCallback → [updates] → render → renderedCallback → disconnectedCallback. Arrows show the sequence with labels for when each hook fires.
+**Visual:**
+```
+  Component Created
+        │
+        ▼
+  constructor()        ← initialize, no DOM access
+        │
+        ▼
+  connectedCallback()  ← DOM ready, fetch data, subscribe
+        │
+        ▼
+  render() [auto]      ← framework renders template
+        │
+        ▼
+  renderedCallback()   ← post-render DOM work
+        │
+       ...  (re-renders on @api/@track changes)
+        │
+        ▼
+  disconnectedCallback() ← cleanup listeners, timers, subscriptions
+```
 **Content:**
 - `constructor()` — first to run; call `super()` first; do NOT access template or child components yet
 - `connectedCallback()` — fires when component is **inserted into the DOM**; safe to access `this.template`; good place for: data fetching, subscribing to events, setting up timers
@@ -60,7 +80,24 @@ disconnectedCallback() {
 **Speaker Notes:** The lifecycle hooks map directly to the standard web component lifecycle callbacks. `connectedCallback` is your `componentDidMount` from React, and `disconnectedCallback` is your cleanup. The most common bug I see is adding event listeners in `connectedCallback` and forgetting to remove them in `disconnectedCallback` — this causes memory leaks when the component is removed and re-added. Always mirror your setup and teardown. And never trigger re-renders from `renderedCallback` — use a `_rendered` boolean flag if you need first-render-only logic.
 
 ### Slide 4: Custom Events — Communicating Up
-**Visual:** Parent-to-child communication shown with @api (arrow pointing down), child-to-parent with CustomEvent/addEventListener (arrow pointing up), sibling-to-sibling via Lightning Message Service (arrows crossing through a message channel in the middle).
+**Visual:**
+```
+  ┌────────────────────────────────────────────┐
+  │           Parent Component                 │
+  │  sets @api prop        listens for event   │
+  └──────────┬─────────────────────────────────┘
+             │ @api (data down)    ▲ CustomEvent (events up)
+             ▼                    │
+  ┌──────────────────────────────────────────────┐
+  │           Child Component                    │
+  │  receives @api value    dispatches events    │
+  └──────────────────────────────────────────────┘
+
+  Sibling-to-Sibling (different subtrees):
+  ┌───────────┐   Lightning Message   ┌───────────┐
+  │ Sibling A │  ──── Channel ─────►  │ Sibling B │
+  └───────────┘  (publish/subscribe)  └───────────┘
+```
 **Content:**
 - LWC uses a **unidirectional data flow**: data flows down via @api, events bubble up
 - Create and dispatch custom events:

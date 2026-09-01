@@ -8,7 +8,29 @@
 ## 📊 SLIDES
 
 ### Slide 1: The Account Object
-**Visual:** Account record showing standard fields: Account Name, Type, Industry, Rating, Annual Revenue, Phone, Website, Billing Address
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    ACCOUNT RECORD                            │
+  ├────────────────────────┬─────────────────────────────────────┤
+  │ Account Name           │ Acme Corporation                    │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Type                   │ Customer - Direct                   │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Industry               │ Technology                          │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Rating                 │ Hot                                 │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Annual Revenue         │ $5,000,000                          │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Phone                  │ (415) 555-0100                      │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Website                │ www.acme.com                        │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Billing Address        │ 123 Main St, San Francisco CA 94105 │
+  └────────────────────────┴─────────────────────────────────────┘
+  Account is the hub — Contacts, Opps, Cases, Activities relate to it
+```
 **Content:**
 - Account is the central object in Salesforce — virtually every other object relates to it
 - Represents a company, organization, or (with Person Accounts) an individual consumer
@@ -18,7 +40,29 @@
 **Speaker Notes:** The Account object is sometimes called the "hub" of Salesforce CRM because Contacts, Opportunities, Cases, and Activities all relate back to it. Admins must understand which standard fields exist, what they're used for, and how sharing rules interact with Account ownership.
 
 ### Slide 2: Business Accounts vs Person Accounts
-**Visual:** Split-screen showing Business Account (Company) on the left and Person Account (Individual) on the right
+**Visual:**
+```
+  ┌───────────────────────────────┬───────────────────────────────┐
+  │  BUSINESS ACCOUNT  (default)  │    PERSON ACCOUNT  (B2C)      │
+  ├───────────────────────────────┼───────────────────────────────┤
+  │  [Building icon]              │  [Person icon]                │
+  │  Account = Company            │  Account = Individual         │
+  │                               │                               │
+  │  Account: Acme Corp           │  Person Account: John Smith   │
+  │  Contact: Jane Doe    ──┐     │  (Account + Contact merged    │
+  │  Contact: Bob Lee     ──┤     │   into one record)            │
+  │  Contact: Carol Smith ──┘     │                               │
+  ├───────────────────────────────┼───────────────────────────────┤
+  │  Account and Contact are      │  Single record per consumer   │
+  │  separate objects             │                               │
+  ├───────────────────────────────┼───────────────────────────────┤
+  │  Default in all orgs          │  Must be ENABLED in Setup     │
+  │                               │  ⚠ IRREVERSIBLE once enabled  │
+  ├───────────────────────────────┼───────────────────────────────┤
+  │  Use for: B2B, enterprise     │  Use for: Insurance, Retail,  │
+  │  accounts, SaaS               │  Healthcare, Financial Svcs   │
+  └───────────────────────────────┴───────────────────────────────┘
+```
 **Content:**
 - **Business Account (default):** Represents a company or organization; Contacts are separate records linked to the account
 - **Person Account:** Combines Account + Contact into one record; used in B2C industries (financial services, healthcare, retail)
@@ -28,7 +72,26 @@
 **Speaker Notes:** The exam often tests whether candidates know that Person Accounts are irreversible once enabled. They're ideal for B2C scenarios where customers are individuals, not companies. Admins must request Salesforce Support to enable Person Accounts — it is not a self-service toggle.
 
 ### Slide 3: Account Hierarchy
-**Visual:** Tree diagram showing Parent Account (Acme Corp) with two child accounts (Acme West, Acme East) beneath it
+**Visual:**
+```
+              ┌──────────────────────────┐
+              │        Acme Corp         │  ← Parent Account
+              │   [View Hierarchy ▶]     │
+              └──────────────┬───────────┘
+                             │  Parent Account field (lookup)
+                    ┌────────┴─────────┐
+                    │                  │
+                    ▼                  ▼
+          ┌─────────────────┐ ┌─────────────────┐
+          │    Acme West    │ │    Acme East    │
+          │  Child Account  │ │  Child Account  │
+          └─────────────────┘ └─────────────────┘
+
+  ─────────────────────────────────────────────────────────
+  Hierarchy is STRUCTURAL only — not an access-control tool
+  Sharing is still governed by: OWD → Roles → Sharing Rules
+  "View Hierarchy" button provides visual navigation only
+```
 **Content:**
 - Account Hierarchy is established via the Parent Account lookup field
 - Allows modeling of corporate parent-subsidiary relationships
@@ -38,7 +101,30 @@
 **Speaker Notes:** Account Hierarchy is a structural feature, not an access-control feature. Visibility is still controlled by OWD, roles, and sharing rules. The View Hierarchy button simply provides a visual tree of related accounts for navigation.
 
 ### Slide 4: Contact Object & Account Relationship
-**Visual:** Contact record showing fields: First/Last Name, Account Name, Title, Email, Phone, Mailing Address, Reports To
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    CONTACT RECORD                            │
+  ├────────────────────────┬─────────────────────────────────────┤
+  │ First Name / Last Name │ Jane Doe                            │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Account Name           │ Acme Corp  ──▶ [Lookup: Account]    │
+  │                        │ (Primary account — one only)        │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Title                  │ VP of Operations                    │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Email                  │ jane.doe@acme.com                   │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Phone                  │ (415) 555-0200                      │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Mailing Address        │ 123 Main St, San Francisco CA       │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Reports To             │ Bob Lee ──▶ [Lookup: Contact]       │
+  │                        │ (org-chart chaining)                │
+  └────────────────────────┴─────────────────────────────────────┘
+  Deleting Account → Contact NOT deleted (becomes orphaned)
+  Deleting Account → Opportunities, Cases, Activities ARE deleted
+```
 **Content:**
 - Contact represents a person — an employee, stakeholder, or decision-maker at an Account
 - The Account Name field on Contact is a lookup to the Account object (primary account)
@@ -48,7 +134,29 @@
 **Speaker Notes:** Contacts are the people within accounts. The key distinction for the exam: deleting an account does not cascade-delete its contacts — they remain in the system as unattached (orphaned) contacts. However, deleting an account DOES delete related Opportunities, Cases, and Activities.
 
 ### Slide 5: Contacts to Multiple Accounts
-**Visual:** Diagram showing one Contact linked to three different Accounts with "Indirect" relationship indicators
+**Visual:**
+```
+                     ┌─────────────────────┐
+                     │      CONTACT        │
+                     │    Sarah Chen       │
+                     │   (Consultant)      │
+                     └──────────┬──────────┘
+                                │
+         ┌──────────────────────┼──────────────────────┐
+         │                      │                      │
+         ▼                      ▼                      ▼
+  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+  │   Acme Corp  │     │   Beta Inc   │     │  Gamma LLC   │
+  │  [PRIMARY]   │     │  [INDIRECT]  │     │  [INDIRECT]  │
+  │ Account Name │     │ Relationship:│     │ Relationship:│
+  │ field        │     │ Consultant   │     │ Exec Sponsor │
+  └──────────────┘     └──────────────┘     └──────────────┘
+                       ↑ "Related Contacts" related list on Account
+
+  Enable: Setup → Account Settings → Allow users to relate
+          a contact to multiple accounts
+  Primary Account Name field on Contact is unchanged
+```
 **Content:**
 - Feature: Contacts to Multiple Accounts (also called Related Contacts)
 - One Contact can be related to multiple Accounts — one primary + many indirect
@@ -59,7 +167,28 @@
 **Speaker Notes:** This feature is perfect for consultants or executives who work with multiple companies. The Admin exam tests whether you know how to enable it and that it creates an indirect relationship — the Contact's primary account doesn't change.
 
 ### Slide 6: Contact Roles on Opportunities
-**Visual:** Opportunity record showing Contact Roles related list with Role column (Decision Maker, Evaluator, Economic Buyer)
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │          OPPORTUNITY: Acme Corp – Platform License           │
+  ├──────────────────────────────────────────────────────────────┤
+  │                   CONTACT ROLES                              │
+  ├──────────────────────┬──────────────────────┬────────────────┤
+  │ Contact Name         │ Role                 │ Primary        │
+  ├──────────────────────┼──────────────────────┼────────────────┤
+  │ Jane Doe             │ Decision Maker       │ ✓ Primary      │
+  ├──────────────────────┼──────────────────────┼────────────────┤
+  │ Bob Lee              │ Economic Buyer       │                │
+  ├──────────────────────┼──────────────────────┼────────────────┤
+  │ Carol Smith          │ Evaluator            │                │
+  ├──────────────────────┼──────────────────────┼────────────────┤
+  │ Mike Johnson         │ Technical Buyer      │                │
+  └──────────────────────┴──────────────────────┴────────────────┘
+
+  Contact Roles are INFORMATIONAL only — they do NOT grant
+  record access to the Contact
+  Setup path: Setup → Opportunity Contact Roles
+```
 **Content:**
 - Contact Roles link Contacts to Opportunities with a designated role
 - Not the same as sharing — it's a relational indicator for sales insight
@@ -70,7 +199,36 @@
 **Speaker Notes:** Contact Roles are often overlooked but are frequently tested. They don't grant record access — they simply document WHO at the account is involved in a deal and in WHAT capacity. The Primary flag helps sales teams identify their main point of contact for each opportunity.
 
 ### Slide 7: Account Sharing & Implications
-**Visual:** Flowchart showing Account OWD → Role Hierarchy → Sharing Rules → Manual Sharing
+**Visual:**
+```
+  ┌─────────────────────────────────────────────────────┐
+  │              ACCOUNT SHARING LAYERS                 │
+  └─────────────────────────────────────────────────────┘
+
+  Account OWD (Org-Wide Default)
+        │  Private / Public Read Only / Public Read/Write
+        ▼
+  Role Hierarchy
+        │  Managers see subordinates' records
+        │  ("Grant Access Using Hierarchies" must be ON)
+        ▼
+  Sharing Rules
+        │  Criteria-based or ownership-based rules
+        │  extend access to groups/roles
+        ▼
+  Manual Sharing
+        │  Record owner shares individual records
+        │  via the "Share" button
+        ▼
+  Account Teams
+        │  Specific users added directly to an Account
+        │  for targeted access
+        ▼
+  ┌─────────────────────────────────────────────────────┐
+  │  Access granted to Account cascades to:             │
+  │  → Contacts    → Opportunities    → Cases           │
+  └─────────────────────────────────────────────────────┘
+```
 **Content:**
 - Account OWD settings control default visibility (Private, Public Read Only, Public Read/Write)
 - When Account OWD is Private, users can only see accounts they own or are granted access to

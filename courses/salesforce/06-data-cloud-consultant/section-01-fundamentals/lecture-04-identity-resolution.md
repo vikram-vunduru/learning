@@ -11,7 +11,29 @@
 ## Slides
 
 ### Slide 1: The Identity Problem
-**Visual:** Three customer record cards side by side: Card 1 from CRM "John Smith / john.smith@email.com / ID: CRM-001," Card 2 from E-Commerce "J. Smith / johnsmith@email.com / ID: EC-4421," Card 3 from Loyalty App "John S / john.smith@email.com / Member: LY-99." An arrow below pointing to a single merged card labeled "Unified Individual."
+**Visual:**
+```
+  Source Records (from multiple systems — same real person)
+  ─────────────────────────────────────────────────────────
+  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+  │   CRM Contact    │  │  E-Commerce Rec  │  │  Loyalty App     │
+  │  John Smith      │  │  J. Smith        │  │  John S          │
+  │  john@co.com     │  │  john@co.com     │  │  Member: LY-99   │
+  │  ID: CRM-001     │  │  ID: EC-4421     │  │  john@co.com     │
+  └──────────────────┘  └──────────────────┘  └──────────────────┘
+           │                    │                    │
+           └────────────────────┼────────────────────┘
+                                │  Identity Resolution
+                                ▼
+                   ┌────────────────────────────┐
+                   │     UNIFIED INDIVIDUAL     │
+                   │  ID: 00UXXXXXXXXXXXXX      │
+                   │  Name: John Smith          │
+                   │  Email: john@co.com        │
+                   │  Sources: CRM-001, EC-4421,│
+                   │           LY-99            │
+                   └────────────────────────────┘
+```
 
 **Content:**
 - Most enterprises have **multiple records for the same customer** across different systems
@@ -25,7 +47,33 @@
 ---
 
 ### Slide 2: Identity Resolution Architecture
-**Visual:** A pipeline diagram showing: Individual DMO records (from multiple sources) → Identity Resolution Ruleset → Match Graph (showing linked records) → Unified Individual DMO.
+**Visual:**
+```
+  Individual DMO Records (from multiple source DLOs)
+  ─────────────────────────────────────────────────
+  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+  │ Individual   │  │ Individual   │  │ Individual   │
+  │ (from CRM)   │  │ (from EC)    │  │ (from Loyal) │
+  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘
+         └──────────────────┼──────────────────┘
+                            │
+                            ▼
+               ┌────────────────────────┐
+               │  IDENTITY RESOLUTION   │
+               │      RULESET           │
+               │  ──────────────────    │
+               │  Match Rules           │
+               │  Reconciliation Rules  │
+               └────────────┬───────────┘
+                            │
+                            ▼
+               ┌────────────────────────┐
+               │  UNIFIED INDIVIDUAL    │
+               │  (one per real person) │
+               └────────────────────────┘
+  IR runs on schedule or on-demand
+  Input: Individual DMO + Contact Point DMOs
+```
 
 **Content:**
 - IR operates on **Individual DMO records** and their associated **Contact Point** records
@@ -40,7 +88,25 @@
 ---
 
 ### Slide 3: Match Rules — Exact Match
-**Visual:** Two Individual records shown side by side. Match rule criteria highlighted: EmailAddress = "john.smith@company.com" matches on both records, shown in green. Result: "Match Detected."
+**Visual:**
+```
+  Record A (CRM)                     Record B (E-Commerce)
+  ─────────────────                  ─────────────────────
+  FirstName: John                    FirstName: J.
+  LastName:  Smith                   LastName:  Smith
+  Email: john.smith@company.com      Email: john.smith@company.com
+                                                    ▲
+                 EXACT MATCH RULE                   │
+                 ─────────────────                  │
+                 Field: EmailAddress                 │
+                 Type:  Exact                        │
+                 Case:  Normalized (auto)            │
+                         │                          │
+                         └──────── MATCH ───────────┘
+                                   DETECTED
+  Best for: email address, phone number, government ID, loyalty ID
+  Lowest false-positive rate
+```
 
 **Content:**
 - **Exact Match:** Records match only if the specified field values are character-for-character identical
@@ -55,7 +121,23 @@
 ---
 
 ### Slide 4: Match Rules — Fuzzy Match
-**Visual:** Two Individual records. Name fields shown: "Robert Johnson" vs "Rob Johnson." A fuzzy match confidence score "87%" is displayed between them. Result: "Match with Confidence Score."
+**Visual:**
+```
+  Record A                     Record B
+  ────────────────             ────────────────
+  FirstName: Robert            FirstName: Rob
+  LastName:  Johnson           LastName:  Johnson
+  City: Chicago                City: Chicago
+            │                           │
+            └───────── FUZZY MATCH ─────┘
+                       Rule: FirstName + LastName
+                       Algorithm: Levenshtein distance
+                       Threshold: 85%
+                       Similarity score: 87%  ✓ MATCH
+
+  Higher threshold (95%) = fewer false positives, more false negatives
+  Lower threshold (70%)  = more matches found, higher merge risk
+```
 
 **Content:**
 - **Fuzzy Match:** Uses algorithms to find records that are similar but not identical
@@ -71,7 +153,26 @@
 ---
 
 ### Slide 5: Match Rules — Normalized Match
-**Visual:** Two phone number records: "1-800-555-0100" and "(800) 555-0100." A normalization transformation strips formatting to "8005550100" for both. Then an exact comparison shows "Match."
+**Visual:**
+```
+  Record A                          Record B
+  ────────────────────              ────────────────────
+  Phone: 1-800-555-0100             Phone: (800) 555-0100
+          │                                  │
+          ▼  Normalization                   ▼  Normalization
+       Strip formatting                   Strip formatting
+       (dashes, parens,                   (dashes, parens,
+        spaces, country code)              spaces, country code)
+          │                                  │
+          ▼                                  ▼
+       8005550100          ─────────      8005550100
+                              EXACT
+                              MATCH  →  MATCH DETECTED
+
+  Also applies to:
+  • Names: Remove Mr./Mrs./Dr., suffixes (Jr., Sr.), lowercase
+  • Addresses: Expand St → Street, Ave → Avenue
+```
 
 **Content:**
 - **Normalized Match:** Applies a normalization transformation before comparing field values
@@ -88,7 +189,28 @@
 ---
 
 ### Slide 6: Reconciliation Rules
-**Visual:** A table showing two source records for the same customer: CRM source has FirstName="Jon", Loyalty source has FirstName="John". A reconciliation rule "Most Recently Updated Source Wins" shows an arrow pointing to the Loyalty record's "John" as the winner, which appears on the Unified Individual.
+**Visual:**
+```
+  Two matched source records — conflicting FirstName:
+  ─────────────────────────────────────────────────────
+  Source A (CRM)         Source B (Loyalty App)
+  FirstName: "Jon"       FirstName: "John"
+  Updated: 2022-01-15    Updated: 2024-06-20
+                                  │
+                                  │  More recently updated
+                                  │
+         RECONCILIATION RULE: Most Recently Updated Wins
+                                  │
+                                  ▼
+                   Unified Individual.FirstName = "John"
+
+  Other strategies:
+  ┌────────────────────┬──────────────────────────────────────┐
+  │ Source Priority    │ Manual ranking: CRM wins over others │
+  │ Most Occurred      │ "John" appears in 2 of 3 sources     │
+  │ Most Recent        │ Most recently updated source wins    │
+  └────────────────────┴──────────────────────────────────────┘
+```
 
 **Content:**
 - **Reconciliation Rules** determine which source's value appears on the Unified Individual when sources disagree
@@ -105,7 +227,28 @@
 ---
 
 ### Slide 7: Unified Individual — The Output
-**Visual:** A unified profile card showing all attributes from multiple sources merged together. Sections visible: "Profile Attributes" (Name, DOB, Gender), "Contact Points" (3 emails, 2 phones listed), "Source Records" (CRM-001, EC-4421, LY-99 listed as linked source IDs).
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────┐
+  │              UNIFIED INDIVIDUAL RECORD               │
+  │  ID: 00UXXXXXXXXXXXXX                                │
+  │  ────────────────────────────────────────────────    │
+  │  PROFILE ATTRIBUTES (reconciled)                    │
+  │    FirstName: John     LastName: Smith               │
+  │    BirthDate: 1982-04-15   Gender: Male              │
+  │  ────────────────────────────────────────────────    │
+  │  CONTACT POINTS (all, from all sources)             │
+  │    Email 1: john@co.com         (CRM)               │
+  │    Email 2: john.s@gmail.com    (E-Commerce)        │
+  │    Phone 1: 555-123-4567        (Loyalty)           │
+  │  ────────────────────────────────────────────────    │
+  │  SOURCE RECORDS (linked)                            │
+  │    CRM-001  |  EC-4421  |  LY-99                    │
+  └──────────────────────────────────────────────────────┘
+  Note: Contact Points are ADDITIVE — all emails/phones
+        from all sources appear; reconciliation does not
+        apply to Contact Points (only to attribute fields)
+```
 
 **Content:**
 - The **Unified Individual** is a standard DMO record created/updated by the IR ruleset
@@ -121,7 +264,27 @@
 ---
 
 ### Slide 8: IR Troubleshooting & Match Quality
-**Visual:** A traffic light graphic with three scenarios: Green — "High match confidence, records merged correctly." Yellow — "Possible false positive — review threshold." Red — "Records not matching — check Contact Point mapping."
+**Visual:**
+```
+  SYMPTOM                  LIKELY CAUSE              RESOLUTION
+  ─────────────────────────────────────────────────────────────
+  Too many merges          Fuzzy threshold too low   Increase threshold
+  (false positives)        Aggressive match rules    Add qualifying criteria
+
+  Too few merges           Contact Point DMO not     Map email/phone to
+  (false negatives)        populated                 Contact Point DMOs
+                           Threshold too high        Lower threshold
+                           Match rules too strict    Add more criteria
+
+  Unexpected merge         Incorrect match rule      Add exclusion criterion
+                           triggered                 Review match groups
+
+  No Unified Individuals   Individual DMO empty      Check field mapping
+  created at all           Ruleset not active        Activate the ruleset
+
+  ─────────────────────────────────────────────────────────────
+  Review tool: Data Cloud UI → Identity Resolution → Match Groups
+```
 
 **Content:**
 - **Too many merges (false positives):** Lower match confidence threshold or remove aggressive fuzzy rules

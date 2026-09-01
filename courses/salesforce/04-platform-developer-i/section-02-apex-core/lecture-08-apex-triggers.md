@@ -9,7 +9,38 @@
 ## Slides
 
 ### Slide 1: What Is an Apex Trigger?
-**Visual:** Diagram showing a Salesforce record save operation with a timeline: user action → before trigger executes → database write → after trigger executes → workflow/flow → response to user. The trigger boxes are highlighted with Apex class icons inside.
+**Visual:**
+```
+  User Action (UI / API / Apex / Data Loader)
+           │
+           ▼
+  ┌─────────────────────┐
+  │  BEFORE TRIGGER     │  ← in-memory; modify Trigger.new directly
+  └──────────┬──────────┘
+             │
+             ▼
+  ┌─────────────────────┐
+  │  Validation Rules   │
+  └──────────┬──────────┘
+             │
+             ▼
+  ┌─────────────────────┐
+  │  DATABASE WRITE     │  ← record committed; Id assigned
+  └──────────┬──────────┘
+             │
+             ▼
+  ┌─────────────────────┐
+  │  AFTER TRIGGER      │  ← read-only; use DML for related records
+  └──────────┬──────────┘
+             │
+             ▼
+  ┌─────────────────────┐
+  │  Workflow / Flow    │
+  └──────────┬──────────┘
+             │
+             ▼
+       Response to User
+```
 **Content:**
 - An Apex trigger is code that **automatically executes** before or after a DML event on a Salesforce object
 - Trigger events: insert, update, delete, merge, upsert (upsert fires insert/update events)
@@ -43,7 +74,19 @@ trigger AccountTrigger on Account (
 **Speaker Notes:** The trigger declaration tells Salesforce exactly when to fire this code. You list the events in a comma-separated list inside parentheses after the object name. You can handle multiple events in one trigger — and with the one-trigger-per-object pattern, you should handle all events in a single trigger and then delegate to a handler class. The trigger body is just regular Apex code.
 
 ### Slide 3: Before Triggers
-**Visual:** Timeline diagram showing record in memory (sObject) on the left, then "before trigger fires" arrow, then the record being modified in-place in memory, then "database write" arrow, then the saved record in the database on the right. No extra DML required for field changes.
+**Visual:**
+```
+  ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+  │  Record in      │     │  BEFORE TRIGGER       │     │  Database       │
+  │  Memory         │────►│  fires                │────►│  Write          │
+  │  (Trigger.new)  │     │                       │     │                 │
+  │  NOT yet saved  │     │  Modify Trigger.new   │     │  Record saved   │
+  │                 │     │  directly → NO DML    │     │  with changes   │
+  └─────────────────┘     │  needed               │     └─────────────────┘
+                          └──────────────────────┘
+  Trigger.new in before = in-memory only, no Id yet (on insert)
+  Changes save automatically as part of the original DML
+```
 **Content:**
 - **Before triggers** execute before the record is written to the database
 - The records in `Trigger.new` are **in-memory only** — NOT yet saved
@@ -63,7 +106,19 @@ trigger AccountTrigger on Account (
 **Speaker Notes:** Before triggers are efficient for field manipulation because you modify the record directly in memory and no extra DML statement is needed. The platform saves your changes as part of the original DML operation. If you accidentally call `update acc` inside a before trigger on an Account, you will trigger the trigger again and create a recursive loop — then hit the maximum stack depth limit.
 
 ### Slide 4: After Triggers
-**Visual:** Timeline showing record committed to database on the left, then "after trigger fires" with access to the committed record including its Id, then a second DML operation writing to a related object, then both records in the database.
+**Visual:**
+```
+  ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+  │  Record         │     │  AFTER TRIGGER        │     │  Related        │
+  │  committed to   │────►│  fires                │────►│  Records        │
+  │  Database       │     │                       │     │  written via    │
+  │  (Id assigned)  │     │  Trigger.new = read   │     │  DML            │
+  │                 │     │  only; has Id now     │     │                 │
+  └─────────────────┘     │  Use DML for related  │     └─────────────────┘
+                          └──────────────────────┘
+  Use after triggers to: create child records, update related objects,
+  send callouts (via @future), anything needing the new record's Id
+```
 **Content:**
 - **After triggers** execute after the record has been committed to the database
 - The records in `Trigger.new` are **read-only** — they have been saved and cannot be modified directly
@@ -80,7 +135,24 @@ trigger AccountTrigger on Account (
 **Speaker Notes:** The key rule: use before triggers to modify the record being saved (no DML needed, just direct field assignment); use after triggers to update other records or create related records (DML required). In after insert triggers, the new records have Ids — you need those Ids to create child records or set up relationships. In before insert, the Id field is null because the record has not been saved yet.
 
 ### Slide 5: Trigger Context Variables
-**Visual:** Reference table with three columns: Variable Name, Availability (which events), and Description. Rows for Trigger.new, Trigger.old, Trigger.newMap, Trigger.oldMap, Trigger.isInsert, Trigger.isUpdate, Trigger.isDelete, Trigger.isBefore, Trigger.isAfter, Trigger.size.
+**Visual:**
+```
+  TRIGGER CONTEXT VARIABLES
+  ┌─────────────────┬──────────────────────────────┬──────────────────────────────────┐
+  │ Variable        │ Available In                  │ Description                      │
+  ├─────────────────┼──────────────────────────────┼──────────────────────────────────┤
+  │ Trigger.new     │ insert, update, undelete       │ List<sObj> of new versions       │
+  │ Trigger.old     │ update, delete                 │ List<sObj> of old versions       │
+  │ Trigger.newMap  │ after insert, update           │ Map<Id,sObj> of new versions     │
+  │ Trigger.oldMap  │ update, delete                 │ Map<Id,sObj> of old versions     │
+  │ Trigger.isInsert│ all insert events              │ true if current event is insert  │
+  │ Trigger.isUpdate│ all update events              │ true if current event is update  │
+  │ Trigger.isDelete│ all delete events              │ true if current event is delete  │
+  │ Trigger.isBefore│ all before events              │ true if before context           │
+  │ Trigger.isAfter │ all after events               │ true if after context            │
+  │ Trigger.size    │ all events                     │ Number of records in batch       │
+  └─────────────────┴──────────────────────────────┴──────────────────────────────────┘
+```
 **Content:**
 - **Trigger.new:** `List<sObject>` of new record versions; available in insert, update, undelete
 - **Trigger.old:** `List<sObject>` of old record versions; available in update, delete
@@ -114,7 +186,24 @@ trigger OpportunityTrigger on Opportunity (before update) {
 **Speaker Notes:** The field-changed check pattern is essential for trigger performance. Without it, your trigger runs its full logic every time a record is saved — even if only the Description was changed and your logic only cares about the Stage. On high-volume objects like Cases or Opportunities, this can make the difference between a trigger that performs well and one that hits CPU time limits. Only do the expensive work when the relevant fields actually changed.
 
 ### Slide 7: One Trigger Per Object Pattern
-**Visual:** Diagram showing the anti-pattern on the left: three separate triggers (AccountTrigger1, AccountTrigger2, AccountTrigger3) on the same object with unpredictable execution order. On the right, the best practice: one AccountTrigger delegating to AccountTriggerHandler class.
+**Visual:**
+```
+  ANTI-PATTERN (avoid)              BEST PRACTICE
+  ┌──────────────────────┐          ┌────────────────────────────────┐
+  │  AccountTrigger1     │          │        AccountTrigger          │
+  │  AccountTrigger2     │ ← order  │   (one trigger, all events)    │
+  │  AccountTrigger3     │ unknown  └────────────────┬───────────────┘
+  └──────────────────────┘                           │ delegates to
+                                                     ▼
+                                  ┌────────────────────────────────┐
+                                  │    AccountTriggerHandler       │
+                                  │  onBeforeInsert(Trigger.new)   │
+                                  │  onBeforeUpdate(new, oldMap)   │
+                                  │  onAfterInsert(Trigger.new)    │
+                                  │  onAfterUpdate(new, oldMap)    │
+                                  │  onAfterDelete(Trigger.old)    │
+                                  └────────────────────────────────┘
+```
 **Content:**
 - **Anti-pattern:** Multiple triggers on the same object — execution order is unpredictable
 - **Best practice:** One trigger per object that delegates to a handler class
@@ -136,7 +225,27 @@ trigger AccountTrigger on Account (before insert, before update,
 **Speaker Notes:** Multiple triggers on the same object in the same event context fire in an indeterminate order — Salesforce does not guarantee which one runs first. This creates fragile code that can break when triggers interact. The one-trigger-per-object pattern solves this: one thin trigger calls a handler class, and the handler class contains all the actual logic organized by event. The handler class can be unit tested directly without firing DML events.
 
 ### Slide 8: Order of Execution
-**Visual:** Numbered flowchart showing the Salesforce Order of Execution for a record save: (1) Load original record, (2) Merge values, (3) Run system validation, (4) Execute before triggers, (5) Run custom validation rules, (6) Commit to database, (7) Execute after triggers, (8) Execute assignment rules, (9) Execute auto-response rules, (10) Execute workflow rules, (11) Execute escalation rules, (12) Execute processes/flows, (13) Commit and send email notifications.
+**Visual:**
+```
+  DML Statement (insert/update/delete)
+           │
+           ▼
+  ┌─────────────────────────────────────────────┐
+  │           TRIGGER EXECUTION ORDER           │
+  ├─────────────────────────────────────────────┤
+  │  1. System Validation Rules                 │
+  │  2. Before Triggers                         │
+  │  3. Custom Validation Rules                 │
+  │  4. Duplicate Rules                         │
+  │  5. After Triggers                          │
+  │  6. Assignment Rules                        │
+  │  7. Auto-Response Rules                     │
+  │  8. Workflow Rules                          │
+  │  9. Processes (Flow Builder)                │
+  │ 10. Escalation Rules                        │
+  │ 11. Post-commit logic (emails, async)       │
+  └─────────────────────────────────────────────┘
+```
 **Content:**
 - Before triggers fire **before validation rules** for insert
 - Validation rules run **after** before triggers

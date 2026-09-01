@@ -8,7 +8,33 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Is a Lead?
-**Visual:** Diagram showing a Lead record with arrows pointing to Account, Contact, and Opportunity after conversion
+**Visual:**
+```
+  ┌─────────────────────────────┐
+  │           LEAD              │
+  │ ─────────────────────────── │
+  │ First Name:  John           │
+  │ Last Name:   Smith          │
+  │ Company:     Acme Corp      │
+  │ Status:      Qualified      │
+  │ Lead Source: Web            │
+  └─────────────────┬───────────┘
+                    │  [Convert]
+                    ▼
+        ┌───────────┴────────────┐
+        │                        │
+        ▼                        ▼
+  ┌──────────────┐        ┌──────────────┐
+  │   ACCOUNT    │        │   CONTACT    │
+  │  Acme Corp   │        │  John Smith  │
+  └──────────────┘        └──────┬───────┘
+                                 │ (optional)
+                                 ▼
+                          ┌──────────────┐
+                          │ OPPORTUNITY  │
+                          │  Acme Deal   │
+                          └──────────────┘
+```
 **Content:**
 - A Lead represents an unqualified prospect — someone not yet confirmed as a real opportunity
 - Standard fields: First Name, Last Name, Company, Status, Lead Source, Email, Phone, Rating
@@ -16,7 +42,37 @@
 **Speaker Notes:** Leads are the top of the sales funnel. They exist in Salesforce as unverified prospects until a salesperson qualifies them. Once qualified, the lead is converted into three records: an Account, a Contact, and optionally an Opportunity.
 
 ### Slide 2: Lead Conversion Process
-**Visual:** Step-by-step flowchart: Lead → Convert button → Map fields → Creates Account + Contact + Opportunity
+**Visual:**
+```
+  ┌───────────────────────┐
+  │      Lead Record      │
+  │     (Qualified)       │
+  └──────────┬────────────┘
+             │
+             ▼
+    [Click Convert Button]
+             │
+             ▼
+  ┌───────────────────────────┐
+  │    Conversion Wizard      │
+  │  Map Lead Fields →        │
+  │  Account / Contact /      │
+  │  Opportunity Fields       │
+  │  (Setup → Lead Settings   │
+  │   → Map Lead Fields)      │
+  └──────────┬────────────────┘
+             │
+    ┌────────┴─────────────────────┐
+    │           │                  │
+    ▼           ▼                  ▼
+┌──────────┐ ┌──────────┐  ┌─────────────────┐
+│ ACCOUNT  │ │ CONTACT  │  │  OPPORTUNITY    │
+│ (Created)│ │ (Created)│  │  (Optional)     │
+└──────────┘ └──────────┘  └─────────────────┘
+             │
+             ▼
+  Lead Status → "Converted" (Read-Only, NOT deleted)
+```
 **Content:**
 - Clicking "Convert" on a Lead triggers the conversion wizard
 - Salesforce maps lead fields to Account, Contact, and Opportunity fields
@@ -26,7 +82,26 @@
 **Speaker Notes:** Lead conversion is a key admin topic. Remember that converted leads are not deleted — they remain in the system with a "Converted" status. Admins control which fields carry over by configuring field mapping in Setup.
 
 ### Slide 3: Lead Assignment Rules
-**Visual:** Screenshot mockup of Setup → Lead Assignment Rules page with criteria rows
+**Visual:**
+```
+  Setup → Lead Assignment Rules
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Rule: Default Lead Assignment Rule        Active: ✓         │
+  ├───────┬──────────────────────────────────┬───────────────────┤
+  │ Order │ Criteria                         │ Assign To         │
+  ├───────┼──────────────────────────────────┼───────────────────┤
+  │  1    │ Lead Source = Web                │ Web Sales Queue   │
+  │       │ AND State = California           │                   │
+  ├───────┼──────────────────────────────────┼───────────────────┤
+  │  2    │ Rating = Hot                     │ Enterprise Team   │
+  ├───────┼──────────────────────────────────┼───────────────────┤
+  │  3    │ Industry = Technology            │ Tech Sales Rep    │
+  ├───────┼──────────────────────────────────┼───────────────────┤
+  │  4    │ (All Others — catch-all)         │ Default Owner     │
+  └───────┴──────────────────────────────────┴───────────────────┘
+  Evaluated top-to-bottom │ First matching entry wins
+  No match → Lead goes to default owner in Lead Settings
+```
 **Content:**
 - Lead Assignment Rules automatically route new leads to users or queues
 - Only one rule can be active at a time
@@ -36,7 +111,37 @@
 **Speaker Notes:** Assignment rules fire when a lead is created manually, via Web-to-Lead, or via import if the checkbox is selected. If no rule entry matches, the lead goes to the default lead owner set in Lead Settings.
 
 ### Slide 4: Web-to-Lead
-**Visual:** Diagram showing web form → Salesforce Web-to-Lead endpoint → Lead record
+**Visual:**
+```
+  ┌──────────────────────────┐
+  │      Company Website     │
+  │  ┌────────────────────┐  │
+  │  │    Web Form        │  │
+  │  │  First Name: ____  │  │
+  │  │  Last Name:  ____  │  │
+  │  │  Email:      ____  │  │
+  │  │  Company:    ____  │  │
+  │  │    [Submit]        │  │
+  │  └─────────┬──────────┘  │
+  └────────────┼─────────────┘
+               │  HTTP POST
+               ▼
+  ┌────────────────────────────┐
+  │   Salesforce Web-to-Lead   │
+  │   Endpoint (hidden org ID) │
+  │   Limit: 500 leads/day     │
+  └────────────┬───────────────┘
+               │
+               ▼
+  ┌────────────────────────────┐
+  │    Lead Record Created     │
+  │    Status:  New            │
+  │    Origin:  Web            │
+  └────────────┬───────────────┘
+               │
+               ▼
+  Auto-Response Email ──▶ Prospect (if rule configured)
+```
 **Content:**
 - Web-to-Lead captures prospects directly from your website into Salesforce
 - Setup path: Setup → Web-to-Lead → Generate HTML
@@ -46,7 +151,27 @@
 **Speaker Notes:** The generated HTML form contains a hidden org ID and posts directly to Salesforce servers. Admins should configure a default lead creator and auto-response rule so prospects receive immediate confirmation after submitting the form.
 
 ### Slide 5: Lead Queues
-**Visual:** Table comparing User ownership vs Queue ownership of lead records
+**Visual:**
+```
+  ┌──────────────────────────┬─────────────────────────────────────┐
+  │     USER OWNERSHIP       │        QUEUE OWNERSHIP              │
+  ├──────────────────────────┼─────────────────────────────────────┤
+  │ Owner = specific person  │ Owner = shared queue                │
+  │ (e.g., John Smith)       │ (e.g., "West Sales Queue")          │
+  ├──────────────────────────┼─────────────────────────────────────┤
+  │ Only that user sees it   │ All queue members can see it        │
+  │ in "My Leads"            │ in the queue list view              │
+  ├──────────────────────────┼─────────────────────────────────────┤
+  │ Immediate, direct        │ Pull-based: member clicks Accept    │
+  │ responsibility           │ to take ownership                   │
+  ├──────────────────────────┼─────────────────────────────────────┤
+  │ Good for: assigned       │ Good for: team triage and           │
+  │ territories              │ round-robin distribution            │
+  ├──────────────────────────┼─────────────────────────────────────┤
+  │ Risk: bottleneck if      │ Risk: leads may sit unclaimed if    │
+  │ user is unavailable      │ team doesn't monitor queue          │
+  └──────────────────────────┴─────────────────────────────────────┘
+```
 **Content:**
 - Queues are shared holding areas for leads, cases, and custom objects
 - Queue members (users, roles, public groups) can claim records from the queue
@@ -56,7 +181,30 @@
 **Speaker Notes:** Queues are especially useful for round-robin or team-based lead distribution. Any queue member can take ownership of a queued lead, making it a collaborative triage mechanism for sales teams.
 
 ### Slide 6: The Campaign Object
-**Visual:** Campaign record showing fields: Campaign Name, Type, Status, Start/End Date, Budgeted Cost, Actual Cost, Expected Revenue
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    CAMPAIGN RECORD                           │
+  ├────────────────────────┬─────────────────────────────────────┤
+  │ Campaign Name          │ Q3 2025 Email Blast                 │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Type                   │ Email                               │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Status                 │ In Progress                         │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Start Date             │ 07/01/2025                          │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ End Date               │ 09/30/2025                          │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Budgeted Cost          │ $10,000                             │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Actual Cost            │ $8,500                              │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Expected Revenue       │ $50,000                             │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ ROI (auto-calculated)  │ 488%                                │
+  └────────────────────────┴─────────────────────────────────────┘
+```
 **Content:**
 - Campaigns track marketing initiatives: email blasts, webinars, trade shows, ads
 - Key fields: Type, Status, Start Date, End Date, Budgeted Cost, Actual Cost, Expected Revenue, Leads in Campaign, Contacts in Campaign, Opportunities in Campaign
@@ -65,7 +213,27 @@
 **Speaker Notes:** The Campaign object is the marketing team's primary tool in Salesforce. Admins control the Status and Type picklist values. Understanding what each field tracks — especially cost vs. revenue — is essential for the Admin exam.
 
 ### Slide 7: Campaign Hierarchy & Campaign Members
-**Visual:** Tree diagram showing Parent Campaign with three child campaigns beneath it
+**Visual:**
+```
+              ┌──────────────────────────────┐
+              │      Q3 2025 Campaign        │  ← Parent Campaign
+              │    Total Members: 4,200      │
+              │    Total Responses: 320      │
+              └───────────────┬──────────────┘
+                              │  (Parent Campaign field)
+           ┌──────────────────┼─────────────────────┐
+           │                  │                     │
+           ▼                  ▼                     ▼
+  ┌──────────────────┐ ┌──────────────┐ ┌────────────────────┐
+  │ Q3 Email Campaign│ │ Q3 Webinar   │ │ Q3 Trade Show      │
+  │ Members: 3,000   │ │ Campaign     │ │ Campaign           │
+  │ Responded: 180   │ │ Members: 1K  │ │ Members: 200       │
+  │                  │ │ Responded:100│ │ Responded: 40      │
+  └──────────────────┘ └──────────────┘ └────────────────────┘
+
+  Roll-up fields (Members, Responses, Won Opps) aggregate to Parent
+  Hierarchy: up to 5 levels deep
+```
 **Content:**
 - Campaign Hierarchy: up to five levels deep using the Parent Campaign field
 - Hierarchy roll-up fields aggregate values (leads, contacts, opportunities) to the parent
@@ -75,7 +243,33 @@
 **Speaker Notes:** Campaign hierarchy lets marketers see aggregate performance across a family of campaigns. For example, a "Q3 2025" parent campaign can have child campaigns for Email, Webinar, and Trade Show, with totals rolling up automatically.
 
 ### Slide 8: Campaign ROI & Campaign Influence
-**Visual:** ROI formula displayed: ROI% = ((Actual Revenue − Actual Cost) / Actual Cost) × 100
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                  CAMPAIGN ROI FORMULA                        │
+  │                                                              │
+  │         Actual Revenue  −  Actual Cost                       │
+  │  ROI% = ─────────────────────────────── × 100               │
+  │                    Actual Cost                               │
+  │                                                              │
+  │  Example:                                                    │
+  │    Actual Revenue = $50,000                                  │
+  │    Actual Cost    =  $8,500                                  │
+  │                                                              │
+  │    ROI% = ($50,000 − $8,500) / $8,500 × 100  ≈  488%        │
+  │                                                              │
+  ├──────────────────────────────────────────────────────────────┤
+  │  CAMPAIGN INFLUENCE                                          │
+  │                                                              │
+  │  Campaign A ──▶ ┐                                            │
+  │  Campaign B ──▶ ├──▶ Opportunity (Closed Won $50K)           │
+  │  Campaign C ──▶ ┘                                            │
+  │                                                              │
+  │  Primary Campaign Source = single-touch attribution          │
+  │  Campaign Influence = multi-touch (all campaigns that        │
+  │  touched the Opportunity during sales cycle)                 │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Campaign ROI is automatically calculated on the Campaign record
 - Campaign Influence links Opportunities to Campaigns that influenced them

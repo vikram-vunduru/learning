@@ -10,7 +10,32 @@
 ## Slides
 
 ### Slide 1: Deployment Channels Overview
-**Visual:** A central "Agentforce Agent" icon connected by arrows to five deployment channel icons: Web (Embedded Service Chat), Mobile (Salesforce mobile app icon), Slack (Slack logo), API (code brackets), and Email (envelope icon, labeled "SDR Agent email channel"). Each arrow is labeled "same agent configuration." Below: a key message: "One agent configuration → multiple channels → consistent behavior across all touchpoints."
+**Visual:**
+```
+  One Agent Configuration → Multiple Channels
+
+                    ┌───────────────────────┐
+                    │   AGENTFORCE AGENT    │
+                    │                       │
+                    │  · Topics             │
+                    │  · Actions            │
+                    │  · Instructions       │
+                    │  · Identity           │
+                    └───────────┬───────────┘
+                                │
+          ┌──────────┬──────────┼──────────┬──────────┐
+          │          │          │          │          │
+          ▼          ▼          ▼          ▼          ▼
+    ┌──────────┐ ┌────────┐ ┌──────┐ ┌────────┐ ┌────────┐
+    │  Web     │ │Mobile  │ │ Slack│ │  API   │ │ Email  │
+    │          │ │        │ │      │ │        │ │        │
+    │ Embedded │ │  SFDC  │ │      │ │ Custom │ │  SDR   │
+    │ Service  │ │ Mobile │ │      │ │  Apps  │ │ Agent  │
+    │  Chat    │ │  App   │ │      │ │        │ │ only   │
+    └──────────┘ └────────┘ └──────┘ └────────┘ └────────┘
+
+    same agent configuration → consistent behavior across all touchpoints
+```
 **Content:**
 - Agentforce agents are **channel-agnostic at the configuration level** — Topics, Actions, Instructions, and Identity are defined once and apply to all channels
 - Channel configuration is handled at the **deployment layer**, not the agent configuration layer
@@ -24,7 +49,40 @@
 **Speaker Notes:** The "configure once, deploy everywhere" model is a significant business value proposition. An agent configured for customer service can be deployed on the company website, in the mobile app, and in a Slack channel for internal testing — without rebuilding the agent logic for each channel. For the exam, this channel-agnostic architecture is the key architectural principle. If a question asks "how do you deploy the same agent to three different channels?" — configure the agent once, then add each channel as a deployment in Agentforce Builder, no duplication required.
 
 ### Slide 2: Embedded Service Chat Deployment
-**Visual:** A web browser showing a company website with an Embedded Service Chat widget in the bottom right corner. Clicking it opens an Agentforce conversation. Below: the Embedded Service Chat configuration flow in Salesforce Setup showing: (1) Create Embedded Service Chat configuration, (2) Select Agentforce agent as the bot/agent, (3) Configure pre-chat form (optional — collect name/email before chat starts), (4) Configure routing to live agent queue (for escalation), (5) Copy deploy code snippet, (6) Paste snippet in website HTML.
+**Visual:**
+```
+  Embedded Service Chat — Setup Flow
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  STEP 1   Setup → Embedded Service → New Embedded Service Chat   │
+  │           ────────────────────────────────────────────────────── │
+  │  STEP 2   Chat Bot / Agent Settings → Select Agentforce Agent    │
+  │           ────────────────────────────────────────────────────── │
+  │  STEP 3   Pre-chat form (optional)                               │
+  │           Collect: Name, Email, Question                         │
+  │           → pre-populates agent context before conversation      │
+  │           ────────────────────────────────────────────────────── │
+  │  STEP 4   Escalation routing                                     │
+  │           → Omni-Channel queue for live agents (REQUIRED)        │
+  │           ────────────────────────────────────────────────────── │
+  │  STEP 5   Configure widget appearance                            │
+  │           Colors, header text, position (bottom-right)           │
+  │           ────────────────────────────────────────────────────── │
+  │  STEP 6   Copy deploy code snippet                               │
+  │           Paste into website HTML  ◀── web team deploys this     │
+  └──────────────────────────────────────────────────────────────────┘
+
+  Customer sees:                  Website
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                                                                 │
+  │  [website content...]                     ┌────────────────┐   │
+  │                                           │  Hi! How can   │   │
+  │                                           │  I help you?   │   │
+  │                                           │                │   │
+  │                                           │  [Type here..] │   │
+  │                                           └────────────────┘   │
+  └─────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Embedded Service Chat** is the most common Agentforce deployment channel for B2C scenarios
 - Configuration in Setup → Embedded Service → New Embedded Service Chat
@@ -39,7 +97,32 @@
 **Speaker Notes:** The Embedded Service Chat setup is the most hands-on deployment task and appears in Lab 3. For the exam, know the key steps: create or configure Embedded Service Chat, select the Agentforce agent, configure escalation routing, deploy the code snippet. The escalation integration is worth emphasizing: if escalation is not configured, when the agent decides to hand off to a human, there is no live agent to hand off to and the customer experience degrades. Always set up the Omni-Channel routing queue as part of the Service Agent deployment.
 
 ### Slide 3: Slack Deployment
-**Visual:** A Slack workspace screenshot showing an Agentforce bot in a Slack sidebar. A user messages the bot "Can you help me find the latest Q3 report?" The bot (labeled with the agent's persona name) responds with a retrieved summary. Below: the Slack integration configuration showing steps: Install Agentforce for Slack app → Select agent → Configure channel/DM access → Define user permissions.
+**Visual:**
+```
+  Slack Deployment — Internal Agent Access
+
+  Slack Workspace
+  ┌────────────────────────────────────────────────────────────────┐
+  │  # general  # engineering  # sales    DIRECT MESSAGES          │
+  │                                                                │
+  │  ┌────────────────────────────────────────────────────────┐   │
+  │  │  HR Assistant  🤖                                      │   │
+  │  │  ─────────────────────────────────────────────────     │   │
+  │  │  Employee: How many vacation days do I have left?      │   │
+  │  │                                                        │   │
+  │  │  HR Assistant: Hi Alex! Based on your employee         │   │
+  │  │  record, you have 8 vacation days remaining for        │   │
+  │  │  this year.                                            │   │
+  │  │                                                        │   │
+  │  │  Employee: What is the policy on rolling over days?    │   │
+  │  └────────────────────────────────────────────────────────┘   │
+  └────────────────────────────────────────────────────────────────┘
+
+  Setup flow:
+  Setup → Slack Integration → Agentforce for Slack
+       → select agent → configure workspace & channel access
+       → Salesforce for Slack app must be installed in workspace
+```
 **Content:**
 - **Slack deployment** is ideal for **internal-facing use cases**: employee self-service, HR inquiries, IT helpdesk, sales coaching
 - Configuration: Setup → Slack Integration → Agentforce for Slack → select agent → configure workspace and channel access
@@ -51,7 +134,37 @@
 **Speaker Notes:** Slack deployment is particularly powerful for internal agents because employees are already in Slack all day — the agent meets them where they work rather than requiring them to open Salesforce. For the exam, Slack deployment appears most commonly in use case questions involving employee-facing agents. When you see a scenario about "an HR agent that employees can access from their team collaboration tool," the deployment channel is Slack. The key configuration requirements: Salesforce for Slack app installed, agent selected for the workspace, user identity federation for personalized responses.
 
 ### Slide 4: API Deployment
-**Visual:** A developer diagram showing: Mobile app (iOS/Android) → REST API call to Agentforce API endpoint → passes: session context, user message → receives: agent response, action results. Below: a code snippet showing a sample API call structure (not language-specific — showing the endpoint, headers, and request/response body structure). Annotations: "Bearer token for auth," "Session ID for conversation continuity," "Message payload," "Response with agent message."
+**Visual:**
+```
+  API Deployment — Programmatic Channel Access
+
+  Custom Mobile App / External System
+         │
+         │  HTTPS POST /agentforce/sessions/{sessionId}/messages
+         │  Headers: Authorization: Bearer {token}
+         │  Body: { "message": "What is my order status?" }
+         │
+         ▼
+  ┌──────────────────────────────────────────────────┐
+  │         SALESFORCE AGENTFORCE API                │
+  │                                                  │
+  │  1. Validate Bearer token (OAuth 2.0)            │
+  │  2. Resolve session (conversation continuity)    │
+  │  3. Pass message to Atlas                        │
+  │  4. Atlas processes → invokes Actions            │
+  │  5. Return response                              │
+  └──────────────────────────────────────────────────┘
+         │
+         │  Response: { "reply": "Your order #12345 is..." }
+         │
+         ▼
+  App displays response to user
+
+  Key concepts:
+  · Session ID — maintain across calls for conversation continuity
+  · Bearer token — OAuth 2.0 authentication required
+  · Connected App — required with Agentforce API scopes
+```
 **Content:**
 - **API deployment** allows any external application to interact with an Agentforce agent programmatically
 - Use cases: custom mobile apps, third-party chat platforms, voice assistants, kiosk applications
@@ -65,7 +178,35 @@
 **Speaker Notes:** API deployment is most relevant for organizations building custom applications that need embedded AI agent capabilities. For the exam, the API deployment is tested conceptually rather than requiring detailed API knowledge. Know: it uses Salesforce OAuth, sessions have IDs that must be maintained across calls, and it is the channel for non-Salesforce applications to access the agent. If an exam question describes "a custom iOS app that needs to use an Agentforce agent for customer service," the answer is API deployment.
 
 ### Slide 5: Agent Lifecycle Management
-**Visual:** A lifecycle diagram showing three primary states: Draft → Active → Deactivated. Arrows labeled: "Activate" (Draft → Active), "Deactivate" (Active → Deactivated), "Reactivate / Edit" (Deactivated → Draft). A side branch labeled "Version Management" shows: Clone agent for new version → Edit → Test → Activate new version → Deactivate previous version. Timeline shows: Build (Draft), Test (Draft + simulator), Go Live (Active), Ongoing updates (Deactivate → Edit → Reactivate).
+**Visual:**
+```
+  Agent Lifecycle States
+
+  ┌────────────┐    Activate     ┌────────────┐   Deactivate   ┌─────────────┐
+  │            │ ─────────────▶ │            │ ────────────▶  │             │
+  │   DRAFT    │                │   ACTIVE   │                │ DEACTIVATED │
+  │            │ ◀───────────── │            │ ◀──────────────│             │
+  └────────────┘   Edit / Test  └────────────┘  Reactivate/   └─────────────┘
+       │                                         Edit
+       │ (Conversation Simulator available)
+       │ (No live conversations)
+
+  Version Management Pattern for Major Updates:
+
+  Current Production                 New Version
+  ┌─────────────┐                   ┌─────────────┐
+  │  ACTIVE     │                   │  DRAFT      │
+  │  Agent v1   │ ── clone ──────▶  │  Agent v2   │
+  │  (live)     │                   │  (editing)  │
+  └─────────────┘                   └──────┬──────┘
+                                           │ test in simulator
+                                           ▼
+  ┌─────────────┐                   ┌─────────────┐
+  │ DEACTIVATED │                   │   ACTIVE    │
+  │  Agent v1   │ ◀── deactivate    │  Agent v2   │
+  │  (offline)  │       swap ──────▶│  (live)     │
+  └─────────────┘                   └─────────────┘
+```
 **Content:**
 - **Draft** — agent is being configured; simulator testing available; no live conversations
 - **Active** — agent is live; channels are accepting conversations; configuration changes require deactivation first (or versioning)
@@ -78,7 +219,33 @@
 **Speaker Notes:** Version management for agents does not have the same native tooling as code version control (no Git, no branches). The recommended pattern for major updates is the clone-and-swap approach: keep the original running, build and test the new version as a clone, then perform the swap. This minimizes downtime. For exam purposes, know the three lifecycle states and understand that changes to an Active agent affect live conversations — the safe approach is always to deactivate before making significant changes. If a question asks "how should a developer make a major update to a production Agentforce agent?" — clone, update clone, test, deactivate original, activate clone.
 
 ### Slide 6: Consumption-Based Licensing
-**Visual:** A licensing diagram showing: Agentforce license (conversation-based, not seat-based). Left column: "What counts as a conversation" — checklist: initial user message (starts conversation), each subsequent exchange (turn). Center: a meter labeled "Conversations Used / Conversations Allocated." Right column: "What does NOT count" — simulator testing (no charge), escalated-to-human conversations (partial rules apply), failed/error conversations (check current documentation). Below: a note "Verify current pricing at Salesforce.com — licensing terms evolve with platform releases."
+**Visual:**
+```
+  Agentforce Licensing Model
+
+  Traditional Salesforce          Agentforce
+  (Seat-Based)                    (Consumption-Based)
+  ┌──────────────────────┐        ┌──────────────────────┐
+  │  200 users           │        │  Conversations used  │
+  │  × $X per seat       │        │  ÷ Conversations     │
+  │  = Annual cost       │        │    purchased         │
+  │  (fixed)             │        │  = Consumption meter │
+  └──────────────────────┘        └──────────────────────┘
+
+  COUNTS as a conversation:        DOES NOT count:
+  ┌─────────────────────────┐      ┌─────────────────────────┐
+  │  · Customer-initiated   │      │  · Simulator testing in │
+  │    session (1 session   │      │    Agentforce Builder   │
+  │    = 1 conversation)    │      │  · Admin config use     │
+  │  · Each distinct        │      │                         │
+  │    channel session      │      │                         │
+  └─────────────────────────┘      └─────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────────┐
+  │  Conversations Used:  [███████████░░░░░░░░░] 14,820 / 25k  │
+  │  Remaining:  10,180   Alert threshold: 20,000              │
+  └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Agentforce licensing is consumption-based** — you pay per conversation, not per user seat
 - A **conversation** begins when a user sends their first message and ends when the session closes (customer leaves, agent escalates, timeout)
@@ -96,7 +263,29 @@
 **Speaker Notes:** The consumption-based model is a significant departure from Salesforce's traditional seat-based licensing, and it is consistently tested on the exam. Know the model: you buy conversations, not seats. Know what counts and what doesn't (simulator testing doesn't count). Know that cost management involves monitoring conversation volume and understanding which interactions consume quota. For real implementations, the ROI calculation is: cost per Agentforce conversation vs. cost per human agent conversation — for large volumes of routine interactions, Agentforce conversations are significantly cheaper.
 
 ### Slide 7: Channel-Specific Considerations
-**Visual:** A comparison table with five channels as columns and five behavioral dimensions as rows. Columns: Embedded Chat, Mobile, Slack, API, Email. Rows: Real-time vs Async, Typing indicators, Rich media (attachments/links), Session timeout, Identity context. Each cell shows the behavior for that channel × dimension with green (supported), yellow (limited), or red (not supported) indicators.
+**Visual:**
+```
+  Channel Feature Comparison
+
+  ┌─────────────────┬───────────┬─────────┬──────────┬─────────┬─────────┐
+  │  Feature        │ Embedded  │ Mobile  │  Slack   │   API   │  Email  │
+  │                 │  Chat     │         │          │         │         │
+  ├─────────────────┼───────────┼─────────┼──────────┼─────────┼─────────┤
+  │  Real-time vs   │ Real-time │Real-time│  Async   │Real-time│  Async  │
+  │  Async          │           │         │          │         │         │
+  ├─────────────────┼───────────┼─────────┼──────────┼─────────┼─────────┤
+  │  Rich media     │ Limited   │ Limited │  Full    │ Varies  │ Limited │
+  ├─────────────────┼───────────┼─────────┼──────────┼─────────┼─────────┤
+  │  Session        │ Config    │ Config  │  None    │ Config  │   N/A   │
+  │  timeout        │           │         │          │         │         │
+  ├─────────────────┼───────────┼─────────┼──────────┼─────────┼─────────┤
+  │  Identity       │ Pre-chat  │   SSO   │  Slack   │  Token  │  From   │
+  │  context        │ form      │         │ identity │         │  email  │
+  ├─────────────────┼───────────┼─────────┼──────────┼─────────┼─────────┤
+  │  Typing         │    ✓      │    ✓    │    ✗     │ Varies  │   N/A   │
+  │  indicators     │           │         │          │         │         │
+  └─────────────────┴───────────┴─────────┴──────────┴─────────┴─────────┘
+```
 **Content:**
 | Feature | Embedded Chat | Mobile | Slack | API | Email |
 |---------|---------------|--------|-------|-----|-------|
@@ -113,7 +302,42 @@
 **Speaker Notes:** Channel-specific testing is a step that implementation teams often skip, assuming that if the agent works in the simulator it will work everywhere. Common channel-specific issues: markdown formatting that renders as asterisks in embedded chat instead of bold text; session timeouts that restart conversations inappropriately; identity context not passing correctly from pre-chat forms. Always allocate time for channel-specific testing even after agent unit and integration testing is complete.
 
 ### Slide 8: Deployment Checklist
-**Visual:** A deployment checklist card with three sections. Pre-deployment: Agent testing complete (unit + integration), Escalation routing configured (Omni-Channel queue), Channel configurations set up, Knowledge articles published and verified, Deployment reviewed and approved. Go-Live: Agent Activated, Channel code deployed/configured, Initial monitoring started, Support team briefed on agent capabilities and limitations. Post-deployment: Monitor conversation analytics for 72 hours, Review any escalations for patterns, Check for Topics with high "I don't know" rate, Plan first optimization cycle within 2 weeks.
+**Visual:**
+```
+  Deployment Readiness Checklist
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  PRE-DEPLOYMENT                                                  │
+  │  ─────────────────────────────────────────────────────────────  │
+  │  ☐ All test cases passing (unit, integration, UAT)              │
+  │  ☐ Escalation routing configured (Omni-Channel queue)           │
+  │  ☐ All deployment channels configured and tested                │
+  │  ☐ Knowledge articles published and verified                    │
+  │  ☐ Instructions reviewed by legal/compliance                    │
+  │  ☐ Stakeholder sign-off obtained                                │
+  └──────────────────────────────────────────────────────────────────┘
+  ☐ Pre-deployment complete
+         │
+         ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  GO-LIVE                                                         │
+  │  ─────────────────────────────────────────────────────────────  │
+  │  ☐ Activate agent in production org                             │
+  │  ☐ Deploy channel configurations (code snippet, app installs)   │
+  │  ☐ Monitor initial conversations (first 24-48 hours)            │
+  │  ☐ Brief support team on escalation behavior                    │
+  └──────────────────────────────────────────────────────────────────┘
+  ☐ Go-live complete
+         │
+         ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  POST-DEPLOYMENT                                                 │
+  │  ─────────────────────────────────────────────────────────────  │
+  │  ☐ Review conversation analytics within first week              │
+  │  ☐ Identify Topics with poor resolution rates                   │
+  │  ☐ Plan first optimization cycle (2-4 weeks post go-live)       │
+  └──────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Pre-deployment checklist:**
   - All test cases passing (unit, integration, UAT)

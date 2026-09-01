@@ -8,7 +8,21 @@
 ## 📊 SLIDES
 
 ### Slide 1: Why Field Types Matter
-**Visual:** A business requirement card that says "Track annual revenue in dollars" with three wrong field type choices crossed out (Text, Checkbox, Date) and the correct answer (Currency) circled
+**Visual:**
+```
+  BUSINESS REQUIREMENT: "Track annual revenue in dollars"
+  ──────────────────────────────────────────────────────────────────
+  ✗  Text       — stores "$5000000" as a string; breaks currency
+                  reports; no multi-currency support
+  ✗  Checkbox   — wrong data type; only stores true/false
+  ✗  Date       — wrong data type; only stores calendar dates
+  ──────────────────────────────────────────────────────────────────
+  ✓  Currency   — stores monetary values with currency symbol,
+                  respects org currency settings, participates
+                  in multi-currency conversions and reports
+  ──────────────────────────────────────────────────────────────────
+  Choosing the wrong type = broken reports + bad data quality
+```
 **Content:**
 - Choosing the wrong field type causes data quality problems, broken reports, and failed integrations
 - Field type is permanent in many cases — you cannot always change it after data is entered
@@ -17,7 +31,26 @@
 **Speaker Notes:** Picking Text for a phone number works visually, but Phone type adds click-to-dial and proper formatting. Picking Text for a dollar amount breaks currency reports. Understanding what each field type is designed for prevents long-term technical debt in your org.
 
 ### Slide 2: Text-Based Field Types
-**Visual:** A comparison card showing four text types with their character limits and use case icons
+**Visual:**
+```
+  ┌──────────────────┬──────────────┬────────────┬───────────────────────────┐
+  │  FIELD TYPE      │  MAX CHARS   │ SEARCHABLE │  BEST USE CASE            │
+  ├──────────────────┼──────────────┼────────────┼───────────────────────────┤
+  │  Text            │  255         │  YES       │  Names, codes, short IDs  │
+  │  Text Area       │  255         │  no        │  Short notes (multi-line) │
+  │  Long Text Area  │  131,072     │  no        │  Descriptions, comments   │
+  │  Rich Text Area  │  131,072     │  no        │  Formatted HTML content   │
+  ├──────────────────┼──────────────┼────────────┼───────────────────────────┤
+  │  Email           │  —           │  YES       │  Click-to-email; format   │
+  │                  │              │            │  validation               │
+  │  Phone           │  —           │  YES       │  Click-to-dial; number    │
+  │                  │              │            │  formatting               │
+  │  URL             │  —           │  YES       │  Clickable hyperlinks;    │
+  │                  │              │            │  URL format validation    │
+  └──────────────────┴──────────────┴────────────┴───────────────────────────┘
+  Always use the specialized type (Email/Phone/URL) when it matches —
+  the extra UI and integration behaviors are worth it.
+```
 **Content:**
 - **Text** — up to 255 characters; single-line; searchable
 - **Text Area** — up to 255 characters; multi-line; not searchable
@@ -29,7 +62,27 @@
 **Speaker Notes:** Choose the simplest type that meets the need. Text is fast and searchable. Use Long Text Area for notes and descriptions. Use Rich Text only when users genuinely need formatting — it stores HTML, which can complicate integrations. Email and Phone field types unlock mobile and CTI integrations that plain Text fields do not.
 
 ### Slide 3: Numeric Field Types
-**Visual:** A table showing Number, Currency, Percent side by side with their formatting, decimal place options, and a sample value for each
+**Visual:**
+```
+  ┌──────────────┬───────────────────────────────┬────────────────────┐
+  │  TYPE        │  FORMAT / BEHAVIOR             │  SAMPLE VALUE      │
+  ├──────────────┼───────────────────────────────┼────────────────────┤
+  │  Number      │  Raw number, no symbol         │  42500             │
+  │              │  Configurable decimal places   │  42500.00          │
+  ├──────────────┼───────────────────────────────┼────────────────────┤
+  │  Currency    │  Currency symbol displayed     │  $42,500.00        │
+  │              │  Multi-currency support        │  €42.500,00        │
+  │              │  Respects org locale settings  │                    │
+  ├──────────────┼───────────────────────────────┼────────────────────┤
+  │  Percent     │  Displays as % in the UI       │  15%               │
+  │              │  Stores the raw number (15)    │  (stored as: 15)   │
+  │              │  NOT stored as 0.15            │                    │
+  ├──────────────┼───────────────────────────────┼────────────────────┤
+  │  Auto-Number │  Read-only, system-generated   │  CASE-0001         │
+  │              │  Sequential; format is custom  │  INV-00042         │
+  └──────────────┴───────────────────────────────┴────────────────────┘
+  All numeric types: configurable total digit length + decimal places
+```
 **Content:**
 - **Number** — stores any number; configurable decimal places; no currency symbol
 - **Currency** — stores monetary values; displays with currency symbol; respects org currency settings; supports multi-currency
@@ -39,7 +92,22 @@
 **Speaker Notes:** Use Currency whenever the value represents money — not Number. Currency fields participate in multi-currency conversions and show the right symbol. Percent fields store the raw decimal — if you enter 50 in the UI, it stores 50 and displays as 50%, not 0.5 as you might expect from a coding perspective.
 
 ### Slide 4: Date, DateTime, and Checkbox
-**Visual:** Three field type cards: Calendar icon for Date, Calendar+Clock for DateTime, Toggle/Checkbox icon for Checkbox
+**Visual:**
+```
+  ┌───────────────────────────┐  ┌───────────────────────────┐  ┌───────────────────────────┐
+  │  DATE           [📅]      │  │  DATE/TIME      [📅🕐]    │  │  CHECKBOX       [☑]       │
+  │───────────────────────────│  │───────────────────────────│  │───────────────────────────│
+  │  Calendar date only       │  │  Date + time combined     │  │  Boolean: true or false   │
+  │  No time component        │  │  Auto-converts to user's  │  │  NEVER null or blank      │
+  │                           │  │  local time zone          │  │                           │
+  │  Use for:                 │  │  Use for:                 │  │  Use for:                 │
+  │  - Birthdays              │  │  - Meetings               │  │  - Opt-in flags           │
+  │  - Deadlines              │  │  - Timestamps             │  │  - Active/inactive        │
+  │  - Renewal dates          │  │  - Log entries            │  │  - Yes/No toggles         │
+  │                           │  │                           │  │                           │
+  │  Default: TODAY()         │  │  Default: NOW()           │  │  Default: true / false    │
+  └───────────────────────────┘  └───────────────────────────┘  └───────────────────────────┘
+```
 **Content:**
 - **Date** — stores a calendar date (no time); use for birthdays, deadlines, renewal dates
 - **Date/Time** — stores both date and time; automatically converts to user's time zone; use for meetings, timestamps
@@ -48,7 +116,29 @@
 **Speaker Notes:** A common mistake is using Date when you need DateTime or vice versa. Renewal Date → Date. Meeting Start → DateTime. Checkbox is always true or false — unlike most Salesforce fields, it cannot be blank. This matters in validation rules and formula fields where you check field values.
 
 ### Slide 5: Picklist Field Types
-**Visual:** A dropdown showing a picklist and a multi-select box showing a multi-select picklist, with a callout showing "Restricted" vs "Unrestricted" toggle
+**Visual:**
+```
+  PICKLIST (single-select)             MULTI-SELECT PICKLIST
+  ─────────────────────────────        ─────────────────────────────
+  ┌───────────────────────────┐        ┌───────────────────────────┐
+  │ Status                  ▼ │        │ Skills                  ▼ │
+  ├───────────────────────────┤        ├───────────────────────────┤
+  │ ○ New                     │        │ ☑ Apex                    │
+  │ ● In Progress             │        │ ☐ Flows                   │
+  │ ○ Escalated               │        │ ☑ Reports                 │
+  │ ○ Closed                  │        │ ☐ Data Loader             │
+  └───────────────────────────┘        └───────────────────────────┘
+  Stores: "In Progress"                Stores: "Apex;Reports"
+  (single value)                       (semicolon-separated)
+
+  RESTRICTED PICKLIST                  GLOBAL PICKLIST VALUE SET
+  ─────────────────────────────        ─────────────────────────────
+  ✗  Values outside the defined        One shared value set reused
+     list are BLOCKED — even via        across multiple fields and
+     API or data imports                multiple objects
+
+  ✓  Default for all new picklists     Managed centrally in Setup
+```
 **Content:**
 - **Picklist** — single-value dropdown list; enforces a defined set of values
 - **Multi-Select Picklist** — allows selecting multiple values; stores values separated by semicolons
@@ -58,7 +148,20 @@
 **Speaker Notes:** Multi-Select Picklists are convenient but have limitations — you cannot use them in certain formula functions, and reports cannot easily group by multi-select values. Use them only when a user genuinely needs to select more than one value simultaneously, like selecting multiple skills or product categories.
 
 ### Slide 6: Relationship Field Types
-**Visual:** A diagram showing two objects connected by a Lookup arrow (dashed, optional) and two objects connected by a Master-Detail arrow (solid, required, with cascade delete symbol)
+**Visual:**
+```
+  LOOKUP RELATIONSHIP                  MASTER-DETAIL RELATIONSHIP
+  ─────────────────────────────────    ─────────────────────────────────
+  Account ◀╌╌╌╌╌╌╌╌╌ Contact          Invoice ◀════════════ Invoice Line
+  (Parent)  optional  (Child)          (Master)   required   (Detail)
+
+  ✓  Parent field is optional          ✗  Parent field is REQUIRED
+  ✓  Child survives parent deletion    ✗  Child DELETED with parent
+  ✗  No cascade delete                 ✓  Cascade delete applies
+  ✗  No roll-up summaries              ✓  Roll-up summaries on master
+  ✓  Child OWD is independent          ✗  Child OWD = Controlled by Parent
+  Max: 40 per object                   Max: 2 per object
+```
 **Content:**
 - **Lookup** — creates a loosely coupled relationship; parent record is optional; no cascade delete; no roll-up summaries
 - **Master-Detail** — creates a tightly coupled relationship; parent (master) is required; cascade delete; enables roll-up summary fields on the master; sharing follows master
@@ -67,7 +170,28 @@
 **Speaker Notes:** The choice between Lookup and Master-Detail is one of the most tested topics in the entire exam. If the child record should not exist without a parent and you want roll-up summaries, use Master-Detail. If the relationship is optional or you want the child to survive if the parent is deleted, use Lookup.
 
 ### Slide 7: Formula, Roll-Up Summary, and Special Types
-**Visual:** Three cards: Formula (calculator icon, "calculated at runtime"), Roll-Up Summary (sigma icon, "aggregates child records"), Geolocation (map pin icon)
+**Visual:**
+```
+  ┌────────────────────────────────┐  ┌────────────────────────────────┐
+  │  FORMULA FIELD       [∑]       │  │  ROLL-UP SUMMARY     [Σ]       │
+  │────────────────────────────────│  │────────────────────────────────│
+  │  Calculated at runtime         │  │  Aggregates child records      │
+  │  Value NOT stored in database  │  │  Result IS stored on master    │
+  │  References same/parent fields │  │  COUNT / SUM / MIN / MAX       │
+  │  Read-only; always current     │  │  Requires Master-Detail only   │
+  │  Return types: Text, Number,   │  │  Created on the MASTER object  │
+  │  Currency, Date, Checkbox...   │  │  Read-only                     │
+  └────────────────────────────────┘  └────────────────────────────────┘
+
+  ┌────────────────────────────────┐
+  │  GEOLOCATION         [📍]      │
+  │────────────────────────────────│
+  │  Stores latitude + longitude   │
+  │  Used with Salesforce Maps     │
+  │  Supports distance formulas    │
+  │  DISTANCE() and GEOLOCATION()  │
+  └────────────────────────────────┘
+```
 **Content:**
 - **Formula** — read-only; calculated at runtime; can reference fields on the same object or related objects; does not store a value
 - **Roll-Up Summary** — COUNT, SUM, MIN, MAX of child records; only available on the master side of master-detail; stores the result
@@ -76,7 +200,25 @@
 **Speaker Notes:** Formula and Roll-Up Summary fields are read-only — users cannot directly edit them. Formula fields recalculate every time the record is viewed or queried; Roll-Up Summary fields recalculate when a child record changes. Both are covered in depth in Lecture 17.
 
 ### Slide 8: Field Limits Per Object
-**Visual:** A reference table showing field type limits: total custom fields per object, text field max length, Long Text Area max length, multi-select picklist max values, etc.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────┬───────────────────┐
+  │  LIMIT                                       │  VALUE            │
+  ├──────────────────────────────────────────────┼───────────────────┤
+  │  Custom fields per object                    │  500              │
+  │  Master-Detail relationships per object      │  2                │
+  │  Lookup relationships per object             │  40               │
+  │  Roll-Up Summary fields per object           │  25               │
+  ├──────────────────────────────────────────────┼───────────────────┤
+  │  Text field max characters                   │  255              │
+  │  Long Text Area max characters               │  131,072          │
+  │  Rich Text Area max characters               │  131,072          │
+  ├──────────────────────────────────────────────┼───────────────────┤
+  │  Multi-Select Picklist: max values in set    │  500              │
+  │  Multi-Select Picklist: max stored chars     │  4,096            │
+  └──────────────────────────────────────────────┴───────────────────┘
+  Most-tested limits: 500 fields / object, 2 MD / object, 25 RUS / object
+```
 **Content:**
 - Standard and Enterprise orgs: **500 custom fields per object** (varies slightly by field type)
 - Maximum **25 Roll-Up Summary fields** per object

@@ -66,7 +66,24 @@ if (s != null) {
 **Speaker Notes:** Lists are by far the most commonly used collection in Apex, primarily because SOQL queries return lists. Whenever you bulk-process records in a trigger, you are working with a List. The most important thing to remember: list indices are zero-based, just like Java and most other languages. Accessing an index out of bounds throws a `ListException`.
 
 ### Slide 5: Set — Unique Values
-**Visual:** Venn diagram showing two Sets (Set A with {1,2,3} and Set B with {3,4,5}), with the intersection (3) highlighted, and methods union() and retainAll() labeled.
+**Visual:**
+```
+  Set<Integer> A = {1, 2, 3}     Set<Integer> B = {3, 4, 5}
+  ┌────────────────────────────────────────────────────┐
+  │   A                  A ∩ B                  B      │
+  │  ┌─────────┐        ┌─────┐         ┌─────────┐   │
+  │  │  1   2  │ ────── │  3  │ ──────  │  4   5  │   │
+  │  └─────────┘        └─────┘         └─────────┘   │
+  └────────────────────────────────────────────────────┘
+  A.addAll(B)     → {1,2,3,4,5}   (union)
+  A.retainAll(B)  → {3}            (intersection)
+  A.removeAll(B)  → {1,2}          (difference)
+
+  Key use case in Apex:
+  Set<Id> accountIds = new Set<Id>();
+  for (Contact c : contacts) { accountIds.add(c.AccountId); }
+  [SELECT Id FROM Account WHERE Id IN :accountIds]  ← 1 query!
+```
 **Content:**
 - Unordered collection; **no duplicates** — ideal for deduplication
 - Declaration: `Set<String> uniqueNames = new Set<String>();`
@@ -84,7 +101,22 @@ List<Account> accts = [SELECT Id, Name FROM Account WHERE Id IN :accountIds];
 **Speaker Notes:** The Set-then-SOQL pattern is one of the most important patterns in all of Apex trigger development. Instead of querying inside a loop — which would burn through your 100 SOQL query limit — you collect all the IDs you need into a Set, then issue one single SOQL query using the `IN` operator with the Set as a bind variable. This is bulkification in practice.
 
 ### Slide 6: Map — Key-Value Pairs
-**Visual:** Diagram of a Map<Id, Account> showing account Ids on the left as keys connected by arrows to Account record objects on the right as values, with a get(id) lookup operation highlighted.
+**Visual:**
+```
+  Map<Id, Account> accountMap
+  ┌────────────────────────────────────────────────────────┐
+  │  Key (Id)               Value (Account record)         │
+  │  001xx000001AAAA  ──►   { Name: 'Acme',  ... }        │
+  │  001xx000002BBBB  ──►   { Name: 'Globex', ... }       │
+  │  001xx000003CCCC  ──►   { Name: 'Initech', ... }      │
+  └────────────────────────────────────────────────────────┘
+  accountMap.get('001xx000001AAAA') → Account{Name:'Acme'}
+
+  Shorthand constructor from SOQL (most common pattern):
+  Map<Id, Account> aMap = new Map<Id, Account>(
+      [SELECT Id, Name FROM Account WHERE Id IN :accIds]
+  );  ← automatically keys by record Id
+```
 **Content:**
 - Key-value collection; keys are **unique**; values may be duplicated
 - Declaration: `Map<Id, Account> accountMap = new Map<Id, Account>();`

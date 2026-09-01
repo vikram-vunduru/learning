@@ -11,7 +11,24 @@
 ## Slides
 
 ### Slide 1: What Is an Activation Target?
-**Visual:** A flow diagram: Segment (Data Cloud) → Activation Target → three destination icons: Marketing Cloud logo, Salesforce CRM logo, and a Facebook/Google Ads logo.
+**Visual:**
+```
+  ┌─────────────────────────────┐
+  │         SEGMENT             │
+  │  "High-Value Customers      │
+  │   who bought in last 30d"   │
+  └──────────────┬──────────────┘
+                 │
+        ┌────────┼────────┐
+        ▼        ▼        ▼
+  ┌──────────┐ ┌────────┐ ┌──────────────┐
+  │Marketing │ │  CRM   │ │  Ad Platform │
+  │  Cloud   │ │Salesf. │ │  (Meta/Google│
+  │(Email)   │ │(Tasks) │ │   Audiences) │
+  └──────────┘ └────────┘ └──────────────┘
+    Activation Targets — push segment membership
+    One segment can activate to MULTIPLE targets simultaneously
+```
 
 **Content:**
 - An **Activation Target (AT)** is the configuration that defines WHERE a segment is published
@@ -26,7 +43,24 @@
 ---
 
 ### Slide 2: Salesforce CRM Activation Target
-**Visual:** Configuration panel mockup showing: AT Name, Connected Org dropdown (showing a CRM org), Target Object dropdown (showing "CampaignMember"), and field mapping panel.
+**Visual:**
+```
+  DATA CLOUD                           SALESFORCE CRM
+  ──────────────────                   ─────────────────────────────
+  ┌───────────────────┐                ┌──────────────────────────┐
+  │  SEGMENT          │                │  CAMPAIGN                │
+  │  "Q4 Upsell"      │──Activation──▶ │  Name: Q4 Upsell         │
+  │  2,500 members    │                │  ──────────────────────  │
+  └───────────────────┘                │  CAMPAIGN MEMBERS (auto) │
+                                       │  ● John Smith            │
+  Config required:                     │  ● Jane Doe              │
+  ┌───────────────────┐                │  ● Robert Chen           │
+  │ Connected App:    │                │  ... 2,500 total         │
+  │ [Target CRM Org]  │                └──────────────────────────┘
+  │ Target Object:    │
+  │ [CampaignMember]  │   Sales reps get task lists; service teams
+  └───────────────────┘   get prioritized queues; CRM reporting
+```
 
 **Content:**
 - Activates segment members to a **Campaign** or **Campaign Member** in a connected Salesforce org
@@ -41,7 +75,28 @@
 ---
 
 ### Slide 3: Marketing Cloud Activation Target
-**Visual:** MC Activation configuration showing: Business Unit selection, Subscriber Key field mapping, and additional data attributes panel showing TotalRevenue90d and LoyaltyTier fields being mapped to MC data extensions.
+**Visual:**
+```
+  DATA CLOUD                           MARKETING CLOUD
+  ──────────────────                   ─────────────────────────────
+  ┌───────────────────┐                ┌──────────────────────────┐
+  │  SEGMENT MEMBERS  │                │  DATA EXTENSION          │
+  │  + Contact Points │───Activation──▶│  (auto-created/updated)  │
+  │  + Activation     │                │  EmailAddress            │
+  │    Attributes     │                │  SubscriberKey  ← mapped │
+  │    ─────────────  │                │  LoyaltyTier             │
+  │    LoyaltyTier    │                │  TotalSpend90d           │
+  │    TotalSpend90d  │                └──────────────────────────┘
+  └───────────────────┘                         │
+                                                ▼
+  Config required:                     JOURNEY BUILDER / EMAIL SENDS
+  ┌───────────────────┐                Personalized using attributes
+  │ MC Connector:     │                (e.g., different email content
+  │ [Business Unit]   │                 for Gold vs Silver tier)
+  │ SubscriberKey:    │
+  │ [map contact ID]  │   CRITICAL: Subscriber Key mapping REQUIRED
+  └───────────────────┘
+```
 
 **Content:**
 - Activates segment members to **Marketing Cloud** for use in Journeys, Sends, and Automations
@@ -56,7 +111,27 @@
 ---
 
 ### Slide 4: Advertising Platform Activation Targets
-**Visual:** Three platform logos (Facebook Custom Audiences, Google Customer Match, LinkedIn Matched Audiences) with arrows from Data Cloud. A panel shows email hashing configuration (SHA-256).
+**Visual:**
+```
+  DATA CLOUD                     AD PLATFORMS
+  ──────────────────             ─────────────────────────────────
+  Segment Members                SHA-256
+  Email: john@co.com ─── hash ──▶ 5d41402abc4b... ──▶ Facebook
+  Phone: 555-123-4567             (one-way, cannot              Custom
+                                   reverse to PII)              Audience
+                                             │
+  ┌──────────────────┐           ─── hash ──▶ Google
+  │ PRIVACY RULE:    │                        Customer
+  │ Raw PII is NEVER │           ─── hash ──▶ LinkedIn
+  │ sent to ad       │                        Matched
+  │ platforms        │                        Audience
+  └──────────────────┘
+                                 Match rate: 40–70%
+                                 (not all customers on platform)
+
+  Use cases: Ad suppression (don't show ads to existing customers)
+             Lookalike audiences, retargeting
+```
 
 **Content:**
 - Data Cloud supports native activation to **Facebook, Google, and LinkedIn** ad platforms
@@ -71,7 +146,29 @@
 ---
 
 ### Slide 5: Activation Membership
-**Visual:** A Venn-style diagram showing: outer circle "Segment Members (12,450)" → inner circle "Activation-Eligible Members (those with a valid contact point for this channel) (11,200)" → published to Activation Target.
+**Visual:**
+```
+  SEGMENT MEMBERSHIP: 12,450
+  ┌─────────────────────────────────────────────────────────┐
+  │  ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●   │
+  │  ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●   │
+  └─────────────────────────────────────────────────────────┘
+                         │
+  Contact point filter: "must have valid, non-opted-out email"
+                         │
+                         ▼
+  ACTIVATION MEMBERSHIP: 11,200  (segment members - those without
+  ┌───────────────────────────────┐  valid email or opted-out)
+  │  ● ● ● ● ● ● ● ● ● ● ● ● ●  │
+  │  ● ● ● ● ● ● ● ● ● ● ● ● ●  │  Segment size ≠ Activation size
+  └───────────────────────────────┘
+  (1,250 excluded: no email on file or HasOptedOutOfEmail = true)
+
+  Contact Point selection options:
+  • Most recently used
+  • Specific Contact Point Type (e.g., "work email")
+  • All contact points
+```
 
 **Content:**
 - **Activation membership** ≠ Segment membership — only members with valid contact points are activated
@@ -87,7 +184,30 @@
 ---
 
 ### Slide 6: Publish Schedules
-**Visual:** A calendar/schedule graphic showing an activation target configured to publish every 12 hours. A timeline shows the first publish at Monday 6 AM, second at 6 PM, third at Tuesday 6 AM, each adding/removing members as segment membership changes.
+**Visual:**
+```
+  PUBLISH SCHEDULE OPTIONS
+  ─────────────────────────────────────────────────────────
+  Continuous  ─── Activates changes as soon as segment refreshes
+  12 hours    ─── Publishes twice daily
+  24 hours    ─── Publishes once daily
+  Manual      ─── Triggered by admin action only
+
+  TIMELINE EXAMPLE (12-hour schedule):
+  Monday                           Tuesday
+  ─────────────────────────────────────────────────────────
+  6 AM publish    6 PM publish     6 AM publish
+     │               │                │
+     ▼               ▼                ▼
+  [1,200 members] [1,340 members]  [1,290 members]
+  (initial)       (+140 new)       (-50 fell out of window)
+
+  Full publish:        Sends ALL current segment members
+  Incremental publish: Sends only NEW members since last publish
+
+  NOTE: Segment must refresh BEFORE publish can include new members
+        Data Stream → DMO → CI → Segment → Activation (in that order)
+```
 
 **Content:**
 - Activation targets have their own **publish schedule** — independent of segment refresh schedule
@@ -104,7 +224,30 @@
 ---
 
 ### Slide 7: Activation Data Configuration
-**Visual:** Activation setup panel showing two sections: "Contact Point" (Email Address selected, with Contact Point Type = "Personal Email") and "Activation Attributes" panel showing additional fields being added to the activation payload (LoyaltyTier, TotalSpend90d, LastPurchaseDate).
+**Visual:**
+```
+  ACTIVATION TARGET CONFIGURATION
+  ──────────────────────────────────────────────────────────
+  Section 1: CONTACT POINT
+  ┌──────────────────────────────────────────────────┐
+  │ Channel:      [ Email                    ]       │
+  │ Contact Type: [ Personal Email           ]       │
+  │ Selection:    [ Most Recently Used ▼     ]       │
+  └──────────────────────────────────────────────────┘
+
+  Section 2: ACTIVATION ATTRIBUTES (additional data to send)
+  ┌──────────────────────────────────────────────────┐
+  │ + LoyaltyTier        (from Individual DMO)       │
+  │ + TotalSpend90d      (from CI: Purchase_Stats)   │
+  │ + LastPurchaseDate   (from CI: Purchase_Stats)   │
+  └──────────────────────────────────────────────────┘
+         │
+         ▼  These travel alongside segment membership
+  Marketing Cloud can use them in:
+  • Dynamic email content
+  • Journey decision splits
+  • Personalization strings
+```
 
 **Content:**
 - **Contact Point configuration:** select which contact point type to use for the channel
@@ -121,7 +264,28 @@
 ---
 
 ### Slide 8: Activation Troubleshooting
-**Visual:** A troubleshooting flowchart with three branches: Branch 1 "Activation shows 0 members" → check segment is Published, check contact points exist. Branch 2 "Activation members less than expected" → check contact point filter, check consent exclusions. Branch 3 "Activation target not receiving data" → check connection configuration, check publish schedule.
+**Visual:**
+```
+  SYMPTOM                     FIRST CHECK                 RESOLUTION
+  ──────────────────────────────────────────────────────────────────
+  0 members activated         Segment status              Publish the segment
+                              (Draft vs Published?)
+
+  Fewer members than          Contact point filter        Review contact point
+  expected                    or consent exclusion?       config; check opt-outs
+
+  AT not receiving data       Connection broken?          Check Connected App /
+                              Publish schedule run?       MC connector auth
+
+  Duplicate records in MC     Subscriber Key mapping      Fix key mapping config;
+                              incorrect?                  deduplicate MC records
+
+  Stale data in MC            Segment + publish           Align schedules; run
+                              schedules misaligned?       segment refresh first
+
+  CHECK FIRST: Data Cloud → Activation Log
+               (shows last publish time, member count, error messages)
+```
 
 **Content:**
 - **0 members activated:** segment is in Draft state, or no members have valid contact points

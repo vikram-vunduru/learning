@@ -10,7 +10,28 @@
 ## Slides
 
 ### Slide 1: The Hallucination Problem and Why Grounding Matters
-**Visual:** Two speech bubble diagrams. Left: "Ungrounded Agent" — customer asks "How long is the return window for electronics?" — Agent: "Our return policy allows returns within 45 days" (with a "WRONG — actual policy is 30 days" warning badge). Right: "Grounded Agent" — same question — Agent searches Knowledge base → finds article "Electronics Return Policy: 30 days" → responds "According to our return policy, electronics can be returned within 30 days of purchase" (green checkmark, "Sourced from verified article" badge).
+**Visual:**
+```
+  UNGROUNDED AGENT  ✗                GROUNDED AGENT  ✓
+  ─────────────────────────          ─────────────────────────────────────
+  Customer: "How long is the         Customer: "How long is the
+  return window for electronics?"    return window for electronics?"
+         │                                  │
+         ▼                                  ▼
+  Atlas asks LLM from                Atlas invokes Knowledge Search
+  training data (no source)          Action → retrieves article:
+         │                           "Electronics Return Policy:
+         ▼                            30 days from purchase"
+  Agent: "Our return policy                 │
+  allows returns within                     ▼
+  45 days" ✗                         Agent: "According to our return
+                                     policy, electronics can be
+  ⚠ WRONG — actual policy            returned within 30 days
+     is 30 days                      of purchase." ✓
+  ⚠ Stated with confidence           ✓ Sourced from verified article
+  ⚠ Agent "didn't know               ✓ Accurate and auditable
+     what it didn't know"
+```
 **Content:**
 - **Hallucination** — when an LLM generates plausible but incorrect information from its parametric (trained) knowledge
 - LLMs do not always know what they do not know — they may confidently state wrong policy details, incorrect prices, or non-existent features
@@ -20,7 +41,32 @@
 **Speaker Notes:** Hallucination is the number one enterprise concern about deploying AI agents. The solution is grounding — and grounding is what separates a production-ready Agentforce deployment from a demo. Every agent that answers factual questions about company policies, products, or procedures should be grounded. For the exam, the concept of RAG is tested not as a term you need to memorize, but as a behavior you need to recognize: "the agent searches Knowledge before answering" is RAG. "The agent generates an answer from its training" is ungrounded and unreliable.
 
 ### Slide 2: Retrieval-Augmented Generation in Agentforce
-**Visual:** A four-step diagram showing the RAG flow. Step 1: Customer message arrives at Atlas ("What is the return policy?"). Step 2: Atlas invokes Knowledge Search action → semantic search over Einstein Knowledge articles. Step 3: Top-N relevant articles are retrieved and added to Atlas's context window ("Returned content: Electronics Return Policy article"). Step 4: Atlas generates a response based on the retrieved content, not from parametric knowledge → "Our policy allows electronics returns within 30 days." An annotation: "Content from Step 3 is included in the LLM prompt — the model answers from this content."
+**Visual:**
+```
+  User Query
+       │
+       ▼
+┌──────────────────┐
+│  Einstein Search  │──▶ Search Index / Knowledge Base
+│  (Semantic Search)│◀── Top-K relevant chunks / articles
+└──────────────────┘
+       │ Retrieved context
+       ▼
+┌──────────────────────────────────────────────────────────────┐
+│                        LLM PROMPT                            │
+│  System:  [Agent Instructions]                               │
+│  Context: [Retrieved knowledge chunks — verified source]     │
+│  User:    [Original query: "What is the return policy?"]     │
+└──────────────────────┬───────────────────────────────────────┘
+                       │  (through Einstein Trust Layer)
+                       ▼
+                 AI-grounded response
+                 "Our policy allows electronics returns
+                  within 30 days of purchase."
+
+  Retrieve ──▶ Augment (inject into prompt) ──▶ Generate
+  (from source)   (as verified context)          (from source, not training)
+```
 **Content:**
 - RAG is a three-component pattern in Agentforce:
   1. **Retrieve** — the Knowledge Search (or other grounding) Action performs semantic search over the knowledge source
@@ -32,7 +78,33 @@
 **Speaker Notes:** The synthesis step is important for user experience. A raw Knowledge article might be formatted as a policy document with headings and legal language. Atlas reads it and responds in a conversational, natural way that addresses the specific customer question — not just dumping the full article. This means article quality still matters — a well-structured Knowledge article with clear, factual content produces better synthesized responses than a disorganized or ambiguous one.
 
 ### Slide 3: Einstein Knowledge as Grounding Source
-**Visual:** An Einstein Knowledge configuration diagram showing: Knowledge setup panel → Published Articles library → Agent Action configuration showing "Einstein Knowledge" as the grounding source → semantic search arrow to articles → top-N articles returned to Atlas. Below: a table showing key configuration options: Minimum Relevance Score (0.0–1.0), Maximum Articles Returned (1–10), Article Types (which types to search), Language filter.
+**Visual:**
+```
+  Setup → Knowledge → Published Articles Library
+         │
+         ▼
+  Agentforce Builder → Topic → Add Action → Knowledge Search
+  ┌────────────────────────────────────────────────────────┐
+  │  Knowledge Search Action Configuration                 │
+  ├────────────────────────────────────────────────────────┤
+  │  Grounding Source:      [ Einstein Knowledge ▼ ]       │
+  │  Search Scope:          [ All Published Articles ▼ ]   │
+  │  Article Types:         [ FAQ ✓ ] [ Policy ✓ ] [ HowTo]│
+  │  Minimum Relevance:     [ 0.6 ] ◀── tune this         │
+  │    Too high (>0.8) → no results → "I don't know"       │
+  │    Too low (<0.3) → wrong articles → wrong answers     │
+  │  Max Articles Returned: [ 3   ] ◀── tune this         │
+  │    More articles = more tokens consumed                │
+  └────────────────────────────────────────────────────────┘
+         │
+         ▼
+  Semantic search over articles
+         │
+         ▼
+  Top-N articles returned → Atlas synthesizes answer
+
+  Requirements: Knowledge enabled, ≥1 Published (Active) article
+```
 **Content:**
 - **Einstein Knowledge** is the primary grounding source for Service Agent deployments — it uses Salesforce Knowledge, the platform's native knowledge management system
 - Requirements:
@@ -47,7 +119,37 @@
 **Speaker Notes:** For the exam, Einstein Knowledge is the most tested grounding source because it is the most commonly used. Know the requirements (Knowledge enabled, published articles), the key configuration options (relevance score, max articles), and the importance of article quality. A common exam trap: the question says an agent is returning incorrect information even though Knowledge articles exist — the likely cause is articles in Draft status (not published), a minimum relevance score that is too high (returning no articles), or articles that are structured poorly and confusing the synthesis step.
 
 ### Slide 4: Data Cloud Grounding — Vector Search
-**Visual:** Architecture diagram showing: Salesforce CRM data + external sources → Data Cloud (unified customer profile, Data Model Objects) → Data Cloud Vector Database (semantic embeddings) → Agentforce Data Cloud Search Action → relevant records returned to Atlas. Compared to Einstein Knowledge (static articles), Data Cloud grounding shows real-time, personalized data (customer's specific account details, purchase history, preferences).
+**Visual:**
+```
+  Salesforce CRM data          External systems
+  (Accounts, Cases,            (Commerce, Marketing,
+   Opportunities)               Service, custom)
+         │                            │
+         └──────────────┬─────────────┘
+                        ▼
+               ┌─────────────────┐
+               │   DATA CLOUD    │
+               │  Unified Customer│
+               │     Profile      │
+               └────────┬────────┘
+                        │
+                        ▼
+               ┌─────────────────┐
+               │  Vector Database│
+               │ (semantic        │
+               │  embeddings)     │
+               └────────┬────────┘
+                        │
+                        ▼
+           Agentforce Data Cloud Search Action
+                        │
+                        ▼
+  Personalized records returned to Atlas
+  (this customer's tier, purchase history, eligibility)
+
+  vs. Einstein Knowledge: general content for ALL customers
+      Data Cloud: personalized data for THIS customer
+```
 **Content:**
 - **Data Cloud grounding** enables agents to answer questions using **personalized, real-time customer data** — not just generic knowledge articles
 - Data Cloud maintains a **unified customer profile** — combining data from CRM, commerce, marketing, service, and external systems
@@ -61,7 +163,35 @@
 **Speaker Notes:** Data Cloud grounding is less commonly deployed than Einstein Knowledge grounding today, but it is increasingly tested on the exam as Salesforce positions Data Cloud as the AI data platform. The conceptual distinction is: Einstein Knowledge is for general, static content that applies to everyone (policy articles, FAQ); Data Cloud grounding is for personalized, dynamic data specific to this customer (their purchases, their account, their eligibility). If an exam question describes a scenario where the agent needs to answer questions specific to the individual customer's data, Data Cloud grounding is the answer. If it is about answering general questions the same way for everyone, Einstein Knowledge is the answer.
 
 ### Slide 5: File Search and External Grounding
-**Visual:** Two small architecture diagrams. Left: File Search — uploaded documents (PDFs, Word files) in Salesforce Files → indexed for semantic search → Agentforce File Search Action → relevant document sections returned to Atlas. Right: External Grounding — external knowledge system (Confluence, SharePoint, proprietary KB) → API connector → external grounding source configured in Agentforce → results returned to Atlas. Both diagrams show the Trust Layer mediating all data flows.
+**Visual:**
+```
+  FILE SEARCH                          EXTERNAL GROUNDING
+  ──────────────────────               ──────────────────────────
+  Salesforce Files / Content           External knowledge system
+  (PDFs, Word docs, text files)        (Confluence, SharePoint,
+          │                             custom knowledge base)
+          ▼                                     │
+  Indexed for semantic search          API connector / Named
+  Documents chunked into               Credentials integration
+  retrievable sections                         │
+          │                                     ▼
+          ▼                             External content retrieved
+  Relevant document sections                   │
+  returned to Atlas                            │
+                                               ▼
+  Use when: knowledge lives in        All content passes through
+  documents, not structured           Einstein Trust Layer before
+  Knowledge articles                  reaching Atlas
+
+  ┌──────────────────────────────────────────────────────────┐
+  │  CHOOSING A GROUNDING SOURCE                             │
+  ├────────────────────┬─────────────────────────────────────┤
+  │ Structured/FAQ     │ Einstein Knowledge (low complexity) │
+  │ Personalized data  │ Data Cloud (high complexity)        │
+  │ Document-heavy     │ File Search (medium complexity)     │
+  │ Non-SF systems     │ External Grounding (high complexity)│
+  └────────────────────┴─────────────────────────────────────┘
+```
 **Content:**
 - **File Search** — enables agents to search unstructured documents stored in Salesforce Files or Content (PDFs, Word docs, text files)
   - Use when: your knowledge lives in documents rather than structured Knowledge articles
@@ -79,7 +209,31 @@
 **Speaker Notes:** For the exam, you primarily need to know that multiple grounding source types exist and which scenario each is appropriate for. The selection framework on this slide — structured content (Knowledge), personalized data (Data Cloud), documents (File Search), external systems (External Grounding) — will answer most exam questions about choosing grounding sources. The detailed configuration of File Search and External Grounding is less tested than Knowledge and Data Cloud.
 
 ### Slide 6: Grounding Source Configuration in Agentforce Builder
-**Visual:** Agentforce Builder Action panel showing a "Knowledge Search" Action configuration. Fields shown: Grounding Source (dropdown with "Einstein Knowledge" selected), Search Scope (which knowledge bases), Minimum Relevance Score (set to 0.6), Maximum Articles (set to 3), Article Types (multi-select: FAQ, Policy). Below: a "Test Search" panel where a test query can be entered and matching articles previewed. A note: "Always test your grounding configuration before activating."
+**Visual:**
+```
+  Agentforce Builder — Knowledge Search Action Config
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Grounding Source:  [ Einstein Knowledge ▼ ]                 │
+  │  Search Scope:      [ Acme Corp Knowledge Base ▼ ]           │
+  │  Article Types:     [ ✓ FAQ ] [ ✓ Policy ] [ How-To ]       │
+  │  Min. Relevance:    [  0.6  ]     Max Articles: [  3  ]      │
+  │                                                              │
+  │  ┌──────────────────────────────────────────────────────┐   │
+  │  │  TEST SEARCH PANEL                                   │   │
+  │  │  Query: "electronics return policy"                  │   │
+  │  │  ─────────────────────────────────────────────────   │   │
+  │  │  ✓ Article: "Electronics Return Policy"  (0.87)     │   │
+  │  │  ✓ Article: "General Return Guidelines"  (0.73)     │   │
+  │  │  ✗ Article: "Shipping & Handling Policy" (0.41)     │   │
+  │  │     (below threshold — not returned)                │   │
+  │  └──────────────────────────────────────────────────────┘   │
+  └──────────────────────────────────────────────────────────────┘
+
+  Always test your grounding configuration before activating:
+  run your top 10 common customer questions and verify right
+  articles are returned for each
+```
 **Content:**
 - Add a Knowledge Search Action to a Topic from Agentforce Builder
 - **Grounding Source** dropdown: Einstein Knowledge, Data Cloud, File Search, External
@@ -92,7 +246,31 @@
 **Speaker Notes:** The minimum relevance score is a tuning parameter that you will likely need to adjust after initial deployment. Start at 0.5-0.6, run your test queries, and observe: are the right articles being returned? If the agent says it cannot find information on topics you know are in your knowledge base, the score may be too high. If it is returning articles about completely different topics, the score may be too low. This is an empirical setting — test with real customer queries rather than trying to derive the right number theoretically.
 
 ### Slide 7: Article Quality Best Practices for Grounding
-**Visual:** Two article comparison cards. Left: "Poor Article for Grounding" (red border) — title: "Policy Document Q3-2024." Content: dense paragraphs of policy legalese, no clear structure, passive voice, multiple topics mixed. Right: "Well-Structured Article for Grounding" (green border) — title: "Electronics Return Policy." Content: clear summary sentence, bullet points with key facts (30-day window, must be in original packaging, receipt required), a FAQ section. Annotations: good article has clear title matching customer questions, factual concise content, single topic.
+**Visual:**
+```
+  POOR ARTICLE FOR GROUNDING  ✗       WELL-STRUCTURED ARTICLE  ✓
+  ──────────────────────────────       ──────────────────────────────────
+  Title: "Policy Document Q3-2024"    Title: "Electronics Return Policy"
+  ─────────────────────────────────   ──────────────────────────────────
+  Section 4.3 subsection B...         Summary: Electronics purchased from
+  "In accordance with the terms       Acme may be returned within 30 days.
+  and conditions set forth by
+  the consumer protection act,        Key facts:
+  products which fall under the       • 30-day return window
+  category of electronic devices      • Original packaging required
+  including but not limited to..."    • Receipt or order number required
+                                      • Damaged items: contact support
+  ✗ Title not customer-facing
+  ✗ Dense legalese paragraphs         FAQ:
+  ✗ Multiple topics mixed in          Q: Can I return opened electronics?
+  ✗ No clear structure                A: Yes, within 30 days with receipt.
+  ✗ Passive voice, hedging language
+                                      ✓ Title matches customer vocabulary
+                                      ✓ Clear factual summary
+                                      ✓ One topic per article
+                                      ✓ Bullet points with key facts
+                                      ✓ FAQ section
+```
 **Content:**
 - **Article title** should match customer-facing vocabulary — "Electronics Return Policy" not "Policy Doc Section 4.3.B"
 - **One article, one topic** — do not combine multiple policies in one article; semantic search retrieves the whole article, not just the relevant section
@@ -103,7 +281,32 @@
 **Speaker Notes:** Article quality is often overlooked in Agentforce planning because it seems like a content management concern rather than an AI concern. But article quality directly determines grounding quality, which determines agent response quality. The most common production issue with grounded agents is outdated or poorly structured Knowledge articles producing incorrect synthesized responses. Establishing an article review process as part of the Agentforce deployment plan is a professional recommendation worth making to every client. For the exam, if a question presents an agent returning outdated information even though grounding is configured, the answer is likely that the Knowledge articles have not been updated.
 
 ### Slide 8: Grounding Architecture — Summary
-**Visual:** A full architecture diagram showing all four grounding sources connected to an agent. Center: Agentforce Agent with Atlas Reasoning Engine. Four arrows pointing in from: Einstein Knowledge (articles → semantic search → top articles), Data Cloud (unified profiles → vector search → personalized records), Files (documents → chunk retrieval → relevant sections), External (external KB → API call → relevant content). All arrows pass through the Einstein Trust Layer before reaching Atlas. Bottom: a summary table showing source → best for → setup complexity.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                    EINSTEIN TRUST LAYER                          │
+  │  ┌────────────────────────────────────────────────────────────┐  │
+  │  │            AGENTFORCE AGENT (Atlas Reasoning Engine)       │  │
+  │  │                                                            │  │
+  │  │    ◀──────────────────────────────────────────────────     │  │
+  │  │    │                                                        │  │
+  │  └────┼────────────────────────────────────────────────────┘  │  │
+  │       │                                                         │  │
+  │  ┌────┴─────────┐ ┌──────────────┐ ┌──────────────┐ ┌───────┐│  │
+  │  │ Einstein     │ │  Data Cloud  │ │ File Search  │ │Extern.││  │
+  │  │ Knowledge    │ │ Vector Search│ │ (documents)  │ │Grndng.││  │
+  │  │              │ │              │ │              │ │       ││  │
+  │  │ Static FAQ,  │ │ Personalized │ │ PDFs, Word   │ │Non-SF ││  │
+  │  │ policies,    │ │ real-time    │ │ docs, text   │ │systems││  │
+  │  │ how-to guides│ │ customer data│ │ files        │ │       ││  │
+  │  │              │ │              │ │              │ │       ││  │
+  │  │ Low setup    │ │ High setup   │ │ Medium setup │ │ High  ││  │
+  │  └──────────────┘ └──────────────┘ └──────────────┘ └───────┘│  │
+  └──────────────────────────────────────────────────────────────────┘
+
+  Always use ≥1 grounding source for agents answering factual questions
+  Sources can be combined: Knowledge (policies) + Data Cloud (personal data)
+```
 **Content:**
 | Source | Best For | Setup Complexity |
 |--------|----------|-----------------|

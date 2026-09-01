@@ -21,7 +21,20 @@
 **Speaker Notes:** SOQL is your primary tool for reading data from Salesforce. Unlike SQL, SOQL does not support JOIN across objects in the traditional sense — instead, it has relationship queries, which we cover in Lecture 6. Every SOQL query you write in Apex must follow the API name convention, not the field label shown in the UI. If you look up an object's API name in Setup → Object Manager, you will see whether it is standard like `Account` or custom like `Invoice__c`.
 
 ### Slide 2: Basic SELECT Syntax
-**Visual:** Anatomy diagram of a complete SOQL query with labeled sections: SELECT clause (field list), FROM clause (object), WHERE clause (filter), ORDER BY clause, and LIMIT clause. Color-coded sections match a legend below.
+**Visual:**
+```
+  SELECT  Id, Name, AnnualRevenue, Phone
+  ──────  ──────────────────────────────  ← field list (no SELECT *)
+  FROM    Account
+  ──────  ───────                         ← sObject API name
+  WHERE   Industry = 'Technology'
+            AND AnnualRevenue > 1000000
+  ──────  ────────────────────────────── ← filter; API field names
+  ORDER BY Name ASC
+  ──────── ──────────────────────────── ← sort order
+  LIMIT   50
+  ─────   ──────────────────────────── ← max rows returned
+```
 **Content:**
 - Full syntax: `SELECT field1, field2 FROM ObjectName WHERE condition ORDER BY field LIMIT n`
 - Select specific fields: `SELECT Id, Name, Phone FROM Account`

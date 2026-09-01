@@ -30,7 +30,31 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 2: What Is the Einstein Trust Layer?
-**Visual:** A bridge diagram — on the left, Salesforce Data; in the middle, a shield/bridge labeled Einstein Trust Layer with four pillars; on the right, External LLM (GPT-4, Claude, etc.)
+**Visual:**
+```
+   EINSTEIN TRUST LAYER — The Bridge Between Salesforce and LLMs
+
+   ┌─────────────────┐                          ┌─────────────────┐
+   │   SALESFORCE    │                          │   LLM PROVIDER  │
+   │                 │                          │                 │
+   │ ● CRM Data      │                          │ ● OpenAI GPT    │
+   │ ● Customer PII  │                          │ ● Anthropic     │
+   │ ● Opportunities │                          │ ● Google Gemini │
+   │ ● Cases         │                          │ ● Cohere        │
+   │ ● Contracts     │                          │ ● Amazon Titan  │
+   └────────┬────────┘                          └────────▲────────┘
+            │                                            │
+            ▼                                            │
+   ┌─────────────────────────────────────────────────────┴──────┐
+   │                  EINSTEIN TRUST LAYER                      │
+   │                                                            │
+   │  Data Masking → Grounding (RAG) → [LLM Call] →            │
+   │  Toxicity Scoring → Audit Trail → Zero Data Retention      │
+   └────────────────────────────────────────────────────────────┘
+            │
+            ▼
+      Safe, grounded, compliant AI output back to user
+```
 **Content:**
 - The Einstein Trust Layer is Salesforce's AI safety and governance framework
 - It sits between your Salesforce data and any external LLM
@@ -42,7 +66,29 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 3: The Four Pillars of the Einstein Trust Layer
-**Visual:** A table with four rows — Data Masking, Toxicity Scoring, Zero Data Retention, Audit Trail — each with a one-line definition and an icon
+**Visual:**
+```
+   EINSTEIN TRUST LAYER — Core Pillars
+
+   ┌──────────────────┬──────────────────────────────────────────┐
+   │  PILLAR          │  WHAT IT DOES                            │
+   ├──────────────────┼──────────────────────────────────────────┤
+   │ Data Security    │ PII/sensitive data masked before LLM call│
+   │                  │ Customer data never leaves Salesforce raw│
+   ├──────────────────┼──────────────────────────────────────────┤
+   │ Grounding        │ Augments prompts with verified CRM data  │
+   │                  │ Reduces hallucinations via RAG           │
+   ├──────────────────┼──────────────────────────────────────────┤
+   │ Toxicity         │ Scans LLM outputs for harmful content    │
+   │ Filtering        │ Blocks or flags before showing to user   │
+   ├──────────────────┼──────────────────────────────────────────┤
+   │ Zero Data        │ LLM providers contractually cannot       │
+   │ Retention (ZDR)  │ store or train on Salesforce data        │
+   ├──────────────────┼──────────────────────────────────────────┤
+   │ Audit Trail      │ Logs all AI interactions: who, what, when│
+   │                  │ Supports compliance and oversight         │
+   └──────────────────┴──────────────────────────────────────────┘
+```
 **Content:**
 1. **Data Masking** — Strips PII and sensitive data from prompts before sending to LLM
 2. **Toxicity Scoring** — Evaluates prompts and responses for harmful content

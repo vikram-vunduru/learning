@@ -8,7 +8,29 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Are Sharing Rules?
-**Visual:** A layered pyramid diagram with OWD at the base and a highlighted "Sharing Rules" layer sitting directly above it, with an upward arrow labeled "extends access"
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────┐
+  │              RECORD ACCESS LAYERS                          │
+  ├────────────────────────────────────────────────────────────┤
+  │                                                            │
+  │   Manual Sharing  ─────────────────────────────  (top)    │
+  │       ▲  extends access                                    │
+  │   ╔══════════════════════════════════════════╗             │
+  │   ║  SHARING RULES  ◄── YOU ARE HERE         ║             │
+  │   ║  Automatically extends access to groups  ║             │
+  │   ╚══════════════════════════════════════════╝             │
+  │       ▲  extends access                                    │
+  │   Role Hierarchy  ──────────────────────────              │
+  │       ▲  extends access                                    │
+  │   ┌──────────────────────────────────────────┐             │
+  │   │  OWD (BASE) — most restrictive floor     │             │
+  │   └──────────────────────────────────────────┘             │
+  │                                                            │
+  └────────────────────────────────────────────────────────────┘
+
+  Sharing Rules sit on top of OWD and extend access upward ▲
+```
 **Content:**
 - Sharing rules automatically extend record access to groups of users beyond what OWD allows
 - They apply on top of OWD — sharing rules cannot restrict access, only open it up
@@ -17,7 +39,27 @@
 **Speaker Notes:** Sharing rules solve the problem of blanket OWD settings being too restrictive for certain user groups. For example, you might set Opportunities to Private but still need the Sales Operations team to see all deals. A sharing rule handles that automatically without changing the OWD.
 
 ### Slide 2: Owner-Based Sharing Rules
-**Visual:** A diagram showing "Records owned by Group A" with an arrow pointing to "Shared with Group B," using role/public group icons
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                  OWNER-BASED SHARING RULE                    │
+  ├──────────────────────────────────────────────────────────────┤
+  │                                                              │
+  │   SOURCE (record owners)        TARGET (who gets access)     │
+  │                                                              │
+  │   ┌──────────────────┐          ┌──────────────────────┐     │
+  │   │   GROUP A        │          │   GROUP B            │     │
+  │   │  (Role / Public  │ ───────▶ │  (Role / Public      │     │
+  │   │   Group /        │  Records │   Group /            │     │
+  │   │   Territory)     │  shared  │   Territory)         │     │
+  │   └──────────────────┘          └──────────────────────┘     │
+  │                                                              │
+  │   Access granted:  [ Read Only ]  or  [ Read/Write ]         │
+  │                                                              │
+  │   Example: Records owned by "West Region" role               │
+  │            ──▶ shared with "Sales Ops" public group          │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Share records based on **who owns the record**
 - Source: a user, role, role and subordinates, public group, or territory
@@ -26,7 +68,34 @@
 **Speaker Notes:** Owner-based rules are simple: "Give Group B access to all records owned by Group A." A classic example is sharing all records owned by the West Region role with the Sales Ops public group so they can report across territories.
 
 ### Slide 3: Criteria-Based Sharing Rules
-**Visual:** A flowchart showing "Record meets criteria?" → Yes → "Share with target group" → No → "Standard OWD applies"
+**Visual:**
+```
+  ┌───────────────────────────────────────────────────────────┐
+  │              CRITERIA-BASED SHARING RULE FLOW             │
+  └───────────────────────────────────────────────────────────┘
+
+         ┌─────────────────────────────────┐
+         │         RECORD SAVED /          │
+         │         EVALUATED               │
+         └─────────────┬───────────────────┘
+                       │
+                       ▼
+         ┌─────────────────────────────────┐
+         │   Does record meet criteria?    │
+         │   (e.g., Industry = Technology, │
+         │    Stage = Closed Won,          │
+         │    Region__c = APAC)            │
+         └──────┬──────────────────┬───────┘
+                │                  │
+               YES                 NO
+                │                  │
+                ▼                  ▼
+  ┌─────────────────────┐   ┌──────────────────────┐
+  │  Share with target  │   │  Standard OWD applies │
+  │  group at specified │   │  (no additional       │
+  │  access level       │   │   sharing granted)    │
+  └─────────────────────┘   └──────────────────────┘
+```
 **Content:**
 - Share records based on **field values on the record** — not who owns it
 - Criteria examples: Industry = "Technology," Stage = "Closed Won," Region__c = "APAC"
@@ -35,7 +104,32 @@
 **Speaker Notes:** Criteria-based rules are the more powerful option. They let you say "share any Opportunity where Stage is Closed Won with the Finance team" — regardless of who owns the record. This is especially useful when ownership patterns don't map cleanly to your sharing needs.
 
 ### Slide 4: Sharing Rules Only Work with Restricted OWD
-**Visual:** A decision tree: "Is OWD Private or Public Read Only?" → Yes → "Sharing Rules apply" / No (Public Read/Write) → "Sharing Rules have no effect"
+**Visual:**
+```
+  ┌───────────────────────────────────────────────────────────┐
+  │           WHEN DO SHARING RULES APPLY?                    │
+  └───────────────────────────────────────────────────────────┘
+
+       ┌──────────────────────────────────────────┐
+       │  What is the OWD setting for the object? │
+       └──────────────────┬───────────────────────┘
+                          │
+          ┌───────────────┼────────────────────────┐
+          ▼               ▼                         ▼
+   ┌────────────┐  ┌──────────────────┐    ┌──────────────────────┐
+   │  PRIVATE   │  │  PUBLIC READ     │    │  PUBLIC READ/WRITE   │
+   └─────┬──────┘  │  ONLY            │    └────────┬─────────────┘
+         │         └────────┬─────────┘             │
+        YES                YES                       NO
+         │                  │                         │
+         ▼                  ▼                         ▼
+  ┌─────────────────────────────┐       ┌────────────────────────┐
+  │  SHARING RULES APPLY        │       │  SHARING RULES HAVE    │
+  │  (access can be extended)   │       │  NO EFFECT             │
+  └─────────────────────────────┘       │  (everyone already has │
+                                        │   full access)         │
+                                        └────────────────────────┘
+```
 **Content:**
 - If OWD is **Public Read/Write**, sharing rules are redundant — everyone already has full access
 - Sharing rules are meaningful only when OWD is **Private** or **Public Read Only**
@@ -44,7 +138,26 @@
 **Speaker Notes:** Think of it this way: if everyone can already see and edit everything, adding a sharing rule that says "also share with this group" does nothing new. The whole point of sharing rules is to poke holes in a restrictive OWD without abandoning it entirely.
 
 ### Slide 5: Sharing Rule Limits
-**Visual:** A reference card showing key numeric limits for sharing rules
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────┐
+  │              SHARING RULE LIMITS — QUICK REFERENCE        │
+  ├────────────────────────────────────────────────────────────┤
+  │                                                            │
+  │   Max sharing rules per object:              300          │
+  │   (owner-based + criteria-based combined)                  │
+  │                                                            │
+  │   Max filter conditions per criteria rule:    50          │
+  │                                                            │
+  │   Applies to:  Most standard objects + all custom objects  │
+  │                                                            │
+  │   NOT available for:                                       │
+  │     ✘  Activities (if OWD is Controlled by Parent)        │
+  │     ✘  Objects with OWD = Public Read/Write               │
+  │        (rules exist but have no practical effect)         │
+  │                                                            │
+  └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **300** sharing rules per object (combined owner-based and criteria-based)
 - **50** filter conditions per criteria-based sharing rule
@@ -53,7 +166,29 @@
 **Speaker Notes:** The 300-rule-per-object limit is high enough that most orgs never hit it, but it is tested on the exam. More practically, if you find yourself writing dozens of sharing rules, it is often a signal that your Role Hierarchy or public group design needs rethinking.
 
 ### Slide 6: How to Create a Sharing Rule
-**Visual:** Step-by-step UI mockup showing Setup > Security > Sharing Settings > scroll to object > New Sharing Rule button, with fields for Rule Name, Based On, Source, Target, and Access Level
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────────┐
+  │  SETUP ──▶ Security ──▶ Sharing Settings                       │
+  │           [scroll to object section]                           │
+  ├────────────────────────────────────────────────────────────────┤
+  │  Opportunity Sharing Rules                        [ New ]      │
+  ├────────────────────────────────────────────────────────────────┤
+  │  New Sharing Rule — Opportunity                                │
+  │                                                                │
+  │  Rule Name:    ______________________________________          │
+  │                                                                │
+  │  Based On:     ( ) Owner-Based    ( ) Criteria-Based          │
+  │                                                                │
+  │  Source:       [ Role ▼ ]  [ West Region Sales ▼ ]            │
+  │                                                                │
+  │  Target:       [ Public Group ▼ ]  [ Sales Ops ▼ ]            │
+  │                                                                │
+  │  Access Level: [ Read Only ▼ ]                                │
+  │                                                                │
+  │                           [ Save ]    [ Cancel ]              │
+  └────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Navigate to **Setup > Security > Sharing Settings**
 - Scroll to the object section and click **New** under Sharing Rules
@@ -63,7 +198,29 @@
 **Speaker Notes:** The UI walks you through it step by step. The most important decision is choosing the correct source and target. Public groups are often the cleanest target because they are maintainable — add or remove users from the group rather than editing the sharing rule itself.
 
 ### Slide 7: Public Groups vs. Roles as Sharing Targets
-**Visual:** A comparison table: Public Groups (flexible, manually maintained, cross-role membership) vs. Roles (hierarchical, automatic membership via role hierarchy)
+**Visual:**
+```
+  ┌──────────────────────────────┬────────────────────────────────┐
+  │  PUBLIC GROUPS               │  ROLES                         │
+  ├──────────────────────────────┼────────────────────────────────┤
+  │  Manually defined            │  Defined by org hierarchy      │
+  ├──────────────────────────────┼────────────────────────────────┤
+  │  Cross-role membership OK    │  Membership = users in         │
+  │  (mix users, roles, groups)  │  that specific role            │
+  ├──────────────────────────────┼────────────────────────────────┤
+  │  Most flexible option        │  "Roles and Subordinates"      │
+  │                              │  includes full subtree below   │
+  ├──────────────────────────────┼────────────────────────────────┤
+  │  Best for: cross-functional  │  Best for: hierarchical        │
+  │  teams, Finance, Ops, etc.   │  access by reporting line      │
+  ├──────────────────────────────┼────────────────────────────────┤
+  │  Maintained by: Admin adds/  │  Maintained by: user's role    │
+  │  removes members manually    │  assignment drives membership  │
+  └──────────────────────────────┴────────────────────────────────┘
+
+  Best Practice: Use Public Groups as sharing rule targets
+  for easier long-term maintenance.
+```
 **Content:**
 - **Roles** — membership is determined by the role hierarchy; sharing rules that target a role automatically include users in subordinate roles
 - **Roles and Subordinates** — explicitly includes the role and all roles below it
@@ -72,7 +229,31 @@
 **Speaker Notes:** If you share with a Role, users in subordinate roles also get access because of role hierarchy. If you share with a Role and Subordinates, you are explicit about including the whole subtree. Public groups are the Swiss Army knife — they let you group any combination of users regardless of hierarchy.
 
 ### Slide 8: Sharing Rules Cannot Restrict Access
-**Visual:** A "No" symbol over a downward arrow, with text: "Sharing rules ONLY open access up. They NEVER restrict."
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────┐
+  │                                                            │
+  │         ╔════════════════════════════════════╗            │
+  │         ║   SHARING RULES ONLY OPEN ACCESS   ║            │
+  │         ║        THEY NEVER RESTRICT         ║            │
+  │         ╚════════════════════════════════════╝            │
+  │                                                            │
+  │   ✔  Can grant:   Read Only                               │
+  │   ✔  Can grant:   Read/Write                              │
+  │                                                            │
+  │   ✘  Cannot grant:  Hidden / Restricted access            │
+  │   ✘  Cannot remove: Existing access                       │
+  │                                                            │
+  │   To RESTRICT access:                                     │
+  │     ──▶  Lower the OWD setting                            │
+  │     ──▶  Restructure the Role Hierarchy                   │
+  │                                                            │
+  │              ▲ OPEN (sharing rules only move this way)    │
+  │              │                                            │
+  │   ═══════════╪═══════════  OWD Floor                      │
+  │   ✘ (nothing below — rules can never go down)             │
+  └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Sharing rules always grant access at Read Only or Read/Write — never remove it
 - To restrict access below OWD, you would need to lower the OWD itself

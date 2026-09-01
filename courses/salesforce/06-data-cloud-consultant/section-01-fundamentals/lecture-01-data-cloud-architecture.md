@@ -11,7 +11,17 @@
 ## Slides
 
 ### Slide 1: What Is Salesforce Data Cloud?
-**Visual:** A large central hub labeled "Data Cloud" with arrows flowing in from icons representing CRM, Marketing Cloud, external databases, mobile apps, and web analytics.
+**Visual:**
+```
+  ┌─────────────────────┐         ┌──────────────────────────┐
+  │  Salesforce CRM     │────────▶│                          │
+  │  Marketing Cloud    │────────▶│       DATA CLOUD         │
+  │  External Databases │────────▶│   (Real-Time Data        │
+  │  Mobile Apps        │────────▶│    Platform)             │
+  │  Web Analytics      │────────▶│                          │
+  └─────────────────────┘         └──────────────────────────┘
+       Source Systems                  Central Data Hub
+```
 
 **Content:**
 - Data Cloud is Salesforce's **real-time data platform** built natively on the Salesforce platform
@@ -25,7 +35,25 @@
 ---
 
 ### Slide 2: Data Cloud in the Salesforce Ecosystem
-**Visual:** The standard Salesforce "Customer 360" wheel diagram with Data Cloud highlighted at the center, with bidirectional arrows to Sales Cloud, Service Cloud, Marketing Cloud, Commerce Cloud, and external apps.
+**Visual:**
+```
+                       Sales Cloud
+                           ▲
+                           │
+  Commerce Cloud ◀─────────┼─────────▶ Service Cloud
+                           │
+                ┌──────────┴──────────┐
+                │      DATA CLOUD     │
+                │  Customer 360 Hub   │
+                │  (bidirectional)    │
+                └──────────┬──────────┘
+                           │
+  Marketing Cloud ◀────────┼────────▶ External Apps
+                           │          (MuleSoft /
+                           ▼           Ingestion API)
+                    Data Actions out,
+                    Data Streams in
+```
 
 **Content:**
 - Data Cloud sits at the **center of Customer 360** — it feeds data to other clouds
@@ -39,7 +67,26 @@
 ---
 
 ### Slide 3: The Unified Customer Profile
-**Visual:** A funnel showing three source records (one from CRM, one from e-commerce, one from a loyalty app) converging into a single "Unified Individual" card with a complete profile panel showing name, email, purchase history, and loyalty tier.
+**Visual:**
+```
+  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+  │  CRM Record  │   │ E-Commerce   │   │ Loyalty App  │
+  │  John Smith  │   │  J. Smith    │   │  John S      │
+  │ john@co.com  │   │ john@co.com  │   │ Member: LY99 │
+  └──────┬───────┘   └──────┬───────┘   └──────┬───────┘
+         └──────────────────┼──────────────────┘
+                            │  Identity Resolution
+                            ▼
+               ┌────────────────────────┐
+               │   UNIFIED INDIVIDUAL   │
+               │  ────────────────────  │
+               │  Name: John Smith      │
+               │  Email: john@co.com    │
+               │  Purchase History: ✓   │
+               │  Loyalty Tier: Gold    │
+               │  Source Records: 3     │
+               └────────────────────────┘
+```
 
 **Content:**
 - The **Unified Customer Profile** (or Unified Individual) is Data Cloud's primary output
@@ -53,7 +100,19 @@
 ---
 
 ### Slide 4: Key Terminology — Data Streams
-**Visual:** A simple two-column diagram showing "Source System" on the left with data flowing through a pipe labeled "Data Stream" into a box on the right labeled "Data Lake Object (DLO)."
+**Visual:**
+```
+  ┌───────────────────┐                 ┌─────────────────────┐
+  │   SOURCE SYSTEM   │                 │  DATA LAKE OBJECT   │
+  │  (Salesforce CRM) │                 │       (DLO)         │
+  │                   │───Data Stream──▶│                     │
+  │  FirstName        │                 │  FirstName          │
+  │  LastName         │                 │  LastName           │
+  │  Email__c         │   (pipeline     │  Email__c           │
+  │  AccountId        │    config)      │  AccountId          │
+  └───────────────────┘                 │  (raw, unmodeled)   │
+                                        └─────────────────────┘
+```
 
 **Content:**
 - **Data Stream:** The configuration object that defines how data flows from a source into Data Cloud
@@ -67,7 +126,23 @@
 ---
 
 ### Slide 5: Key Terminology — Data Model Objects
-**Visual:** Three boxes labeled "DLO: Account (raw)" with arrows pointing into a single box labeled "DMO: Individual (standard)" showing the transformation and field mapping step.
+**Visual:**
+```
+  ┌─────────────────────┐
+  │ DLO: CRM_Contact    │──┐
+  │  cust_fname         │  │
+  │  cust_lname         │  │  Field
+  └─────────────────────┘  │  Mapping
+  ┌─────────────────────┐  ├────────▶ ┌──────────────────────┐
+  │ DLO: EC_Customer    │──┤          │   DMO: Individual    │
+  │  fname              │  │          │  (standard schema)   │
+  │  lname              │  │          │  ─────────────────   │
+  └─────────────────────┘  │          │  FirstName           │
+  ┌─────────────────────┐  │          │  LastName            │
+  │ DLO: Loyalty_Member │──┘          │  EmailAddress        │
+  │  first_name         │             └──────────────────────┘
+  └─────────────────────┘
+```
 
 **Content:**
 - **Data Model Object (DMO):** A structured, modeled object that maps raw DLO data to a standard schema
@@ -81,7 +156,22 @@
 ---
 
 ### Slide 6: Data Cloud vs. CRM Data
-**Visual:** A two-column comparison table. Left column "Salesforce CRM" shows standard objects (Account, Contact, Lead). Right column "Data Cloud" shows DLOs, DMOs, and Unified Individual. An arrow points from CRM to Data Cloud labeled "Salesforce Connector."
+**Visual:**
+```
+  ┌──────────────────────────┐  Salesforce  ┌──────────────────────────┐
+  │     SALESFORCE CRM       │  Connector   │      DATA CLOUD          │
+  │  ──────────────────────  │ ───────────▶ │  ──────────────────────  │
+  │  Transactional /         │              │  Analytical / Unified    │
+  │  Operational             │              │                          │
+  │  ──────────────────────  │              │  ──────────────────────  │
+  │  • Account               │              │  • Data Lake Objects     │
+  │  • Contact               │              │    (raw ingested data)   │
+  │  • Lead                  │              │  • Data Model Objects    │
+  │  • Opportunity           │              │    (standardized schema) │
+  │  • Case                  │              │  • Unified Individual    │
+  │                          │ ◀─Data Acts─ │                          │
+  └──────────────────────────┘              └──────────────────────────┘
+```
 
 **Content:**
 - CRM data (Accounts, Contacts, Leads) is **transactional and operational**
@@ -95,7 +185,24 @@
 ---
 
 ### Slide 7: Data Cloud Terminology Quick Reference
-**Visual:** A glossary-style card grid with six cards, each showing a term and a one-line definition. Terms: Data Stream, DLO, DMO, Unified Individual, Identity Resolution, Activation Target.
+**Visual:**
+```
+  ┌──────────────────────────────────┐  ┌──────────────────────────────────┐
+  │ DATA STREAM                      │  │ DATA LAKE OBJECT (DLO)           │
+  │ Pipeline config that brings      │  │ Raw storage layer; data lands    │
+  │ source data into Data Cloud      │  │ here first, exact source form    │
+  └──────────────────────────────────┘  └──────────────────────────────────┘
+  ┌──────────────────────────────────┐  ┌──────────────────────────────────┐
+  │ DATA MODEL OBJECT (DMO)          │  │ UNIFIED INDIVIDUAL               │
+  │ Structured, modeled layer used   │  │ The resolved, single customer    │
+  │ for segmentation & activation    │  │ profile across all sources       │
+  └──────────────────────────────────┘  └──────────────────────────────────┘
+  ┌──────────────────────────────────┐  ┌──────────────────────────────────┐
+  │ IDENTITY RESOLUTION              │  │ ACTIVATION TARGET                │
+  │ Process of matching & merging    │  │ Destination where segments are   │
+  │ records into Unified Individual  │  │ published (MC, CRM, Ad Platf.)   │
+  └──────────────────────────────────┘  └──────────────────────────────────┘
+```
 
 **Content:**
 - **Data Stream** — Pipeline config that brings source data into Data Cloud
@@ -110,7 +217,31 @@
 ---
 
 ### Slide 8: Architecture Summary Flow
-**Visual:** A left-to-right swimlane diagram: Lane 1 (Sources) shows CRM, MC, S3, Ingestion API. Lane 2 (Ingestion) shows Data Streams. Lane 3 (Raw Storage) shows DLOs. Lane 4 (Modeling) shows DMOs + Field Mapping. Lane 5 (Resolution) shows Identity Resolution + Unified Individual. Lane 6 (Activation) shows Segments, Activation Targets, Analytics.
+**Visual:**
+```
+  External Sources                    Data Cloud
+  ────────────────              ┌──────────────────────────────────┐
+  Salesforce CRM  ──Data Stream▶│  Data Lake Objects (DLO)        │
+  Marketing Cloud ──Data Stream▶│  (raw ingested data)            │
+  Web Analytics   ──Data Stream▶│            │                    │
+  Custom API      ──Data Stream▶│            ▼ Field Mapping      │
+                                │  Data Model Objects (DMO)       │
+                                │  (standardized schema)          │
+                                │            │                    │
+                                │            ▼                    │
+                                │  Identity Resolution            │
+                                │  (Unified Individual Profile)   │
+                                │            │                    │
+                                │    ┌───────┴────────┐          │
+                                │    ▼                ▼           │
+                                │ Segments      Calculated       │
+                                │               Insights          │
+                                │    │                │           │
+                                └────┼────────────────┼───────────┘
+                                     ▼                ▼
+                              Activation         Analytics
+                              Targets            (Tableau)
+```
 
 **Content:**
 - **Left to right:** Sources → Data Streams → DLOs → DMOs → Identity Resolution → Unified Individual → Segments/Activation

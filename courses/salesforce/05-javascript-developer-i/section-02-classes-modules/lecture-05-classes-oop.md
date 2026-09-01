@@ -62,7 +62,28 @@ cat.speak();                   // works — found via prototype
 **Speaker Notes:** Static methods are extremely common as factory methods, utility helpers, or configuration holders. You'll see them used in LWC utility classes all the time. The key exam distinction: `Animal.create()` works, but `cat.create()` throws a TypeError because `create` is not on the instance or its prototype chain — it lives directly on the constructor function object. Static properties declared with the `static` keyword and class fields syntax are a slightly newer addition (ES2022 class fields), but they are part of the JSI exam scope.
 
 ### Slide 3: Inheritance with extends and super
-**Visual:** Class hierarchy tree: `Animal` at top, `Dog` below connected by an arrow labeled `extends`. Inside each class box, the `constructor` is shown. An annotation on `super()` in `Dog`'s constructor reads: "Must be called before using `this`." A second annotation on `super.speak()` reads: "Calls parent method."
+**Visual:**
+```
+  ┌──────────────────────────────┐
+  │  Animal                      │
+  │  constructor(name)           │
+  │  speak()                     │
+  └──────────────┬───────────────┘
+                 │ extends
+                 ▼
+  ┌──────────────────────────────┐
+  │  Dog                         │
+  │  constructor(name, breed)    │
+  │    super(name)  ◀── must be  │
+  │                    first!    │
+  │  speak()  ← overrides parent │
+  │    super.speak()  ◀── calls  │
+  │            Animal.speak()    │
+  └──────────────────────────────┘
+
+  new Dog() instanceof Dog    → true
+  new Dog() instanceof Animal → true
+```
 **Content:**
 - `extends` creates a subclass that inherits all methods from the parent
 - Subclass **must** call `super()` before accessing `this` in its constructor — ReferenceError otherwise
@@ -158,7 +179,22 @@ v.validate(5);  // true
 **Speaker Notes:** Class expressions are less common in day-to-day code but appear in advanced patterns like class factories, mixins, and decorator implementations. The key point for the exam is that class expressions are valid JavaScript — a class is just a special kind of function value. `typeof MyClass` returns `'function'` regardless of whether it was declared with a class declaration or expression. The immediately-invoked class expression pattern (`new (class { ... })()`) sometimes appears in test code and library internals to create a one-off object with class features without polluting the namespace.
 
 ### Slide 6: The Prototype Chain — Classes as Syntactic Sugar
-**Visual:** Memory diagram showing: the `Dog` class (constructor function object) has a `prototype` property pointing to `Dog.prototype`. `Dog.prototype` has `[[Prototype]]` pointing to `Animal.prototype`. An instance `d` has `[[Prototype]]` pointing to `Dog.prototype`. Each object in the chain is a box with its own properties listed, with arrows showing the chain up to `Object.prototype` and then `null`.
+**Visual:**
+```
+  instance d          Dog.prototype       Animal.prototype    Object.prototype
+  ┌────────────┐      ┌─────────────┐     ┌──────────────┐   ┌──────────────┐
+  │ name: 'Rex'│      │ bark()      │     │ speak()      │   │ toString()   │
+  │ breed: 'Lab│ ───► │ constructor │───► │ constructor  │──►│ hasOwnProp.. │
+  └────────────┘      └─────────────┘     └──────────────┘   └──────┬───────┘
+  [[Prototype]]        [[Prototype]]        [[Prototype]]            │
+                                                                     ▼
+                                                                    null
+
+  Property lookup: d.speak()
+  → not on d → not on Dog.prototype → found on Animal.prototype ✓
+
+  typeof Dog === 'function'  ← classes are constructor functions
+```
 **Content:**
 - Classes do NOT introduce a new object system — they compile to prototype-based code
 - Every class is a constructor function: `typeof Animal === 'function'`

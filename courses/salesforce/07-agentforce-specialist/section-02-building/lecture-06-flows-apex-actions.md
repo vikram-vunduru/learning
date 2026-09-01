@@ -10,7 +10,25 @@
 ## Slides
 
 ### Slide 1: Why Flows and Apex Are the Workhorses
-**Visual:** A capability wheel showing the four action types with size proportional to frequency of use. Flow Action is the largest segment (~50%), Apex Action is second (~25%), Prompt Template is third (~15%), Knowledge Search is smallest (~10%). Annotation: "Most Salesforce orgs have existing Flows and Apex — agent Actions reuse this investment."
+**Visual:**
+```
+  Action Type Usage in Typical Agentforce Deployments
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  Flow Action      ████████████████████████████████████  ~50%    │
+  │                                                                  │
+  │  Apex Action      ████████████████████            ~25%          │
+  │                                                                  │
+  │  Prompt Template  ████████████                    ~15%          │
+  │                                                                  │
+  │  Knowledge Search ███████                         ~10%          │
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘
+
+  Key insight: Most Salesforce orgs already have Autolaunched Flows
+  and @InvocableMethod Apex — agent Actions reuse this investment
+  with minimal modification (just variable settings).
+```
 **Content:**
 - Flows and Apex actions are the primary mechanism for agents to **interact with Salesforce data and trigger business logic**
 - Most Salesforce orgs already have Autolaunched Flows and `@InvocableMethod` Apex from existing automation — these can often be wired to agent Actions with minimal modification
@@ -20,7 +38,35 @@
 **Speaker Notes:** The "reuse existing automation" message is important. When presenting Agentforce to a customer, one of the most compelling value propositions is that their existing Flows become agent capabilities with minimal rework. If an admin built a "Create Case" Flow last year, they can expose that Flow as an agent Action today. The only changes typically needed are making input/output variables available to the platform. This dramatically reduces the time-to-value for an Agentforce deployment.
 
 ### Slide 2: Flow Requirements for Agent Actions
-**Visual:** A checklist diagram with a Flow icon in the center and five requirement boxes connected by arrows. Each box shows the requirement and a green checkmark if met / red X if not. Requirements: (1) Flow Type: Autolaunched ✓ / Screen Flow ✗, (2) Status: Active ✓ / Draft ✗, (3) Input vars: "Available for Input" checked ✓ / unchecked ✗, (4) Output vars: "Available for Output" checked ✓ / unchecked ✗, (5) API name unique and stable ✓ / changes break Action ✗.
+**Visual:**
+```
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                    FLOW REQUIREMENTS CHECKLIST                  │
+  ├─────────────────────────────────────────────────────────────────┤
+  │                                                                 │
+  │   (1) Flow Type                                                 │
+  │       ✓  Autolaunched Flow (No Trigger)                        │
+  │       ✗  Screen Flow  — has UI, cannot run headlessly          │
+  │       ✗  Record-Triggered — fires on events, not on-demand     │
+  │                                                                 │
+  │   (2) Status                                                    │
+  │       ✓  Active (deployed)                                     │
+  │       ✗  Draft / Inactive — agent cannot invoke it             │
+  │                                                                 │
+  │   (3) Input Variables                                           │
+  │       ✓  "Available for Input" checked in variable properties  │
+  │       ✗  Unchecked — Atlas cannot pass parameters to Flow      │
+  │                                                                 │
+  │   (4) Output Variables                                          │
+  │       ✓  "Available for Output" checked in variable properties │
+  │       ✗  Unchecked — Flow cannot return data to Atlas          │
+  │                                                                 │
+  │   (5) API Name Stability                                        │
+  │       ✓  Stable name — changing it breaks the Action silently  │
+  │       ✗  Renamed after Action configured — breaks silently     │
+  │                                                                 │
+  └─────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Flow Type:** Must be **Autolaunched Flow** — Screen Flows require a UI and cannot be invoked headlessly
 - **Status:** Must be **Active** — Agentforce cannot invoke a draft or inactive Flow
@@ -31,7 +77,40 @@
 **Speaker Notes:** The three most common mistakes when wiring a Flow are: using a Screen Flow instead of Autolaunched, forgetting to check "Available for Input/Output" on variables, and using a Flow that is in Draft status. All three result in the Action failing silently — the agent may return a vague error or say it cannot help, with no clear indication of the root cause. Always verify these three things first when debugging a Flow Action that is not working. For the exam, these requirements appear frequently as scenario questions: "A developer created a Flow action but the agent reports it cannot complete the task — what is the most likely cause?" Answer: one of these three missing requirements.
 
 ### Slide 3: Building a Flow for Agent Use — Step by Step
-**Visual:** Flow Builder screenshot mockup showing an Autolaunched Flow with: Start element → Get Records element (queries Order__c by Id) → Assignment element (populates output variables) → End. Sidebar shows variable panel with two variables highlighted: (1) orderId (Text, Input, Available for Input, Description: "The Salesforce ID or order number of the order to look up") and (2) orderStatus (Text, Output, Available for Output, Description: "The current fulfillment status of the order").
+**Visual:**
+```
+  Flow Builder — Autolaunched Flow (No Trigger)
+
+  Variables Panel                Flow Canvas
+  ───────────────                ─────────────────────────────────
+  INPUT VARIABLES:               ┌─────────┐
+  ┌──────────────────────────┐   │  Start  │
+  │ orderId                  │   └────┬────┘
+  │ Type: Text               │        │
+  │ ✓ Available for Input    │        ▼
+  │ Description: "The order  │   ┌────────────────────────────┐
+  │   number provided by     │   │  Get Records               │
+  │   the customer"          │   │  Object: Order__c          │
+  └──────────────────────────┘   │  Filter: OrderNumber =     │
+                                 │    {!orderId}              │
+  OUTPUT VARIABLES:              └────────────┬───────────────┘
+  ┌──────────────────────────┐               │
+  │ orderStatus              │               ▼
+  │ Type: Text               │   ┌────────────────────────────┐
+  │ ✓ Available for Output   │   │  Assignment                │
+  │ Description: "Current    │   │  orderStatus = order.Status│
+  │   fulfillment status"    │   │  deliveryDate = order.ETA  │
+  └──────────────────────────┘   └────────────┬───────────────┘
+  ┌──────────────────────────┐               │
+  │ deliveryDate             │               ▼
+  │ Type: Text               │   ┌─────────┐
+  │ ✓ Available for Output   │   │   End   │
+  │ Description: "Estimated  │   └─────────┘
+  │   delivery date"         │
+  └──────────────────────────┘
+  STEP 5: Activate the Flow
+  STEP 6: Add as Action in Agentforce Builder
+```
 **Content:**
 - **Step 1:** Create a new Flow → Select "Autolaunched Flow (No Trigger)"
 - **Step 2:** Create input variables for each piece of data the agent will pass in (e.g., `orderId`)
@@ -47,7 +126,47 @@
 **Speaker Notes:** The key practice habit here is variable naming and descriptions. For Atlas to successfully extract a parameter like an order number from "I'd like to know about order 12345," the input variable's description should say something like "The order number provided by the customer." This tells Atlas which piece of information from the conversation should be passed to this variable. Without that description, Atlas has to guess — and it may pass the customer's name instead of the order number. Get in the habit of describing every variable as if explaining it to a person who has no context about the Flow.
 
 ### Slide 4: `@InvocableMethod` Anatomy for Agentforce
-**Visual:** Apex code editor showing a complete, well-structured `@InvocableMethod` class. Key elements highlighted with colored annotations: `@InvocableMethod(label='Get Customer Tier' description='Retrieves the loyalty tier for a customer given their account ID. Returns tier name and associated benefits.')` annotation (gold), inner class `Request` with `@InvocableVariable` annotated fields (blue), inner class `Result` with `@InvocableVariable` annotated fields (green), method signature `public static List<Result> execute(List<Request> requests)` (red).
+**Visual:**
+```
+  public class GetCustomerTierAction {
+
+      @InvocableMethod(
+          label='Get Customer Tier'
+          description='Retrieves the loyalty tier for a customer    ◀── Atlas reads
+            by Account ID. Returns the tier name and a list of         this for routing
+            associated benefits. Use when a customer asks about
+            their membership level or rewards status.'
+      )
+      public static List<Result> execute(List<Request> requests) {
+          List<Result> results = new List<Result>();
+          for (Request req : requests) {
+              Account acc = [SELECT Loyalty_Tier__c, Tier_Benefits__c
+                             FROM Account WHERE Id = :req.accountId LIMIT 1];
+              Result res = new Result();
+              res.tierName = acc.Loyalty_Tier__c;
+              res.benefits = acc.Tier_Benefits__c;
+              results.add(res);
+          }
+          return results;
+      }
+
+      public class Request {
+          @InvocableVariable(label='Account ID'                     ◀── Atlas uses to
+              description='The Salesforce Account ID of the             extract value
+              customer' required=true)                                  from conversation
+          public Id accountId;
+      }
+
+      public class Result {
+          @InvocableVariable(label='Tier Name'                      ◀── Returned to
+              description='The name of the customer loyalty tier')       Atlas as output
+          public String tierName;
+          @InvocableVariable(label='Tier Benefits'
+              description='A description of benefits in this tier')
+          public String benefits;
+      }
+  }
+```
 **Content:**
 ```apex
 public class GetCustomerTierAction {
@@ -85,7 +204,36 @@ public class GetCustomerTierAction {
 **Speaker Notes:** The `description` property on `@InvocableMethod` is the key field for Agentforce — it is what Atlas reads to decide whether to invoke this action. It should follow the same pattern as a good Action description: what it does, when to use it, and what inputs it needs. The `@InvocableVariable` `description` properties on the Request class fields are what Atlas uses to understand what values to extract from the conversation and pass as inputs. Do not skip these descriptions — they are the bridge between natural language conversation and structured code inputs.
 
 ### Slide 5: Mapping Parameters in Agentforce Builder
-**Visual:** Agentforce Builder Action configuration panel showing a Flow Action configuration. Left side: "Inputs" section with two rows — "orderId" and "customerId" with an "Agent collects from conversation" indicator. Right side: "Outputs" section with three rows — "orderStatus," "deliveryDate," "trackingNumber" with "Available to Agent" indicators. Center: an "Action Description" text area with the description text visible. A "Test Action" button is visible at the bottom.
+**Visual:**
+```
+  Agentforce Builder — Action Configuration Panel
+
+  ┌────────────────────────────────────────────────────────────────┐
+  │  Action: Get Order Status (Flow)                               │
+  │                                                                │
+  │  INPUTS                              SOURCE                    │
+  │  ──────────────────────────────────────────────────────────    │
+  │  orderId (Text, required)    [Agent extracts from conversation]│
+  │  customerId (Text, optional) [From prior Action output      ▼] │
+  │                                                                │
+  │  OUTPUTS                                                       │
+  │  ──────────────────────────────────────────────────────────    │
+  │  orderStatus     [Available to Agent]                          │
+  │  deliveryDate    [Available to Agent]                          │
+  │  trackingNumber  [Available to Agent]                          │
+  │                                                                │
+  │  ACTION DESCRIPTION                                            │
+  │  ──────────────────────────────────────────────────────────    │
+  │  [Retrieves the current fulfillment status... _____________ ]  │
+  │                                                                │
+  │  [Test Action]                                                 │
+  └────────────────────────────────────────────────────────────────┘
+
+  Input Sources:
+  "Agent extracts from conversation" — Atlas pulls from user message
+  "From prior Action output"         — uses value from earlier action
+  "Static value"                     — hardcoded constant
+```
 **Content:**
 - After selecting a Flow or Apex action in Agentforce Builder, you see an **Input/Output Mapping** panel
 - **Input sources available for each input parameter:**
@@ -98,7 +246,29 @@ public class GetCustomerTierAction {
 **Speaker Notes:** The input source configuration is a nuanced area that can appear on the exam. "Agent extracts from conversation" is the most common — the customer says their order number, Atlas extracts it and passes it to the Flow. "From prior Action output" is used in multi-Action sequences — if Action 1 returns an account ID, Action 2 can use that account ID as input without asking the customer again. This enables sophisticated multi-step agent behaviors: look up the customer → get their account → retrieve their tier → present benefits, all in one conversational turn.
 
 ### Slide 6: Writing Action Descriptions for Parameter Extraction
-**Visual:** Two Action descriptions side by side with parameter extraction diagrams beneath each. Left (weak): Action description: "Updates customer address." Beneath: Atlas receives "change my address to 123 Main St" — question marks showing Atlas unsure which field to update, which address type (billing vs shipping), whether to confirm. Right (strong): Action description: "Updates a customer's billing or shipping address on their account. Invoke when a customer asks to change their mailing, billing, or delivery address. Requires: addressType (billing or shipping), newStreetAddress, newCity, newState, newZip. Always confirm with the customer before executing this change." — Beneath: Atlas correctly extracts all five fields and confirms.
+**Visual:**
+```
+  WEAK DESCRIPTION  ✗                  STRONG DESCRIPTION  ✓
+  ─────────────────────────────        ──────────────────────────────────────
+  "Updates customer address."          "Updates a customer's billing or
+                                        shipping address on their account.
+
+  What Atlas receives:                  Invoke when a customer asks to
+  "change my address to                 change their mailing, billing,
+   123 Main St"                         or delivery address.
+
+  Atlas is unsure:                      Requires:
+  ❓ Which address type?               · addressType (billing or shipping)
+  ❓ All fields or just street?        · newStreetAddress
+  ❓ Should it confirm first?          · newCity, newState, newZip
+
+                                        Always confirm with the customer
+                                        before executing this change."
+
+  Result: Atlas guesses,               Result: Atlas extracts all 5 fields,
+  may update wrong address,            confirms before executing,
+  confusing experience                 clean customer experience
+```
 **Content:**
 - Good Action descriptions enable accurate **parameter extraction** — the process by which Atlas identifies the right values from the conversation to pass to the Action
 - Include explicit **input parameter hints** in the description: "Requires: customerName, orderNumber"
@@ -109,7 +279,47 @@ public class GetCustomerTierAction {
 **Speaker Notes:** Parameter extraction quality is directly tied to how well your Action descriptions explain the inputs. In the weak example on this slide, Atlas knows it should "update address" but has no idea what fields to look for — it might update the wrong address type or miss required fields. In the strong example, Atlas knows exactly what to extract, confirms before executing, and will ask for any missing fields. This is pure description work — no code required to enable better parameter extraction.
 
 ### Slide 7: Error Handling and Edge Cases
-**Visual:** A flow diagram showing three error paths from an Agent Action invocation. Path 1: Flow throws an unhandled exception → Atlas observes error → applies reasoning: "I encountered an error getting your order status. Let me try again or connect you with a representative." Path 2: Flow returns empty result (no record found) → Atlas observes empty output → "I couldn't find an order with that number. Could you double-check the order number?" Path 3: Atlas cannot extract required parameter → Atlas generates clarifying question → user provides missing information → Action retried.
+**Visual:**
+```
+  Three Error Paths from an Agent Action
+
+  PATH 1: Unhandled Exception
+  ─────────────────────────────────────────────────────
+  Flow throws exception (no fault path)
+       │
+       ▼
+  Atlas observes error
+       │
+       ▼
+  "I encountered an error retrieving your order status.
+   Let me connect you with a representative."
+
+  PATH 2: Empty / No Record Found
+  ─────────────────────────────────────────────────────
+  Flow returns null / empty output variables
+       │
+       ▼
+  Atlas observes empty result
+       │
+       ▼
+  "I couldn't find an order with that number.
+   Could you double-check the order number?"
+
+  PATH 3: Missing Required Parameter
+  ─────────────────────────────────────────────────────
+  Atlas cannot extract required input from conversation
+       │
+       ▼
+  Atlas auto-generates clarifying question
+       │
+       ▼
+  "What is your order number? I'll need that to
+   look up the status."
+
+  BEST PRACTICE: Add Fault Paths in Flows to return
+  meaningful errorMessage output variable rather than
+  throwing unhandled exceptions
+```
 **Content:**
 - **Unhandled exceptions in Flows/Apex** — if an uncaught exception bubbles up, the agent cannot complete the Action; Atlas will observe the error and generate a recovery response based on its reasoning
 - **Best practice:** Add **fault paths** in your Flow to catch errors and return a meaningful output variable (e.g., `errorMessage = "No order found with this ID"`) rather than throwing an exception
@@ -119,7 +329,41 @@ public class GetCustomerTierAction {
 **Speaker Notes:** Fault tolerance in Flow actions is often overlooked in early agent implementations. A Flow that throws an unhandled exception mid-conversation creates a confusing customer experience — the agent says something like "I'm sorry, I encountered an error" with no clear path forward. Adding proper fault paths to Flows (Add Element → Fault Path) lets you return a meaningful error message that Atlas can present gracefully. For Apex actions, wrapping the main logic in try/catch and returning an error Result object instead of throwing ensures Atlas always receives structured output it can work with.
 
 ### Slide 8: Flow vs Apex — Decision Guide
-**Visual:** A decision tree. Root: "Do you need code logic?" → No → "Is it an Autolaunched Flow already?" → Yes → Wire existing Flow. No → Build new Autolaunched Flow. → Yes code needed → "Is it complex computation, HTTP callout, or custom error handling?" → Yes → Build Apex @InvocableMethod. No → Consider whether Flow handles it. Below: a quick-reference table comparing Flow and Apex on dimensions: Code required, Admin-maintainable, HTTP callouts, Complex logic, Existing asset reuse, Recommended for.
+**Visual:**
+```
+  Do you need imperative code logic?
+           │
+     ┌─────┴──────┐
+     No            Yes
+     │              │
+     ▼              ▼
+  Is it an       Complex       HTTP         Custom error
+  Autolaunched   calculation?  callout?     handling?
+  Flow already?       │             │            │
+     │              Yes           Yes          Yes
+     │               └─────────────┴────────────┘
+     ▼                             │
+  Wire existing               BUILD APEX
+  Flow (min edits)             @InvocableMethod
+     │
+     No
+     │
+     ▼
+  Build new
+  Autolaunched Flow
+
+  ┌───────────────────┬──────────────────┬────────────────────┐
+  │ Dimension         │ Flow Action      │ Apex Action        │
+  ├───────────────────┼──────────────────┼────────────────────┤
+  │ Code required     │ No               │ Yes                │
+  │ Admin-maintainable│ Yes              │ No (dev required)  │
+  │ HTTP callouts     │ Limited          │ Full support       │
+  │ Complex logic     │ Limited          │ Full support       │
+  │ Existing reuse    │ Very high        │ High               │
+  │ Governor control  │ Standard         │ Manual management  │
+  │ Recommended when  │ Most use cases   │ Callouts, complex  │
+  └───────────────────┴──────────────────┴────────────────────┘
+```
 **Content:**
 | Dimension | Flow Action | Apex Action |
 |-----------|-------------|-------------|

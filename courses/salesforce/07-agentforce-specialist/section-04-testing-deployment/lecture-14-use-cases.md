@@ -10,7 +10,33 @@
 ## Slides
 
 ### Slide 1: What Makes a Good Agentforce Use Case?
-**Visual:** Two columns. Left: "Good Fit for Agentforce" with green checkmarks — high-volume repetitive inquiries, well-defined business processes, data available in Salesforce or integrated systems, clear success metrics, existing Flow/Apex automation. Right: "Poor Fit" with red X marks — low-volume complex judgment calls, highly regulated actions requiring human accountability, processes with no existing data structure, highly variable outcomes with no repeatable pattern, legally sensitive decisions.
+**Visual:**
+```
+  ┌──────────────────────────────────┐  ┌──────────────────────────────────┐
+  │  GOOD FIT FOR AGENTFORCE  ✓      │  │  POOR FIT  ✗                     │
+  │                                  │  │                                  │
+  │  ✓ High-volume, repetitive       │  │  ✗ Low-volume, complex           │
+  │    inquiries (scales better      │  │    judgment calls                │
+  │    than humans)                  │  │                                  │
+  │                                  │  │  ✗ High regulatory               │
+  │  ✓ Well-defined business         │  │    accountability (decisions     │
+  │    processes (predictable        │  │    requiring named human         │
+  │    workflow)                     │  │    sign-off)                     │
+  │                                  │  │                                  │
+  │  ✓ Data available in             │  │  ✗ Undefined processes (if       │
+  │    Salesforce or integrated      │  │    humans cannot agree, agent    │
+  │    systems                       │  │    will not either)              │
+  │                                  │  │                                  │
+  │  ✓ Defined scope (clear          │  │  ✗ Highly sensitive contexts     │
+  │    Topics with limited           │  │    (legal, medical, financial    │
+  │    variability)                  │  │    advice in regulated areas)    │
+  └──────────────────────────────────┘  └──────────────────────────────────┘
+
+  Four qualifying questions:
+  1. High volume?   2. Well-defined process?
+  3. Data available?   4. Clear scope?
+  All four YES → strong Agentforce candidate
+```
 **Content:**
 - **Strong Agentforce use cases share these characteristics:**
   - **High volume, low complexity:** the same questions/tasks repeat thousands of times — agents scale better than humans for these
@@ -25,7 +51,36 @@
 **Speaker Notes:** Use case fit analysis is one of the highest-frequency exam topic areas — the exam will describe a scenario and ask whether Agentforce is appropriate, or will ask you to design an agent for a described scenario. Use the framework on this slide: is it high volume? Is the process well-defined? Is the data available? Are there clear Topics that scope the conversation? Yes to all four → strong candidate. No to any → investigate further or consider a different approach.
 
 ### Slide 2: Use Case 1 — Customer Service Deflection
-**Visual:** A customer service deflection diagram. Before Agentforce: 1,000 daily contacts → 100% handled by human agents → high cost, long wait times. After Agentforce: 1,000 daily contacts → 65% deflected by agent (650 routine inquiries handled autonomously) → 35% escalated to human agents (350 complex issues). Below: ROI calculation — "If human handle time = 8 min average at $0.50/min = $4 per contact. Agentforce = $0.15 per conversation. Deflection of 650 contacts/day = annual savings = [calculated]."
+**Visual:**
+```
+  Customer Service Deflection — Before and After
+
+  BEFORE AGENTFORCE:
+  1,000 daily contacts
+         │
+         ▼
+  100% Human agents
+  · High cost, long wait times
+  · Agents handling routine + complex equally
+
+  AFTER AGENTFORCE:
+  1,000 daily contacts
+         │
+         ├── 65% ──▶ Agent handles autonomously (650 routine contacts)
+         │             ┌────────────────────────────────────────────┐
+         │             │ "Where is my order?" → GetOrderStatus Flow │
+         │             │ "What is your return policy?" → Knowledge  │
+         │             │ "Update my address" → UpdateAddress Flow   │
+         │             └────────────────────────────────────────────┘
+         │
+         └── 35% ──▶ Escalated to human agents (350 complex cases)
+                       (Omni-Channel routing → service rep queue)
+
+  ROI snapshot:
+  Human handle cost: ~$4-8 per contact
+  Agentforce cost:   ~$0.10-0.50 per conversation
+  650 deflected/day × 365 = 237,250 contacts deflected/year
+```
 **Content:**
 - **Business problem:** Large volume of routine service contacts (order status, account questions, policy FAQs) consuming expensive human agent time
 - **Recommended template:** Service Agent
@@ -41,7 +96,38 @@
 **Speaker Notes:** Customer service deflection is the canonical Agentforce use case and will appear on the exam. The Service Agent template is pre-configured for this. The exam typically tests: the right template (Service Agent), the need for both Knowledge grounding (for policy FAQs) and Flow Actions (for account/order data retrieval), and the escalation path to human agents via Omni-Channel. Know the Topics, the Action types for each, and the business metrics. The deflection rate (% of contacts resolved by agent without human involvement) is the primary business value metric.
 
 ### Slide 3: Use Case 2 — Sales Lead Qualification
-**Visual:** An SDR workflow diagram. Inbound lead fills web form → Lead record created in Salesforce → SDR Agent receives trigger → Agent sends qualifying email: "Thank you for your interest, [First Name]. To understand your needs better, I have a few questions..." → Lead responds → Agent asks follow-up questions (company size, budget, timeline, decision process) → Lead qualifies/disqualifies based on criteria → Qualified: book meeting with AE → Unqualified: add to nurture sequence. Timeline: 2-4 email exchanges over 24-48 hours.
+**Visual:**
+```
+  SDR Agent — Lead Qualification Workflow
+
+  Inbound lead submits web form
+         │
+         ▼
+  Lead record created in Salesforce
+         │
+         ▼  (SDR Agent trigger)
+  SDR Agent sends qualifying email
+  "Thank you for your interest, {FirstName}. I have a few
+   questions to understand your needs..."
+         │
+         ▼  (Lead responds)
+  Qualifying conversation (async email, 24-48 hrs):
+  ┌──────────────────────────────────────────────────────┐
+  │  Agent asks BANT qualification questions:            │
+  │  · Budget: "What is your approximate budget range?"  │
+  │  · Authority: "Who else is involved in this          │
+  │    decision?"                                        │
+  │  · Need: "What is the primary problem you want to    │
+  │    solve?"                                           │
+  │  · Timeline: "When are you looking to implement?"    │
+  └──────────────────────────────────────────────────────┘
+         │
+         ├── QUALIFIED ──▶ Book meeting with AE
+         │                 (calendar booking flow)
+         │
+         └── UNQUALIFIED ──▶ Add to nurture sequence
+                             (Marketing Cloud journey)
+```
 **Content:**
 - **Business problem:** Large volume of inbound leads from marketing; SDRs are spending disproportionate time on routine lead qualification for low-quality leads
 - **Recommended template:** Sales Development Rep (SDR) Agent
@@ -55,7 +141,33 @@
 **Speaker Notes:** SDR Agent use case questions focus on identifying this as an external-facing, async email channel use case. Two common exam traps: (1) confusing SDR Agent with Sales Coach (SDR is external to prospects; Sales Coach is internal to reps) and (2) not recognizing that the SDR Agent can operate via email channel over hours/days, not just real-time chat. The qualification workflow (BANT questions) is the core logic, and the meeting booking capability is the key output for qualified leads. For the exam, if the scenario involves "automatically responding to web form submissions and qualifying leads," the answer is SDR Agent.
 
 ### Slide 4: Use Case 3 — HR Employee Self-Service
-**Visual:** An employee interaction diagram. Employee opens Slack → Messages HR Agent "How many vacation days do I have left this year?" → Agent looks up employee's leave balance from HR system (via Flow or Apex with integration) → Responds with personalized balance. Second query: "What is the policy for carrying over vacation days?" → Agent searches HR Knowledge base → Responds with policy details. Third query: "Submit a vacation request for Dec 15-20" → Agent invokes Flow to create PTO request → Confirms submission.
+**Visual:**
+```
+  HR Self-Service Agent — Employee Interaction (Slack)
+
+  Employee (in Slack, DM to HR Agent):
+
+  Employee: "How many vacation days do I have left this year?"
+         │
+         ▼  Agent invokes: Get Leave Balance Flow (HR system integration)
+  Agent: "Hi Alex! Based on your employee record, you have
+          8 vacation days remaining for 2025."
+         │
+  Employee: "What is the policy on carrying days over?"
+         │
+         ▼  Agent invokes: Knowledge Search (HR Policy articles)
+  Agent: "Per our policy, up to 5 days can be carried over to
+          the following year if requested by December 15."
+         │
+  Employee: "Can you submit a vacation request for Dec 15-20?"
+         │
+         ▼  Agent invokes: Create PTO Request Flow
+  Agent: "Done! PTO request submitted for Dec 15-20 (4 days).
+          Your manager will receive an approval request."
+
+  Template: Custom Agent (no pre-built HR template)
+  Channel:  Slack  ◀── employees are already there
+```
 **Content:**
 - **Business problem:** HR team spending significant time answering repetitive policy questions and processing routine requests (PTO, benefits lookup, payroll queries) that take attention from strategic HR work
 - **Recommended template:** Custom Agent (no pre-built HR template — this is a common exam trap)
@@ -70,7 +182,35 @@
 **Speaker Notes:** The HR self-service use case is valuable for the exam because it tests multiple concepts: correct template choice (Custom Agent, not a pre-built one), correct deployment channel (Slack for internal users), and the mix of Knowledge grounding (for policy questions) and Flow/Apex Actions (for personalized data like leave balances). A common exam mistake is selecting Service Agent for an internal HR use case — Service Agent is designed for customer-facing service, not internal employee service. The custom agent template is appropriate here, deployed via Slack.
 
 ### Slide 5: Use Case 4 — Field Service Scheduling
-**Visual:** A field service dispatch workflow. Customer calls about a broken appliance → Service Agent captures issue details (appliance type, issue description, customer address, preferred time window) → Agent invokes Field Service Management Flow → FSM returns available technician slots → Agent presents options to customer → Customer selects slot → Agent creates Work Order and dispatches → Customer receives confirmation with technician name, ETA, and job number. FSM integration shown connecting Salesforce Field Service to the agent Actions.
+**Visual:**
+```
+  Field Service Agent — Scheduling Workflow
+
+  Customer: "My refrigerator is making a loud noise."
+         │
+         ▼  Agent: Knowledge Search — any known self-fixes?
+  Agent: "There are a few quick things you can try first..."
+         │
+  Customer: "I tried those — still noisy."
+         │
+         ▼  Agent invokes: GetAvailableSlots Flow (FSM API)
+  Agent: "I can schedule a technician visit. Here are the
+          next available slots:
+          · Thursday March 20, 10am-2pm
+          · Friday March 21, 8am-12pm
+          Which works best for you?"
+         │
+  Customer: "Thursday works."
+         │
+         ▼  Agent invokes: CreateWorkOrder Flow (FSM record)
+  Agent: "Confirmed! Technician visit scheduled for Thursday
+          March 20, 10am-2pm. Job # WO-88742.
+          You'll receive a text reminder the day before."
+
+  Template: Custom Agent
+  Channel:  Embedded Service Chat + API (for phone/IVR)
+  Integration: Salesforce Field Service Management
+```
 **Content:**
 - **Business problem:** High volume of inbound service scheduling calls, requiring dispatchers to manually create work orders and match technicians to jobs — time-consuming and error-prone
 - **Recommended template:** Custom Agent (Salesforce Field Service use case)
@@ -86,7 +226,43 @@
 **Speaker Notes:** The field service scheduling use case tests the ability to design a Custom Agent that integrates with Salesforce Field Service Management. The key exam concepts: Custom Agent template (not Service Agent), Flow Actions connecting to FSM, possibly an API integration for phone/IVR channel deployment, and the pre-deflection pattern (try to resolve with Knowledge before scheduling a visit). The "try self-service before dispatching" pattern is good practice for field service: if a customer reports an issue that has a known self-fix (e.g., reset a router, clean a filter), the agent should offer that before scheduling a technician, saving both the customer and the company time.
 
 ### Slide 6: Use Case Anti-Patterns — What Not to Build
-**Visual:** A "caution" card layout showing four anti-patterns. Pattern 1: "The Oracle Agent" — one agent configured to handle all possible scenarios with 50+ Topics. Pattern 2: "The Data Entry Clerk" — agent used only for simple form filling with no intelligence. Pattern 3: "The Legal Advisor" — agent asked to make binding legal or financial decisions without human oversight. Pattern 4: "The All-Knowing FAQ" — ungrounded agent asked to answer any question using LLM knowledge rather than verified sources.
+**Visual:**
+```
+  Four Agentforce Anti-Patterns  ⚠
+
+  ┌──────────────────────┐  ┌──────────────────────┐
+  │  THE ORACLE  ✗       │  │  DATA ENTRY CLERK  ✗ │
+  │                      │  │                      │
+  │  One agent, 50+      │  │  Agent used for      │
+  │  Topics, handles     │  │  simple form filling │
+  │  everything          │  │  with no intelligence│
+  │                      │  │                      │
+  │  Result: unreliable  │  │  Result: unnecessary │
+  │  routing, maintenance│  │  AI complexity over  │
+  │  nightmare           │  │  a simple Flow       │
+  │                      │  │                      │
+  │  Fix: multiple       │  │  Fix: use Flow or    │
+  │  focused agents      │  │  Process Builder for │
+  │                      │  │  deterministic tasks │
+  └──────────────────────┘  └──────────────────────┘
+  ┌──────────────────────┐  ┌──────────────────────┐
+  │  LEGAL ADVISOR  ✗    │  │  ALL-KNOWING FAQ  ✗  │
+  │                      │  │                      │
+  │  Agent makes binding │  │  Ungrounded agent    │
+  │  legal or financial  │  │  answers any         │
+  │  decisions without   │  │  question using LLM  │
+  │  human oversight     │  │  training data       │
+  │                      │  │                      │
+  │  Result: legal       │  │  Result: hallucinated│
+  │  liability, incorrect│  │  answers, brand risk │
+  │  commitments         │  │                      │
+  │                      │  │                      │
+  │  Fix: assisted mode  │  │  Fix: ground all     │
+  │  with human confirm  │  │  factual topics with │
+  │  for high-stakes     │  │  Knowledge articles  │
+  │  decisions           │  │                      │
+  └──────────────────────┘  └──────────────────────┘
+```
 **Content:**
 - **Anti-pattern 1 — The Oracle:** Trying to put all use cases into one agent with 50+ Topics causes Atlas routing to become unreliable; creates a maintenance nightmare; violates the principle of focused, well-scoped agents
   - Fix: Build multiple focused agents for distinct use cases; separate customer service from internal HR
@@ -99,7 +275,52 @@
 **Speaker Notes:** Anti-pattern awareness is exam-relevant because exam questions sometimes describe a problematic agent design and ask you to identify the issue or the fix. Know these four anti-patterns: too many Topics (scope too broad), unnecessary AI complexity (simple automation would do), autonomous high-stakes decisions (should be assisted), and ungrounded factual answers (hallucination risk). The fix for each is clear and maps to content we have covered in the course.
 
 ### Slide 7: Matching Business Problems to Agent Design
-**Visual:** A matching exercise format showing five business problems on the left and five design choices on the right, with arrows connecting them. Problem 1: "1,000 daily order status calls" → Service Agent + Flow Action + Knowledge. Problem 2: "Sales reps need coaching after calls" → Sales Coach Agent. Problem 3: "200 daily inbound demo requests" → SDR Agent + email channel. Problem 4: "Employees asking benefits questions via Slack" → Custom Agent + Knowledge + Slack deployment. Problem 5: "Technician dispatch for appliance repairs" → Custom Agent + FSM Flow Actions + Embedded Chat.
+**Visual:**
+```
+  Business Problem → Agent Design Matching
+
+  Problem                                    Design
+  ──────────────────────────────────         ─────────────────────────────────
+  1,000 daily order status calls  ─────────▶ Service Agent
+                                             + Flow Action (order lookup)
+                                             + Knowledge (policy FAQ)
+                                             + Omni-Channel escalation
+
+  Sales reps need coaching        ─────────▶ Sales Coach Agent
+  after calls
+
+  200 daily inbound demo requests ─────────▶ SDR Agent
+                                             + email channel
+                                             + BANT qualification flow
+                                             + calendar booking
+
+  Employees asking benefits       ─────────▶ Custom Agent
+  questions via Slack                        + Knowledge (policies)
+                                             + Flow/Apex (personalized data)
+                                             + Slack deployment
+
+  Technician dispatch for repairs ─────────▶ Custom Agent
+                                             + FSM Flow Actions
+                                             + Embedded Chat / API
+
+  Three questions to apply to every scenario:
+  ┌────────────────────────────────────────────────────────────────┐
+  │  1. WHO IS THE USER?                                           │
+  │     External customer → Service Agent or Custom               │
+  │     Internal employee → Custom + Slack/Mobile                 │
+  │     Prospect          → SDR Agent                             │
+  ├────────────────────────────────────────────────────────────────┤
+  │  2. WHAT KIND OF INTERACTION?                                  │
+  │     FAQ/policy → Knowledge  |  Data lookup → Flow             │
+  │     Content generation → Prompt Template  |  Record ops → Flow│
+  ├────────────────────────────────────────────────────────────────┤
+  │  3. IS THERE A PRE-BUILT TEMPLATE?                             │
+  │     Customer service → Service Agent                          │
+  │     Lead qualification → SDR Agent                            │
+  │     Sales coaching → Sales Coach                              │
+  │     Everything else → Custom Agent                            │
+  └────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - The matching framework — ask three questions for every business problem:
   1. **Who is the user?** — Customer (external) → Service Agent or Custom. Employee (internal) → Custom + Slack/Mobile. Prospect → SDR Agent.
@@ -110,7 +331,37 @@
 **Speaker Notes:** This matching framework is the exam synthesis tool for the entire course. Every use case question ultimately asks you to apply some combination of: right template type, right Topics, right Action types, right grounding sources, right deployment channel. Practice working through 5-10 scenarios and applying the framework until it is automatic. The three questions (who is the user? what kind of interaction? is there a pre-built template?) generate the right answers for the vast majority of use case questions.
 
 ### Slide 8: Business Value — Making the ROI Case
-**Visual:** An ROI dashboard showing four value levers. Lever 1: Cost per contact reduction (Human handle time $4-8 → Agentforce $0.10-0.50 per conversation). Lever 2: Scale without headcount (1 agent handles 1,000 simultaneous conversations vs. human ratio). Lever 3: 24/7 availability (no shifts, no overtime, always on). Lever 4: Consistency (same answer every time, no agent variability). Below: a simple ROI formula: [(Cost per human contact - Cost per agent contact) × Volume of deflected contacts] - Implementation cost = Net value.
+**Visual:**
+```
+  Agentforce ROI Dashboard — Four Value Levers
+
+  ┌──────────────────────┐  ┌──────────────────────┐
+  │  LEVER 1             │  │  LEVER 2             │
+  │  Cost per contact    │  │  Scale without       │
+  │  reduction           │  │  headcount           │
+  │                      │  │                      │
+  │  Human: $4-15/contact│  │  Human: 1 convo at   │
+  │  Agent: $0.10-0.50   │  │  a time              │
+  │                      │  │  Agent: 1,000+       │
+  │  80-95% reduction    │  │  simultaneous        │
+  │  for routine tasks   │  │  conversations       │
+  └──────────────────────┘  └──────────────────────┘
+  ┌──────────────────────┐  ┌──────────────────────┐
+  │  LEVER 3             │  │  LEVER 4             │
+  │  24/7 availability   │  │  Consistency         │
+  │                      │  │                      │
+  │  No shifts, no       │  │  Same accurate answer│
+  │  overtime, no sick   │  │  every time          │
+  │  days, always on     │  │  No agent variability│
+  │                      │  │  No "bad day" answers│
+  └──────────────────────┘  └──────────────────────┘
+
+  ROI Formula:
+  [(Cost per human contact - Cost per agent contact)
+   × Volume of deflected contacts]
+  - Implementation cost
+  = NET VALUE
+```
 **Content:**
 - **Cost per contact comparison:** Human service agents typically cost $4-15 per interaction (fully loaded); Agentforce per-conversation pricing is significantly lower for routine interactions
 - **Scale:** An Agentforce agent can handle hundreds or thousands of simultaneous conversations; a human can handle one

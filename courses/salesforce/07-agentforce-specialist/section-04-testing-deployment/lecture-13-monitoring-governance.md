@@ -10,7 +10,34 @@
 ## Slides
 
 ### Slide 1: Why Monitoring Matters Post-Deployment
-**Visual:** A graph showing three metrics over time after deployment: Resolution Rate (starts at 70%, improves to 88% after optimization), Escalation Rate (starts at 35%, drops to 18%), and Average Session Duration (stabilizes). Below the graph: a note "Without monitoring, you cannot know what to optimize." Three annotations: Week 1 (baseline established), Week 3 (first optimization cycle — improved Action descriptions based on routing data), Week 6 (second cycle — added missing Knowledge articles based on "I don't know" patterns).
+**Visual:**
+```
+  Agent Performance Over Time — Example Improvement Trajectory
+
+  100% │
+       │                                           ┌─── Resolution
+   90% │                              ·············│····· Rate
+       │               ┌─────────────┘
+   80% │  ┌────────────┘
+       │  │ 70% at launch
+   70% │──┘
+       │
+   40% │──┐
+       │  │ 35% at launch
+   30% │  └──────────────────┐
+       │                     │               ·······│····· Escalation
+   20% │                     └──────────────────────│─── Rate
+       │                                            │
+   10% │                                            │
+       │                                            │
+    0% └──────────────────────────────────────────────────────────
+            Week 1        Week 3               Week 6
+                           ▲                    ▲
+                    1st optimization     2nd optimization
+                    cycle — improved     cycle — added
+                    Action descriptions  missing Knowledge
+                    from routing data    articles
+```
 **Content:**
 - Monitoring is not optional — it is the continuous improvement mechanism that takes an agent from "deployed" to "performing well"
 - **Key metrics to track:**
@@ -23,7 +50,33 @@
 **Speaker Notes:** The resolution rate improvement story on this slide is the narrative that business stakeholders care about. The first few weeks after deployment are the period of highest improvement opportunity — you are seeing real customer interactions for the first time and can identify patterns in failures. A 70% resolution rate in week 1 improving to 88% by week 6 represents real cost savings: fewer human agent escalations, faster customer issue resolution, and improved CSAT. This optimization loop — monitor, identify patterns, improve configurations — is the ongoing work of Agentforce operations.
 
 ### Slide 2: Conversation History and Audit Trail
-**Visual:** A Salesforce record page showing an "Agent Conversation" record. Fields shown: Session ID, Start Time, End Time, Channel (Embedded Chat), Agent Name, Conversation Transcript (expandable panel showing the full conversation), Outcome (Resolved / Escalated / Abandoned), Actions Invoked (list of actions taken in the conversation). Annotations: "Full transcript stored for compliance review," "Actions invoked logged for audit."
+**Visual:**
+```
+  Salesforce Record — Agent Conversation
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  Agent Conversation                                              │
+  │  ──────────────────────────────────────────────────────────────  │
+  │  Session ID:    ABC-12345-XYZ                                    │
+  │  Start Time:    2025-03-15  10:32:07 AM                          │
+  │  End Time:      2025-03-15  10:38:44 AM                          │
+  │  Duration:      6 min 37 sec                                     │
+  │  Channel:       Embedded Chat                                    │
+  │  Agent:         Acme Service Agent                               │
+  │  Outcome:       Resolved  ✓                                      │
+  │                                                                  │
+  │  CONVERSATION TRANSCRIPT              ◀── Full transcript stored │
+  │  ─────────────────────────                 for compliance review │
+  │  Customer: "What is my order status?"                            │
+  │  Agent:    "I can help with that. What is your order number?"    │
+  │  Customer: "Order 55443"                                         │
+  │  Agent:    "Order 55443 shipped on March 14 and is scheduled..." │
+  │                                                                  │
+  │  ACTIONS INVOKED                      ◀── Actions logged for     │
+  │  ─────────────────────────                 audit                 │
+  │  1. GetOrderStatus — orderId: 55443 → status: Shipped            │
+  └──────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Agentforce stores **conversation records** in Salesforce for each agent session
 - Conversation records include:
@@ -37,7 +90,24 @@
 **Speaker Notes:** Conversation transcript storage is one of the most important governance features for enterprise deployments. Legal, compliance, and quality assurance teams need access to what the agent said to customers. The ability to query conversation records via SOQL means you can build Salesforce reports to identify patterns: which Topics have the highest escalation rates? Which Topics have the highest average session duration? What percentage of conversations end in abandonment? These reports drive the optimization work.
 
 ### Slide 3: Einstein Trust Layer — The Five Controls
-**Visual:** A five-column pillar diagram, each pillar representing one Trust Layer control. Pillar 1: Data Masking (mask icon, description: "Sensitive data masked before leaving Salesforce"). Pillar 2: Zero Data Retention (shield with X, description: "LLM provider does not retain prompts/completions"). Pillar 3: Toxicity Detection (filter icon, description: "Harmful inputs/outputs blocked"). Pillar 4: Audit Log (clipboard icon, description: "All LLM interactions logged"). Pillar 5: Grounding (compass icon, description: "Responses anchored to verified sources"). Einstein Trust Layer banner spans all five.
+**Visual:**
+```
+  Einstein Trust Layer — Five Pillars
+
+  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐
+  │    DATA    │ │   ZERO     │ │ TOXICITY   │ │   AUDIT    │ │ GROUNDING  │
+  │  MASKING   │ │   DATA     │ │ DETECTION  │ │    LOG     │ │            │
+  │            │ │ RETENTION  │ │            │ │            │ │            │
+  │ PII masked │ │ LLM provider│ │ Harmful   │ │ Every LLM  │ │ Responses  │
+  │ before     │ │ does not   │ │ input/     │ │ interaction│ │ anchored   │
+  │ leaving    │ │ retain     │ │ output     │ │ logged for │ │ to verified│
+  │ Salesforce │ │ data after │ │ blocked    │ │ compliance │ │ sources    │
+  │            │ │ processing │ │            │ │ review     │ │ (RAG)      │
+  └────────────┘ └────────────┘ └────────────┘ └────────────┘ └────────────┘
+  ═══════════════════════════════════════════════════════════════════════════
+                         EINSTEIN TRUST LAYER
+  ═══════════════════════════════════════════════════════════════════════════
+```
 **Content:**
 - The **Einstein Trust Layer** is Salesforce's AI governance framework — it applies to ALL Salesforce AI features including Agentforce, Prompt Builder, and Einstein features
 - The five controls:
@@ -49,7 +119,37 @@
 **Speaker Notes:** These five controls are the most exam-critical content in the entire governance section — they appear in multiple sections of the exam, not just testing/deployment. Memorize the five controls and what each one does. The most commonly tested are data masking, zero data retention, and audit logging. For a scenario question about "ensuring that customer SSNs are not sent to an external AI provider," the answer is Data Masking. For "ensuring that conversation data is not used to train the AI model," the answer is Zero Data Retention. For "providing a compliance audit trail of all AI interactions," the answer is Audit Log.
 
 ### Slide 4: Data Masking in Detail
-**Visual:** A prompt flow diagram showing data masking in action. Original prompt (before masking): "The customer's SSN is 123-45-6789 and their credit card is 4111-1111-1111-1111. What options do they have?" After Trust Layer masking: "The customer's SSN is [MASKED] and their credit card is [MASKED]. What options do they have?" The masked version is what gets sent to the LLM. Response comes back, Trust Layer un-masks if needed, final response goes to agent. Annotation: "Masking happens before prompt leaves Salesforce infrastructure."
+**Visual:**
+```
+  Data Masking — Prompt Flow
+
+  ORIGINAL PROMPT (inside Salesforce, before masking):
+  ┌──────────────────────────────────────────────────────────────┐
+  │ "The customer's SSN is 123-45-6789 and their credit card is  │
+  │  4111-1111-1111-1111. What options do they have?"            │
+  └────────────────────────────┬─────────────────────────────────┘
+                               │
+                               ▼  EINSTEIN TRUST LAYER — Data Masking
+                               │  (detects PII patterns, replaces values)
+                               │
+  MASKED PROMPT (sent to external LLM):
+  ┌──────────────────────────────────────────────────────────────┐
+  │ "The customer's SSN is [MASKED] and their credit card is     │
+  │  [MASKED]. What options do they have?"                       │
+  └────────────────────────────┬─────────────────────────────────┘
+                               │
+                               ▼  LLM processes masked prompt
+                               │
+  LLM RESPONSE (returned to Salesforce):
+  ┌──────────────────────────────────────────────────────────────┐
+  │ "The customer can set up a payment plan, request a           │
+  │  hardship waiver, or speak with a specialist..."             │
+  └──────────────────────────────────────────────────────────────┘
+                               │
+                               ▼  (Trust Layer checks response for leakage)
+                               │
+  Final response delivered to agent — sensitive values never left Salesforce
+```
 **Content:**
 - **Data Masking** automatically detects and replaces sensitive data in prompts before they are sent to external LLM providers
 - Data masked by default:
@@ -64,7 +164,29 @@
 **Speaker Notes:** Data masking is the answer to the most common enterprise security concern about LLM-based AI: "Will our customer's sensitive data be sent to OpenAI?" The answer is: no, because data masking intercepts it before it leaves Salesforce infrastructure. For the exam, know what types of data are masked by default (SSN, credit card) and that masking is configurable for additional patterns. Also know the limitation: masking is pattern-based — if a customer types "my social is five five five four four..." spelled out as words rather than digits, the pattern matcher may miss it. This is why Instructions should also include guidance about not repeating sensitive data verbatim in responses.
 
 ### Slide 5: Zero Data Retention
-**Visual:** A before/after comparison diagram. Without Zero Data Retention: prompts sent to LLM provider → stored in LLM provider's systems for model training → potential data leakage risk. With Zero Data Retention: prompts sent to LLM provider with ZDR flag → LLM processes and responds → data discarded immediately → no retention in LLM provider's systems. Below: a note "Zero Data Retention is the default configuration for Salesforce-connected LLM providers. Verify configuration for any custom LLM provider connections."
+**Visual:**
+```
+  ┌────────────────────────────────┐  ┌────────────────────────────────┐
+  │  WITHOUT Zero Data Retention ✗ │  │  WITH Zero Data Retention  ✓   │
+  │                                │  │                                │
+  │  Prompt sent to LLM provider   │  │  Prompt sent to LLM provider   │
+  │         │                      │  │         │                      │
+  │         ▼                      │  │         ▼                      │
+  │  LLM processes prompt          │  │  LLM processes prompt          │
+  │         │                      │  │         │                      │
+  │         ▼                      │  │         │ ZDR flag: discard    │
+  │  Data stored in LLM provider   │  │         ▼ after response       │
+  │  systems for model training    │  │  LLM responds                  │
+  │         │                      │  │         │                      │
+  │         ▼                      │  │         ▼                      │
+  │  RISK: data leakage, training  │  │  Data DISCARDED immediately    │
+  │  on customer data, foreign     │  │  No retention, no training,    │
+  │  jurisdiction exposure         │  │  no leakage risk               │
+  └────────────────────────────────┘  └────────────────────────────────┘
+
+  ZDR is enforced via contractual agreement between Salesforce
+  and its LLM provider partners — not a toggle in Setup
+```
 **Content:**
 - **Zero Data Retention (ZDR)** ensures that the LLM provider (e.g., OpenAI, Anthropic models, Salesforce AI) does not store prompt or completion data after processing
 - With ZDR: Salesforce sends the prompt, the LLM processes and responds, no data is retained by the provider
@@ -75,7 +197,34 @@
 **Speaker Notes:** Zero Data Retention is often misunderstood by non-technical stakeholders who think it means "AI does not use any of our data." What it specifically means is that the LLM provider (the model hosting company) does not retain the prompt and completion data after responding. Salesforce's own platform does store conversation history — that is in your org and subject to your org's data governance policies. For the exam, distinguish between what ZDR covers (LLM provider retention) and what it does not cover (Salesforce org storage).
 
 ### Slide 6: Toxicity Detection and Content Filtering
-**Visual:** A content filtering flow diagram. Input path: Customer message → Toxicity scanner → harmful content detected → message blocked or flagged (not passed to Atlas). Non-harmful content → passes through to Atlas → processing. Output path: Agent response generated → Toxicity scanner → harmful content in response → response blocked, fallback response generated. Non-harmful response → delivered to customer. Severity levels shown: Informational (logged only), Warning (logged + flagged for review), Critical (blocked immediately).
+**Visual:**
+```
+  Toxicity Detection — Bidirectional Filter
+
+  INPUT PATH:
+  Customer message → ┌────────────────────────┐ → blocked/flagged
+                     │  TOXICITY SCANNER      │
+                     │  · Hate speech         │
+                     │  · Violence/threats    │
+                     │  · Sexual content      │ → passes through → Atlas
+                     │  · Self-harm refs      │
+                     │  · Prompt injection    │
+                     └────────────────────────┘
+
+  OUTPUT PATH:
+  Agent response ←── ┌────────────────────────┐ ←── LLM output
+  (safe)             │  TOXICITY SCANNER      │
+                     │                        │
+  fallback response ←│  If harmful content    │
+  generated          │  detected in response: │
+                     │  BLOCK, use fallback   │
+                     └────────────────────────┘
+
+  Severity levels:
+  Informational → logged only
+  Warning       → logged + flagged for human review
+  Critical      → blocked immediately, fallback response sent
+```
 **Content:**
 - **Toxicity Detection** scans both inbound (customer messages) and outbound (agent responses) for harmful content
 - Types of detected content:
@@ -92,7 +241,35 @@
 **Speaker Notes:** Toxicity detection is particularly important for customer-facing agents because you cannot control what customers say. A service agent deployed on a public website will inevitably encounter customers who use offensive language, attempt to manipulate the agent with unusual inputs, or (in worst cases) attempt prompt injection attacks. The toxicity filter is the first line of defense. For the exam, know that toxicity detection applies to both input and output — the filter protects against both harmful customer messages reaching the agent and harmful agent responses reaching customers.
 
 ### Slide 7: Audit Log and Compliance
-**Visual:** An audit log record in Salesforce showing fields: Timestamp, LLM Provider, Model Name, Prompt (truncated with "view full" link), Completion (truncated), Masking Applied (Boolean), Toxicity Score, User/Session Context, Feature (Agentforce Agent Name). Below: a SOQL query example showing how to query audit records. Notes: "Audit records available for security review, eDiscovery, and compliance attestation."
+**Visual:**
+```
+  Einstein Trust Layer — Audit Log Record
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  LLM Interaction Audit Record                                    │
+  │  ──────────────────────────────────────────────────────────────  │
+  │  Timestamp:      2025-03-15 10:33:42 UTC                         │
+  │  Duration:       1,240ms                                         │
+  │  LLM Provider:   Salesforce AI                                   │
+  │  Model:          sfdc-llm-v2                                     │
+  │  Feature:        Agentforce — Acme Service Agent                 │
+  │  Session ID:     ABC-12345-XYZ                                   │
+  │                                                                  │
+  │  Prompt:         [view full] "Customer: What is my order..."     │
+  │  Completion:     [view full] "I can help with that. What is..."  │
+  │                                                                  │
+  │  Masking Applied:  YES (1 value masked)                          │
+  │  Toxicity Score:   0.02 (below threshold — passed)              │
+  │                                                                  │
+  │  Access: restricted to Compliance team via Permission Set        │
+  └──────────────────────────────────────────────────────────────────┘
+
+  Use cases:
+  · AI audit for regulatory compliance
+  · Security forensics
+  · eDiscovery / legal requests
+  · Quality assurance review
+```
 **Content:**
 - The **Einstein Trust Layer Audit Log** records every LLM interaction made from the Salesforce org
 - Each audit record captures:
@@ -110,7 +287,34 @@
 **Speaker Notes:** The audit log is the compliance team's best friend for Agentforce deployments. Regulated industries (financial services, healthcare, insurance) often require the ability to prove what the AI said to a customer on a specific date and time. The audit log provides exactly that. For the exam, know that the audit log captures prompts and completions (with masking applied), is stored in Salesforce (not only in the LLM provider's systems), and is queryable via SOQL for reporting purposes. Also know that access should be restricted — not every user should be able to read full conversation transcripts and raw prompts.
 
 ### Slide 8: Governance Best Practices Summary
-**Visual:** A governance framework diagram with four layers. Layer 1 — Platform (Einstein Trust Layer): data masking, ZDR, toxicity, audit. Layer 2 — Agent Configuration (behavioral governance): Instructions exclusions, Topic scope, Action confirmation requirements. Layer 3 — Operational (monitoring & response): conversation analytics, escalation review, anomaly detection, optimization cycles. Layer 4 — Organizational (people & process): AI usage policy, human review process, regular compliance attestation, stakeholder reporting.
+**Visual:**
+```
+  Four-Layer Governance Framework
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  LAYER 4 — ORGANIZATIONAL (People & Process)                     │
+  │  · AI Acceptable Use Policy                                      │
+  │  · Human review process for flagged conversations                │
+  │  · Quarterly compliance attestation                              │
+  │  · Stakeholder reporting                                         │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  LAYER 3 — OPERATIONAL (Monitoring & Response)                   │
+  │  · Conversation analytics monitoring                             │
+  │  · Escalation pattern review                                     │
+  │  · Anomaly detection                                             │
+  │  · Optimization cycles                                           │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  LAYER 2 — AGENT CONFIGURATION (Behavioral Governance)           │
+  │  · Instructions exclusions (what agent will not do)              │
+  │  · Topic scope definitions                                       │
+  │  · Confirmation requirements for high-risk actions               │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  LAYER 1 — PLATFORM (Einstein Trust Layer — Automated)           │
+  │  · Data masking   · Zero data retention                          │
+  │  · Toxicity detection   · Audit log   · Grounding               │
+  └──────────────────────────────────────────────────────────────────┘
+  Platform controls are necessary but NOT sufficient for enterprise governance
+```
 **Content:**
 - **Governance is four-layer, not just technical**
 - Platform layer (automated, Salesforce-managed): data masking, ZDR, toxicity, audit logging

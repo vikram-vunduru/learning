@@ -358,6 +358,37 @@ export const TRACKS: Track[] = [
       // Exam Prep
       { id: "af-exam", title: "60-Question Practice Exam", file: "courses/salesforce/07-agentforce-specialist/exam-prep/practice-exam-60-questions.md", month: 7, course: "Agentforce Specialist", section: "Exam Preparation", type: "exam" },
       { id: "af-cheatsheet", title: "Agentforce Cheat Sheet", file: "courses/salesforce/07-agentforce-specialist/exam-prep/agentforce-cheat-sheet.md", month: 7, course: "Agentforce Specialist", section: "Exam Preparation", type: "exam" },
+
+      // ── Course 8: Agentforce Voice ───────────────────────────────────
+      { id: "av-overview", title: "Course Overview", file: "courses/salesforce/08-agentforce-voice/00-course-overview.md", month: 8, course: "Agentforce Voice", section: "Introduction", type: "study" },
+
+      // Section 1: Voice Fundamentals
+      { id: "av-l01", title: "Lecture 1: Agentforce Voice Overview", file: "courses/salesforce/08-agentforce-voice/section-01-fundamentals/lecture-01-agentforce-voice-overview.md", month: 8, course: "Agentforce Voice", section: "Voice Fundamentals", type: "lecture" },
+      { id: "av-l02", title: "Lecture 2: Telephony Integration", file: "courses/salesforce/08-agentforce-voice/section-01-fundamentals/lecture-02-telephony-integration.md", month: 8, course: "Agentforce Voice", section: "Voice Fundamentals", type: "lecture" },
+      { id: "av-l03", title: "Lecture 3: Voice Channel Setup", file: "courses/salesforce/08-agentforce-voice/section-01-fundamentals/lecture-03-voice-channel-setup.md", month: 8, course: "Agentforce Voice", section: "Voice Fundamentals", type: "lecture" },
+
+      // Section 2: Building Voice Agents
+      { id: "av-l04", title: "Lecture 4: Voice Agent Configuration", file: "courses/salesforce/08-agentforce-voice/section-02-building-voice-agents/lecture-04-agentforce-voice-agent-config.md", month: 8, course: "Agentforce Voice", section: "Building Voice Agents", type: "lecture" },
+      { id: "av-l05", title: "Lecture 5: Voice Topics & Actions", file: "courses/salesforce/08-agentforce-voice/section-02-building-voice-agents/lecture-05-voice-topics-actions.md", month: 8, course: "Agentforce Voice", section: "Building Voice Agents", type: "lecture" },
+      { id: "av-l06", title: "Lecture 6: Transcription & NLP", file: "courses/salesforce/08-agentforce-voice/section-02-building-voice-agents/lecture-06-transcription-nlp.md", month: 8, course: "Agentforce Voice", section: "Building Voice Agents", type: "lecture" },
+
+      // Section 3: Advanced Capabilities
+      { id: "av-l07", title: "Lecture 7: Voice Flows & IVR Modernization", file: "courses/salesforce/08-agentforce-voice/section-03-advanced-capabilities/lecture-07-voice-flows-ivr.md", month: 8, course: "Agentforce Voice", section: "Advanced Capabilities", type: "lecture" },
+      { id: "av-l08", title: "Lecture 8: Agent Assist & Screen Pop", file: "courses/salesforce/08-agentforce-voice/section-03-advanced-capabilities/lecture-08-agent-assist-screen-pop.md", month: 8, course: "Agentforce Voice", section: "Advanced Capabilities", type: "lecture" },
+      { id: "av-l09", title: "Lecture 9: Omni-Channel Routing for Voice", file: "courses/salesforce/08-agentforce-voice/section-03-advanced-capabilities/lecture-09-omnichannel-routing.md", month: 8, course: "Agentforce Voice", section: "Advanced Capabilities", type: "lecture" },
+
+      // Section 4: Operations
+      { id: "av-l10", title: "Lecture 10: Testing Voice Agents", file: "courses/salesforce/08-agentforce-voice/section-04-operations/lecture-10-testing-voice-agents.md", month: 8, course: "Agentforce Voice", section: "Operations", type: "lecture" },
+      { id: "av-l11", title: "Lecture 11: Monitoring & Analytics", file: "courses/salesforce/08-agentforce-voice/section-04-operations/lecture-11-monitoring-analytics.md", month: 8, course: "Agentforce Voice", section: "Operations", type: "lecture" },
+      { id: "av-l12", title: "Lecture 12: Advanced Use Cases", file: "courses/salesforce/08-agentforce-voice/section-04-operations/lecture-12-advanced-use-cases.md", month: 8, course: "Agentforce Voice", section: "Operations", type: "lecture" },
+
+      // Labs
+      { id: "av-lab01", title: "Lab 1: Amazon Connect Setup", file: "courses/salesforce/08-agentforce-voice/labs/lab-01-amazon-connect-setup.md", month: 8, course: "Agentforce Voice", section: "Labs", type: "lab" },
+      { id: "av-lab02", title: "Lab 2: Build a Voice Agent", file: "courses/salesforce/08-agentforce-voice/labs/lab-02-voice-agent-build.md", month: 8, course: "Agentforce Voice", section: "Labs", type: "lab" },
+
+      // Exam Prep
+      { id: "av-exam", title: "60-Question Practice Exam", file: "courses/salesforce/08-agentforce-voice/exam-prep/practice-exam-60-questions.md", month: 8, course: "Agentforce Voice", section: "Exam Preparation", type: "exam" },
+      { id: "av-cheatsheet", title: "Agentforce Voice Cheat Sheet", file: "courses/salesforce/08-agentforce-voice/exam-prep/agentforce-voice-cheat-sheet.md", month: 8, course: "Agentforce Voice", section: "Exam Preparation", type: "exam" },
     ],
     certs: [
       { id: "ai-associate", name: "AI Associate", month: 1, cost: "$75", passScore: "65%", questions: 40 },

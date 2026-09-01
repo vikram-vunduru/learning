@@ -53,7 +53,25 @@ switch (status) {
 **Speaker Notes:** Fall-through is JavaScript's switch behaving like C's switch — it is the historical behavior. In practice, intentional fall-through (multiple cases sharing one handler) is legitimate and common. Unintentional fall-through is a bug. The exam will show you a switch block without break statements and ask for the output — trace carefully. The key difference from Apex: Apex switch never falls through; JavaScript switch always does unless you break. This trips up developers who move between the two languages.
 
 ### Slide 3: for, for...of, and for...in Loops
-**Visual:** Three panels stacked vertically, one per loop type. Each shows the syntax, what it iterates over, and a concrete example. Color-coded annotations: `for...of` labeled "values," `for...in` labeled "keys/indices" with a warning icon "avoid on arrays."
+**Visual:**
+```
+  ┌─────────────────────────────────────────────────────────────┐
+  │ Loop Type    │ Iterates Over      │ Best For                │
+  ├─────────────────────────────────────────────────────────────┤
+  │ for(;;)      │ counter / index    │ need index; fine control│
+  │ for...of     │ VALUES of iterable │ arrays, strings, Map,   │
+  │              │                    │ Set, NodeList           │
+  │ for...in     │ KEYS of object     │ plain object keys only  │
+  │              │                    │ ⚠ AVOID on arrays       │
+  │ while        │ condition-based    │ unknown iteration count │
+  │ do...while   │ condition-based    │ body runs at least once │
+  └─────────────────────────────────────────────────────────────┘
+
+  for...of vs for...in key distinction:
+  const arr = ['a','b','c'];
+  for (const v of arr)  → 'a', 'b', 'c'   (values)
+  for (const k in arr)  → '0', '1', '2'   (string keys!)
+```
 **Content:**
 - **Traditional `for`:** Best when you need the index; most control
 ```javascript

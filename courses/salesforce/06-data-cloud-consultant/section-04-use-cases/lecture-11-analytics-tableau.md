@@ -11,7 +11,30 @@
 ## Slides
 
 ### Slide 1: Analytics Integration Overview
-**Visual:** A hub-and-spoke diagram with Data Cloud at center, and spokes pointing to: Tableau (desktop/server), CRM Analytics (Einstein Analytics), Salesforce Reports & Dashboards, and external BI tools (via Snowflake connector or direct query).
+**Visual:**
+```
+                         DATA CLOUD
+                     ┌──────────────────┐
+                     │  DMOs + CIs      │
+                     │  Unified         │
+                     │  Individual      │
+                     └────────┬─────────┘
+                              │  (modeled layer only — not DLOs)
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+  ┌───────────────┐  ┌────────────────┐  ┌────────────────┐
+  │    TABLEAU    │  │  CRM ANALYTICS │  │  SALESFORCE    │
+  │  (Desktop /   │  │  (Einstein     │  │  REPORTS &     │
+  │   Server)     │  │   Analytics)   │  │  DASHBOARDS    │
+  └───────────────┘  └────────────────┘  └────────────────┘
+              │               │
+              ▼               ▼
+  ┌───────────────┐  ┌────────────────┐
+  │  External BI  │  │  Embedded in   │
+  │  (via direct  │  │  CRM record    │
+  │   connector)  │  │  pages         │
+  └───────────────┘  └────────────────┘
+```
 
 **Content:**
 - Data Cloud's unified customer data is valuable beyond marketing — analytics is a primary use case
@@ -26,7 +49,36 @@
 ---
 
 ### Slide 2: Tableau + Data Cloud
-**Visual:** Tableau Desktop application mockup showing a "Connect to Data" panel with "Salesforce Data Cloud" listed as a connector option. An arrow shows the flow from Data Cloud DMOs/CIs to Tableau worksheets.
+**Visual:**
+```
+  TABLEAU CONNECTION TO DATA CLOUD
+  ──────────────────────────────────────────────────────────
+  Tableau Desktop / Server
+  ┌──────────────────────────────────────────────────────┐
+  │  Connect to Data  →  Salesforce Data Cloud           │
+  │  ─────────────────────────────────────────────────   │
+  │  Server URL:  [your-org.my.salesforce.com      ]     │
+  │  Auth:        [OAuth 2.0 ▼]  [Sign In with SF  ]     │
+  └──────────────────────────────────────────────────────┘
+              │
+              ▼
+  QUERYABLE IN TABLEAU:
+  ✓  Data Model Objects (DMOs)
+  ✓  Calculated Insights (CIs)
+  ✓  Unified Individual
+
+  NOT QUERYABLE IN TABLEAU:
+  ✗  Data Lake Objects (DLOs) — raw staging layer not exposed
+
+  QUERY MODES:
+  ┌────────────────┬─────────────────────────────────────┐
+  │ Live Connection│ Queries run against Data Cloud now  │
+  │                │ Freshest data; potentially slower   │
+  ├────────────────┼─────────────────────────────────────┤
+  │ Extract        │ Data pulled to Tableau in-memory    │
+  │                │ Faster queries; as fresh as extract │
+  └────────────────┴─────────────────────────────────────┘
+```
 
 **Content:**
 - Tableau connects to Data Cloud via the **Tableau Data Cloud connector** (built-in, no additional install)
@@ -41,7 +93,28 @@
 ---
 
 ### Slide 3: CRM Analytics Integration
-**Visual:** A CRM Analytics dashboard mockup showing Data Cloud-sourced charts: customer segment size over time, top product categories by unified customer count, and average lifetime value by loyalty tier.
+**Visual:**
+```
+  CRM ANALYTICS DASHBOARD — Data Cloud sourced
+  ──────────────────────────────────────────────────────────
+  ┌──────────────────────────────────────────────────────┐
+  │ Customer Segment Size Over Time                      │
+  │  ████████████████████████████████████               │
+  │  ██████████████████████████████████████████         │
+  │  Jan  Feb  Mar  Apr  May  Jun  Jul  Aug  Sep         │
+  ├──────────────────────────────────────────────────────┤
+  │ Top Product Categories by Customer Count             │
+  │  Electronics  ████████████████  42,800               │
+  │  Apparel      ████████████       31,200               │
+  │  Home & Garden████████           24,100               │
+  ├──────────────────────────────────────────────────────┤
+  │ Avg Lifetime Value by Loyalty Tier                   │
+  │  Platinum  $4,280  │  Gold  $2,150  │  Silver  $890  │
+  └──────────────────────────────────────────────────────┘
+  Data source: Data Cloud DMOs + CIs
+  Embedded in: CRM record pages (Account, Contact, etc.)
+  Access: Analytics Studio → Salesforce Data Cloud connector
+```
 
 **Content:**
 - **CRM Analytics** (formerly Einstein Analytics) is Salesforce's native BI platform embedded in the CRM
@@ -56,7 +129,30 @@
 ---
 
 ### Slide 4: Using Calculated Insights in Analytics
-**Visual:** A CI metric being used in two contexts: left side shows it in segment criteria (TotalSpend90d >= 1000); right side shows the same CI metric as a chart series in a Tableau bar chart (average TotalSpend90d by customer segment).
+**Visual:**
+```
+  CALCULATED INSIGHT: Customer_Purchase_Stats
+  ──────────────────────────────────────────────────────────
+  DUAL-PURPOSE — same CI serves both segmentation AND analytics
+
+  IN SEGMENT CRITERIA:              IN TABLEAU ANALYTICS:
+  ┌──────────────────────┐          ┌──────────────────────┐
+  │ Calculated Insight   │          │  Bar Chart:          │
+  │ TotalRevenue >= 1000 │          │  Avg TotalSpend90d   │
+  │  ↓                   │          │  by Customer Segment │
+  │ Filters who is in    │          │   Gold:  $2,400      │
+  │ the segment          │          │   Silver: $890       │
+  └──────────────────────┘          │   Bronze: $320       │
+                                    └──────────────────────┘
+
+  ONE DEFINITION — used consistently across all use cases
+  No divergence between marketing metrics and analytics metrics
+
+  Common analytics uses for CIs:
+  • Trend: avg order value change over time
+  • Distribution: TotalSpend90d across tiers
+  • Correlation: high CI score → higher retention?
+```
 
 **Content:**
 - **Calculated Insights are dual-purpose:** they power both segmentation AND analytics
@@ -73,7 +169,29 @@
 ---
 
 ### Slide 5: Unified Individual in Analytics
-**Visual:** A Tableau scatterplot using Unified Individual attributes on axes — X axis: TotalSpend90d (CI measure), Y axis: DaysSinceLastPurchase (CI measure), dots colored by LoyaltyTier.
+**Visual:**
+```
+  TABLEAU SCATTERPLOT — Customer Analytics
+  ──────────────────────────────────────────────────────────
+  Y-axis: DaysSinceLastPurchase (CI measure)
+  X-axis: TotalSpend90d (CI measure)
+  Color:  LoyaltyTier (attribute)
+  Grain:  One dot = One UNIFIED INDIVIDUAL (deduplicated)
+
+    High │   ●Bronze  ●Bronze
+    Days │  ●Silver
+  Since  │      ●Silver ●Gold●Gold
+  Last   │         ●Gold  ●Platinum
+  Purch  │              ●Platinum
+    Low  └──────────────────────────
+         Low      TotalSpend90d     High
+
+  KEY: Unified Individual as analytics grain eliminates
+       double-counting customers who appear in 3 source systems.
+       Without IR, the same customer = 3 dots, skewing analysis.
+
+  Enables: RFM analysis, cohort analysis, customer journey mapping
+```
 
 **Content:**
 - The **Unified Individual** is the analytics foundation — one row per customer
@@ -88,7 +206,31 @@
 ---
 
 ### Slide 6: Analytics Architecture Considerations
-**Visual:** A diagram showing two query paths: Path 1 "Live Query" (Tableau → Data Cloud → DMO query → result) with a latency indicator showing "seconds to minutes." Path 2 "Extract" (scheduled Data Cloud → Tableau extract → fast in-memory query) with a freshness indicator showing "as of last extract."
+**Visual:**
+```
+  TWO QUERY PATHS — Performance vs. Freshness
+
+  PATH 1: LIVE QUERY
+  ──────────────────────────────────────────────────────────
+  Tableau ──query──▶ Data Cloud ──scan DMO──▶ Results
+                                              Latency: seconds to minutes
+                                              Data: freshest available
+                                              Best for: small DMOs, ad-hoc
+
+  PATH 2: SCHEDULED EXTRACT (Recommended for large scale)
+  ──────────────────────────────────────────────────────────
+  Data Cloud ──scheduled pull──▶ Tableau in-memory store
+                                  Latency: <1 second (in-memory)
+                                  Freshness: as of last extract
+                                  Best for: large DMOs, dashboards
+
+  PERFORMANCE PRINCIPLE:
+  For aggregate metrics → use CIs (pre-computed = fast)
+  NOT live GROUP BY queries against millions of transactions
+
+  PUSHDOWN SQL: Tableau pushes filter logic to Data Cloud
+                for server-side execution (helps but has limits)
+```
 
 **Content:**
 - **Live queries** run against Data Cloud in real time — freshest data, potentially slower
@@ -103,7 +245,25 @@
 ---
 
 ### Slide 7: Data Cloud Analytics Use Cases
-**Visual:** Three industry use case cards: Retail (customer lifetime value dashboard), Financial Services (360-degree relationship profitability), Healthcare (care gap identification analytics).
+**Visual:**
+```
+  ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
+  │     RETAIL           │  │  FINANCIAL SERVICES  │  │     HEALTHCARE       │
+  │  ──────────────────  │  │  ──────────────────  │  │  ──────────────────  │
+  │  Customer LTV        │  │  Relationship        │  │  Care Gap            │
+  │  Dashboard           │  │  Profitability       │  │  Analytics           │
+  │                      │  │  Analysis            │  │                      │
+  │  Metrics:            │  │  Metrics:            │  │  Metrics:            │
+  │  • TotalSpend (CI)   │  │  • TotalAUM (CI)     │  │  • DaysSince         │
+  │  • PurchaseFreq (CI) │  │  • TotalLiabilities  │  │    Screening (CI)    │
+  │  • ProductAffinity   │  │  • RelationshipProfit│  │  • CaregapScore (CI) │
+  │    (CI)              │  │    (CI)              │  │                      │
+  │                      │  │  Data Spaces:        │  │  Requires:           │
+  │  By loyalty tier,    │  │  Strict isolation    │  │  BAA + consent       │
+  │  region, channel     │  │  per product team    │  │  validation          │
+  └──────────────────────┘  └──────────────────────┘  └──────────────────────┘
+  All follow: Ingest → Model into DMOs → Compute CIs → Visualize in Tableau/CRM Analytics
+```
 
 **Content:**
 - **Retail:** Unified Customer LTV dashboard — visualize TotalSpend, purchase frequency, and product affinity by customer segment
@@ -118,7 +278,30 @@
 ---
 
 ### Slide 8: Analytics Best Practices
-**Visual:** A "Design Principles" card with five principles for Data Cloud analytics integration.
+**Visual:**
+```
+  ANALYTICS DESIGN PRINCIPLES
+  ──────────────────────────────────────────────────────────
+  ┌─────────────────────────────────────────────────────────┐
+  │ 1. Use CIs as primary source for aggregate metrics      │
+  │    (not live queries against raw transaction DMOs)      │
+  ├─────────────────────────────────────────────────────────┤
+  │ 2. Align CI naming between analytics and segmentation   │
+  │    teams — one definition, used consistently            │
+  ├─────────────────────────────────────────────────────────┤
+  │ 3. Schedule analytics extracts AFTER CI refresh         │
+  │    completes (same dependency chain as segments)        │
+  ├─────────────────────────────────────────────────────────┤
+  │ 4. Use Unified Individual as analytics grain            │
+  │    (avoid double-counting from raw source records)      │
+  ├─────────────────────────────────────────────────────────┤
+  │ 5. Monitor analytics query performance                  │
+  │    (slow = missing CI, over-large live query)           │
+  ├─────────────────────────────────────────────────────────┤
+  │ 6. Analytics access follows Data Space model            │
+  │    (Finance data restricted = restricted in Tableau too)│
+  └─────────────────────────────────────────────────────────┘
+```
 
 **Content:**
 - Use **Calculated Insights** as the primary analytics source for aggregate metrics — not live DMO queries

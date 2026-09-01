@@ -8,7 +8,36 @@
 ## 📊 SLIDES
 
 ### Slide 1: The Activity Object
-**Visual:** Activity umbrella diagram showing Tasks and Events as the two types underneath
+**Visual:**
+```
+                    ┌─────────────────────┐
+                    │     ACTIVITIES      │
+                    │    (Umbrella Term)  │
+                    └──────────┬──────────┘
+                               │
+               ┌───────────────┴───────────────┐
+               ▼                               ▼
+   ┌───────────────────────┐     ┌─────────────────────────┐
+   │         TASK          │     │         EVENT           │
+   │  ─────────────────    │     │  ───────────────────    │
+   │  Action item /        │     │  Calendar entry /       │
+   │  to-do item           │     │  scheduled occurrence   │
+   │                       │     │                         │
+   │  Has: Due Date        │     │  Has: Start DateTime    │
+   │       Status          │     │       End DateTime      │
+   │       Priority        │     │       Location          │
+   │                       │     │                         │
+   │  Example: Follow up   │     │  Example: Demo at 2 PM  │
+   │  call, send proposal  │     │  Team meeting, webinar  │
+   └───────────────────────┘     └─────────────────────────┘
+          │                                   │
+          └──────────────┬────────────────────┘
+                         ▼
+   ┌──────────────────────────────────────────────────┐
+   │  Related To: Lead, Contact, Account,             │
+   │  Opportunity, Case, Custom Objects               │
+   └──────────────────────────────────────────────────┘
+```
 **Content:**
 - Activities is the umbrella term for both Tasks and Events in Salesforce
 - **Task:** Action item with a due date (call someone, send a proposal, follow up)
@@ -19,7 +48,29 @@
 **Speaker Notes:** Activities are the mechanism for tracking all interactions and to-do items in Salesforce. Every call logged, every meeting scheduled, every email sent can be tracked as an Activity. Understanding the difference between Tasks and Events — and where they show up on records — is essential for both the exam and daily Salesforce work.
 
 ### Slide 2: Task Fields
-**Visual:** Task record showing fields: Subject, Due Date, Status, Priority, Assigned To (Owner), Related To (WhatId), Name (WhoId), Comments
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────┐
+  │                    TASK RECORD                       │
+  ├──────────────────────┬───────────────────────────────┤
+  │  Subject             │  Follow up call               │
+  │  Due Date            │  11/20/2024                   │
+  │  Status              │  Open                         │
+  │  Priority            │  High                         │
+  │  Assigned To         │  John Smith (Owner)           │
+  ├──────────────────────┼───────────────────────────────┤
+  │  Related To (WhatId) │  Acme Q4 Deal (Opportunity)   │
+  │                      │  ← links to non-person object │
+  ├──────────────────────┼───────────────────────────────┤
+  │  Name (WhoId)        │  Jane Doe (Contact)           │
+  │                      │  ← links to Contact or Lead   │
+  ├──────────────────────┼───────────────────────────────┤
+  │  Comments            │  Discuss renewal options      │
+  └──────────────────────┴───────────────────────────────┘
+  
+  WhatId = Related To (the "what" — object record)
+  WhoId  = Name       (the "who"  — Contact or Lead)
+```
 **Content:**
 - **Subject:** Brief description of the task (e.g., "Follow up call," "Send contract")
 - **Due Date:** When the task should be completed
@@ -31,7 +82,31 @@
 **Speaker Notes:** The WhatId and WhoId fields are important technical details. WhatId relates the task to a record (the "what" — what are you doing this about?), and WhoId relates it to a person (the "who" — who are you doing this with?). Together, they create the full relational context for the activity.
 
 ### Slide 3: Event Fields
-**Visual:** Event record showing fields: Subject, Start DateTime, End DateTime, All-Day Event toggle, Location, Description, Assigned To, Related To, Name
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────┐
+  │                    EVENT RECORD                      │
+  ├──────────────────────┬───────────────────────────────┤
+  │  Subject             │  Product Demo                 │
+  │  Start Date/Time     │  11/18/2024  2:00 PM          │
+  │  End Date/Time       │  11/18/2024  3:00 PM          │
+  │  All-Day Event       │  [ ] toggle (off = timed)     │
+  │  Location            │  Zoom / Conference Room A     │
+  │  Description         │  Walk through Q4 feature set  │
+  │  Assigned To         │  John Smith                   │
+  ├──────────────────────┼───────────────────────────────┤
+  │  Related To (WhatId) │  Acme Q4 Deal (Opportunity)   │
+  │  Name (WhoId)        │  Jane Doe (Contact)           │
+  └──────────────────────┴───────────────────────────────┘
+  
+  KEY DIFFERENCE FROM TASK:
+  ┌────────────────────────┬──────────────────────────────┐
+  │  TASK                  │  EVENT                       │
+  │  Due Date only         │  Start + End DateTime        │
+  │  To-do list item       │  Calendar block entry        │
+  │  Open Activities list  │  Upcoming Events / Calendar  │
+  └────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 - **Subject:** Description of the meeting/event
 - **Start Date/Time and End Date/Time:** When the event occurs (precise time-based)
@@ -43,7 +118,29 @@
 **Speaker Notes:** The biggest difference from a Task is that Events have Start and End DateTimes, making them calendar items. The Salesforce calendar shows events as blocks. When you log a call that already happened, you typically use a Task (log a call action) since the call is a past to-do item, while a future meeting is an Event.
 
 ### Slide 4: Open Activities vs Activity History
-**Visual:** Two related lists side by side: Open Activities (Status ≠ Completed) and Activity History (Status = Completed + past Events)
+**Visual:**
+```
+  ┌──────────────────────────────┬───────────────────────────────┐
+  │     OPEN ACTIVITIES          │      ACTIVITY HISTORY         │
+  │   (Status ≠ Completed)       │  (Status = Completed /        │
+  │                              │   past Events)                │
+  ├──────────────────────────────┼───────────────────────────────┤
+  │  Follow up call (Task)       │  Called Jane 11/01 (Task)     │
+  │    Due: 11/20   [Open]       │    Status: Completed          │
+  │                              │                               │
+  │  Product Demo (Event)        │  Product Demo 10/15 (Event)   │
+  │    11/18  2:00-3:00 PM       │    Status: Past Event         │
+  │                              │                               │
+  │  Send Proposal (Task)        │  Logged Call 11/05 (Task)     │
+  │    Due: 11/22   [Open]       │    Status: Completed          │
+  └──────────────────────────────┴───────────────────────────────┘
+  
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Lightning Experience → Activity Timeline (Combined View)    │
+  │  Chronological feed of ALL activities on the record         │
+  │  Activity History is append-only — records cannot be deleted │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Open Activities related list:** Shows Tasks that are NOT yet completed; upcoming Events
 - **Activity History related list:** Shows completed Tasks; past Events; logged calls
@@ -54,7 +151,32 @@
 **Speaker Notes:** For the exam, know the distinction: Open Activities is the "to-do list" and Activity History is the "done list." In Lightning Experience, both are combined into the Activity Timeline, which shows a chronological view of all activities on the record. Users can filter the timeline by activity type.
 
 ### Slide 5: Logging Calls
-**Visual:** "Log a Call" quick action button on a Contact record, followed by a Log a Call form with Subject, Date, Status = Completed
+**Visual:**
+```
+  Contact: Jane Doe
+  ┌──────────────────────────────────────────────────────┐
+  │  [New Task]   [New Event]   [Log a Call]  ◀── Quick Action
+  └──────────────────────┬───────────────────────────────┘
+                         │ Click "Log a Call"
+                         ▼
+  ┌──────────────────────────────────────────────────────┐
+  │                 LOG A CALL FORM                      │
+  ├───────────────────┬──────────────────────────────────┤
+  │  Subject          │  Call                            │
+  │  Date             │  11/15/2024                      │
+  │  Status           │  Completed  (auto-set)           │
+  │  Comments         │  Discussed renewal pricing       │
+  │  Related To       │  Acme Q4 Deal (Opportunity)      │
+  │  Name             │  Jane Doe (Contact)              │
+  └───────────────────┴──────────────────────────────────┘
+                         │ Save
+                         ▼
+              ┌──────────────────────┐
+              │   ACTIVITY HISTORY   │
+              │  (Completed Task)    │
+              │  NOT Open Activities │
+              └──────────────────────┘
+```
 **Content:**
 - "Log a Call" is a quick action that creates a Task with Status = Completed immediately
 - Available on most standard object records and via the global quick action bar
@@ -65,7 +187,34 @@
 **Speaker Notes:** Log a Call is essentially a shortcut to create a completed Task. The distinction matters: logging a call after it happened creates a completed Task in Activity History. Scheduling a future call creates an open Task (due date in the future) in Open Activities. Getting this right keeps records clean and accurate.
 
 ### Slide 6: Shared Activities
-**Visual:** One Task/Event linked to three Contacts and one Opportunity simultaneously
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────┐
+  │              SHARED ACTIVITIES ENABLED                   │
+  │  Setup → Activity Settings → Allow Multiple Contacts     │
+  └─────────────────────────┬────────────────────────────────┘
+                            │
+               ┌────────────┴────────────┐
+               │   ONE Task / Event      │
+               │  "Q4 Discovery Call"    │
+               └──┬────────┬────────┬───┘
+                  │        │        │
+          ┌───────▼──┐  ┌──▼────┐  ┌▼──────────┐
+          │Contact 1 │  │Contact│  │ Contact 3 │
+          │  Alice   │  │  Bob  │  │   Carol   │
+          │ (WhoId)  │  │       │  │           │
+          └──────────┘  └───────┘  └───────────┘
+                  │
+          ┌───────▼────────────┐
+          │    Opportunity     │
+          │  "Acme Q4 Deal"    │
+          │   (WhatId)         │
+          └────────────────────┘
+  
+  Appears in Activity History of ALL 3 Contacts + Opportunity
+  Primary contact stored in WhoId; others use TaskRelation object
+  Up to 50 Contacts per Activity (with Shared Activities enabled)
+```
 **Content:**
 - **Shared Activities:** Allows one Activity (Task or Event) to be related to up to 50 Contacts
 - Enabled in: Setup → Activity Settings → Allow Users to Relate Multiple Contacts to Tasks and Events
@@ -76,7 +225,30 @@
 **Speaker Notes:** Shared Activities solve the real-world problem of group meetings and group calls. If you have a discovery call with three stakeholders from the same account, Shared Activities lets you log one Event and link all three contacts to it. Without this feature, you'd have to create three separate activities.
 
 ### Slide 7: Einstein Activity Capture
-**Visual:** Diagram showing Gmail/Outlook connected to Salesforce with emails and calendar events syncing automatically
+**Visual:**
+```
+  ┌────────────────────┐              ┌────────────────────────────┐
+  │     GMAIL          │              │       SALESFORCE           │
+  │   (Inbox)          │◀───sync────▶│                            │
+  │                    │  emails      │  ┌──────────────────────┐  │
+  │  Sent emails ──────│──────────────│─▶│   Activity Timeline  │  │
+  │  auto-logged       │              │  │   (EAC data appears  │  │
+  └────────────────────┘              │  │    here, NOT as std  │  │
+                                      │  │    Task/Event obj)   │  │
+  ┌────────────────────┐              │  └──────────────────────┘  │
+  │     OUTLOOK        │              │                            │
+  │   (Calendar)       │◀───sync────▶│  Setup:                    │
+  │                    │  calendar    │  Setup → Einstein Activity  │
+  │  Calendar events   │  events      │  Capture → Connect email   │
+  │  auto-synced       │              │  provider                  │
+  └────────────────────┘              └────────────────────────────┘
+  
+  IMPORTANT: EAC data is NOT stored as standard Task or Event records
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Stored in separate data layer → Limited in standard reports │
+  │  and list views compared to manually created activities      │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Einstein Activity Capture (EAC) automatically syncs email and calendar data from Gmail or Outlook to Salesforce
 - Emails sent from a connected inbox are automatically added to relevant Salesforce records
@@ -87,7 +259,31 @@
 **Speaker Notes:** EAC is a significant feature shift from manual activity logging. Instead of reps manually logging every call and email, EAC automatically captures their external communications. The exam-critical fact is that EAC data is NOT stored as standard Task or Event records — it's stored separately, which affects reporting and data retention.
 
 ### Slide 8: Activity Settings & Configuration
-**Visual:** Setup → Activity Settings page showing key toggles: Enable Shared Activities, Show Event Details on Multi-Day Events, Enable Task Notifications
+**Visual:**
+```
+  Setup → Activity Settings
+  ┌────────────────────────────────────────────────────────────┐
+  │                   ACTIVITY SETTINGS                        │
+  ├────────────────────────────────────────────────────────────┤
+  │  [✓] Enable Shared Activities                              │
+  │      Allow up to 50 Contacts per Task/Event               │
+  ├────────────────────────────────────────────────────────────┤
+  │  [✓] Enable Email to Salesforce (BCC Dropbox)             │
+  │      Each user gets unique BCC address to auto-log emails  │
+  │      user@company.com ──BCC──▶ abc123@salesforce.com      │
+  ├────────────────────────────────────────────────────────────┤
+  │  [✓] Enable Task Notifications                             │
+  │      Email reminders for assigned tasks / due dates        │
+  ├────────────────────────────────────────────────────────────┤
+  │  [ ] Show Event Details on Multi-Day Events                │
+  ├────────────────────────────────────────────────────────────┤
+  │  [✓] Group Tasks                                           │
+  │      Consolidate related tasks in Activity Timeline        │
+  ├────────────────────────────────────────────────────────────┤
+  │  Calendar Sharing:  Users can share Salesforce calendar    │
+  │  with other users                                          │
+  └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Setup path: Setup → Activity Settings
 - Key settings: Enable Shared Activities, Enable Email to Salesforce (BCC Dropbox), Group Tasks, Task Notifications

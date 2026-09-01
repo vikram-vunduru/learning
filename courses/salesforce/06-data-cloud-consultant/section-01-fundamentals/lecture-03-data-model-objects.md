@@ -11,7 +11,28 @@
 ## Slides
 
 ### Slide 1: The Two-Layer Data Model
-**Visual:** A vertical stack diagram. Bottom layer labeled "Data Lake Objects (DLO)" shows messy, varied column names from different sources. An arrow pointing up labeled "Field Mapping" leads to the top layer labeled "Data Model Objects (DMO)" showing clean, standardized column names.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────┐
+  │              DATA MODEL OBJECTS (DMO)                    │
+  │         Standardized, clean, actionable layer            │
+  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
+  │  │  Individual  │  │ ContactPoint │  │  SalesOrder  │   │
+  │  │  FirstName   │  │  Email       │  │  OrderDate   │   │
+  │  │  LastName    │  │  HasOptedOut │  │  TotalAmount │   │
+  │  └──────────────┘  └──────────────┘  └──────────────┘   │
+  └───────────────────────▲──────────────────────────────────┘
+                          │  Field Mapping
+  ┌──────────────────────────────────────────────────────────┐
+  │              DATA LAKE OBJECTS (DLO)                     │
+  │              Raw, source-system structure                │
+  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
+  │  │ cust_fname   │  │ email_addr   │  │ order_dt     │   │
+  │  │ cust_lname   │  │ opt_out_flg  │  │ order_total  │   │
+  │  │ acct_num     │  │ sub_key      │  │ cust_id      │   │
+  │  └──────────────┘  └──────────────┘  └──────────────┘   │
+  └──────────────────────────────────────────────────────────┘
+```
 
 **Content:**
 - Data Cloud uses a **two-layer data model**: raw storage (DLOs) and modeled data (DMOs)
@@ -25,7 +46,20 @@
 ---
 
 ### Slide 2: Data Lake Objects (DLOs) In Depth
-**Visual:** A database table mockup showing raw DLO fields with source-system naming conventions (e.g., "cust_fname", "email_addr", "acct_num", "last_purch_dt") with varied data types.
+**Visual:**
+```
+  DLO: Salesforce_Contact__dlm  (auto-created by Data Stream)
+  ─────────────────────────────────────────────────────────
+  │ cust_id    │ cust_fname │ cust_lname │ email_addr      │
+  ├────────────┼────────────┼────────────┼─────────────────┤
+  │ C-10045    │ John       │ Smith      │ john@co.com     │
+  │ C-10046    │ Jane       │ Doe        │ jane@email.com  │
+  │ C-10047    │ Robert     │ Chen       │ r.chen@biz.net  │
+  └────────────┴────────────┴────────────┴─────────────────┘
+  Field names mirror source system exactly
+  Read-only — cannot manually edit DLO records
+  Visible in: Setup → Data Cloud → Data Explorer
+```
 
 **Content:**
 - DLOs are created automatically when a Data Stream is configured and first runs
@@ -40,7 +74,30 @@
 ---
 
 ### Slide 3: Data Model Objects (DMOs) In Depth
-**Visual:** A card layout showing three DMO cards: "Individual" (with fields: FirstName, LastName, BirthDate, etc.), "Contact Point Email" (with fields: EmailAddress, HasOptedOut, etc.), and "Sales Order" (with fields: OrderNumber, TotalAmount, OrderDate, etc.).
+**Visual:**
+```
+  ┌──────────────────────────┐  ┌──────────────────────────┐
+  │    DMO: Individual       │  │  DMO: ContactPointEmail  │
+  │  ──────────────────────  │  │  ──────────────────────  │
+  │  Category: Profile       │  │  Category: Profile       │
+  │  ──────────────────────  │  │  ──────────────────────  │
+  │  FirstName               │  │  EmailAddress            │
+  │  LastName                │  │  HasOptedOutOfEmail      │
+  │  BirthDate               │  │  EmailOptOutDateTime     │
+  │  Gender                  │  │  IndividualId  (FK)      │
+  └──────────────────────────┘  └──────────────────────────┘
+
+  ┌──────────────────────────┐  ┌──────────────────────────┐
+  │    DMO: SalesOrder       │  │  DMO: UnifiedIndividual  │
+  │  ──────────────────────  │  │  ──────────────────────  │
+  │  Category: Other         │  │  (OUTPUT of Identity     │
+  │  ──────────────────────  │  │   Resolution — not an    │
+  │  OrderNumber             │  │   input DMO)             │
+  │  TotalAmount             │  │                          │
+  │  OrderDate               │  │  Reconciled attributes   │
+  │  IndividualId  (FK)      │  │  from all source records │
+  └──────────────────────────┘  └──────────────────────────┘
+```
 
 **Content:**
 - DMOs are **structured objects** with a defined, standardized schema
@@ -55,7 +112,23 @@
 ---
 
 ### Slide 4: Key Standard DMOs
-**Visual:** A reference table with two columns: "DMO Name" and "Purpose." Rows include Individual, Contact Point Email, Contact Point Phone, Unified Individual, Sales Order, Sales Order Product, Web Engagement, and Email Engagement.
+**Visual:**
+```
+  ┌──────────────────────────┬──────────────────────────────────────┐
+  │ DMO Name                 │ Purpose                              │
+  ├──────────────────────────┼──────────────────────────────────────┤
+  │ Individual               │ Core person record; input to IR      │
+  │ Contact Point Email      │ Email addresses linked to Individual │
+  │ Contact Point Phone      │ Phone numbers linked to Individual   │
+  │ Unified Individual       │ OUTPUT of Identity Resolution        │
+  │ Sales Order              │ Purchase / transaction records       │
+  │ Sales Order Product      │ Line items within a Sales Order      │
+  │ Web Engagement           │ Web clickstream / behavioral events  │
+  │ Email Engagement         │ Marketing email open / click events  │
+  └──────────────────────────┴──────────────────────────────────────┘
+  NOTE: Unified Individual is created BY Identity Resolution,
+        not manually — do not confuse it with a source DMO
+```
 
 **Content:**
 - **Individual** — Represents a person; core DMO for identity resolution
@@ -71,7 +144,27 @@
 ---
 
 ### Slide 5: Standard vs. Custom DMOs
-**Visual:** A comparison table with columns "Standard DMO" and "Custom DMO" and rows for: Created By, Can Delete, Schema Fixed, Works with Identity Resolution, Works with Segmentation, and Use Case.
+**Visual:**
+```
+  ┌────────────────────────────┬────────────────────────────┐
+  │      STANDARD DMO          │       CUSTOM DMO           │
+  ├────────────────────────────┼────────────────────────────┤
+  │ Created by Salesforce      │ Created by admin/consultant│
+  │ Schema is fixed            │ Flexible schema            │
+  │ Cannot be deleted          │ Can be deleted             │
+  │ Full Identity Resolution   │ Limited IR support         │
+  │ support                    │                            │
+  │ Full segmentation support  │ Full segmentation support  │
+  ├────────────────────────────┼────────────────────────────┤
+  │ Use for:                   │ Use for:                   │
+  │ Person records (Individual)│ Vehicle ownership          │
+  │ Contact points (Email,     │ Insurance policies         │
+  │ Phone)                     │ Subscription plans         │
+  │ Orders, Engagements        │ Industry-specific entities │
+  └────────────────────────────┴────────────────────────────┘
+  RULE: Always use standard Individual DMO for person records.
+        Custom "Person" DMOs break Identity Resolution.
+```
 
 **Content:**
 - **Standard DMOs:** Created by Salesforce, schema is fixed, supports Identity Resolution, cannot be deleted
@@ -87,7 +180,28 @@
 ---
 
 ### Slide 6: Field Mapping — The Bridge Layer
-**Visual:** A side-by-side diagram. Left side shows a DLO table with fields: cust_id, cust_fname, cust_lname, dob, email. Right side shows the Individual DMO with fields: PartyId, FirstName, LastName, BirthDate, EmailAddress. Arrows connect corresponding fields across the two sides.
+**Visual:**
+```
+  DATA LAKE OBJECT (DLO)              DATA MODEL OBJECT (DMO)
+  ─────────────────────               ───────────────────────
+  Raw ingested data                   Standardized schema
+  One per Data Stream                 Shared across sources
+
+  ┌─────────────────────┐   mapping   ┌─────────────────────┐
+  │ Salesforce_Contact  │────────────▶│   Individual (std)  │
+  │ - cust_id      ─────────────────▶ - PartyId            │
+  │ - cust_fname   ─────────────────▶ - FirstName          │
+  │ - cust_lname   ─────────────────▶ - LastName           │
+  │ - email_addr        │             │ - EmailAddress      │
+  └─────────────────────┘             └─────────────────────┘
+
+  ┌─────────────────────┐   mapping   ┌─────────────────────┐
+  │ MC_Subscriber       │────────────▶│  ContactPointEmail  │
+  │ - EmailAddress ─────────────────▶ - EmailAddress       │
+  │ - SubscriberKey─────────────────▶ - IndividualId (FK)  │
+  │ - OptOutFlag   ─────────────────▶ - HasOptedOutOfEmail  │
+  └─────────────────────┘             └─────────────────────┘
+```
 
 **Content:**
 - Field mapping connects raw DLO fields to standard DMO fields
@@ -102,7 +216,24 @@
 ---
 
 ### Slide 7: Field Mapping Rules & Constraints
-**Visual:** A "rules" checklist graphic with six items, each with a checkmark or X icon indicating what is/isn't allowed.
+**Visual:**
+```
+  FIELD MAPPING RULES
+  ───────────────────
+  ALLOWED:
+  ✅  Multiple DLOs → same DMO         (data consolidation across sources)
+  ✅  One DLO → multiple DMOs          (if data covers multiple entities)
+  ✅  Partial mapping                  (not all DLO fields need mapping)
+  ✅  Formula transformation           (for type conversion at mapping time)
+
+  NOT ALLOWED:
+  ✗   One DLO field → two different fields on the same DMO
+  ✗   Incompatible data types without a formula transformation
+  ✗   Mapping to calculated/formula fields on the DMO
+
+  REQUIRED:
+  ★   Primary Key field MUST always be mapped
+```
 
 **Content:**
 - ✅ Multiple DLOs can map to the same DMO (data consolidation)
@@ -118,7 +249,24 @@
 ---
 
 ### Slide 8: Field Mapping Best Practices
-**Visual:** A "Do / Don't" two-column layout with four best practice pairs.
+**Visual:**
+```
+  ┌──────────────────────────────────┬──────────────────────────────────┐
+  │              DO                  │             DON'T                │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │ Map source ID → DMO Primary Key  │ Create custom "Person" DMO when  │
+  │ for traceability                 │ standard Individual DMO fits     │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │ Map Contact Point Email fields   │ Map email only to Individual;    │
+  │ for email-based IR matching      │ forget Contact Point Email DMO   │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │ Document each DLO→DMO mapping    │ Map test/staging fields to       │
+  │ per Data Stream                  │ production DMOs                  │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │ Map all fields used in           │ Leave segmentation-needed fields │
+  │ segmentation or activation       │ unmapped and expect them to work │
+  └──────────────────────────────────┴──────────────────────────────────┘
+```
 
 **Content:**
 - **Do:** Map the source system's unique ID to the DMO Primary Key field for traceability

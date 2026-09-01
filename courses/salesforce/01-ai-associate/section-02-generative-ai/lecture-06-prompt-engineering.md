@@ -41,7 +41,28 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 3: The Five Anatomy Components of a Great Prompt
-**Visual:** Five labeled building blocks stacked: ROLE → CONTEXT → INSTRUCTION → FORMAT → CONSTRAINTS
+**Visual:**
+```
+   PROMPT ANATOMY — Five Building Blocks
+
+   ┌─────────────────────────────────────────────────────────┐
+   │  R  ROLE        "You are a Salesforce sales expert..."  │
+   │                  Sets AI persona and expertise level    │
+   ├─────────────────────────────────────────────────────────┤
+   │  C  CONTEXT     "This account has $2M ARR, 3 open       │
+   │                  cases, and a renewal in 30 days..."    │
+   │                  Provides background information         │
+   ├─────────────────────────────────────────────────────────┤
+   │  I  INSTRUCTIONS "Write a 3-sentence outreach email..." │
+   │                  The actual task to perform             │
+   ├─────────────────────────────────────────────────────────┤
+   │  F  FORMAT      "Use bullet points. Max 150 words."     │
+   │                  Structure and length requirements      │
+   ├─────────────────────────────────────────────────────────┤
+   │  C  CONSTRAINTS "Do not mention pricing. Avoid jargon." │
+   │                  Boundaries and guardrails              │
+   └─────────────────────────────────────────────────────────┘
+```
 **Content:**
 1. **Role** — Tell the model who it is
 2. **Context** — Give it relevant background information
@@ -90,7 +111,23 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 7: Components 4 & 5 — Format and Constraints
-**Visual:** Split slide — left shows a formatted output template (bullet list, headers); right shows a "Do Not" list
+**Visual:**
+```
+   FORMAT vs CONSTRAINTS — Key Distinction
+
+   ┌──────────────────────────────┬──────────────────────────────┐
+   │         FORMAT               │        CONSTRAINTS           │
+   │   (How to structure output)  │   (What to avoid/limit)      │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ "Use 3 bullet points"        │ "Do not mention competitors" │
+   │ "Write in JSON format"       │ "Avoid technical jargon"     │
+   │ "Max 100 words"              │ "Do not make promises"       │
+   │ "Use a table"                │ "Stay on topic of renewals"  │
+   │ "Include a subject line"     │ "No pricing information"     │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ Shapes HOW the AI responds   │ Defines what AI must NOT do  │
+   └──────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 - **Format:** how should the response be structured?
   - "Respond in 3 bullet points"
@@ -106,7 +143,24 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 8: Prompting Technique 1 — Zero-Shot
-**Visual:** A single prompt bubble going directly to the LLM with no examples
+**Visual:**
+```
+   ZERO-SHOT PROMPTING — No examples provided
+
+   ┌─────────────────────────────────────────────────────────┐
+   │  PROMPT:                                                │
+   │  "Classify this customer email as Complaint, Request,   │
+   │   or Compliment: 'Your service team was incredible       │
+   │   and resolved my issue in minutes!'"                   │
+   │                                                         │
+   │  MODEL RESPONSE:                                        │
+   │  "Compliment"                                           │
+   └─────────────────────────────────────────────────────────┘
+
+   ● No examples given — model uses general training knowledge
+   ● Works well for clear, well-defined tasks
+   ● Least token-efficient technique for complex tasks
+```
 **Content:**
 - **Zero-shot:** Give the model a task with NO examples — just the instruction
 - Works well for simple, well-understood tasks
@@ -119,7 +173,27 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 9: Prompting Technique 2 — Few-Shot
-**Visual:** Three example pairs (input → output) shown before the actual task
+**Visual:**
+```
+   FEW-SHOT PROMPTING — Examples provided in prompt
+
+   ┌─────────────────────────────────────────────────────────┐
+   │  PROMPT:                                                │
+   │  "Classify customer emails. Examples:                   │
+   │   Email: 'This is broken!' → Complaint                  │
+   │   Email: 'Can you add a user?' → Request                │
+   │   Email: 'You're amazing!' → Compliment                 │
+   │                                                         │
+   │   Now classify: 'The system crashed during demo'"       │
+   │                                                         │
+   │  MODEL RESPONSE:                                        │
+   │  "Complaint"                                            │
+   └─────────────────────────────────────────────────────────┘
+
+   ● 2-5 examples steer output format and classification
+   ● Higher accuracy on nuanced tasks vs. zero-shot
+   ● Uses more tokens but more reliable
+```
 **Content:**
 - **Few-shot:** Provide 2–5 examples of input/output pairs before the actual task
 - The examples teach the model your exact standard and format
@@ -131,7 +205,28 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 10: Prompting Technique 3 — Chain-of-Thought
-**Visual:** A chain of reasoning steps: "First consider... then evaluate... then conclude..."
+**Visual:**
+```
+   CHAIN-OF-THOUGHT PROMPTING — Ask model to reason step by step
+
+   ┌─────────────────────────────────────────────────────────┐
+   │  PROMPT:                                                │
+   │  "Think step by step: Should we prioritize this lead?  │
+   │   - Annual Revenue: $8M                                 │
+   │   - Industry: Financial Services                        │
+   │   - Engaged with pricing page twice this week           │
+   │   - Decision maker identified                           │
+   │   - Current tools: legacy on-premise CRM"              │
+   │                                                         │
+   │  MODEL REASONING:                                       │
+   │  "Step 1: Revenue $8M — above SMB threshold → high value│
+   │   Step 2: FinServ — strong Salesforce vertical          │
+   │   Step 3: Pricing visits — buying signal                │
+   │   Step 4: DM identified — no blocker                   │
+   │   Step 5: Legacy CRM — high migration motivation        │
+   │   Conclusion: HIGH priority — assign to senior AE"      │
+   └─────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Chain-of-Thought (CoT):** prompt the model to reason step-by-step before answering
 - Critical for complex reasoning, multi-step analysis, or logical deductions
@@ -215,7 +310,33 @@ Constraints:
 ---
 
 ### Slide 15: Salesforce Prompt Builder — Prompt Engineering at Scale
-**Visual:** Prompt Builder interface showing a template with merge fields and connected data sources
+**Visual:**
+```
+   SALESFORCE PROMPT BUILDER — Interface Overview
+
+   ┌─────────────────────────────────────────────────────────┐
+   │  PROMPT BUILDER  ─ Setup ─ Einstein ─ Prompt Templates  │
+   ├─────────────────────────────────────────────────────────┤
+   │                                                         │
+   │  Template Name: [Sales Email Generator          ]       │
+   │  Template Type: [Sales Email              ▼    ]       │
+   │                                                         │
+   │  ┌───────────────────────────────────────────────────┐  │
+   │  │ PROMPT BODY                                       │  │
+   │  │                                                   │  │
+   │  │ You are a Salesforce sales expert.                │  │
+   │  │ Write an outreach email for:                      │  │
+   │  │                                                   │  │
+   │  │ Account: {!$Record.Account.Name}                  │  │
+   │  │ Opp Value: {!$Record.Amount}                      │  │
+   │  │ Stage: {!$Record.StageName}                       │  │
+   │  └───────────────────────────────────────────────────┘  │
+   │                                                         │
+   │  [Preview Response]  [Activate Template]                │
+   │                                                         │
+   │  ✓ Einstein Trust Layer active — Zero Data Retention    │
+   └─────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Prompt Builder lets admins build the Iteration 3-style prompt once — for everyone
 - Merge fields pull live CRM data: {!Account.Name}, {!Case.Subject}, {!Contact.Title}
@@ -227,7 +348,33 @@ Constraints:
 ---
 
 ### Slide 16: Prompt Builder Template Types — Exam Vocabulary
-**Visual:** Four cards: Sales Email, Field Generation, Flex, Record Summary
+**Visual:**
+```
+   PROMPT BUILDER — Four Template Types
+
+   ┌──────────────────────┐   ┌──────────────────────┐
+   │  FIELD GENERATION    │   │  FLEX TEMPLATE       │
+   │                      │   │                      │
+   │ Populates a specific │   │ Flexible — displayed │
+   │ Salesforce field     │   │ in any context where │
+   │ with AI content      │   │ configured           │
+   │                      │   │                      │
+   │ Ex: Auto-generate    │   │ Ex: Einstein Copilot │
+   │ Account Summary      │   │ sidebar context      │
+   │ field on Account obj │   │ panels               │
+   └──────────────────────┘   └──────────────────────┘
+
+   ┌──────────────────────┐   ┌──────────────────────┐
+   │  RECORD SUMMARY      │   │  SALES EMAIL         │
+   │                      │   │                      │
+   │ Summarizes a record  │   │ Generates outreach   │
+   │ using related data   │   │ and follow-up emails │
+   │ as context           │   │ in Sales Engagement  │
+   │                      │   │                      │
+   │ Ex: Case summary     │   │ Ex: Post-demo        │
+   │ from case + emails   │   │ follow-up email      │
+   └──────────────────────┘   └──────────────────────┘
+```
 **Content:**
 - **Sales Email:** generates outbound emails for sales reps
 - **Field Generation:** populates a Salesforce field using AI (e.g., auto-fill account summary field)
@@ -239,7 +386,29 @@ Constraints:
 ---
 
 ### Slide 17: Lecture Recap and Exam Prep
-**Visual:** Summary table: Technique → When to use → Salesforce example
+**Visual:**
+```
+   PROMPT ENGINEERING — Exam Reference Table
+
+   ┌──────────────────┬──────────────────────────────────────────┐
+   │  TECHNIQUE       │  DESCRIPTION & WHEN TO USE               │
+   ├──────────────────┼──────────────────────────────────────────┤
+   │ Zero-shot        │ No examples. "Classify this email as..." │
+   │                  │ Use for simple, clear tasks               │
+   ├──────────────────┼──────────────────────────────────────────┤
+   │ Few-shot         │ 2-5 examples in prompt to guide format   │
+   │                  │ Use for nuanced tasks needing consistency │
+   ├──────────────────┼──────────────────────────────────────────┤
+   │ Chain-of-thought │ "Think step by step..." before answering │
+   │                  │ Use for multi-step reasoning tasks        │
+   ├──────────────────┼──────────────────────────────────────────┤
+   │ Role prompting   │ "You are an expert in..." persona setting │
+   │                  │ Use to shape tone and expertise level     │
+   ├──────────────────┼──────────────────────────────────────────┤
+   │ Prompt Builder   │ Salesforce native low-code prompt tool   │
+   │                  │ 4 types: Field Gen, Flex, Record, Sales   │
+   └──────────────────┴──────────────────────────────────────────┘
+```
 **Content:**
 - Zero-shot: simple, clear tasks → "Classify this case as High/Medium/Low"
 - Few-shot: when consistency of format matters → "Generate summaries matching these 3 examples"

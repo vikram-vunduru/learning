@@ -4,6 +4,7 @@ import { PDI_RESOURCES } from "./resources-pdi";
 import { JSI_RESOURCES } from "./resources-jsi";
 import { DATA_CLOUD_RESOURCES } from "./resources-data-cloud";
 import { AGENTFORCE_RESOURCES } from "./resources-agentforce";
+import { AGENTFORCE_VOICE_RESOURCES } from "./resources-agentforce-voice";
 
 export type ResourceType = "docs" | "trailhead" | "youtube" | "blog" | "udemy" | "video";
 
@@ -275,6 +276,7 @@ const ALL_RESOURCES: Record<string, Resource[]> = {
   ...JSI_RESOURCES,
   ...DATA_CLOUD_RESOURCES,
   ...AGENTFORCE_RESOURCES,
+  ...AGENTFORCE_VOICE_RESOURCES,
 };
 
 export function getResources(moduleId: string): Resource[] {

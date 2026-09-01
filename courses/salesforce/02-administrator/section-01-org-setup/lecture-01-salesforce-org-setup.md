@@ -8,7 +8,19 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Is a Salesforce Org?
-**Visual:** Diagram showing a cloud with the Salesforce logo, with arrows pointing to "Your Company's Data," "Your Configuration," and "Your Users" — emphasizing that an org is a single, isolated instance.
+**Visual:**
+```
+  ┌─────────────────────────────────────────────────────────────┐
+  │                  ☁  SALESFORCE ORG                          │
+  │             (Your Company's Isolated Instance)              │
+  └────────────────┬───────────────────┬───────────────┬────────┘
+                   │                   │               │
+                   ▼                   ▼               ▼
+  ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐
+  │  Your Company's    │  │  Your              │  │  Your              │
+  │      Data          │  │  Configuration     │  │  Users             │
+  └────────────────────┘  └────────────────────┘  └────────────────────┘
+```
 **Content:**
 - An "org" is a single instance of Salesforce — your company's dedicated environment
 - All data, configuration, users, and customizations live inside the org
@@ -17,7 +29,20 @@
 **Speaker Notes:** Think of an org as your company's private copy of Salesforce. Every setting you change, every record created, every user you add — it all lives in one isolated container. Salesforce runs thousands of orgs on shared infrastructure, but your data is logically separated from everyone else's.
 
 ### Slide 2: Types of Salesforce Orgs
-**Visual:** Table with four rows — Production, Sandbox, Developer Edition, Scratch Org — each with an icon (factory, sandbox, developer laptop, construction helmet) and a one-line description.
+**Visual:**
+```
+  ┌────────────────────────┬──────────────────────────────────────────────────────┐
+  │  ORG TYPE              │  DESCRIPTION                                         │
+  ├────────────────────────┼──────────────────────────────────────────────────────┤
+  │  🏭  Production        │  Live environment — real data, real users            │
+  ├────────────────────────┼──────────────────────────────────────────────────────┤
+  │  🏖  Sandbox           │  Copy of Production for safe testing & development   │
+  ├────────────────────────┼──────────────────────────────────────────────────────┤
+  │  💻  Developer Edition │  Free standalone org for learning — NOT a sandbox   │
+  ├────────────────────────┼──────────────────────────────────────────────────────┤
+  │  ⛑  Scratch Org       │  Temporary source-driven org; expires in 1–30 days   │
+  └────────────────────────┴──────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Production org:** Your live, business-critical environment — real data, real users
 - **Sandbox org:** A copy of Production used for development and testing; refreshed from Production
@@ -26,7 +51,18 @@
 **Speaker Notes:** The exam tests your ability to distinguish these org types. Sandboxes are copies of Production and are the right place to test changes before deploying them. Developer Edition orgs look similar but are completely separate environments — they are not linked to any Production org. Scratch orgs are short-lived and tied to version control workflows.
 
 ### Slide 3: Sandbox Types
-**Visual:** Side-by-side comparison cards for Developer, Developer Pro, Partial Copy, and Full sandboxes, each showing storage size and refresh interval.
+**Visual:**
+```
+  ┌──────────────────────┬──────────────────────┬──────────────────────┬──────────────────────┐
+  │    DEVELOPER         │   DEVELOPER PRO      │   PARTIAL COPY       │       FULL           │
+  ├──────────────────────┼──────────────────────┼──────────────────────┼──────────────────────┤
+  │ Storage:  200 MB     │ Storage:  1 GB       │ Storage:  5 GB       │ Storage: = Production│
+  │ Refresh:  Daily      │ Refresh:  Daily      │ Refresh:  5 days     │ Refresh:  29 days    │
+  │ Data:     Metadata   │ Data:     Metadata   │ Data:     Metadata + │ Data:     Full copy  │
+  │           only       │           only       │           sample     │           of prod    │
+  │ Cost:     Lowest     │ Cost:     Low        │ Cost:     Medium     │ Cost:     Highest    │
+  └──────────────────────┴──────────────────────┴──────────────────────┴──────────────────────┘
+```
 **Content:**
 - **Developer sandbox:** 200 MB data storage, daily refresh, metadata only
 - **Developer Pro sandbox:** 1 GB data storage, daily refresh, metadata only
@@ -35,7 +71,24 @@
 **Speaker Notes:** Full sandboxes are the most expensive and take the longest to refresh, but they are the only type that gives you a complete mirror of Production data. Partial Copy sandboxes let you import a subset of records using a sandbox template. Developer sandboxes are the most common choice for configuration changes because they refresh quickly and are inexpensive.
 
 ### Slide 4: Navigating Setup
-**Visual:** Annotated screenshot of the Salesforce Setup menu showing the gear icon, Quick Find box, and key navigation panels (Administration, Platform Tools, Settings).
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────┐
+  │  ⚙  Setup                                                │
+  ├──────────────────────────────────────────────────────────┤
+  │  🔍 Quick Find  [ Search Setup...              ]         │
+  │                  ▲ Fastest way to navigate               │
+  ├──────────────────────────────────────────────────────────┤
+  │  ▼ ADMINISTRATION                                        │
+  │      Users · Data · Email · Email Templates              │
+  ├──────────────────────────────────────────────────────────┤
+  │  ▼ PLATFORM TOOLS                                        │
+  │      Objects & Fields · Flow · Process · Integrations    │
+  ├──────────────────────────────────────────────────────────┤
+  │  ▼ SETTINGS                                              │
+  │      Security · Company Info · Fiscal Year · My Domain   │
+  └──────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Access Setup via the **gear icon** (⚙) in the top-right navigation bar
 - Use **Quick Find** to search any Setup page by keyword — fastest way to navigate
@@ -44,7 +97,22 @@
 **Speaker Notes:** You will spend most of your admin career in Setup. The Quick Find box is your best friend — instead of drilling through menus, just type what you're looking for. On the exam, you'll see questions that ask you to identify the correct Setup path for a task, so getting comfortable with the three main sections is important.
 
 ### Slide 5: Company Information Page
-**Visual:** Screenshot of Setup > Company Information page with key fields highlighted: Organization Name, Default Locale, Default Language, Default Currency, Fiscal Year, Used Data Space, Used File Space.
+**Visual:**
+```
+  ┌───────────────────────────────────────────────────────────────────────────┐
+  │  Setup > Company Information                                              │
+  ├──────────────────────────────────┬────────────────────────────────────────┤
+  │  Organization Name               │  Acme Corporation       ◀── Display name
+  │  Salesforce Org ID               │  00D000000000001        ◀── Needed for Support
+  │  Default Locale                  │  English (United States) ◀── Date/# format
+  │  Default Language                │  English                ◀── UI text language
+  │  Default Currency                │  USD - U.S. Dollar      ◀── Base currency
+  │  Fiscal Year Starts              │  January                ◀── Standard or Custom
+  ├──────────────────────────────────┼────────────────────────────────────────┤
+  │  Used Data Space                 │  ████░░░░░  1.2 GB / 10 GB ◀── Records
+  │  Used File Space                 │  ██░░░░░░░  0.4 GB / 10 GB ◀── Attachments
+  └──────────────────────────────────┴────────────────────────────────────────┘
+```
 **Content:**
 - Path: **Setup > Company Information**
 - Shows your Salesforce edition, org ID, and license counts
@@ -53,7 +121,22 @@
 **Speaker Notes:** The Company Information page is a snapshot of your entire org. If you ever need to quickly find your Org ID, your edition, or how much storage you've used, this is the place. License counts here show you how many licenses of each type you have purchased and how many are in use.
 
 ### Slide 6: Fiscal Year Settings
-**Visual:** Diagram showing a standard fiscal year (Jan–Dec) vs. a custom fiscal year (e.g., Feb–Jan) with a calendar illustration.
+**Visual:**
+```
+  STANDARD FISCAL YEAR                   CUSTOM FISCAL YEAR (e.g., Feb–Jan)
+  ┌────────────────────────────────┐      ┌────────────────────────────────┐
+  │  Jan  Feb  Mar   ──▶  Q1       │      │  Feb  Mar  Apr   ──▶  Q1       │
+  │  Apr  May  Jun   ──▶  Q2       │      │  May  Jun  Jul   ──▶  Q2       │
+  │  Jul  Aug  Sep   ──▶  Q3       │      │  Aug  Sep  Oct   ──▶  Q3       │
+  │  Oct  Nov  Dec   ──▶  Q4       │      │  Nov  Dec  Jan   ──▶  Q4       │
+  │                                │      │                                │
+  │  Start month:  January         │      │  Start month:  Any month       │
+  │  Quarters:     Fixed (4×3 mo.) │      │  Periods:      Fully custom    │
+  └────────────────────────────────┘      └────────────────────────────────┘
+              ⚠  WARNING: Once Custom Fiscal Year is enabled,
+                 it CANNOT be reverted to Standard!
+              Affects: forecasting, reports, quota settings
+```
 **Content:**
 - Path: **Setup > Fiscal Year**
 - **Standard fiscal year:** Aligned to a calendar year (Jan–Dec); uses standard quarters
@@ -63,7 +146,24 @@
 **Speaker Notes:** Most companies use the standard fiscal year, which is simple to configure. Custom fiscal year is powerful but irreversible — this is a key exam fact. Enabling it affects how Salesforce handles forecasts and period-based reports, so it's not a decision to make lightly. The exam has tested the "cannot revert" warning on multiple occasions.
 
 ### Slide 7: Login Hours and IP Ranges
-**Visual:** Two side-by-side panels: one showing a "Login Hours" grid by day of week and time, the other showing an IP address range input form, both inside a Profile settings page.
+**Visual:**
+```
+  PROFILE: Sales Users
+  ┌────────────────────────────────────────────┐  ┌────────────────────────────────────────┐
+  │            LOGIN HOURS                     │  │         TRUSTED IP RANGES              │
+  ├──────┬───────────────┬─────────────────────┤  ├──────────────────┬─────────────────────┤
+  │ Day  │  Start        │  End                │  │  IP Start        │  IP End             │
+  ├──────┼───────────────┼─────────────────────┤  ├──────────────────┼─────────────────────┤
+  │ Mon  │  08:00 AM     │  08:00 PM           │  │  192.168.1.0     │  192.168.1.255      │
+  │ Tue  │  08:00 AM     │  08:00 PM           │  │  10.0.0.0        │  10.0.0.255         │
+  │ Wed  │  08:00 AM     │  08:00 PM           │  └──────────────────┴─────────────────────┘
+  │ Thu  │  08:00 AM     │  08:00 PM           │
+  │ Fri  │  08:00 AM     │  06:00 PM           │  ┌────────────────────────────────────────┐
+  │ Sat  │  No Access    │  No Access          │  │  Org-wide IPs: Setup > Security >      │
+  │ Sun  │  No Access    │  No Access          │  │               Network Access           │
+  └──────┴───────────────┴─────────────────────┘  └────────────────────────────────────────┘
+  Both Login Hours and IP Ranges are configured per Profile, not per individual user
+```
 **Content:**
 - **Login Hours** restrict when users on a profile can access Salesforce (set per profile)
 - **Trusted IP Ranges** (on profiles): allow login without email verification from specified IPs
@@ -72,7 +172,19 @@
 **Speaker Notes:** Login Hours and IP restrictions are both set at the profile level. This means different groups of users can have different login windows and different IP rules. The organization-level Trusted IP Range in Network Access applies to all users org-wide, while profile-level IP ranges are more targeted. Expect the exam to ask you to distinguish between these two levels.
 
 ### Slide 8: Key Org Setup Exam Facts
-**Visual:** Clean bullet-point reference card styled as a "cheat sheet" with a yellow highlight background.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │              ★  ORG SETUP — EXAM CHEAT SHEET  ★                     │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │  ▶  Org ID location         →  Setup > Company Information           │
+  │  ▶  DE ≠ Sandbox            →  DE is standalone, NOT a copy of Prod  │
+  │  ▶  Custom Fiscal Year      →  CANNOT revert to Standard             │
+  │  ▶  Login Hours             →  Set per PROFILE, not per user         │
+  │  ▶  Fastest Setup nav       →  Use Quick Find box                    │
+  │  ▶  Full Sandbox storage    →  Same as Production; 29-day refresh    │
+  └──────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Org ID is found at Setup > Company Information
 - Developer Edition ≠ Sandbox — DE is a standalone free org, not a copy of Production

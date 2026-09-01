@@ -11,7 +11,28 @@
 ## Slides
 
 ### Slide 1: The Data Cloud Admin UI
-**Visual:** A screenshot mockup of the Data Cloud Admin page in Salesforce Setup showing the main monitoring sections: Data Streams, Ingestion Jobs, Identity Resolution, Segments, and System Health.
+**Visual:**
+```
+  DATA CLOUD ADMIN UI — Main Monitoring Console
+  Setup → Data Cloud → Data Cloud Admin
+  ──────────────────────────────────────────────────────────
+  ┌──────────────────────────────────────────────────────┐
+  │  [Data Streams]  [Ingestion Jobs]  [Identity Res.]   │
+  │  [Segments]      [Job Scheduler]   [System Health]   │
+  └──────────────────────────────────────────────────────┘
+
+  DATA STREAMS                      Last Run   Status   Records
+  ─────────────────────────────────────────────────────────────
+  Salesforce_Contact_Stream         2h ago     ✓        45,200
+  MC_Subscriber_Stream              3h ago     ✓        12,800
+  S3_Transactions_Stream            1h ago     ⚠        9,800 (50 failed)
+  Loyalty_Program_Stream            6h ago     ✗ FAILED  0
+
+  INGESTION JOBS — click any stream to see job history
+  IDENTITY RESOLUTION — ruleset run status & match counts
+  SEGMENTS — membership counts, last refresh time
+  JOB SCHEDULER — configure and monitor scheduled jobs
+```
 
 **Content:**
 - The **Data Cloud Admin UI** is the central monitoring console for all Data Cloud operations
@@ -28,7 +49,27 @@
 ---
 
 ### Slide 2: Monitoring Ingestion Jobs
-**Visual:** An Ingestion Jobs table mockup showing columns: Job Name, Data Stream, Start Time, End Time, Status (Success/Failed/Running), Records Processed, Records Failed, and Error Count.
+**Visual:**
+```
+  INGESTION JOBS TABLE
+  ──────────────────────────────────────────────────────────────────
+  Job Name              │Status            │Processed │Failed│Duration
+  ──────────────────────┼──────────────────┼──────────┼──────┼────────
+  S3_Trans_2024-09-15   │✓ Success         │ 10,240   │  0   │ 4m 12s
+  SF_Contact_2024-09-15 │✓ Success         │ 45,200   │  0   │ 8m 30s
+  S3_Trans_2024-09-16   │⚠ Part. Succeeded │  9,800   │ 50   │ 4m 45s
+  Loyalty_2024-09-16    │✗ Failed          │      0   │  -   │ 0m 15s
+  ──────────────────────────────────────────────────────────────────
+
+  STATUS MEANINGS:
+  ✓ Success          → All records processed successfully
+  ⚠ Part. Succeeded  → SOME records failed — check Failed Records tab
+  ✗ Failed           → Job failed entirely — NO records ingested
+  ◎ Running          → Currently in progress
+
+  KEY EXAM POINT: "Partially Succeeded" looks like success
+                  but means SOME records were rejected
+```
 
 **Content:**
 - Each Data Stream run creates an **Ingestion Job** record in the job history
@@ -44,7 +85,30 @@
 ---
 
 ### Slide 3: Ingestion Errors — Common Causes
-**Visual:** A table with two columns: "Error Type" and "Description/Resolution." Rows covering: data type mismatch, required field missing, duplicate primary key, file format error, connection timeout, and API rate limit.
+**Visual:**
+```
+  ┌────────────────────────┬────────────────────────────────────────┐
+  │ Error Type             │ Description & Resolution               │
+  ├────────────────────────┼────────────────────────────────────────┤
+  │ Data type mismatch     │ Source sends text; DMO expects date     │
+  │                        │ Fix: Add formula transformation in      │
+  │                        │ field mapping to convert type           │
+  ├────────────────────────┼────────────────────────────────────────┤
+  │ Required field missing │ Mapped field marked required; null      │
+  │                        │ in source. Fix: ensure source provides  │
+  │                        │ values or add a default                 │
+  ├────────────────────────┼────────────────────────────────────────┤
+  │ Duplicate primary key  │ Two source records share same PK value  │
+  │                        │ Fix: investigate source data quality;   │
+  │                        │ deduplicate at source                   │
+  ├────────────────────────┼────────────────────────────────────────┤
+  │ File format error      │ CSV/JSON/Parquet file is malformed      │
+  │                        │ Fix: correct file structure, re-ingest  │
+  ├────────────────────────┼────────────────────────────────────────┤
+  │ Connection timeout /   │ Source connection failed                │
+  │ Authentication failure │ Fix: check credentials, Connected App   │
+  └────────────────────────┴────────────────────────────────────────┘
+```
 
 **Content:**
 - **Data type mismatch:** Source field value doesn't match DMO field type (e.g., text in a date field)
@@ -63,7 +127,30 @@
 ---
 
 ### Slide 4: Failed Records Investigation
-**Visual:** A Data Stream job detail page mockup showing a "Failed Records" tab with sample rows, error codes, error messages, and the specific field/value that caused each failure.
+**Visual:**
+```
+  INGESTION JOB DETAIL — S3_Trans_2024-09-16 (Partially Succeeded)
+  ──────────────────────────────────────────────────────────
+  Summary: 9,800 succeeded │ 50 failed
+
+  [ Failed Records Tab ]
+  ──────────────────────────────────────────────────────────
+  Record # │ order_date   │ Error Code │ Error Message
+  ─────────┼──────────────┼────────────┼──────────────────
+  Row 142  │ "Sep-16-2024"│ TYPE_ERR   │ Cannot convert
+           │              │            │ text to Date
+  Row 389  │ "09/16"      │ TYPE_ERR   │ Cannot convert
+           │              │            │ text to Date
+  Row 521  │ NULL         │ REQ_FIELD  │ Required field
+           │              │            │ OrderDate is null
+  ...      │              │            │
+  ──────────────────────────────────────────────────────────
+  [ Download as CSV ] — for bulk investigation
+
+  WORKFLOW: Download → Identify pattern (date format issue)
+  → Fix field mapping formula → Re-run Data Stream manually
+  NOTE: Failed records are NOT automatically retried
+```
 
 **Content:**
 - **Failed Records** tab in Ingestion Job detail shows each rejected record with its error
@@ -78,7 +165,30 @@
 ---
 
 ### Slide 5: Data Quality Rules
-**Visual:** A Data Quality Rule configuration panel showing: Rule Name, Target DMO, Condition (e.g., EmailAddress does not contain "@"), Action (Flag, Reject, or Transform).
+**Visual:**
+```
+  DATA QUALITY RULE CONFIGURATION
+  ──────────────────────────────────────────────────────────
+  Rule Name:    ValidEmailFormat
+  Target DMO:   ContactPointEmail
+  Condition:    EmailAddress does NOT contain "@"
+  Action:       [ Reject ▼ ]
+
+  ─────────────────────────────────────────────────────
+  THREE ACTIONS:
+  ┌──────────────┬──────────────────────────────────────┐
+  │ FLAG         │ Allow ingestion; mark record with     │
+  │              │ data quality indicator for review     │
+  ├──────────────┼──────────────────────────────────────┤
+  │ REJECT       │ Block record from entering DMO        │
+  │              │ → becomes a "failed record"           │
+  ├──────────────┼──────────────────────────────────────┤
+  │ TRANSFORM    │ Auto-correct: trim whitespace,        │
+  │              │ standardize casing, format values     │
+  └──────────────┴──────────────────────────────────────┘
+  DQ Rules reduce downstream IR and segmentation issues
+  Configured per DMO in Data Cloud Setup
+```
 
 **Content:**
 - **Data Quality Rules** allow proactive management of data quality during ingestion
@@ -95,7 +205,30 @@
 ---
 
 ### Slide 6: The Job Scheduler
-**Visual:** A job scheduler timeline diagram showing three job types across a 24-hour period: Data Stream refresh (runs 2 AM), CI refresh (runs 4 AM, after Data Stream), and Segment refresh (runs 6 AM, after CI).
+**Visual:**
+```
+  JOB SCHEDULER — 24-Hour Timeline
+  ──────────────────────────────────────────────────────────
+  2:00 AM ── [1] Data Stream Refresh ──────▶ DMO data updated
+                      │
+                      │ (job chaining — waits for completion)
+                      ▼
+  4:00 AM ── [2] CI Refresh ───────────────▶ CI values updated
+                      │
+                      │ (job chaining — waits for completion)
+                      ▼
+  6:00 AM ── [3] Segment Refresh ──────────▶ Membership updated
+                      │
+                      │ (job chaining — waits for completion)
+                      ▼
+  7:00 AM ── [4] Activation Publish ───────▶ Destinations updated
+
+  WITHOUT chaining: CI might run at 3 AM before Data Stream
+                    completes → CI uses yesterday's data
+
+  Job Scheduler: Setup → Data Cloud → Admin → Job Scheduler
+  Manual trigger available for on-demand runs
+```
 
 **Content:**
 - The **Job Scheduler** controls when Data Streams, CIs, and Segment refreshes run
@@ -111,7 +244,31 @@
 ---
 
 ### Slide 7: Identity Resolution Monitoring
-**Visual:** Identity Resolution status panel showing: Ruleset Name, Last Run Date, Status, Source Individual Records Processed, Match Groups Created, Unified Individuals Created/Updated.
+**Visual:**
+```
+  IDENTITY RESOLUTION — Ruleset Run History
+  ──────────────────────────────────────────────────────────
+  Ruleset: Primary_IR_Ruleset
+  Last Run: 2024-09-16 05:30 AM    Status: ✓ Completed
+  ──────────────────────────────────────────────────────────
+  METRICS:
+  Source Individual Records Processed:     125,400
+  Match Groups Created (this run):           1,240
+  Unified Individuals Created (new):           890
+  Unified Individuals Updated (enriched):    4,320
+  ──────────────────────────────────────────────────────────
+  DIAGNOSTIC SIGNALS:
+  Low match count relative to source records?
+  → Contact Point DMOs may not be fully populated
+  → Check field mapping for email/phone DMOs
+
+  Unusually HIGH match count?
+  → Fuzzy match threshold may be too permissive
+  → Review match groups; increase threshold
+
+  Unified Individual count DECREASING?
+  → Possible IR configuration change — investigate
+```
 
 **Content:**
 - The **Identity Resolution** section in Admin UI shows ruleset run history
@@ -129,7 +286,27 @@
 ---
 
 ### Slide 8: Monitoring Best Practices
-**Visual:** A monitoring dashboard mockup with key metrics highlighted: Last successful ingestion run, CI last refresh time, segment last refresh time, Unified Individual count trend, and error rate chart.
+**Visual:**
+```
+  MONITORING DASHBOARD — Key Metrics to Track Daily
+  ──────────────────────────────────────────────────────────
+  ┌────────────────────────────────────────────────────────┐
+  │  Last successful ingestion:    2024-09-16 02:00 AM ✓   │
+  │  CI last refresh time:         2024-09-16 04:15 AM ✓   │
+  │  Segment last refresh time:    2024-09-16 06:30 AM ✓   │
+  │  Unified Individual count:     284,500 (▲ +1,200)      │
+  │  Error rate (7-day avg):       0.03%  (▲ slight rise)  │
+  └────────────────────────────────────────────────────────┘
+
+  PROACTIVE MONITORING PRACTICES:
+  • Set up daily ingestion job status checks
+  • Track DMO record counts — sudden drops signal issues
+  • Monitor Unified Individual trends (unexpected drops)
+  • Alert on failed jobs (Salesforce Flow or scheduled reports)
+  • Document BASELINE counts so anomalies are visible
+  • Test after ANY configuration change — manually run streams
+  • Review error rate trends weekly (slow rise = source degradation)
+```
 
 **Content:**
 - **Set up scheduled monitoring:** Check ingestion job status daily, not just when problems are reported

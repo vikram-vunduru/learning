@@ -51,7 +51,32 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 4: What Is RAG? — Retrieval-Augmented Generation
-**Visual:** The acronym RAG broken out: R = Retrieval (finding relevant docs), A = Augmented (adding them to the prompt), G = Generation (LLM creates the response)
+**Visual:**
+```
+   RAG — Retrieval-Augmented Generation
+
+   ┌────────────────────────────────────────────────────────────┐
+   │                                                            │
+   │   R  RETRIEVAL                                             │
+   │      Before generating, FIND relevant documents/data      │
+   │      from a knowledge base or data store                  │
+   │      Tool: Vector search, keyword search, SQL query        │
+   │                                                            │
+   │                  +                                         │
+   │                                                            │
+   │   A  AUGMENTED                                             │
+   │      ADD the retrieved context TO the prompt              │
+   │      The LLM now has both the question AND relevant facts  │
+   │      This is the "augmentation" of the original prompt    │
+   │                                                            │
+   │                  +                                         │
+   │                                                            │
+   │   G  GENERATION                                            │
+   │      LLM GENERATES a response GROUNDED in the             │
+   │      retrieved context → accurate, factual, specific      │
+   │                                                            │
+   └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - RAG = Retrieval-Augmented Generation
 - A technique where relevant documents or data are retrieved and added to the prompt before the LLM generates a response
@@ -85,7 +110,32 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 7: RAG Step 3 — Augmenting the Prompt
-**Visual:** A prompt being assembled — the user's original question on top, then a section labeled "Context from Salesforce" showing the retrieved records below it, all going into the LLM together
+**Visual:**
+```
+   PROMPT AUGMENTATION — Before and After
+
+   ORIGINAL PROMPT (no augmentation):
+   ┌─────────────────────────────────────────────────────────┐
+   │ "What should I say to the customer about their case?"   │
+   └─────────────────────────────────────────────────────────┘
+   Problem: LLM has no customer context → generic answer
+
+   ─────────────────────────────────────────────────────────
+
+   AUGMENTED PROMPT (with retrieved context):
+   ┌─────────────────────────────────────────────────────────┐
+   │ SYSTEM: You are a helpful Salesforce service assistant. │
+   │                                                         │
+   │ CONTEXT (retrieved from CRM):                           │
+   │ Customer: Acme Corp (VIP, $500K ARR)                    │
+   │ Open Case #00123: Login issue, open 3 days              │
+   │ Last contact: Email on Monday — no resolution           │
+   │ Priority: High                                          │
+   │                                                         │
+   │ USER: "What should I say to the customer about case?"  │
+   └─────────────────────────────────────────────────────────┘
+   Result: LLM generates specific, context-aware response
+```
 **Content:**
 - The retrieved documents are combined with the original user query into an enriched prompt
 - Structure: "[Retrieved context] + [User's original question]"
@@ -107,7 +157,25 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 9: Why RAG Reduces Hallucination
-**Visual:** Two-column comparison — left column "LLM Without RAG" with uncertain, vague answers; right column "LLM With RAG" with specific, data-backed answers
+**Visual:**
+```
+   RAG vs. NO-RAG COMPARISON
+
+   ┌────────────────────────────────┬────────────────────────────────┐
+   │         WITHOUT RAG            │          WITH RAG              │
+   ├────────────────────────────────┼────────────────────────────────┤
+   │ LLM answers from training only │ LLM answers from retrieved data│
+   │ Knowledge cutoff applies       │ Always current (live data)     │
+   │ May hallucinate specifics      │ Grounded in verified facts     │
+   │ Generic responses              │ Personalized, specific answers │
+   │ No access to private data      │ Can access private CRM data    │
+   │ No audit trail for sources     │ Sources are traceable          │
+   ├────────────────────────────────┼────────────────────────────────┤
+   │ "Your account has standard     │ "Your Acme Corp account has    │
+   │  features..." (generic)        │  3 open cases, VIP status,     │
+   │                                │  renewal in 22 days..." (real) │
+   └────────────────────────────────┴────────────────────────────────┘
+```
 **Content:**
 - Without RAG: the LLM must generate answers from training memory — when it doesn't know, it guesses
 - With RAG: the LLM is reading real facts from the retrieved context — it generates based on what's actually there
@@ -118,7 +186,30 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 10: Vector Databases and Embeddings — How Retrieval Really Works
-**Visual:** A 3D space with dots (documents) clustered by similarity — "pricing objections" dot is close to "budget concerns" dot; "renewal strategies" dot is close to "close tactics" dot; "weather in Paris" dot is far from all of them
+**Visual:**
+```
+   VECTOR DATABASE — Semantic Similarity Storage
+
+   Conceptual 2D representation of meaning-space:
+
+        "refund"●               "cancellation"●
+                 ╲             /
+                  ╲           /
+        "return" ● ╲─────────/ ● "subscription end"
+                    ╲       /
+                     ╲     /
+              "billing dispute" ●
+
+                                     far away:
+                                     "product launch" ●
+                                     "hiring manager" ●
+
+   ● Similar concepts cluster together in vector space
+   ● Vector DB stores these embeddings + original documents
+   ● Query: "I want my money back" → finds "refund", "return"
+     cluster → retrieves those knowledge articles
+   ● Enables semantic search: meaning matches, not just keywords
+```
 **Content:**
 - Simple keyword search fails: "customer health" won't find articles about "account wellness score"
 - Embeddings: a mathematical representation of text as a list of numbers (a vector)
@@ -165,7 +256,29 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 14: RAG vs. Fine-Tuning — Two Ways to Customize an LLM
-**Visual:** Two-path diagram — left path: "RAG" (give model context at query time); right path: "Fine-tuning" (bake custom knowledge into the model's weights)
+**Visual:**
+```
+   RAG vs. FINE-TUNING — Two Approaches to Custom AI
+
+   ┌──────────────────────────────┬──────────────────────────────┐
+   │           RAG                │         FINE-TUNING          │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ Retrieve external data at    │ Retrain model weights on     │
+   │ inference time               │ custom dataset               │
+   │                              │                              │
+   │ ● No model retraining needed │ ● Model weights change       │
+   │ ● Data stays current         │ ● Expensive to run           │
+   │ ● Easy to update knowledge   │ ● Knowledge is static        │
+   │ ● Lower compute cost         │ ● Requires ML expertise      │
+   │ ● Traceable sources          │ ● No source attribution      │
+   │                              │                              │
+   │ Best for: Live CRM data,     │ Best for: Domain tone,       │
+   │ knowledge articles, docs     │ style, specialized vocab     │
+   │                              │                              │
+   │ Salesforce choice: RAG via   │ Salesforce xGen: fine-tuned  │
+   │ Data Cloud + Prompt Builder  │ for CRM-specific tasks       │
+   └──────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 - Fine-tuning = retraining the LLM itself with your specific data so it learns it permanently
 - RAG = giving the LLM relevant context at query time — the model itself doesn't change
@@ -177,7 +290,37 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 15: Recap — The Complete RAG Picture
-**Visual:** The full RAG pipeline diagram from query to response, with Salesforce components labeled at each step
+**Visual:**
+```
+   COMPLETE RAG PIPELINE IN SALESFORCE
+
+   ┌─────────┐   ┌──────────────┐   ┌──────────────────────────────────────┐
+   │  USER   │   │  AGENTFORCE  │   │        EINSTEIN TRUST LAYER          │
+   │         │   │  or Prompt   │   │                                      │
+   │ "What's │──▶│  Builder     │──▶│  1. MASK: Scrub PII from context     │
+   │ best    │   │              │   │          │                            │
+   │ next    │   │              │   │          ▼                            │
+   │ action  │   │              │   │  2. RETRIEVE: Query Data Cloud /      │
+   │ for     │   │              │   │     Knowledge Base via vector search  │
+   │ Acme?"  │   │              │   │          │                            │
+   └─────────┘   └──────────────┘   │          ▼                            │
+                                    │  3. AUGMENT: Add retrieved context   │
+                                    │     to prompt                         │
+                                    │          │                            │
+                                    │          ▼                            │
+                                    │  4. GENERATE: LLM creates response   │
+                                    │     grounded in real data             │
+                                    │          │                            │
+                                    │          ▼                            │
+                                    │  5. FILTER: Toxicity check           │
+                                    │          │                            │
+                                    │          ▼                            │
+                                    │  6. LOG: Audit trail recorded        │
+                                    └──────────────────────────────────────┘
+                                               │
+                                               ▼
+                                    Grounded, accurate response → User
+```
 **Content:**
 1. User asks a question in Salesforce (Einstein Copilot, Agentforce, etc.)
 2. Query is processed and key information needs are identified

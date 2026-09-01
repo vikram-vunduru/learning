@@ -9,7 +9,21 @@
 ## Slides
 
 ### Slide 1: Relationship Queries — Child-to-Parent
-**Visual:** Entity diagram showing Contact linked to Account with a foreign key (AccountId), and below it a SOQL query traversing from Contact to Account using dot notation, with arrows showing how `Contact.Account.Name` traverses the relationship.
+**Visual:**
+```
+  CHILD-TO-PARENT (dot notation)
+  ┌─────────────────────────────────────────────────────┐
+  │ SELECT Id, LastName,                                │
+  │   Account.Name,        ◀── dot notation             │
+  │   Account.Industry                                  │
+  │ FROM Contact                                        │
+  │ WHERE Account.Industry = 'Technology'               │
+  └─────────────────────────────────────────────────────┘
+         Contact.Account  ← use relationship name (singular)
+
+  Custom lookup: My_Account__c field → traverse as My_Account__r.Name
+                                                         ↑ __r not __c
+```
 **Content:**
 - Access parent record fields using dot notation: `ParentRelationshipName.Field`
 - Standard relationship names for lookups: object name without "__c" (e.g., `Account`, `Owner`)
@@ -24,7 +38,20 @@ WHERE Account.Industry = 'Technology'
 **Speaker Notes:** The dot notation traversal is how you get fields from parent records in SOQL without a JOIN. The key is knowing the relationship name — for standard objects it is typically the object name, but for custom lookup fields you replace `__c` with `__r`. You can traverse up to 5 levels deep, but anything beyond 2-3 levels becomes complex to maintain.
 
 ### Slide 2: Relationship Queries — Parent-to-Child (Subquery)
-**Visual:** Diagram showing an Account record in the center with a list of related Contact records below it, and the corresponding SOQL showing the subquery in parentheses with the relationship name (Contacts) in the SELECT clause.
+**Visual:**
+```
+  PARENT-TO-CHILD (child records in subquery)
+  ┌─────────────────────────────────────────────────────┐
+  │ SELECT Id, Name,                                    │
+  │   (SELECT Id, LastName FROM Contacts)  ◀── subquery │
+  │ FROM Account                                        │
+  │ WHERE Industry = 'Technology'                       │
+  └─────────────────────────────────────────────────────┘
+         Account.Contacts  ← use relationship name (plural)
+
+  In Apex, access child records:
+    for (Contact c : account.Contacts) { ... }
+```
 **Content:**
 - Query related child records using a **subquery** in the SELECT clause
 - Uses the **relationship plural name** (e.g., `Contacts`, `Opportunities`)

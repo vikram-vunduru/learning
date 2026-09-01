@@ -11,7 +11,29 @@
 ## Slides
 
 ### Slide 1: Data Cloud Governance Overview
-**Visual:** A governance hierarchy diagram showing: at top "Salesforce Org" → below it "Data Cloud Instance" → below that two boxes labeled "Default Data Space" and "Custom Data Space (Marketing)" with different data sets and user groups in each.
+**Visual:**
+```
+  GOVERNANCE HIERARCHY
+  ──────────────────────────────────────────────────────────
+  ┌──────────────────────────────────────────────────────┐
+  │              SALESFORCE ORG                          │
+  │  Profiles, Permission Sets (foundation access)       │
+  │  ┌────────────────────────────────────────────────┐  │
+  │  │           DATA CLOUD INSTANCE                  │  │
+  │  │  Data Cloud Permission Sets (feature access)   │  │
+  │  │  ┌─────────────────┐  ┌─────────────────────┐  │  │
+  │  │  │  DEFAULT DATA   │  │  CUSTOM DATA SPACE  │  │  │
+  │  │  │  SPACE          │  │  (e.g., Marketing)  │  │  │
+  │  │  │  All users       │  │  Marketing team     │  │  │
+  │  │  │  see this        │  │  only               │  │  │
+  │  │  └─────────────────┘  └─────────────────────┘  │  │
+  │  └────────────────────────────────────────────────┘  │
+  └──────────────────────────────────────────────────────┘
+
+  Layer 1: Profile → can user access Data Cloud at all?
+  Layer 2: Permission Sets → what features can they use?
+  Layer 3: Data Spaces → what data objects can they see?
+```
 
 **Content:**
 - Data Cloud governance controls **who can see and work with what data**
@@ -27,7 +49,32 @@
 ---
 
 ### Slide 2: Data Spaces
-**Visual:** A Data Cloud org diagram showing two data spaces: "Default Data Space" (containing Sales Cloud Data Streams and CRM segments) and "Marketing Data Space" (containing MC Data Streams and marketing-specific segments). User icons showing that different user groups have access to different spaces.
+**Visual:**
+```
+  DATA CLOUD INSTANCE
+  ──────────────────────────────────────────────────────────
+  ┌────────────────────────────────────────────────────────┐
+  │  DEFAULT DATA SPACE                                    │
+  │  ─────────────────────────────────────────────────     │
+  │  Sales Cloud Data Streams  │  CRM Segments             │
+  │  (All users with DC access can see these)              │
+  └────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────┐
+  │  MARKETING DATA SPACE (custom)                         │
+  │  ─────────────────────────────────────────────────     │
+  │  MC Data Streams  │  Marketing Segments                │
+  │  Marketing-specific Activation Targets                 │
+  │  (Only Marketing team permission set users)            │
+  └────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────┐
+  │  FINANCE DATA SPACE (custom)                           │
+  │  ─────────────────────────────────────────────────     │
+  │  Revenue Data Streams  │  Finance Analytics Segments   │
+  │  (Only Finance analysts — NOT visible to Marketing)    │
+  └────────────────────────────────────────────────────────┘
+  NOTE: Data Spaces are LOGICAL — not physical separation
+        All data is in the same Data Cloud instance
+```
 
 **Content:**
 - A **Data Space** is a logical partition within a Data Cloud instance
@@ -43,7 +90,28 @@
 ---
 
 ### Slide 3: Data Cloud Permission Sets
-**Visual:** A table with three permission set names in the left column and their descriptions/access levels in the right column.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────┐
+  │ PERMISSION SET              │ ACCESS LEVEL               │
+  ├──────────────────────────────┼────────────────────────────┤
+  │ Data Cloud Admin             │ Full: Data Streams, DMOs,  │
+  │                              │ IR, ATs, Segments, Settings│
+  ├──────────────────────────────┼────────────────────────────┤
+  │ Data Cloud Data Aware        │ Build/manage: Segments,    │
+  │ Specialist                   │ CIs, Activation Targets    │
+  │                              │ Cannot: configure Data     │
+  │                              │ Streams or system config   │
+  ├──────────────────────────────┼────────────────────────────┤
+  │ Data Cloud Marketing         │ Read-only: Segments and    │
+  │ Specialist                   │ activations (reporting)    │
+  ├──────────────────────────────┼────────────────────────────┤
+  │ Data Cloud for Marketing     │ MC Connector integration   │
+  │ Cloud                        │ user (bidirectional)       │
+  └──────────────────────────────┴────────────────────────────┘
+  Permission sets are EXPLICITLY ASSIGNED — not automatic
+  Multiple sets can be combined for specific role needs
+```
 
 **Content:**
 - **Data Cloud Admin:** Full access to all Data Cloud configuration — Data Streams, DMOs, Identity Resolution, Activation Targets, Segments, Settings
@@ -58,7 +126,31 @@
 ---
 
 ### Slide 4: Profile Permissions for Data Cloud
-**Visual:** Salesforce Setup UI mockup showing a Profile edit screen with Data Cloud-specific object permissions checked (Read, Create, Edit, Delete for Data Stream objects).
+**Visual:**
+```
+  PROFILE PERMISSION LAYERS FOR DATA CLOUD ACCESS
+  ──────────────────────────────────────────────────────────
+  LAYER 1: Profile — App & Object Access
+  ┌──────────────────────────────────────────────────────┐
+  │ App Visibility: [✓] Data Cloud                       │
+  │ Object Permissions:                                  │
+  │   Data Stream:      [R] [C] [E] [D]                  │
+  │   Segment:          [R] [C] [E] [D]                  │
+  │   Activation Target:[R] [C] [E] [D]                  │
+  │   Calculated Insight:[R] [C] [E] [D]                 │
+  └──────────────────────────────────────────────────────┘
+  System Administrator profile: full access by default
+
+  LAYER 2: Data Cloud Permission Sets (additive)
+  ┌──────────────────────────────────────────────────────┐
+  │ Data Cloud Admin / Data Aware Specialist / etc.      │
+  │ Grants DC-specific feature access on top of profile  │
+  └──────────────────────────────────────────────────────┘
+
+  TROUBLESHOOT ACCESS: Profile first → Permission Sets → Data Space
+  If user sees DC app but can't create segments:
+  → Check Data Cloud permission set is assigned
+```
 
 **Content:**
 - Standard Salesforce **profile object permissions** apply to Data Cloud objects
@@ -74,7 +166,29 @@
 ---
 
 ### Slide 5: Access Control for Data Streams
-**Visual:** A Data Stream detail page showing an "Access" tab with a list of user groups and Data Spaces that have access to this Data Stream.
+**Visual:**
+```
+  DATA STREAM ACCESS CONTROL
+  ──────────────────────────────────────────────────────────
+  Data Stream: Revenue_Transactions__dlm (sensitive)
+  ┌──────────────────────────────────────────────────────┐
+  │ Data Space:   [ Finance Data Space          ]        │
+  │ Access:       [ Finance Analysts group      ]        │
+  │               [ Finance Data Space members  ]        │
+  └──────────────────────────────────────────────────────┘
+  Marketing Analyst user:
+  → Has Data Aware Specialist permission set ✓
+  → Does NOT have Finance Data Space access ✗
+  → CANNOT see Revenue_Transactions__dlm
+  → CANNOT see segments built from it
+
+  Finance Analyst user:
+  → Has Data Aware Specialist permission set ✓
+  → HAS Finance Data Space access ✓
+  → CAN see and work with Revenue_Transactions__dlm
+
+  Admin user: can access ALL Data Streams regardless of Data Space
+```
 
 **Content:**
 - Data Streams can have **access control** configured to restrict which users can view/edit them
@@ -89,7 +203,32 @@
 ---
 
 ### Slide 6: Segment and Activation Target Access Control
-**Visual:** Segment setup panel showing an Access section with "Data Space" assignment and "Sharing" settings.
+**Visual:**
+```
+  SEGMENT ACCESS CONTROL
+  ──────────────────────────────────────────────────────────
+  ┌────────────────────────────────────────────────────────┐
+  │  Segment: High_Value_Finance_Customers                 │
+  │  ────────────────────────────────────                  │
+  │  Data Space: [ Finance Data Space ]                    │
+  │  Owner:      [finance.analyst@co.com]                  │
+  │  Sharing:    [Finance Team — View/Edit]                │
+  └────────────────────────────────────────────────────────┘
+  Marketing Analyst: CANNOT see this segment (wrong space)
+
+  ACTIVATION TARGET ACCESS (high privilege action):
+  ┌────────────────────────────────────────────────────────┐
+  │  Creating new Activation Targets = Data Cloud Admin    │
+  │  ONLY — prevents unauthorized data egress to external  │
+  │  systems                                               │
+  │                                                        │
+  │  Why: Activation Targets connect Data Cloud to         │
+  │  external systems; creating one means customer data    │
+  │  can leave the org                                     │
+  └────────────────────────────────────────────────────────┘
+  BEST PRACTICE: Test segments in separate Data Space from
+                 production segments
+```
 
 **Content:**
 - Segments can be assigned to specific **Data Spaces** to restrict visibility
@@ -105,7 +244,30 @@
 ---
 
 ### Slide 7: Sharing Rules & Record-Level Security
-**Visual:** A comparison diagram showing two access models: "Data Space-based access (Data Cloud)" vs. "Sharing Rules-based access (Salesforce CRM)." Arrows showing they both restrict who can see specific records.
+**Visual:**
+```
+  ACCESS CONTROL COMPARISON
+  ──────────────────────────────────────────────────────────
+  ┌────────────────────────────┐  ┌────────────────────────┐
+  │  SALESFORCE CRM            │  │  DATA CLOUD            │
+  │  (Standard sharing model)  │  │  (Data Space model)    │
+  ├────────────────────────────┤  ├────────────────────────┤
+  │  Sharing Rules             │  │  Data Space assignment │
+  │  OWD (Org-Wide Defaults)   │  │  + Permission Sets     │
+  │  Role Hierarchy            │  │                        │
+  │  Manual Sharing            │  │                        │
+  ├────────────────────────────┤  ├────────────────────────┤
+  │  Controls: Account,        │  │  Controls: Data Stream,│
+  │  Contact, Opportunity      │  │  Segment, AT, CI,      │
+  │  record visibility         │  │  DMO access            │
+  └────────────────────────────┘  └────────────────────────┘
+
+  NOTE: Standard Salesforce sharing rules DO NOT control
+        DMO record-level access in Data Cloud.
+        Use Data Spaces + Permission Sets for DC governance.
+        Standard sharing applies to Salesforce UI WRAPPER
+        objects (e.g., Segment object in CRM layer).
+```
 
 **Content:**
 - Salesforce's standard **sharing rules** apply to some Data Cloud UI objects
@@ -120,7 +282,28 @@
 ---
 
 ### Slide 8: Governance Best Practices
-**Visual:** A six-item governance checklist with checkboxes.
+**Visual:**
+```
+  DATA GOVERNANCE CHECKLIST
+  ──────────────────────────────────────────────────────────
+  ✅  Create separate Data Spaces for dev/test and production
+      (prevents accidental activation of test segments)
+
+  ✅  Apply least-privilege permission sets
+      (don't assign Data Cloud Admin to all users)
+
+  ✅  Assign PII-containing Data Streams to restricted
+      Data Spaces accessible only to authorized roles
+
+  ✅  Restrict Activation Target creation to Data Cloud Admin
+      (unauthorized activation = data egress risk)
+
+  ✅  Review and audit permission set assignments quarterly
+      (departures, role changes may leave excess permissions)
+
+  ✅  Document Data Space design decisions with business
+      justification for each space created
+```
 
 **Content:**
 - ✅ Use separate Data Spaces for development/testing and production data

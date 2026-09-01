@@ -17,7 +17,28 @@ By the end of this lecture, students will be able to:
 ## SLIDES
 
 ### Slide 1: Why Machine Learning Types Matter
-**Visual:** Three branching paths from a central "Machine Learning" node
+**Visual:**
+```
+                    ┌─────────────────────────────┐
+                    │    MACHINE LEARNING TYPES    │
+                    └──────────────┬──────────────┘
+                                   │
+          ┌────────────────────────┼───────────────────────┐
+          │                        │                       │
+          ▼                        ▼                       ▼
+┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│  SUPERVISED      │    │  UNSUPERVISED    │    │  REINFORCEMENT   │
+│  LEARNING        │    │  LEARNING        │    │  LEARNING        │
+│                  │    │                  │    │                  │
+│ Labeled data     │    │ Unlabeled data   │    │ Trial & reward   │
+│ Known outcomes   │    │ Find patterns    │    │ Agent + Env.     │
+│                  │    │                  │    │                  │
+│ ● Classification │    │ ● Clustering     │    │ ● Game playing   │
+│ ● Regression     │    │ ● Dimensionality │    │ ● Robotics       │
+│                  │    │   reduction      │    │ ● Optimization   │
+│ Ex: Lead Scoring │    │ Ex: Segmentation │    │ Ex: Ad bidding   │
+└──────────────────┘    └──────────────────┘    └──────────────────┘
+```
 **Content:**
 - Machine learning is not one technique — it's a family of approaches
 - The approach you use depends on: what data you have, what problem you're solving
@@ -28,7 +49,20 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 2: The Big Picture — What All Three Have in Common
-**Visual:** Simple diagram showing Data → Learning Algorithm → Model → Prediction
+**Visual:**
+```
+┌───────────────┐     ┌───────────────┐     ┌───────────────┐     ┌───────────────┐
+│  TRAINING     │     │   LEARNING    │     │   TRAINED     │     │  PREDICTION   │
+│  DATA         │────▶│   PROCESS     │────▶│   MODEL       │────▶│   OUTPUT      │
+│               │     │               │     │               │     │               │
+│ Historical    │     │ Algorithm     │     │ Encoded       │     │ Score /       │
+│ records with  │     │ finds         │     │ patterns &    │     │ Classification│
+│ known outcomes│     │ patterns      │     │ relationships │     │ / Forecast    │
+│               │     │               │     │               │     │               │
+│ Ex: Past leads│     │ Ex: Decision  │     │ Ex: Einstein  │     │ Ex: Lead is   │
+│ that converted│     │ tree training │     │ Lead Model    │     │ 78% likely    │
+└───────────────┘     └───────────────┘     └───────────────┘     └───────────────┘
+```
 **Content:**
 - All three types of ML involve an algorithm that learns from data
 - The difference is in the TYPE of data and the TYPE of feedback the algorithm gets
@@ -81,7 +115,31 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 6: Supervised Learning — Two Sub-Types
-**Visual:** Fork in the road — one path labeled "Classification," one labeled "Regression"
+**Visual:**
+```
+                     ┌─────────────────────┐
+                     │  SUPERVISED LEARNING │
+                     └──────────┬──────────┘
+                                │
+                                │  What type of output?
+                    ┌───────────┴───────────┐
+                    │                       │
+                    ▼                       ▼
+         ┌──────────────────┐    ┌──────────────────┐
+         │  CLASSIFICATION  │    │   REGRESSION     │
+         │                  │    │                  │
+         │ Discrete category│    │ Continuous value │
+         │ output           │    │ output           │
+         │                  │    │                  │
+         │ "Which bucket    │    │ "How much /      │
+         │  does this       │    │  how many?"      │
+         │  belong to?"     │    │                  │
+         │                  │    │                  │
+         │ ● Spam / Not     │    │ ● Deal amount    │
+         │ ● Won / Lost     │    │ ● Churn date     │
+         │ ● Case category  │    │ ● Revenue fcst   │
+         └──────────────────┘    └──────────────────┘
+```
 **Content:**
 - **Classification:** Predicting a category — yes/no, which group, which label
   - Examples: Will lead convert? (yes/no), Which support queue? (billing, technical, returns)
@@ -135,7 +193,26 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 10: Reinforcement Learning — The Concept
-**Visual:** A simple maze with a character trying different paths, getting rewards (+) and penalties (-)
+**Visual:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│              REINFORCEMENT LEARNING MODEL                   │
+│                                                             │
+│   ┌─────────┐    observe state     ┌─────────────────┐     │
+│   │         │◄─────────────────────│                 │     │
+│   │  AGENT  │                      │  ENVIRONMENT    │     │
+│   │         │─────── action ──────▶│                 │     │
+│   │ (learns │                      │ (world / game / │     │
+│   │ policy) │◄── reward / penalty──│  system)        │     │
+│   └─────────┘                      └─────────────────┘     │
+│                                                             │
+│   reward: +10 ● correct action    penalty: -5 ● wrong move │
+│                                                             │
+│   Goal: Maximize cumulative reward over time                │
+│                                                             │
+│   Examples: Chess AI, ad bidding, robot navigation          │
+└─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Definition: An agent learns by taking actions in an environment and receiving rewards or penalties
 - No pre-labeled training data — the agent learns through trial and error
@@ -176,7 +253,26 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 13: Side-by-Side Comparison (Exam Cheat Sheet)
-**Visual:** Three-column comparison table
+**Visual:**
+```
+┌──────────────────┬──────────────────────┬──────────────────────┐
+│                  │   SUPERVISED         │   UNSUPERVISED       │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Data type        │ Labeled (w/ answers) │ Unlabeled (no ans.)  │
+│ Goal             │ Learn label→prediction│ Find hidden patterns │
+│ Output           │ Prediction/class     │ Clusters/structure   │
+│ Human input      │ High (must label)    │ Low                  │
+│ Salesforce ex.   │ Lead Scoring         │ Customer Segments    │
+│ Algorithm ex.    │ Decision Tree, SVM   │ K-Means, PCA         │
+└──────────────────┴──────────────────────┴──────────────────────┘
+
+               + REINFORCEMENT LEARNING (3rd type)
+┌──────────────────────────────────────────────────────────────┐
+│  Data: Trial & error + reward signals                        │
+│  Goal: Learn optimal sequence of actions to maximize reward  │
+│  Example: Game-playing AI, recommendation optimization       │
+└──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 
 | | Supervised | Unsupervised | Reinforcement |
@@ -192,7 +288,31 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 14: How to Crack Scenario Questions on the Exam
-**Visual:** Decision flowchart
+**Visual:**
+```
+                     START: What kind of data do you have?
+                                      │
+                     ┌────────────────┴──────────────────┐
+                     │                                   │
+              LABELED DATA                         UNLABELED DATA
+            (known outcomes)                      (no labels)
+                     │                                   │
+                     ▼                                   ▼
+          SUPERVISED LEARNING               UNSUPERVISED LEARNING
+                     │                      ● Clustering (segments)
+     ┌───────────────┴───────────┐          ● Anomaly detection
+     │                           │
+     ▼                           ▼
+CLASSIFICATION               REGRESSION
+(discrete output)            (continuous output)
+● Win / Lose                 ● Revenue forecast
+● Category / Type            ● Score (0-100)
+● Spam / Not Spam            ● Close date prediction
+
+      Also consider: REINFORCEMENT LEARNING
+      ● When agent learns via trial & error in an environment
+      ● Rewards guide behavior: +correct action, -wrong action
+```
 **Content:**
 - Step 1: Does the scenario mention training on examples WITH known outcomes (labeled data)?
   - YES → Supervised Learning

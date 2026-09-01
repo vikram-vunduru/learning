@@ -10,7 +10,37 @@
 ## Slides
 
 ### Slide 1: Connecting Prompt Builder to Agentforce
-**Visual:** An architecture diagram showing Prompt Builder and Agentforce as two connected platform components. Left: Prompt Builder (template editor, test panel, template library). Right: Agentforce (agent Topics, Actions configuration). A bridge labeled "Prompt Template Action" connects them. Data flow: Agent conversation context → Atlas reasons → invokes Prompt Template Action → Prompt Builder template runs → generated text returned → Atlas composes response. Einstein Trust Layer wraps the entire diagram.
+**Visual:**
+```
+  ┌─────────────────────────┐              ┌──────────────────────────┐
+  │     PROMPT BUILDER      │              │      AGENTFORCE          │
+  │                         │              │                          │
+  │  · Template editor      │              │  · Agent Topics          │
+  │  · Merge fields         │◀── bridge ──▶│  · Actions config        │
+  │  · Test panel           │   (Prompt    │  · Atlas reasoning       │
+  │  · Template library     │   Template   │                          │
+  │                         │   Action)    │                          │
+  └─────────────────────────┘              └──────────────────────────┘
+
+  Data flow when Action is invoked:
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                     EINSTEIN TRUST LAYER                         │
+  │                                                                  │
+  │  Conversation context                                            │
+  │       │                                                          │
+  │       ▼                                                          │
+  │  Atlas decides → invoke Prompt Template Action                   │
+  │       │                                                          │
+  │       ▼                                                          │
+  │  Input values assembled → passed to template as merge fields     │
+  │       │                                                          │
+  │       ▼                                                          │
+  │  Template body resolved → LLM generates text                     │
+  │       │                                                          │
+  │       ▼                                                          │
+  │  Generated text returned → Atlas uses in response               │
+  └──────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Prompt Templates are standalone AI assets — they can be used independently of Agentforce (via Flow, Apex, LWC)
 - When connected to Agentforce as a **Prompt Template Action**, a template becomes something an agent can invoke during a conversation
@@ -20,7 +50,34 @@
 **Speaker Notes:** Understanding why Prompt Template Actions exist is as important as knowing how to configure them. You can do almost everything with a Flex template that you can do in a Flow — but the key advantage is AI generation. A Flow can look up a case and return its status. A Prompt Template Action can look up the case and return a professionally written case escalation email draft tailored to the customer's history. The generation capability is what makes Prompt Template Actions valuable as a distinct action type.
 
 ### Slide 2: When to Use a Prompt Template Action
-**Visual:** A decision matrix with use case categories on the left and action type recommendations across the top. Columns: Flow Action, Apex Action, Knowledge Search, Prompt Template Action. Rows: "Look up a record" (Flow ✓), "Perform a calculation" (Apex ✓), "Answer an FAQ" (Knowledge ✓), "Generate a personalized email" (Prompt Template ✓), "Summarize case history for a customer" (Prompt Template ✓), "Create a new record" (Flow ✓), "Produce a recommendation based on customer data" (Prompt Template ✓), "Search for how-to instructions" (Knowledge ✓).
+**Visual:**
+```
+  ┌────────────────────────────────────────┬──────────┬──────────┬──────────┬──────────┐
+  │  Use Case                              │  Flow    │  Apex    │Knowledge │ Prompt   │
+  │                                        │  Action  │  Action  │  Search  │ Template │
+  ├────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+  │  Look up a record (order status)       │    ✓     │          │          │          │
+  ├────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+  │  Perform a calculation                 │          │    ✓     │          │          │
+  ├────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+  │  Answer an FAQ from articles           │          │          │    ✓     │          │
+  ├────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+  │  Generate a personalized email         │          │          │          │    ✓     │
+  ├────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+  │  Summarize case history for customer   │          │          │          │    ✓     │
+  ├────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+  │  Create a new record                   │    ✓     │          │          │          │
+  ├────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+  │  Produce a recommendation              │          │          │          │    ✓     │
+  ├────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+  │  Search for how-to instructions        │          │          │    ✓     │          │
+  └────────────────────────────────────────┴──────────┴──────────┴──────────┴──────────┘
+
+  Key question: Is the task DETERMINISTIC (same input = same output)
+                or GENERATIVE (requires language synthesis)?
+  Deterministic → Flow or Apex
+  Generative    → Prompt Template Action
+```
 **Content:**
 - Use a Prompt Template Action when the agent needs to **generate AI-authored text** as part of its response
 - Typical use cases for Prompt Template Actions:
@@ -33,7 +90,33 @@
 **Speaker Notes:** The decision framework here is: if the task is about DOING something with data (query, update, create, calculate) → Flow or Apex. If the task is about ANSWERING a specific question from a verified source → Knowledge Search. If the task is about GENERATING new text content based on context → Prompt Template Action. These three categories cover the vast majority of agent action needs. The exam will give you scenarios and ask which action type is most appropriate — use this framework.
 
 ### Slide 3: Configuring a Flex Template for Agent Use
-**Visual:** Prompt Builder configuration panel showing a Flex template being prepared for agent use. Highlighted elements: Template Type = Flex, Input Parameters section showing two custom inputs: {!agentContext} (Text) and {!customerName} (Text). System Prompt: "You are a customer service specialist for Acme Corp. Generate a clear, empathetic response based on the context provided." Template Body: "Customer name: {!customerName}\nContext: {!agentContext}\n\nGenerate a professional response that acknowledges the customer's situation and explains next steps."
+**Visual:**
+```
+  Prompt Builder — Flex Template for Agentforce
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  Template Type: Flex                                             │
+  │  ─────────────────────────────────────────────────────────────  │
+  │  INPUT PARAMETERS (the "interface" between agent and template):  │
+  │  ┌────────────────────────────────────────────────────────────┐  │
+  │  │ customerName  (Text) — "The customer's full name"          │  │
+  │  │ agentContext  (Text) — "The issue details and any data     │  │
+  │  │                         gathered by prior actions"         │  │
+  │  └────────────────────────────────────────────────────────────┘  │
+  │  ─────────────────────────────────────────────────────────────  │
+  │  SYSTEM PROMPT:                                                  │
+  │  "You are a customer service specialist for Acme Corp.          │
+  │   Generate clear, empathetic responses based on context."       │
+  │  ─────────────────────────────────────────────────────────────  │
+  │  TEMPLATE BODY:                                                  │
+  │  "Customer name: {!customerName}                                │
+  │   Context: {!agentContext}                                      │
+  │                                                                  │
+  │   Generate a professional response that acknowledges the        │
+  │   customer's situation and explains next steps clearly."        │
+  └──────────────────────────────────────────────────────────────────┘
+  Input parameter names → Atlas maps values from conversation/prior actions
+```
 **Content:**
 - **Template Type must be Flex** — other template types (Record Summary, Field Generation, Sales Email) cannot be used as Agentforce Actions
 - **Input Parameters** — define the data the template accepts from the agent; these become available as merge fields in the template body
@@ -46,7 +129,33 @@
 **Speaker Notes:** The input parameters are the architectural key to connecting a template to an agent. When Atlas invokes a Prompt Template Action, it passes values to these input parameters from the conversation context — the customer's name, the status retrieved by a previous Flow action, the customer's account tier. The template uses these as merge fields to produce a contextual, personalized generated response. This is why naming input parameters clearly matters — a parameter named `x1` is hard to map in the Action configuration; a parameter named `resolvedIssueDescription` is self-explanatory.
 
 ### Slide 4: Adding a Prompt Template Action to a Topic
-**Visual:** Agentforce Builder showing a Topic (Customer Resolution) with an Action being added. Step-by-step screenshot mockup: (1) Click "Add Action" within the Topic. (2) In the Action type selector, choose "Prompt Template." (3) A template browser shows available Flex templates — select "Customer Response Generator." (4) Input Mapping panel: map agent context to template input parameters. (5) Action Description text area where the developer writes the routing description. (6) Save and Test buttons.
+**Visual:**
+```
+  Agentforce Builder → Agent → Topics → [Topic] → Actions → Add Action
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  Add Action                                                      │
+  │                                                                  │
+  │  STEP 1: Action Type     ● Prompt Template  (select this)       │
+  │          ○ Flow  ○ Apex  ○ Knowledge Search  ○ External API     │
+  │                                                                  │
+  │  STEP 2: Template Browser                                        │
+  │  ┌──────────────────────────────────────────────────────────┐   │
+  │  │  ✓ Customer Response Generator  (Flex, Active)          │   │
+  │  │  ✓ Case Escalation Summary      (Flex, Active)          │   │
+  │  │  ✗ Account Overview             (Field Gen — not shown) │   │
+  │  └──────────────────────────────────────────────────────────┘   │
+  │  Only Active Flex templates appear                               │
+  │                                                                  │
+  │  STEP 3: Input Mapping                                           │
+  │  customerName  ← [Agent extracts from conversation ▼]           │
+  │  agentContext  ← [From prior Action output: Get_Status.result ▼]│
+  │                                                                  │
+  │  STEP 4: Action Description [required — write What/When/Inputs] │
+  │                                                                  │
+  │  [Save]  [Test Action]                                           │
+  └──────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Navigation:** Agentforce Builder → select Agent → Topics → select Topic → Actions → Add Action → Prompt Template
 - Only **Flex templates that are Active** appear in the template browser
@@ -59,7 +168,39 @@
 **Speaker Notes:** The input mapping step is where the "prior action output" pattern becomes particularly powerful. Imagine a Topic with three actions: (1) a Flow Action that retrieves the customer's account status, (2) a Flow Action that retrieves their recent case history, (3) a Prompt Template Action that generates a personalized response. Atlas invokes Action 1, gets the account status, invokes Action 2, gets the case history, then invokes Action 3 with both pieces of data mapped as inputs. The template gets a rich context and generates a response that synthesizes all of it. This multi-step agent pattern is tested on the exam.
 
 ### Slide 5: The Data Flow — Agent to Template and Back
-**Visual:** A detailed data flow diagram for a Prompt Template Action invocation. Start: Customer message "I'm frustrated about my billing issue." Atlas reasoning step: decides to invoke "Generate Empathetic Billing Response" Prompt Template Action. Input mapping: customerName = "John Smith" (from session), billingContext = "Invoice #INV-001, Amount $450, Past Due 15 days" (from prior Flow action output). Template runs: System prompt + body with resolved merge fields → LLM generates 3-paragraph response. Output: generated text string. Atlas receives generated text → incorporates into final response → customer sees empathetic, personalized message.
+**Visual:**
+```
+  Customer: "I'm frustrated about my billing issue."
+         │
+         ▼
+  Atlas decides to invoke "Generate Empathetic Billing Response"
+  Prompt Template Action
+         │
+         ▼
+  Input mapping assembles values:
+  ┌─────────────────────────────────────────────────────┐
+  │  customerName = "John Smith"  (from session context) │
+  │  billingContext = "Invoice #INV-001, $450, 15 days   │
+  │                   past due"   (from prior Flow output)│
+  └─────────────────────────────────────────────────────┘
+         │
+         ▼
+  Template body resolved:
+  "Customer: John Smith | Context: Invoice #INV-001, $450..."
+         │
+         ▼ (through Einstein Trust Layer)
+  LLM generates 3-paragraph empathetic response
+         │
+         ▼
+  Generated text returned to Atlas as Action output
+         │
+         ▼
+  Atlas incorporates generated text into final reply
+         │
+         ▼
+  Customer sees: professionally written, personalized message
+                 (adds ~1–3 seconds vs. simple Flow action)
+```
 **Content:**
 - **Step 1:** Atlas determines a Prompt Template Action is the right tool based on the Action description
 - **Step 2:** Atlas extracts/assembles the input values from conversation context and prior Action outputs
@@ -73,7 +214,33 @@
 **Speaker Notes:** Understanding the complete data flow helps you debug issues when they arise. If the template output is not personalized, check that the input mapping is working — log or preview the inputs that Atlas is actually passing. If the generated text is off-topic, check the system prompt and template body for clarity. If the response is too long, add length constraints to the template body. If the trust layer is rejecting content, check the trust layer logs. Each layer of this stack is independently configurable and debuggable.
 
 ### Slide 6: Writing the Action Description for Prompt Template Actions
-**Visual:** Two Action description examples. Weak: "Generates a response using AI." Strong: "Generates a professionally written, empathetic customer service response based on the customer's name and the issue context. Invoke when the agent has gathered all necessary information about the customer's issue and needs to compose the final response to send to the customer. Requires: customerName (from session or conversation), issueContext (the description of the problem and any resolution details gathered by prior actions). Returns a complete, ready-to-send customer message." Annotations highlight: what it generates (blue), when to invoke (green), required inputs (orange), what it returns (purple).
+**Visual:**
+```
+  WEAK DESCRIPTION  ✗                   STRONG DESCRIPTION  ✓
+  ──────────────────────────────         ─────────────────────────────────────
+  "Generates a response                  "Generates a professionally written,
+   using AI."                             empathetic customer service response
+                                          based on the customer's name and the
+  Problems:                               issue context.
+  ✗ Completely vague
+  ✗ No trigger conditions                 Invoke when the agent has gathered   ◀── When
+  ✗ No input requirements                 all necessary information about the
+  ✗ Atlas may invoke for                  customer's issue and needs to compose
+    ANY message                           the final response to send.
+
+                                          Requires:                            ◀── Inputs
+                                          · customerName (from session or
+                                            conversation)
+                                          · issueContext (description of the
+                                            problem and resolution details
+                                            gathered by prior actions)
+
+                                          Returns a complete, ready-to-send    ◀── Output
+                                          customer message."
+
+  Atlas cannot route                     Atlas routes correctly as a
+  reliably → wrong invocations           final-step response generator
+```
 **Content:**
 - Action descriptions for Prompt Template Actions follow the same structure as all other Action descriptions: What / When / Inputs / Returns
 - **Unique considerations for Prompt Template Actions:**
@@ -85,7 +252,37 @@
 **Speaker Notes:** A common mistake with Prompt Template Action descriptions is being too vague: "generates a response." Atlas might invoke this for almost any customer message if the description does not specify trigger conditions. A better description includes "invoke when the agent has gathered the necessary information" — this positions the template as a final-step generator rather than a first-step action. Think about the workflow: gather data (Flow Actions), then generate the response (Prompt Template Action). The description should reflect that sequence.
 
 ### Slide 7: Flow Action vs Prompt Template Action — Knowing the Difference
-**Visual:** Two scenarios side by side with the correct action type labeled. Scenario 1: "Customer asks what their current plan is" → Flow Action (deterministic lookup, exact plan name from a field). Scenario 2: "Customer asks for an explanation of why their bill increased" → Prompt Template Action (requires AI synthesis of billing data into a natural, personalized explanation). Scenario 3: "Create a case for the issue" → Flow Action (record creation, deterministic). Scenario 4: "Draft a follow-up email summarizing the resolution" → Prompt Template Action (content generation). A decision question: "Is the task deterministic (same input = same output) or generative (requires language synthesis)?"
+**Visual:**
+```
+  SCENARIO 1: "What is my current plan?"
+  ─────────────────────────────────────────
+  Task: Look up specific data (deterministic)
+  Same input ALWAYS = same output
+  Correct action: FLOW ACTION → query Plan field, return value
+
+  SCENARIO 2: "Can you explain why my bill increased?"
+  ─────────────────────────────────────────────────────
+  Task: Synthesize billing data into friendly explanation (generative)
+  Output requires language composition and empathy
+  Correct action: PROMPT TEMPLATE ACTION → generate explanation
+
+  SCENARIO 3: "Create a case for my issue"
+  ─────────────────────────────────────────
+  Task: Record creation (deterministic)
+  Same input ALWAYS = same outcome (case created)
+  Correct action: FLOW ACTION → create Case record
+
+  SCENARIO 4: "Draft a follow-up email summarizing our resolution"
+  ─────────────────────────────────────────────────────────────────
+  Task: Content generation (generative)
+  Output requires language, personalization, synthesis
+  Correct action: PROMPT TEMPLATE ACTION → generate email draft
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  DETERMINISTIC (same input = same output) → Flow or Apex     │
+  │  GENERATIVE (requires language synthesis)  → Prompt Template │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 | Task Type | Use Flow/Apex | Use Prompt Template |
 |-----------|--------------|-------------------|
@@ -104,7 +301,38 @@
 **Speaker Notes:** This deterministic vs. generative distinction is the most useful heuristic for choosing between Flow Actions and Prompt Template Actions. "What is the account balance?" is deterministic — there is one correct answer and it should always be the same. "Explain the account balance to the customer in a friendly, easy-to-understand way" is generative — the output requires language synthesis and should be adapted to the customer's context. If you find yourself writing a Flow with a formula that produces a long text response, that is a signal you should be using a Prompt Template Action instead.
 
 ### Slide 8: Multi-Action Patterns with Prompt Templates
-**Visual:** A multi-step Topic workflow diagram. Topic: "Account Resolution." Three sequential Actions with arrows: Action 1 (Flow) — "Get Account Details" → returns accountBalance, planType, accountAge. Action 2 (Flow) — "Get Recent Cases" → returns recentCaseHistory as formatted text. Action 3 (Prompt Template Action) — "Generate Account Summary Response" — receives accountBalance, planType, accountAge, recentCaseHistory as inputs → generates personalized account status explanation. Final output: customer receives comprehensive, personalized response synthesizing all data.
+**Visual:**
+```
+  Topic: Account Resolution
+  ────────────────────────────────────────────────────────────────
+  ┌──────────────────────────────────────────────────────────────┐
+  │  ACTION 1 (Flow)                                             │
+  │  "Get Account Details"                                       │
+  │  Returns: accountBalance, planType, accountAge               │
+  └──────────────────────────┬───────────────────────────────────┘
+                             │ output feeds next action
+                             ▼
+  ┌──────────────────────────────────────────────────────────────┐
+  │  ACTION 2 (Flow)                                             │
+  │  "Get Recent Cases"                                          │
+  │  Returns: recentCaseHistory (formatted text)                 │
+  └──────────────────────────┬───────────────────────────────────┘
+                             │ output feeds next action
+                             ▼
+  ┌──────────────────────────────────────────────────────────────┐
+  │  ACTION 3 (Prompt Template)                                  │
+  │  "Generate Account Summary Response"                         │
+  │  Receives: accountBalance, planType, accountAge,             │
+  │            recentCaseHistory  (all from prior action outputs)│
+  │  Generates: comprehensive, personalized account explanation  │
+  └──────────────────────────┬───────────────────────────────────┘
+                             │
+                             ▼
+  Customer receives: one coherent, personalized response
+  synthesizing all gathered data
+
+  Pattern: Flows gather data → Prompt Template synthesizes
+```
 **Content:**
 - **Multi-Action patterns** combine Flow Actions (data gathering) with Prompt Template Actions (synthesis/generation)
 - Pattern: Get Data → Get More Data → Generate Response

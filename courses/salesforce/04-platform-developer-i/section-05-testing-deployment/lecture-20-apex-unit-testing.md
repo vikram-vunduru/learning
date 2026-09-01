@@ -40,7 +40,21 @@ private class AccountServiceTest {
 ---
 
 ### Slide 3: Test.startTest() and Test.stopTest()
-**Visual:** Timeline diagram showing: code before startTest uses existing governor limit bucket → startTest resets limits → code inside runs in fresh limit context → stopTest flushes async jobs → assertions run
+**Visual:**
+```
+  Test method execution timeline:
+  ┌──────────────────────────────────────────────────────────────┐
+  │ Test data setup      │  fresh context  │ assertions          │
+  │ (uses setup limits)  │                 │ (run after async)   │
+  │                      │                 │                     │
+  │  [existing limit     │                 │                     │
+  │   bucket consumed]   │                 │                     │
+  └──────────────────────┴─────────────────┴─────────────────────┘
+          ↑                      ↑                    ↑
+    Test.startTest()     fresh governor limit    Test.stopTest()
+    resets limits        context inside          forces all async
+                                                 to run sync
+```
 **Content:**
 - `Test.startTest()` creates a **fresh governor limit context** for the code inside
 - `Test.stopTest()` closes that context and **executes all queued async operations** synchronously

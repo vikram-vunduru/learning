@@ -8,7 +8,28 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Are Org-Wide Defaults?
-**Visual:** A funnel diagram showing OWD at the wide top, then Role Hierarchy, Sharing Rules, and Manual Sharing narrowing downward — with the label "OWD sets the FLOOR"
+**Visual:**
+```
+  ┌─────────────────────────────────────────────────────────────┐
+  │              SALESFORCE SHARING MODEL                       │
+  │                 ("OWD sets the FLOOR")                      │
+  ├─────────────────────────────────────────────────────────────┤
+  │                                                             │
+  │   OWD (Org-Wide Defaults)  ──▶  Baseline for ALL users      │
+  │       │  [most restrictive layer]                           │
+  │       ▼                                                     │
+  │   Role Hierarchy  ──▶  Opens access UP the hierarchy        │
+  │       │                                                     │
+  │       ▼                                                     │
+  │   Sharing Rules  ──▶  Extend to peer groups/criteria        │
+  │       │                                                     │
+  │       ▼                                                     │
+  │   Manual Sharing  ──▶  One-off record sharing               │
+  │                                                             │
+  │   ◀──────────────────────────────────────────────────────▶  │
+  │   MORE RESTRICTIVE                          MORE OPEN       │
+  └─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - OWD defines the baseline level of access every user has to every record they do not own
 - It is the most restrictive layer — other tools (Role Hierarchy, Sharing Rules, Manual Sharing) can only OPEN UP access beyond OWD
@@ -16,7 +37,19 @@
 **Speaker Notes:** Think of OWD as the security foundation. Every other sharing mechanism sits on top of it. If OWD says Private, no one sees a record unless something else explicitly grants them access.
 
 ### Slide 2: The Four OWD Settings
-**Visual:** A two-column table with Setting Name on the left and What Users Can Do on the right, color-coded from red (most restrictive) to green (most open)
+**Visual:**
+```
+  ┌──────────────────────────┬────────────────────────────────────┐
+  │  OWD SETTING             │  WHAT USERS CAN DO                 │
+  ├──────────────────────────┼────────────────────────────────────┤
+  │  Private         [●●●●]  │  See & edit ONLY their own records │
+  │  Public Read Only [●●○○] │  View ALL records; edit only own   │
+  │  Public Read/Write [●●●○]│  View AND edit ALL records         │
+  │  Controlled by Parent    │  Inherits master record's OWD      │
+  └──────────────────────────┴────────────────────────────────────┘
+
+  Restrictiveness: Private > Public Read Only > Public Read/Write
+```
 **Content:**
 - **Private** — users see and edit only records they own (most restrictive)
 - **Public Read Only** — users can view all records but edit only their own
@@ -25,7 +58,24 @@
 **Speaker Notes:** Private is the starting recommendation for sensitive objects like Opportunities. Public Read/Write is fine for low-sensitivity objects like Products. Controlled by Parent is automatically set on detail objects in a master-detail relationship and cannot be changed manually.
 
 ### Slide 3: Which Objects Can Be Set to Private?
-**Visual:** A checklist of common Salesforce standard objects with checkmarks or X marks next to each, indicating whether Private is an available option
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────┐
+  │      STANDARD OBJECTS — CAN OWD BE SET TO PRIVATE?        │
+  ├─────────────────────────────┬──────────────────────────────┤
+  │  Object                     │  Private Available?          │
+  ├─────────────────────────────┼──────────────────────────────┤
+  │  Account                    │  ✔  Yes                      │
+  │  Contact                    │  ✔  Yes                      │
+  │  Lead                       │  ✔  Yes                      │
+  │  Opportunity                │  ✔  Yes                      │
+  │  Case                       │  ✔  Yes                      │
+  │  Campaign                   │  ✔  Yes                      │
+  │  Activity (Task / Event)    │  ✘  No Public R/W option     │
+  │  User                       │  ✘  Fixed OWD (cannot change)│
+  │  Custom Objects             │  ✔  All 4 settings available │
+  └─────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 - Account, Contact, Lead, Opportunity, Case, Campaign — can all be set to Private
 - Activity (Task/Event) — OWD is always Controlled by Parent or Private; cannot be Public Read/Write
@@ -34,7 +84,32 @@
 **Speaker Notes:** When you navigate to Setup > Security > Sharing Settings, you will see a table listing every object and its current OWD. Not every object offers all four options — the UI only shows the settings that apply to that object.
 
 ### Slide 4: Controlled by Parent — How It Works
-**Visual:** A master-detail diagram showing an Account (master) linked to a Contact (detail), with an arrow labeled "Contact inherits Account's OWD"
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────┐
+  │              MASTER-DETAIL SHARING               │
+  ├──────────────────────────────────────────────────┤
+  │                                                  │
+  │   ┌───────────────────┐                          │
+  │   │     ACCOUNT       │  ← Master Record         │
+  │   │  (Master Object)  │                          │
+  │   │  OWD = Public     │                          │
+  │   │  Read Only        │                          │
+  │   └─────────┬─────────┘                          │
+  │             │                                    │
+  │             │  Controlled by Parent              │
+  │             │  (Contact inherits Account's OWD)  │
+  │             ▼                                    │
+  │   ┌───────────────────┐                          │
+  │   │     CONTACT       │  ← Detail Record         │
+  │   │  (Detail Object)  │                          │
+  │   │  OWD = Controlled │                          │
+  │   │  by Parent        │                          │
+  │   └───────────────────┘                          │
+  │                                                  │
+  │   Access to Account ──▶ Access to its Contacts   │
+  └──────────────────────────────────────────────────┘
+```
 **Content:**
 - When a detail object is set to Controlled by Parent, the detail record's access mirrors the master record's access
 - A user who can view the Account can view all Contacts on that Account
@@ -43,7 +118,26 @@
 **Speaker Notes:** This setting exists because in a master-detail relationship the detail record has no independent life — it belongs to the master. Granting access to the master automatically grants access to all its detail records. This simplifies administration for tightly coupled objects.
 
 ### Slide 5: OWD Can Only RESTRICT — Never Expand Beyond Profiles
-**Visual:** Two arrows: a large "OWD restricts" arrow pointing down and a "Profiles set maximum access" ceiling line at the top
+**Visual:**
+```
+  ╔══════════════════════════════════════════════════════════╗
+  ║  ─ ─ ─ ─ ─ ─ PROFILE CEILING ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  ║
+  ║          (Maximum access a profile allows)              ║
+  ╠══════════════════════════════════════════════════════════╣
+  ║                                                          ║
+  ║   Role Hierarchy  ──▶  Opens access toward ceiling       ║
+  ║   Sharing Rules   ──▶  Opens access toward ceiling       ║
+  ║   Manual Sharing  ──▶  Opens access toward ceiling       ║
+  ║                                                          ║
+  ║       ▲  (tools open access UP from OWD floor)           ║
+  ║       │                                                  ║
+  ╠══════════════════════════════════════════════════════════╣
+  ║  ═ ═ ═ ═ ═ ═ ═ OWD FLOOR ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═  ║
+  ║     (Minimum default — OWD restricts DOWN to here)      ║
+  ╚══════════════════════════════════════════════════════════╝
+
+  OWD restricts ▼                  Sharing tools open up ▲
+```
 **Content:**
 - OWD sets the minimum access floor — no user gets less access than their profile allows, but OWD can lower the default
 - If a profile grants Read access to Opportunities, OWD Private still means a user only sees their own Opportunities by default
@@ -52,7 +146,27 @@
 **Speaker Notes:** This is one of the most tested concepts on the exam. OWD and profiles work together but in opposite directions. Profiles set the ceiling; OWD sets the floor. Everything in between is managed by the sharing tools.
 
 ### Slide 6: Where to Configure OWD in Salesforce
-**Visual:** Screenshot-style mockup showing the path: Setup > Security > Sharing Settings, with the Default Access column highlighted in the Organization-Wide Defaults table
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │  SETUP NAVIGATION PATH                                       │
+  │  Setup ──▶ Security ──▶ Sharing Settings                     │
+  ├──────────────────────────────────────────────────────────────┤
+  │                                                              │
+  │  ORGANIZATION-WIDE DEFAULTS                                  │
+  │  ┌──────────────┬──────────────────┬──────────────────────┐  │
+  │  │  Object      │  Internal Access │  External Access     │  │
+  │  ├──────────────┼──────────────────┼──────────────────────┤  │
+  │  │  Account     │  Private         │  Private             │  │
+  │  │  Contact     │  Controlled by   │  Private             │  │
+  │  │              │  Parent          │                      │  │
+  │  │  Opportunity │  Private    ◄══  │  Private    ◄══      │  │
+  │  │  Case        │  Private         │  Private             │  │
+  │  └──────────────┴──────────────────┴──────────────────────┘  │
+  │                            ▲ Default Access column           │
+  │                        [Edit] button to change settings      │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Navigate to **Setup > Security > Sharing Settings**
 - The Organization-Wide Defaults table lists every object with its internal and external OWD
@@ -61,7 +175,22 @@
 **Speaker Notes:** Changing OWD in a large org with millions of records triggers a background sharing recalculation job. Always make OWD changes during off-peak hours and warn your team. You can monitor the job under Setup > Defer Sharing Calculations.
 
 ### Slide 7: OWD Best Practices
-**Visual:** A checklist card with Do and Don't columns
+**Visual:**
+```
+  ┌──────────────────────────────┬───────────────────────────────┐
+  │  ✔  DO                       │  ✘  DON'T                     │
+  ├──────────────────────────────┼───────────────────────────────┤
+  │  Start with Private OWD and  │  Set OWD to Public R/W for    │
+  │  open up as needed           │  sensitive/competitive data   │
+  ├──────────────────────────────┼───────────────────────────────┤
+  │  Use Public R/W only for     │  Rely on OWD alone — use      │
+  │  non-sensitive reference     │  Role Hierarchy + Rules too   │
+  │  objects (e.g., Products)    │                               │
+  ├──────────────────────────────┼───────────────────────────────┤
+  │  Plan OWD model before       │  Change OWD frequently in     │
+  │  go-live                     │  production (triggers reCalc) │
+  └──────────────────────────────┴───────────────────────────────┘
+```
 **Content:**
 - **Do:** Start with the most restrictive setting (Private) and open up as needed
 - **Do:** Set OWD to Public Read/Write only for non-sensitive, reference-type objects
@@ -70,7 +199,28 @@
 **Speaker Notes:** The principle of least privilege applies directly here. Always start with Private and work outward. This prevents accidental data exposure and makes audits much easier. Revisit OWD settings during major org redesigns, not as a quick fix.
 
 ### Slide 8: Exam-Relevant OWD Scenarios
-**Visual:** Three scenario cards, each showing a situation and the correct OWD choice
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                   OWD SCENARIO CARDS                         │
+  ├──────────────────────────────────────────────────────────────┤
+  │  SCENARIO 1                                                  │
+  │  "Sales reps should only see Opportunities they own"         │
+  │  ──▶  OWD = PRIVATE                                          │
+  ├──────────────────────────────────────────────────────────────┤
+  │  SCENARIO 2                                                  │
+  │  "All users can read all Accounts, but only owners edit"     │
+  │  ──▶  OWD = PUBLIC READ ONLY                                 │
+  ├──────────────────────────────────────────────────────────────┤
+  │  SCENARIO 3                                                  │
+  │  "Contacts must follow Account access rules"                 │
+  │  ──▶  OWD = CONTROLLED BY PARENT                             │
+  ├──────────────────────────────────────────────────────────────┤
+  │  SCENARIO 4                                                  │
+  │  "Everyone needs full edit rights on Price Books"            │
+  │  ──▶  OWD = PUBLIC READ/WRITE                                │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Scenario 1:** Sales reps should only see their own Opportunities → OWD = **Private**
 - **Scenario 2:** All users need to read all Accounts but only edit their own → OWD = **Public Read Only**

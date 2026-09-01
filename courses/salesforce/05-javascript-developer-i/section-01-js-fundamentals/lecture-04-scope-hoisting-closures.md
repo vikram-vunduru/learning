@@ -11,7 +11,26 @@
 ## Slides
 
 ### Slide 1: Global, Function, and Block Scope
-**Visual:** A set of three nested boxes, largest to smallest: Global Scope (outermost, light gray) → Function Scope (medium, blue) → Block Scope (innermost, orange). Each box contains sample variable declarations. Arrows from inner boxes point outward labeled "can access." A red X arrow from outer boxes pointing inward labeled "cannot access inner scope."
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────┐
+  │  GLOBAL SCOPE                                            │
+  │  var globalVar = 'global'                                │
+  │  ┌────────────────────────────────────────────────────┐  │
+  │  │  FUNCTION SCOPE  (outer function)                  │  │
+  │  │  var funcVar = 'function scoped'                   │  │
+  │  │  ┌──────────────────────────────────────────────┐  │  │
+  │  │  │  BLOCK SCOPE  (if / for / {})                │  │  │
+  │  │  │  let blockLet = 'block scoped'               │  │  │
+  │  │  │  ← can access funcVar, globalVar             │  │  │
+  │  │  └──────────────────────────────────────────────┘  │  │
+  │  │  ← cannot access blockLet after the block          │  │  │
+  │  └────────────────────────────────────────────────────┘  │
+  │  ← cannot access funcVar or blockLet                    │
+  └──────────────────────────────────────────────────────────┘
+  Inner scopes can READ outer scopes. Outer scopes cannot
+  access inner-scope variables.
+```
 **Content:**
 - **Global scope** — variables declared outside any function or block; accessible everywhere
   - In browsers: globals are properties of `window`

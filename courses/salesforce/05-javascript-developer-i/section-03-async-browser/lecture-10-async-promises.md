@@ -11,7 +11,23 @@
 ## Slides
 
 ### Slide 1: The JavaScript Runtime — Call Stack and Event Loop
-**Visual:** Animated-style diagram showing three components side by side: the Call Stack (a stack of frames), the Web APIs box (setTimeout, fetch, DOM events), and the Task Queue (FIFO). Arrows show: (1) async call moves from stack to Web APIs; (2) callback moves from Web APIs to Task Queue when done; (3) event loop moves it to the stack only when the stack is empty.
+**Visual:**
+```
+  ┌──────────────────┐     ┌───────────────┐     ┌──────────────┐
+  │   Call Stack     │     │  Microtask    │     │  Macrotask   │
+  │                  │     │    Queue      │     │    Queue     │
+  │  synchronous     │     │               │     │              │
+  │  code runs here  │     │  Promise .then│     │  setTimeout  │
+  │                  │     │  async/await  │     │  setInterval │
+  │  empties first   │     │  queueMicro.. │     │  I/O events  │
+  └────────┬─────────┘     └──────┬────────┘     └──────┬───────┘
+           │                      │ drains next          │ runs last
+           └──────────────────────┘──────────────────────┘
+                         EVENT LOOP picks from:
+                         1. Call stack (sync)
+                         2. Microtask queue (Promises)
+                         3. Macrotask queue (setTimeout)
+```
 **Content:**
 - JavaScript is **single-threaded** — one call stack, one thing executing at a time
 - The **call stack** tracks the currently executing function and its chain of callers
@@ -61,7 +77,20 @@
 **Speaker Notes:** Callback hell isn't just ugly code — it's a fundamental maintenance problem. Error handling requires adding an if/err check at every level. If you forget one, errors are silently swallowed. Running two async operations in parallel requires manual tracking of a counter to know when both are done. Promises were introduced precisely to solve these problems: they provide a composable, readable way to chain async operations and handle errors in one place.
 
 ### Slide 4: Promises — States and Basic Usage
-**Visual:** State machine diagram with three nodes: Pending (initial), Fulfilled (success), Rejected (failure). Arrows labeled "resolve(value)" from Pending to Fulfilled and "reject(reason)" from Pending to Rejected. A dashed box shows that both terminal states are "settled" and immutable.
+**Visual:**
+```
+                    resolve(value)
+              ┌──────────────────────► Fulfilled ◄─┐
+              │                        (success)    │
+  [ Pending ] ─────────────────────────────────────┤  settled
+  (initial)   │                                     │  (immutable)
+              └──────────────────────► Rejected  ◄─┘
+                    reject(reason)      (failure)
+
+  .then(onFulfilled)   ← called with resolved value
+  .catch(onRejected)   ← called with rejection reason
+  .finally(fn)         ← called regardless; no value passed
+```
 **Content:**
 - A Promise is an object representing the eventual completion (or failure) of an async operation
 - Three states: **pending** (initial), **fulfilled** (succeeded), **rejected** (failed)
@@ -98,7 +127,25 @@
 **Speaker Notes:** The most important thing about Promise chaining is that each `.then()` creates a brand new Promise. You are not modifying a single Promise — you are building a pipeline. The fact that returning a Promise from a `.then()` causes the chain to wait for it is what allows you to sequence async operations without nesting. This is the key advantage over callbacks. Unhandled Promise rejections (no .catch()) are a serious bug pattern — in Node.js they crash the process in newer versions.
 
 ### Slide 6: Promise Combinators
-**Visual:** Four quadrant diagram, one per combinator: Promise.all (all succeed → array of results; any fail → immediately reject), Promise.race (first settled wins), Promise.allSettled (all settle → array of {status, value/reason}), Promise.any (first fulfilled wins; all reject → AggregateError).
+**Visual:**
+```
+  ┌─────────────────────────────┬─────────────────────────────┐
+  │  Promise.all([a, b, c])     │  Promise.race([a, b, c])    │
+  │                             │                             │
+  │  All resolve → [va,vb,vc]  │  First to settle wins       │
+  │  Any reject  → immediate    │  (resolve OR reject)        │
+  │               rejection     │                             │
+  │  Use: parallel fetches      │  Use: timeout pattern       │
+  ├─────────────────────────────┼─────────────────────────────┤
+  │  Promise.allSettled([...])  │  Promise.any([a, b, c])     │
+  │                             │                             │
+  │  All settle → array of      │  First to FULFILL wins      │
+  │  {status, value/reason}     │  All reject → AggregateError│
+  │  Never rejects              │                             │
+  │  Use: audit / partial fail  │  Use: first available source│
+  └─────────────────────────────┴─────────────────────────────┘
+  Memory: all=AND logic  any=OR logic  allSettled=report mode
+```
 **Content:**
 - **Promise.all(iterable):** Resolves when ALL resolve; rejects immediately if ANY reject; result is array in same order as input
   ```js

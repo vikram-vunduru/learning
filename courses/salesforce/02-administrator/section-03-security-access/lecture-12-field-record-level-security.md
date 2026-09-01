@@ -8,7 +8,25 @@
 ## 📊 SLIDES
 
 ### Slide 1: Two Dimensions of Security
-**Visual:** A 2x2 grid: rows = "Which Records Can the User See?" and "Which Fields Can the User See?"; columns = "Controlled By" and "Tool Used"; filled in with Record-Level = OWD/Role Hierarchy/Sharing Rules and Field-Level = Profiles/Permission Sets/FLS
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │           TWO DIMENSIONS OF SALESFORCE SECURITY             │
+  ├────────────────────────┬──────────────────┬──────────────────┤
+  │                        │  CONTROLLED BY   │  TOOL USED       │
+  ├────────────────────────┼──────────────────┼──────────────────┤
+  │  RECORD-LEVEL          │                  │  OWD             │
+  │  (Which records can    │  Sharing Model   │  Role Hierarchy  │
+  │   the user see?)       │                  │  Sharing Rules   │
+  │                        │                  │  Manual Sharing  │
+  ├────────────────────────┼──────────────────┼──────────────────┤
+  │  FIELD-LEVEL           │                  │  Profiles        │
+  │  (Which fields can     │  FLS Settings    │  Permission Sets │
+  │   the user see?)       │                  │  (FLS config)    │
+  └────────────────────────┴──────────────────┴──────────────────┘
+
+  Both dimensions must be addressed in a complete security design.
+```
 **Content:**
 - Salesforce security operates on two dimensions: **record-level** (which records) and **field-level** (which fields)
 - Record-level tools: OWD, Role Hierarchy, Sharing Rules, Manual Sharing
@@ -17,7 +35,30 @@
 **Speaker Notes:** Many admins focus entirely on record access and forget field security. But a user who can see a record can still be blocked from seeing sensitive fields like Social Security Number, Salary, or Credit Card details — that is what Field-Level Security controls.
 
 ### Slide 2: What Is Field-Level Security (FLS)?
-**Visual:** A field settings panel showing three states: Visible (checkmark), Read-Only (lock icon), Hidden (no icon/grayed out)
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────┐
+  │           FIELD-LEVEL SECURITY — THREE STATES             │
+  ├───────────────┬────────────────────────────────────────────┤
+  │  STATE        │  WHAT THE USER EXPERIENCES                 │
+  ├───────────────┼────────────────────────────────────────────┤
+  │               │                                            │
+  │  Visible +    │  ✔  Field appears on record page          │
+  │  Editable     │  ✔  User can read and update the value    │
+  │               │  ✔  Accessible in reports & API           │
+  ├───────────────┼────────────────────────────────────────────┤
+  │               │                                            │
+  │  Visible +    │  ✔  Field appears on record page          │
+  │  Read-Only    │  ✔  User can read the value               │
+  │  [LOCK]       │  ✘  User cannot edit the value            │
+  ├───────────────┼────────────────────────────────────────────┤
+  │               │                                            │
+  │  Hidden       │  ✘  Field does NOT appear anywhere        │
+  │  (not visible)│  ✘  Not on record page, list views,       │
+  │               │      reports, or API responses            │
+  │               │  ✘  Value is completely inaccessible      │
+  └───────────────┴────────────────────────────────────────────┘
+```
 **Content:**
 - FLS controls whether a user can **see**, **edit**, or is **completely blocked** from a specific field
 - Three states per field per profile/permission set:
@@ -27,7 +68,28 @@
 **Speaker Notes:** Hidden means truly hidden — the field value does not appear in list views, record detail pages, reports, or API responses for that user. This is the strongest data protection short of removing the field entirely. Read-Only is useful for fields users need to see but not change, like a calculated pricing field.
 
 ### Slide 3: Configuring FLS on Profiles
-**Visual:** Setup path mockup — Setup > Users > Profiles > [Profile Name] > Field-Level Security > [Object] > Edit, showing a table of fields with Visible and Read-Only checkboxes
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │  PATH 1: Setup ──▶ Users ──▶ Profiles ──▶ [Profile Name]    │
+  │          ──▶ Field-Level Security ──▶ [Object] ──▶ Edit      │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Field-Level Security: Opportunity (Sales User Profile)      │
+  │  ┌───────────────────────────┬─────────┬────────────────┐    │
+  │  │  Field                    │ Visible │  Read-Only     │    │
+  │  ├───────────────────────────┼─────────┼────────────────┤    │
+  │  │  Amount                   │  [✔]    │  [ ]           │    │
+  │  │  Close Date               │  [✔]    │  [ ]           │    │
+  │  │  Forecast Category        │  [✔]    │  [✔]           │    │
+  │  │  Discount__c              │  [ ]    │  [ ]  (hidden) │    │
+  │  └───────────────────────────┴─────────┴────────────────┘    │
+  ├──────────────────────────────────────────────────────────────┤
+  │  PATH 2: Setup ──▶ Object Manager ──▶ [Object]               │
+  │          ──▶ Fields ──▶ [Field] ──▶ Set Field-Level Security  │
+  │          (shows ALL profiles in one table — faster for        │
+  │           configuring one field across many profiles)         │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Navigate to **Setup > Users > Profiles > [Profile Name]**
 - Click **Field-Level Security** in the profile detail page
@@ -37,7 +99,28 @@
 **Speaker Notes:** The Object Manager path is faster when you are setting FLS for a single field across many profiles — it shows all profiles in one table. The Profile path is better when you are configuring many fields for a single profile. Both paths lead to the same settings.
 
 ### Slide 4: Configuring FLS on Permission Sets
-**Visual:** Side-by-side comparison: Profile FLS configuration vs. Permission Set FLS configuration, showing that permission sets can only ADD access (make visible/editable) but cannot restrict below profile settings
+**Visual:**
+```
+  ┌──────────────────────────────┬───────────────────────────────┐
+  │  PROFILE FLS                 │  PERMISSION SET FLS           │
+  ├──────────────────────────────┼───────────────────────────────┤
+  │  Sets the FLOOR for          │  Can only ADD access on top   │
+  │  field access                │  of profile                   │
+  ├──────────────────────────────┼───────────────────────────────┤
+  │  ✔  Can make field Hidden    │  ✔  Can grant Visible         │
+  │  ✔  Can make field R/O       │  ✔  Can grant Editable        │
+  │  ✔  Can make field Editable  │  ✘  Cannot restrict below     │
+  │                              │     profile setting           │
+  ├──────────────────────────────┼───────────────────────────────┤
+  │  Profile: Salary__c = Hidden │  Perm Set adds Visible?       │
+  │                              │  ──▶  YES, can do this ✔      │
+  ├──────────────────────────────┼───────────────────────────────┤
+  │  Profile: Salary__c = Edit   │  Perm Set restricts to R/O?  │
+  │                              │  ──▶  NO, cannot do this ✘   │
+  └──────────────────────────────┴───────────────────────────────┘
+
+  Best Practice: Profiles at minimum; Permission Sets expand access.
+```
 **Content:**
 - Permission sets can only **expand** FLS — grant visibility or editability not already on the profile
 - Permission sets cannot restrict FLS — if a profile makes a field editable, a permission set cannot make it read-only
@@ -46,7 +129,34 @@
 **Speaker Notes:** This asymmetry is important. Profiles set the floor for field access within that profile. Permission sets only add on top. If you need to restrict a field from a subset of users in the same profile, you need separate profiles — permission sets cannot do that.
 
 ### Slide 5: The Record-Level Security Stack
-**Visual:** A four-layer pyramid diagram with labels and brief descriptions at each layer, arrows showing access "opens up" at each successive layer
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────┐
+  │           RECORD-LEVEL SECURITY STACK                      │
+  ├────────────────────────────────────────────────────────────┤
+  │                                                            │
+  │   LAYER 4  ┌──────────────────────────────────────────┐   │
+  │   (top)    │  MANUAL SHARING / TEAMS / TERRITORIES    │   │
+  │            │  Ad hoc & collaborative access grants    │   │
+  │            └────────────────────┬─────────────────────┘   │
+  │                                 ▲ access opens up          │
+  │   LAYER 3  ┌──────────────────────────────────────────┐   │
+  │            │  SHARING RULES                           │   │
+  │            │  Automated group-based access            │   │
+  │            └────────────────────┬─────────────────────┘   │
+  │                                 ▲ access opens up          │
+  │   LAYER 2  ┌──────────────────────────────────────────┐   │
+  │            │  ROLE HIERARCHY                          │   │
+  │            │  Managers get subordinates' record access│   │
+  │            └────────────────────┬─────────────────────┘   │
+  │                                 ▲ access opens up          │
+  │   LAYER 1  ┌──────────────────────────────────────────┐   │
+  │   (base)   │  OWD — ORG-WIDE DEFAULTS                 │   │
+  │            │  Baseline minimum access to all records  │   │
+  │            └──────────────────────────────────────────┘   │
+  │                                                            │
+  └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Layer 1 — OWD:** Baseline minimum access to records a user does not own
 - **Layer 2 — Role Hierarchy:** Managers automatically get access to subordinates' records (if Grant Access Using Hierarchies is enabled)
@@ -55,7 +165,31 @@
 **Speaker Notes:** The exam loves questions that ask you to identify what combination of tools achieves a specific access requirement. Practice walking up this pyramid for any scenario. Ask: Does OWD alone handle it? If not, does Role Hierarchy? Still not? Sharing Rules? Still edge cases? Manual Sharing.
 
 ### Slide 6: Grant Access Using Hierarchies
-**Visual:** A Role Hierarchy diagram with "Grant Access Using Hierarchies" checkbox highlighted at Setup > Security > Sharing Settings, showing a checkmark on and the manager above a rep
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────────┐
+  │  Setup ──▶ Security ──▶ Sharing Settings                       │
+  │  ┌──────────────────────────────────────────────────────────┐  │
+  │  │  [✔] Grant Access Using Hierarchies  ◄── checkbox       │  │
+  │  └──────────────────────────────────────────────────────────┘  │
+  ├────────────────────────────────────────────────────────────────┤
+  │                                                                │
+  │       ┌──────────────────────────┐                            │
+  │       │    VP Sales (Manager)    │  ◄── automatically sees    │
+  │       └────────────┬─────────────┘       subordinate records  │
+  │                    │ ▲ upward access                          │
+  │           ┌────────┴──────────┐                               │
+  │           ▼                   ▼                               │
+  │  ┌──────────────┐    ┌──────────────┐                         │
+  │  │    Rep A     │    │    Rep B     │                         │
+  │  │  (owns       │    │  (owns       │                         │
+  │  │   records)   │    │   records)   │                         │
+  │  └──────────────┘    └──────────────┘                         │
+  │                                                                │
+  │  Standard objects:  Always ON  (cannot disable)               │
+  │  Custom objects:    Can be DISABLED ──▶ managers lose access   │
+  └────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Grant Access Using Hierarchies** — a checkbox in Sharing Settings that controls whether Role Hierarchy automatically grants managers access to subordinates' records
 - Enabled by default for all standard objects; **can be disabled for custom objects**
@@ -64,7 +198,32 @@
 **Speaker Notes:** Most orgs leave this enabled, but there are legitimate use cases for disabling it on custom objects — for example, an HR review object where managers should not automatically see their direct reports' self-assessments. Disabling removes the automatic upward visibility without affecting OWD.
 
 ### Slide 7: FLS vs. Page Layout — Know the Difference
-**Visual:** A split slide showing FLS on the left (affects ALL surfaces: UI, API, Reports) and Page Layout on the right (affects only the record detail/edit page UI layout)
+**Visual:**
+```
+  ┌──────────────────────────────┬───────────────────────────────┐
+  │  FIELD-LEVEL SECURITY (FLS)  │  PAGE LAYOUT                  │
+  ├──────────────────────────────┼───────────────────────────────┤
+  │  ENFORCEMENT                 │  PRESENTATION                 │
+  │  (access control)            │  (display/organization)       │
+  ├──────────────────────────────┼───────────────────────────────┤
+  │  Affects ALL surfaces:       │  Affects ONLY:                │
+  │   ✔  Record detail pages     │   ✔  Record detail page       │
+  │   ✔  List views              │   ✔  Record edit page         │
+  │   ✔  Reports                 │   ✘  NOT list views           │
+  │   ✔  API calls               │   ✘  NOT reports              │
+  │   ✔  Visualforce / Flows     │   ✘  NOT API                  │
+  ├──────────────────────────────┼───────────────────────────────┤
+  │  FLS = Hidden                │  Field on layout?             │
+  │  ──▶ Field invisible         │  ──▶ Doesn't matter.          │
+  │      EVERYWHERE              │      FLS wins. Field hidden.  │
+  ├──────────────────────────────┼───────────────────────────────┤
+  │  FLS = Visible               │  Field NOT on layout?         │
+  │  ──▶ User can access via     │  ──▶ Still accessible via     │
+  │      reports & API           │      reports and API          │
+  └──────────────────────────────┴───────────────────────────────┘
+
+  Rule: FLS always wins. Use FLS for security; Page Layout for UX.
+```
 **Content:**
 - **FLS** — controls field accessibility across ALL surfaces: record pages, list views, reports, API calls, Visualforce, and flows
 - **Page Layout** — controls field visibility and placement on the record detail and edit pages ONLY
@@ -74,7 +233,25 @@
 **Speaker Notes:** FLS is enforcement; page layout is presentation. If FLS says hidden, the field is hidden everywhere — no page layout can override that. If the field is visible via FLS but just not on the page layout, a savvy user can still access it through reports or the API. For true security, use FLS. Page layouts are about user experience, not access control.
 
 ### Slide 8: Field Accessibility Matrix
-**Visual:** A matrix table with rows for different profile types and columns for specific fields, showing the resulting access state (Editable, Read-Only, Hidden) for each combination
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  Setup ──▶ Security ──▶ Field Accessibility                      │
+  │  Select Object: Opportunity     Select Field: Salary__c          │
+  ├──────────────────────────────┬──────────────┬────────────────────┤
+  │  PROFILE                     │  ACCESSIBLE  │  ACCESS LEVEL      │
+  ├──────────────────────────────┼──────────────┼────────────────────┤
+  │  System Administrator        │  ✔           │  Editable          │
+  │  Sales User                  │  ✔           │  Read-Only         │
+  │  Support User                │  ✘           │  Hidden            │
+  │  Marketing User              │  ✘           │  Hidden            │
+  │  Finance User                │  ✔           │  Editable          │
+  │  Read Only User              │  ✔           │  Read-Only         │
+  └──────────────────────────────┴──────────────┴────────────────────┘
+
+  Use Field Accessibility before go-live to audit sensitive fields
+  across all profiles in one view.
+```
 **Content:**
 - To audit field access across all profiles: **Setup > Security > Field Accessibility**
 - Select an object and a field, then see access level for every profile in one view

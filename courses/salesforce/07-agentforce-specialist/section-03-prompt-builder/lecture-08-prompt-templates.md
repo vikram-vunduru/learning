@@ -10,7 +10,31 @@
 ## Slides
 
 ### Slide 1: What is Prompt Builder?
-**Visual:** A Salesforce Setup navigation diagram showing the path: Setup → Einstein → Prompt Builder. Below, a Prompt Builder interface mockup showing three main areas: (1) Template Gallery on the left with template type icons, (2) Template Editor in the center with the three-section layout, (3) Preview/Test panel on the right showing generated output for a sample record. A label: "Prompt Builder = visual editor for reusable AI prompt templates."
+**Visual:**
+```
+  Setup → Einstein → Prompt Builder
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                        PROMPT BUILDER UI                         │
+  ├────────────────┬───────────────────────────┬─────────────────────┤
+  │ TEMPLATE       │  TEMPLATE EDITOR          │  PREVIEW PANEL      │
+  │ GALLERY        │                           │                     │
+  │                │  ┌─────────────────────┐  │  Record: [Acme Inc] │
+  │ ⚡ Field Gen.  │  │  System Prompt      │  │  ─────────────────  │
+  │                │  │  [role/context]     │  │  Generated Output:  │
+  │ ✦ Flex         │  ├─────────────────────┤  │                     │
+  │                │  │  Template Body      │  │  "Acme Inc is a     │
+  │ 📋 Record Sum  │  │  {!Account.Name}    │  │   mid-market tech   │
+  │                │  │  {!Account.Industry}│  │   company with 3    │
+  │ ✉ Sales Email  │  │  ...               │  │   open opptys..."   │
+  │                │  ├─────────────────────┤  │                     │
+  │ [+ New Templ.] │  │  Grounding          │  │  [Run Preview]      │
+  │                │  │  (optional)         │  │  [Compare Versions] │
+  └────────────────┴───────────────────────────┴─────────────────────┘
+
+  Prompt Builder = visual editor for reusable, versioned AI prompt templates
+  Governed by Einstein Trust Layer — all LLM calls use same trust infrastructure
+```
 **Content:**
 - **Prompt Builder** is a Salesforce tool for creating, managing, and testing reusable AI prompt templates
 - Accessible via Setup → Einstein → Prompt Builder (or via the App Launcher)
@@ -21,7 +45,33 @@
 **Speaker Notes:** The key insight about Prompt Builder is the "managed asset" framing. Without Prompt Builder, AI prompts might be hardcoded in Apex classes or embedded in Flow Text elements — invisible to business users, hard to update, and impossible to test in isolation. Prompt Builder gives prompts a first-class home in the Salesforce platform: they are versioned, testable, configurable by admins, and reusable across multiple contexts. For the exam, understand Prompt Builder's role as the platform layer for managing prompt templates, distinct from the ad-hoc prompting that happens inside Agent Instructions.
 
 ### Slide 2: Prompt Template Anatomy
-**Visual:** A three-section template editor layout. Section 1 — System Prompt (gray background, labeled "Sets the AI's role and context — applies to every invocation"): example text "You are a professional sales email writer with expertise in Acme Corp's product line." Section 2 — Template Body (white background, labeled "The main prompt with merge fields"): example showing merge fields highlighted in blue: "Write a follow-up email to {!Contact.Name} at {!Account.Name}. Their most recent opportunity: {!Opportunity.Name} worth {!Opportunity.Amount}." Section 3 — Grounding (optional, purple background): "Ground this response using: [Knowledge source selector]."
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  SECTION 1 — SYSTEM PROMPT  (gray background)                    │
+  │  "Sets the AI's role and context — applies to every invocation"  │
+  │                                                                  │
+  │  "You are a professional sales email writer with expertise in    │
+  │   Acme Corp's product line. Write concise, compelling emails     │
+  │   that focus on customer value."                                 │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  SECTION 2 — TEMPLATE BODY  (white background)                   │
+  │  "Main prompt with merge fields — evaluated per record"          │
+  │                                                                  │
+  │  "Write a follow-up email to {!Contact.Name} at                  │
+  │   {!Account.Name}. Their most recent opportunity:                │
+  │   {!Opportunity.Name} worth {!Opportunity.Amount}.               │
+  │   Reference the meeting we had about their challenges."          │
+  │                                                                  │
+  │  Merge fields are resolved at runtime with actual field values   │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  SECTION 3 — GROUNDING  (purple background, optional)            │
+  │  "Retrieve relevant content before generating"                   │
+  │                                                                  │
+  │  Grounding Source: [ Einstein Knowledge ▼ ]                      │
+  │  Search Query: {!Case.Subject}  ◀── dynamic query per record     │
+  └──────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **System Prompt** — sets the AI's role and behavior for this template; analogous to the system message in a direct LLM API call; applies globally to every invocation of this template
   - Example: "You are an expert case handler for Acme Corp's Technical Support team. Your summaries should be clear, accurate, and actionable."
@@ -32,7 +82,29 @@
 **Speaker Notes:** The three-section anatomy mirrors how professional prompt engineers structure their prompts. The system prompt establishes context and role — this is high-leverage because the LLM's behavior is significantly shaped by its assigned role. The body is the actual task instruction with dynamic data. Grounding adds verified source material. For the exam, understanding which section does what is important: adding a behavioral rule to a template → System Prompt. Making the output reference a specific record's data → merge fields in Template Body. Making the output reference a Knowledge article → Grounding section.
 
 ### Slide 3: Template Type 1 — Field Generation
-**Visual:** A Salesforce record page showing an Account with a custom "AI Executive Summary" field. The field shows a "Generate" button beside it. When clicked, a spinner appears, then the field is populated with a concise AI-written summary of the account using data from related contacts, opportunities, and cases. The Prompt Builder template behind it is shown as a small panel to the right, highlighting the merge fields used.
+**Visual:**
+```
+  Account Record Page
+  ┌────────────────────────────────────────────────────────────────┐
+  │  Account: Acme Inc                                [Edit]       │
+  ├────────────────────────────────────────────────────────────────┤
+  │  Industry:    Technology                                       │
+  │  Annual Rev:  $5M                                              │
+  │  Open Opptys: 3                                                │
+  │                                                                │
+  │  AI Executive Summary:                  [Generate] ◀── button │
+  │  ┌──────────────────────────────────────────────────────────┐  │
+  │  │ (After clicking Generate...)                             │  │
+  │  │ "Acme Inc is a mid-market technology company with        │  │
+  │  │  $5M annual revenue and 3 active opportunities. Key      │  │
+  │  │  contact is Jane Smith (VP Sales). Most recent           │  │
+  │  │  interaction was a demo call on Nov 15..."               │  │
+  │  └──────────────────────────────────────────────────────────┘  │
+  │    ✓ Saved to AI_Executive_Summary__c field                     │
+  └────────────────────────────────────────────────────────────────┘
+
+  The generated value IS SAVED to the Salesforce record field
+```
 **Content:**
 - **Field Generation** templates populate a single Salesforce field with AI-generated content
 - The generated value is written directly into the Salesforce record — it is saved data, not a transient display
@@ -47,7 +119,30 @@
 **Speaker Notes:** Field Generation is the most "admin-friendly" template type because it integrates with record pages via a simple Generate button. A Salesforce Admin can configure this entirely without developer involvement if they know how to set up an LWC component with the standard Prompt Builder trigger pattern. For the exam, the key identifier for Field Generation is "populate a field on a record with AI-generated content" or "save AI-generated text to a Salesforce record."
 
 ### Slide 4: Template Type 2 — Flex Template
-**Visual:** A comparison diagram showing the Flex template in three different deployment contexts: (1) Invoked from a Flow, producing output used in an automation step. (2) Called from Apex, returning the generated text as a String. (3) Used as an Agentforce Action, returning content to Atlas. An arrow labeled "Same template, multiple contexts" spans all three. Below: the template itself shows a system prompt and body with merge fields.
+**Visual:**
+```
+  SAME FLEX TEMPLATE — THREE INVOCATION CONTEXTS
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    Flex Template                             │
+  │  "Generate a case escalation summary for {!caseContext}"     │
+  └──────────────┬──────────────────┬───────────────────────────┘
+                 │                  │                  │
+                 ▼                  ▼                  ▼
+          From a Flow         From Apex          As Agentforce
+          (automation step)   (programmatic)     Action (agent)
+                 │                  │                  │
+                 ▼                  ▼                  ▼
+          Generated text     Generated text     Atlas receives
+          used in next       returned as        generated text,
+          Flow element       String variable    includes in reply
+
+  "Same template, multiple contexts"
+  No UI dependency — invokable from any Salesforce context
+
+  Use for Agentforce Actions: Flex is the ONLY type that can
+  be wired to an agent Topic as a Prompt Template Action
+```
 **Content:**
 - **Flex templates** are the most versatile template type — they can be invoked from any Salesforce context: Flow, Apex, Agentforce Action, or API
 - "Flex" refers to their flexible invocation model — there is no specific record page or UI pattern required
@@ -61,7 +156,29 @@
 **Speaker Notes:** Flex templates are the go-to type for Agentforce Action integration because they do not have a UI dependency. When you connect a Prompt Template to an Agentforce Action (which we will cover in Lecture 10), you will typically use a Flex template. The other template types (Field Generation, Record Summary, Sales Email) are more purpose-built for specific UI contexts. For the exam, "which template type can be used as an Agentforce Action?" — Flex.
 
 ### Slide 5: Template Type 3 — Record Summary
-**Visual:** A Salesforce Case record page with a "Generate Summary" button in the header. After clicking: an AI-generated summary panel appears within the record page — not saved as a field but displayed as a dynamic, transient summary in the UI. The summary synthesizes case subject, description, account info, and recent case activity into a 3-paragraph executive summary. Below: the template type selector in Prompt Builder showing "Record Summary" selected.
+**Visual:**
+```
+  Case Record Page
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  Case #12345: "Cannot access account portal"         [Edit]     │
+  ├─────────────────────────────────────────────────────────────────┤
+  │                                                                 │
+  │  [Generate Summary] ◀── user clicks to refresh                 │
+  │                                                                 │
+  │  ┌─────────────────────────────────────────────────────────┐   │
+  │  │  AI SUMMARY (displayed in UI, NOT saved to record)      │   │
+  │  │  ─────────────────────────────────────────────────────  │   │
+  │  │  Customer John Smith at Acme Inc has been unable to     │   │
+  │  │  access the customer portal for 3 days. Previous agent  │   │
+  │  │  reset password twice without resolution. Account is    │   │
+  │  │  on Enterprise plan with SLA priority...                │   │
+  │  └─────────────────────────────────────────────────────────┘   │
+  │                                                                 │
+  │  ✗ NOT saved to any field — refreshes on demand                │
+  │  ✓ Always fresh when generated                                  │
+  │  ✓ Human reads it, then acts                                    │
+  └─────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Record Summary** templates generate a contextual AI summary of a Salesforce record and display it within the record page UI
 - The summary is **transient** — it is displayed on-screen but not saved back to the record (unlike Field Generation)
@@ -75,7 +192,30 @@
 **Speaker Notes:** Record Summary is the most "human-in-the-loop" template type — it generates on demand when a user needs a quick briefing, not as part of an automated process. The transient nature (not saved) is both a feature and a limitation: it means the summary is always fresh and current, but it also means it cannot be referenced by an Agentforce agent or automation. For the exam, the key identifier is "display an AI summary on a record page for a user to read" — if the output is displayed for a human, not used by a system, think Record Summary.
 
 ### Slide 6: Template Type 4 — Sales Email
-**Visual:** A Salesforce CRM email compose panel showing an email being drafted with an "AI-Assist" button. After clicking: a draft email is generated in the compose window using the contact's name, account details, recent opportunity data, and a template-defined tone and goal. The user reviews and edits before sending. Below: the Sales Email template in Prompt Builder showing the system prompt configured with "professional sales tone" and body with merge fields for contact and opportunity data.
+**Visual:**
+```
+  CRM Email Compose Window
+  ┌────────────────────────────────────────────────────────────────┐
+  │  To:      jane.smith@acme.com                                  │
+  │  Subject: Follow-up: Demo discussion                           │
+  │  ─────────────────────────────────────────────────────────     │
+  │  [AI-Assist] ◀── click to generate draft                      │
+  │  ─────────────────────────────────────────────────────────     │
+  │  Hi Jane,                                                      │
+  │                                                                │
+  │  Thank you for taking the time to meet with us yesterday to    │
+  │  discuss Acme's expansion plans. Based on our conversation     │
+  │  about your Q1 goals, I wanted to share...                     │
+  │                                                                │
+  │  [AI draft appears here for rep to review and edit]            │
+  │                                                                │
+  │  Best regards, [Sales Rep]                                     │
+  │  ─────────────────────────────────────────────────────────     │
+  │  [Edit draft] [Send] [Discard]                                 │
+  └────────────────────────────────────────────────────────────────┘
+  ✓ Rep reviews and approves BEFORE sending (not autonomous)
+  Distinct from SDR Agent: Sales Email = draft for human; SDR = sends autonomously
+```
 **Content:**
 - **Sales Email** templates generate personalized sales email drafts within the Salesforce email compose experience
 - Integrated with the Send Email action in Lightning Experience — the AI draft is placed directly in the compose window for the rep to review and send
@@ -89,7 +229,34 @@
 **Speaker Notes:** The distinction between Sales Email templates (draft for human review) and the SDR Agent's email Actions (autonomous sending) is an important exam trap to avoid. Sales Email is always human-in-the-loop — the AI generates, the rep approves and sends. The SDR Agent can send emails autonomously as part of the lead qualification workflow. If an exam question asks "which feature generates an email draft for a sales rep to review in the Salesforce email composer" — Sales Email template. "Which feature autonomously sends outreach emails to inbound leads" — SDR Agent.
 
 ### Slide 7: Testing Templates in Prompt Builder
-**Visual:** Prompt Builder test panel showing: a Record Picker (select a specific Account, Opportunity, or Case to test with), a "Run Preview" button, and the generated output below with highlighted sections showing which merge fields resolved to which values. Annotations: "Real record data used in preview," "Output reflects actual merge field values," "Adjust template and re-run instantly." A "Compare" option shown for comparing two template versions side by side.
+**Visual:**
+```
+  Prompt Builder — Preview / Test Panel
+
+  ┌────────────────────────────────────────────────────────────────┐
+  │  Select Test Record:  [ Account: Acme Inc ▼ ] [Run Preview]   │
+  │  ────────────────────────────────────────────────────────      │
+  │  Merge Fields Resolved:                                        │
+  │  {!Account.Name}    → "Acme Inc"                ✓             │
+  │  {!Account.Industry}→ "Technology"              ✓             │
+  │  {!Account.AnnualRev}→ "$5,000,000"             ✓             │
+  │  {!Account.Owner.Name}→ "Sarah Jones"           ✓             │
+  │  {!Account.Foo__c}  → [EMPTY — field not set]   ⚠ check this  │
+  │  ────────────────────────────────────────────────────────      │
+  │  Generated Output:                                             │
+  │  "Acme Inc is a technology company generating $5M in          │
+  │   annual revenue, owned by Sarah Jones. Three active           │
+  │   opportunities are in pipeline..."                           │
+  │  ────────────────────────────────────────────────────────      │
+  │  [Test with another record]  [Compare versions]               │
+  └────────────────────────────────────────────────────────────────┘
+
+  Test with 5+ varied records including edge cases:
+  · Records with missing fields
+  · Records with very long content
+  · Records with unusual characters or data
+  Preview uses real LLM calls — consumes AI credits
+```
 **Content:**
 - Every template type has a built-in **Preview/Test panel** in Prompt Builder
 - Testing process:
@@ -103,7 +270,43 @@
 **Speaker Notes:** Testing in Prompt Builder before deploying to production is non-negotiable. The most common template quality issues are: merge fields that resolve to empty strings (field not populated on the record), system prompts that are too generic (producing poor-quality output), and templates that work for typical records but fail for edge cases. Use records that represent your real distribution — don't only test with the best-case, most-complete records. For the exam, know that the preview uses real record data (not mocked data), sends a real LLM call, and is the primary testing mechanism before template activation.
 
 ### Slide 8: Choosing the Right Template Type
-**Visual:** A decision flowchart. Start: "What do you need the template to do?" → "Save AI content to a record field?" → Yes → Field Generation. → "Display a summary to a user without saving?" → Yes → Record Summary. → "Generate an email draft in the compose window?" → Yes → Sales Email. → "Invoke from Flow, Apex, or Agentforce?" → Yes → Flex. Below: a quick-reference table summarizing the four types.
+**Visual:**
+```
+  What do you need the template to do?
+              │
+    ┌─────────┴──────────────────────────────┐
+    │                                        │
+    ▼                                        ▼
+  Save AI content               Display summary to user
+  to a record field?            without saving?
+    │                                        │
+   Yes                                      Yes
+    │                                        │
+    ▼                                        ▼
+  FIELD GENERATION              RECORD SUMMARY
+  (stored in field,             (transient on-screen,
+   triggered by button)          not saved to record)
+
+  Generate email draft          Invoke from Flow/
+  in compose window?            Apex/Agentforce?
+    │                                        │
+   Yes                                      Yes
+    │                                        │
+    ▼                                        ▼
+  SALES EMAIL                   FLEX TEMPLATE
+  (draft for rep review,        (any context, no UI
+   not autonomous)               dependency, use for
+                                  Agentforce Actions)
+
+  ┌──────────────────┬──────────────┬──────────┬──────────────┐
+  │ Template Type    │ Output Dest  │  Saved?  │ Primary User │
+  ├──────────────────┼──────────────┼──────────┼──────────────┤
+  │ Field Generation │ Record field │  Yes     │ Record users │
+  │ Flex             │ Any context  │  Depends │ Devs/Agents  │
+  │ Record Summary   │ Record UI    │  No      │ Record users │
+  │ Sales Email      │ Email compose│  No      │ Sales reps   │
+  └──────────────────┴──────────────┴──────────┴──────────────┘
+```
 **Content:**
 | Template Type | Output Destination | Saved? | Primary User |
 |---------------|-------------------|--------|-------------|

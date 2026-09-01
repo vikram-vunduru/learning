@@ -8,7 +8,33 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Is Manual Sharing?
-**Visual:** A single record card with a "Share" button highlighted, and an arrow pointing to a user icon with a "Read/Write" badge
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                     OPPORTUNITY RECORD                       │
+  │  ┌────────────────────────────────────────────────────────┐  │
+  │  │  Acme Corp Deal — $250,000   Owner: Sarah Jones        │  │
+  │  │                                                        │  │
+  │  │  [Edit]  [Delete]  [Clone]  ┌─────────┐               │  │
+  │  │                             │  Share  │ ◄── Click!    │  │
+  │  └────────────────────────────────────────────────────────┘  │
+  │                           │                                  │
+  │                           ▼                                  │
+  │  ┌────────────────────────────────────────────────────────┐  │
+  │  │       SHARE WITH:   [ John Smith ▼ ]                  │  │
+  │  │       ACCESS:       [ Read/Write ▼ ]                  │  │
+  │  │                              [ Save ]                 │  │
+  │  └────────────────────────────────────────────────────────┘  │
+  │                           │                                  │
+  │                           ▼                                  │
+  │               ┌───────────────────────┐                      │
+  │               │  John Smith           │                      │
+  │               │  ┌──────────────────┐ │                      │
+  │               │  │   Read/Write     │ │                      │
+  │               │  └──────────────────┘ │                      │
+  │               └───────────────────────┘                      │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Manual sharing allows record owners, admins, and users with Full Access to share an individual record with a specific user or group
 - It is ad hoc — applied record by record, not automatically
@@ -17,7 +43,32 @@
 **Speaker Notes:** Manual sharing is the last resort in the sharing stack — it handles the edge cases that rules and hierarchy cannot anticipate. It is intentional and user-driven, not automated by the system.
 
 ### Slide 2: Who Can Manually Share a Record?
-**Visual:** Three icons labeled "Record Owner," "User with Full Access," and "System Administrator," each with a checkmark
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────┐
+  │            WHO CAN MANUALLY SHARE A RECORD?               │
+  ├────────────────────────────────────────────────────────────┤
+  │                                                            │
+  │   ┌──────────────────────────┐  ✔  Can Share              │
+  │   │  RECORD OWNER            │     (always has right)     │
+  │   └──────────────────────────┘                            │
+  │                                                            │
+  │   ┌──────────────────────────┐  ✔  Can Share              │
+  │   │  USER WITH FULL ACCESS   │     (granted Full Access   │
+  │   └──────────────────────────┘      on that record)       │
+  │                                                            │
+  │   ┌──────────────────────────┐  ✔  Can Share              │
+  │   │  SYSTEM ADMINISTRATOR    │     (can share any record  │
+  │   └──────────────────────────┘      in the org)           │
+  │                                                            │
+  │   ┌──────────────────────────┐  ✘  Cannot Share           │
+  │   │  USER WITH READ ONLY     │     (need ownership or     │
+  │   └──────────────────────────┘      Full Access)          │
+  │                                                            │
+  │   Shared access can be REMOVED by the granting user       │
+  │   or by an admin.                                         │
+  └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Record Owner** — always has the right to manually share their own records
 - **Users with Full Access** — anyone granted Full Access to a record can share it further
@@ -26,7 +77,30 @@
 **Speaker Notes:** If a user is neither the owner nor an admin, they need Full Access to share. This is important for the exam — not every user can share records they can merely see. Ownership or explicit Full Access is required.
 
 ### Slide 3: Manual Sharing UI — Where to Find It
-**Visual:** Screenshot-style mockup of a record detail page showing the Sharing button in the record actions area, plus the Sharing Detail page with a "New" button
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────┐
+  │  RECORD DETAIL PAGE (Lightning Experience)                 │
+  ├────────────────────────────────────────────────────────────┤
+  │  Acme Corp Deal                                            │
+  │  ┌──────────────────────────────────────────────────────┐  │
+  │  │  [Edit]  [Follow]  [Clone]  ▼ More Actions           │  │
+  │  │                              └─▶  [ Sharing ]  ◄──  │  │
+  │  └──────────────────────────────────────────────────────┘  │
+  │                         │                                  │
+  │                         ▼                                  │
+  │  ┌──────────────────────────────────────────────────────┐  │
+  │  │  SHARING DETAIL — Acme Corp Deal                    │  │
+  │  │                                      [ Add ]        │  │
+  │  │  ┌──────────────────────────────────────────────┐   │  │
+  │  │  │ User/Group      │ Reason    │ Access         │   │  │
+  │  │  │─────────────────┼───────────┼────────────────│   │  │
+  │  │  │ Sarah Jones     │ Owner     │ Full Access    │   │  │
+  │  │  │ John Smith      │ Manual    │ Read/Write     │   │  │
+  │  │  └──────────────────────────────────────────────┘   │  │
+  │  └──────────────────────────────────────────────────────┘  │
+  └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Open any record → click the **Sharing** button (may be in the action menu on Lightning)
 - On the Sharing Detail page, click **Add** to grant access to a user, role, or public group
@@ -35,7 +109,24 @@
 **Speaker Notes:** In Lightning Experience, the Sharing button may be in the dropdown action menu rather than on the main record toolbar. It is sometimes hidden unless the admin has added it to the page layout actions. Always verify where Sharing is exposed in your org's page layout.
 
 ### Slide 4: Account Teams
-**Visual:** An Account record card with a related list called "Account Team" showing multiple team member rows with their roles and access levels
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────────┐
+  │  ACCOUNT: Acme Corporation                                     │
+  ├────────────────────────────────────────────────────────────────┤
+  │  Account Team                                         [ Add ]  │
+  ├────────────────┬──────────────────┬──────────┬─────────┬───────┤
+  │  Team Member   │  Team Role       │ Account  │ Contact │  Opp  │
+  │                │                  │ Access   │ Access  │ Access│
+  ├────────────────┼──────────────────┼──────────┼─────────┼───────┤
+  │  Sarah Jones   │ Account Manager  │  R/W     │  R/W    │  R/W  │
+  │  Mark Chen     │ Sales Engineer   │  Read    │  R/W    │  R/W  │
+  │  Lisa Park     │ Exec Sponsor     │  Read    │  Read   │  Read │
+  │  Tom Rivera    │ Support Rep      │  Read    │  Read   │  Read │
+  └────────────────┴──────────────────┴──────────┴─────────┴───────┘
+
+  Each member gets a Team Role + granular per-object access levels.
+```
 **Content:**
 - Account Teams let multiple users collaborate on a single Account with different access levels
 - Each team member gets a **Team Role** (e.g., Account Manager, Sales Engineer, Executive Sponsor)
@@ -44,7 +135,28 @@
 **Speaker Notes:** Account Teams are about collaboration, not just visibility. A Sales Engineer on the Account Team might get Read Only on the Account but Read/Write on related Opportunities so they can update technical notes. Access is granular and role-specific.
 
 ### Slide 5: Default Account Teams
-**Visual:** A user settings page showing "Default Account Team" with a list of team members and a checkbox for "Add Default Team to Accounts I Create"
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │  MY SETTINGS ──▶ Advanced User Details                       │
+  │  ──▶ Default Account Team                                    │
+  ├──────────────────────────────────────────────────────────────┤
+  │                                                              │
+  │  [✔] Add Default Team to Accounts I Create                  │
+  │                                                              │
+  │  Default Account Team Members:                               │
+  │  ┌──────────────────┬────────────────────┬──────────────┐   │
+  │  │  Team Member     │  Team Role         │  Access      │   │
+  │  ├──────────────────┼────────────────────┼──────────────┤   │
+  │  │  Mark Chen       │  Sales Engineer    │  Read/Write  │   │
+  │  │  Lisa Park       │  Exec Sponsor      │  Read Only   │   │
+  │  └──────────────────┴────────────────────┴──────────────┘   │
+  │                                        [ Add Row ]          │
+  │                                                              │
+  │  ► When checked, these members are auto-added to every      │
+  │    new Account the user creates.                            │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Users can define a **Default Account Team** in their personal settings (My Settings > Advanced User Details)
 - Default teams are automatically added to new Account records the user creates
@@ -53,7 +165,28 @@
 **Speaker Notes:** Default Account Teams are a power-user feature that many reps do not know about. When you enable it in Setup, users can configure their own default team in My Settings. This removes the manual step of adding team members every time a new account is created.
 
 ### Slide 6: Opportunity Teams & Case Teams
-**Visual:** Split slide — left shows an Opportunity record with Opportunity Team related list; right shows a Case record with Case Team related list
+**Visual:**
+```
+  ┌──────────────────────────────┬───────────────────────────────────┐
+  │  OPPORTUNITY RECORD          │  CASE RECORD                      │
+  ├──────────────────────────────┼───────────────────────────────────┤
+  │  Acme Deal — $250K           │  Case #00012 — Login Issue        │
+  │                              │                                   │
+  │  Opportunity Team  [ Add ]   │  Case Team           [ Add ]      │
+  │  ┌─────────────┬──────────┐  │  ┌─────────────────┬───────────┐  │
+  │  │ Member      │ Access   │  │  │ Member          │ Role      │  │
+  │  │─────────────┼──────────│  │  │─────────────────┼───────────│  │
+  │  │ Sarah Jones │ R/W      │  │  │ Tom Rivera      │ Support   │  │
+  │  │ Mark Chen   │ R/W      │  │  │ Lisa Park       │ Manager   │  │
+  │  │ Lisa Park   │ Read     │  │  │ John Acme ◄─    │ Customer  │  │
+  │  └─────────────┴──────────┘  │  └─────────────────┴───────────┘  │
+  │                              │         ▲ external contact!        │
+  │  + Opportunity Splits for    │                                   │
+  │    revenue attribution       │                                   │
+  └──────────────────────────────┴───────────────────────────────────┘
+
+  Key difference: Case Teams can include EXTERNAL customer contacts.
+```
 **Content:**
 - **Opportunity Teams** — similar to Account Teams; add users with specific roles and access levels (Read Only or Read/Write) to a single Opportunity
 - **Case Teams** — add users, roles, or contacts (including customers) to collaborate on a Case; assign Case Team Roles
@@ -62,7 +195,31 @@
 **Speaker Notes:** Case Teams are unique in that they can include customer contacts — not just internal users. This is useful for support scenarios where the customer's point of contact needs to see the case status. Opportunity Teams are common in enterprise sales where deals require a squad of specialists.
 
 ### Slide 7: Territory Management Basics
-**Visual:** A geographic hierarchy diagram showing a Territory tree: US → East → Northeast / Southeast; West → Northwest / Southwest, with assignments to users and accounts
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │           ENTERPRISE TERRITORY MANAGEMENT HIERARCHY          │
+  └──────────────────────────────────────────────────────────────┘
+
+                       ┌─────────────┐
+                       │     US      │
+                       └──────┬──────┘
+              ┌───────────────┴───────────────┐
+              ▼                               ▼
+       ┌─────────────┐                 ┌─────────────┐
+       │    East     │                 │    West     │
+       └──────┬──────┘                 └──────┬──────┘
+      ┌───────┴───────┐               ┌───────┴───────┐
+      ▼               ▼               ▼               ▼
+  ┌─────────┐  ┌──────────┐    ┌──────────┐  ┌──────────┐
+  │Northeast│  │Southeast │    │Northwest │  │Southwest │
+  │ Users:  │  │ Users:   │    │ Users:   │  │ Users:   │
+  │  Rep A  │  │  Rep B   │    │  Rep C   │  │  Rep D   │
+  │ Accts:47│  │ Accts:62 │    │ Accts:38 │  │ Accts:51 │
+  └─────────┘  └──────────┘    └──────────┘  └──────────┘
+
+               Access rolls up the territory hierarchy ▲
+```
 **Content:**
 - **Enterprise Territory Management** assigns users and accounts to territories for segmented access
 - Territories can be organized in a hierarchy — access rolls up like a role hierarchy
@@ -71,7 +228,36 @@
 **Speaker Notes:** Territory Management is an alternative or complement to the Role Hierarchy for sales organizations that structure their business geographically or by industry segment. When a rep's territory changes, their account access updates automatically — no manual sharing needed.
 
 ### Slide 8: The Sharing Stack — Putting It All Together
-**Visual:** A layered pyramid with five levels: OWD (base) → Role Hierarchy → Sharing Rules → Manual Sharing → Teams/Territories (top), each layer labeled with what it does
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │              COMPLETE SHARING MODEL STACK                    │
+  ├──────────────────────────────────────────────────────────────┤
+  │                                                              │
+  │         ┌────────────────────────────────────────┐          │
+  │         │   TEAMS / TERRITORIES                  │  ◄ Top   │
+  │         │   Collaborative & geographic access    │          │
+  │         └────────────────────────────────────────┘          │
+  │         ┌────────────────────────────────────────┐          │
+  │         │   MANUAL SHARING                       │          │
+  │         │   Ad hoc, record-by-record grants      │          │
+  │         └────────────────────────────────────────┘          │
+  │         ┌────────────────────────────────────────┐          │
+  │         │   SHARING RULES                        │          │
+  │         │   Auto-extend access to groups         │          │
+  │         └────────────────────────────────────────┘          │
+  │         ┌────────────────────────────────────────┐          │
+  │         │   ROLE HIERARCHY                       │          │
+  │         │   Managers see subordinates' records   │          │
+  │         └────────────────────────────────────────┘          │
+  │         ┌────────────────────────────────────────┐          │
+  │         │   OWD (ORG-WIDE DEFAULTS)              │  ◄ Base  │
+  │         │   Minimum baseline access floor        │          │
+  │         └────────────────────────────────────────┘          │
+  │                                                              │
+  │   Work UP the pyramid for any security question. ▲          │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **OWD** — sets the baseline minimum access
 - **Role Hierarchy** — automatically grants managers access to subordinates' records

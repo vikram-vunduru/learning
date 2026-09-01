@@ -8,7 +8,22 @@
 ## 📊 SLIDES
 
 ### Slide 1: Company Information — The Org Dashboard
-**Visual:** Annotated screenshot of the Setup > Company Information page, with callout boxes pointing to: Organization Name, Salesforce.com Organization ID, Default Locale, Default Language, Default Time Zone, Currency Locale, Used Data Space, Used File Space.
+**Visual:**
+```
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  Setup > Company Information                                            │
+  ├───────────────────────────────────┬─────────────────────────────────────┤
+  │ Organization Name                 │  Acme Corporation       ◀── Browser tab title
+  │ Salesforce.com Organization ID    │  00D3h000007RMXy        ◀── Required for Support
+  │ Default Locale                    │  English (United States) ◀── Date/number format
+  │ Default Language                  │  English                ◀── UI label language
+  │ Default Time Zone                 │  (GMT-08:00) Pacific    ◀── Timestamp baseline
+  │ Currency Locale                   │  USD - U.S. Dollar      ◀── Org base currency
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ Used Data Space                   │  1.2 GB / 10 GB         ◀── Record storage
+  │ Used File Space                   │  0.4 GB / 10 GB         ◀── Attachment storage
+  └───────────────────────────────────┴─────────────────────────────────────┘
+```
 **Content:**
 - Path: **Setup > Company Information**
 - **Organization Name:** Displayed in the browser tab and some notification emails
@@ -18,7 +33,26 @@
 **Speaker Notes:** Company Information is the single most important overview page in Setup. Salesforce Support will always ask for your Org ID when you open a case. The Default Locale setting affects how dates and numbers are formatted — for example, whether a date reads MM/DD/YYYY or DD/MM/YYYY. Users can override these defaults on their own profile if needed.
 
 ### Slide 2: Locale, Language, and Time Zone
-**Visual:** World map with three labeled callout bubbles: "Language = UI text," "Locale = date/number format," "Time Zone = when records are stamped."
+**Visual:**
+```
+                    ┌──────────────────────────────────────┐
+                    │         GLOBAL ORG SETTINGS          │
+                    └──────────────────────────────────────┘
+                                       │
+        ┌──────────────────────────────┼──────────────────────────────┐
+        ▼                              ▼                              ▼
+  ┌─────────────────────┐   ┌─────────────────────┐   ┌─────────────────────┐
+  │      LANGUAGE       │   │       LOCALE        │   │     TIME ZONE       │
+  ├─────────────────────┤   ├─────────────────────┤   ├─────────────────────┤
+  │ Controls UI text:   │   │ Controls formatting:│   │ Controls when       │
+  │  • Button labels    │   │  • Date format      │   │  records are        │
+  │  • Field names      │   │  • Number format    │   │  time-stamped and   │
+  │  • Help text        │   │  • Name ordering    │   │  jobs are run       │
+  │  • Error messages   │   │  • Currency symbol  │   │                     │
+  └─────────────────────┘   └─────────────────────┘   └─────────────────────┘
+        └──────────────────────────────┴──────────────────────────────┘
+                  Users can override all three in their personal settings
+```
 **Content:**
 - **Default Language:** Controls UI labels, button text, and help text org-wide
 - **Default Locale:** Controls date format, number format, and name order
@@ -28,7 +62,22 @@
 **Speaker Notes:** These three settings are easy to confuse on the exam. Language is about the words you see in the UI. Locale is about the format of data like dates and currency. Time zone affects when automated jobs run and how timestamps are displayed. Always set these to match your primary user base; remote users can set their own overrides.
 
 ### Slide 3: Currency Settings
-**Visual:** Split diagram — left side shows "Single Currency" with one currency symbol, right side shows "Multiple Currencies" with several flags and currency codes, plus an arrow from "Corporate Currency" down to "Active Currencies."
+**Visual:**
+```
+  ┌───────────────────────────────────┐             ┌───────────────────────────────────────┐
+  │        SINGLE CURRENCY            │             │        MULTIPLE CURRENCIES             │
+  ├───────────────────────────────────┤             ├───────────────────────────────────────┤
+  │  $ USD only                       │             │  Corporate Currency: $ USD             │
+  │                                   │   enable    │           │                           │
+  │  All amounts in one               │  ─────────▶ │           ▼                           │
+  │  currency org-wide                │             │  Active Currencies:                   │
+  │                                   │             │   $ USD │ € EUR │ £ GBP │ ¥ JPY       │
+  │  Default state                    │             │                                       │
+  │                                   │             │  + Advanced Currency Management       │
+  └───────────────────────────────────┘             │    (dated exchange rates on Opp.)     │
+                                                    └───────────────────────────────────────┘
+                              ⚠  Cannot be disabled once enabled
+```
 **Content:**
 - **Single Currency:** Enabled by default; all amounts use one currency
 - **Multiple Currencies:** Must be enabled (Setup > Company Information > Enable Multiple Currencies); cannot be disabled once enabled
@@ -37,7 +86,21 @@
 **Speaker Notes:** Enabling multiple currencies is another irreversible action — similar to Custom Fiscal Year. Once you turn it on, you cannot turn it off. Advanced Currency Management layers on top of multiple currencies to give you historically accurate exchange rates on opportunity amount fields. The exam tests whether candidates understand that standard currency fields use the current conversion rate, while ACM fields use the rate from the opportunity close date.
 
 ### Slide 4: Salesforce Editions
-**Visual:** Comparison table with five columns (Essentials, Professional, Enterprise, Unlimited, Developer) and rows for key features: API Access, Custom Profiles, Workflow, Process Builder, Sandbox, Custom Roles, Developer Console.
+**Visual:**
+```
+  ┌──────────────────────┬───────────┬──────────────┬────────────┬───────────┬───────────┐
+  │  FEATURE             │ ESSENTIAL │ PROFESSIONAL │ ENTERPRISE │ UNLIMITED │ DEVELOPER │
+  ├──────────────────────┼───────────┼──────────────┼────────────┼───────────┼───────────┤
+  │  API Access          │     ✗     │      ✗       │     ✓      │     ✓     │     ✓     │
+  │  Custom Profiles     │     ✗     │      ✗       │     ✓      │     ✓     │     ✓     │
+  │  Workflow Rules      │     ✗     │      ✓       │     ✓      │     ✓     │     ✓     │
+  │  Process Builder     │     ✗     │      ✓       │     ✓      │     ✓     │     ✓     │
+  │  Sandbox             │     ✗     │      ✗       │     ✓      │ Unlimited │    ✓ *    │
+  │  Custom Roles        │     ✗     │      ✓       │     ✓      │     ✓     │     ✓     │
+  │  Developer Console   │     ✗     │      ✗       │     ✓      │     ✓     │     ✓     │
+  └──────────────────────┴───────────┴──────────────┴────────────┴───────────┴───────────┘
+    * Developer Edition ≠ a Sandbox of Production — it is a standalone free org
+```
 **Content:**
 - **Essentials:** Basic CRM for small teams; limited customization; no sandbox
 - **Professional:** Full CRM features; no API access by default; no sandbox
@@ -47,7 +110,22 @@
 **Speaker Notes:** Enterprise edition is the most commonly deployed edition in medium-to-large companies because it includes API access, custom profiles, and sandboxes. Professional edition is a common trap on the exam — it lacks API access by default, which matters when you're integrating with third-party tools. Developer Edition includes Enterprise-level features for free, which is why it is used for certification prep.
 
 ### Slide 5: Storage Limits
-**Visual:** Two stacked bar charts side-by-side — one for Data Storage and one for File Storage — showing thresholds and the "Add More Storage" option.
+**Visual:**
+```
+  DATA STORAGE                               FILE STORAGE
+  ┌──────────────────────────────────┐       ┌──────────────────────────────────┐
+  │  Stores: Accounts, Contacts,     │       │  Stores: Attachments, Files,     │
+  │          Opportunities, custom   │       │          Documents, Content      │
+  │          object records          │       │                                  │
+  │                                  │       │                                  │
+  │  Used:  ████████░░  8 GB / 10 GB │       │  Used:  ████░░░░░░  4 GB / 10 GB │
+  │         80% consumed             │       │         40% consumed             │
+  │                                  │       │                                  │
+  │  ⚠  Near limit — action needed!  │       │  ✓  Within safe range            │
+  └──────────────────────────────────┘       └──────────────────────────────────┘
+       Both tracked at: Setup > Company Information (Used Data / File Space)
+       Exceeding limits → users cannot save new records
+```
 **Content:**
 - **Data Storage:** Stores records (Accounts, Contacts, Opportunities, custom objects, etc.)
 - **File Storage:** Stores attachments, files, documents, and content
@@ -57,7 +135,20 @@
 **Speaker Notes:** Storage issues can sneak up on an admin if they are not monitoring usage. The Company Information page shows both data and file storage consumption at a glance. If you hit the limit, users will start getting errors when trying to save records. Options include purchasing more storage, archiving old records, or cleaning up attachment files.
 
 ### Slide 6: User Licenses
-**Visual:** Table listing common license types — Salesforce, Salesforce Platform, Chatter Only, Community Login, Partner Community — with a brief description and use case for each.
+**Visual:**
+```
+  ┌─────────────────────────────┬────────────────────────────────────────────────────┐
+  │  LICENSE TYPE               │  USE CASE                                          │
+  ├─────────────────────────────┼────────────────────────────────────────────────────┤
+  │  Salesforce                 │  Full CRM access; all standard + custom objects    │
+  │  Salesforce Platform        │  Custom apps only; limited to Accounts & Contacts  │
+  │  Chatter Free               │  Collaboration/feed only; no CRM data              │
+  │  Chatter Only               │  Feed + limited Salesforce data view               │
+  │  Community Login            │  External users (customers); per-login billing     │
+  │  Partner Community          │  External partners; CRM-lite access                │
+  └─────────────────────────────┴────────────────────────────────────────────────────┘
+    License type is set on the User record and determines the user's access ceiling
+```
 **Content:**
 - **Salesforce license:** Full CRM access; includes standard and custom objects
 - **Salesforce Platform license:** Access to custom apps + limited standard objects (Accounts, Contacts only)
@@ -67,7 +158,23 @@
 **Speaker Notes:** A common exam scenario is: "A user only needs access to your custom app but not Accounts or Opportunities — what license should you assign?" The answer is Salesforce Platform. Chatter licenses are for users who only need to collaborate in feeds without seeing CRM records. Always match the license to the minimum access the user needs.
 
 ### Slide 7: My Domain
-**Visual:** Before/after URL comparison — before: `login.salesforce.com`, after: `mycompany.my.salesforce.com` — plus a checklist of My Domain deployment steps.
+**Visual:**
+```
+  BEFORE MY DOMAIN                      AFTER MY DOMAIN (deployed)
+  ┌────────────────────────────────┐     ┌──────────────────────────────────────────┐
+  │  https://login.salesforce.com  │ ──▶ │  https://mycompany.my.salesforce.com     │
+  └────────────────────────────────┘     └──────────────────────────────────────────┘
+                                         Required for:  ✓ Lightning Components
+                                                        ✓ Single Sign-On (SSO)
+                                                        ✓ OAuth Flows
+
+  SETUP STEPS:
+  ┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐
+  │  1. Choose       │──▶│  2. Register     │──▶│  3. Test Login   │──▶│  4. Deploy       │
+  │  Domain Name     │   │  (a few minutes) │   │  URL             │   │  to Users        │
+  └──────────────────┘   └──────────────────┘   └──────────────────┘   └──────────────────┘
+  ⚠  After deployment: old login.salesforce.com URL no longer routes to your org
+```
 **Content:**
 - **My Domain:** A custom subdomain for your Salesforce org (e.g., `acme.my.salesforce.com`)
 - Required for: Lightning components, single sign-on (SSO), OAuth flows
@@ -77,7 +184,21 @@
 **Speaker Notes:** My Domain is no longer optional — it is required for Lightning Experience and any modern Salesforce integration. The setup process has four clear steps: you choose your subdomain name, Salesforce registers it (takes a few minutes), you test it, and then you deploy it to all users. Once deployed, users who try to use the generic login.salesforce.com URL will be redirected. The exam may ask about My Domain as a prerequisite for SSO or Lightning components.
 
 ### Slide 8: Key Company Information Exam Facts
-**Visual:** Reference card with highlighted key facts.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │           ★  COMPANY INFORMATION — EXAM CHEAT SHEET  ★                 │
+  ├──────────────────────────────────────────────────────────────────────────┤
+  │  ▶  Multiple Currencies      →  CANNOT be disabled once enabled         │
+  │  ▶  Enterprise edition       →  Includes sandboxes & API access         │
+  │  ▶  Professional edition     →  NO API access, NO sandboxes             │
+  │  ▶  My Domain                →  Required for Lightning components & SSO │
+  │  ▶  Default Locale           →  Controls date/number format             │
+  │  ▶  Default Language         →  Controls UI text labels                 │
+  │  ▶  Org ID location          →  Setup > Company Information             │
+  │  ▶  Storage types            →  Data Storage ≠ File Storage             │
+  └──────────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Multiple Currencies, once enabled, **cannot be disabled**
 - Enterprise edition includes sandboxes; Professional does **not**

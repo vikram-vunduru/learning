@@ -40,7 +40,30 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 3: Why Does Hallucination Happen? The Probability Engine
-**Visual:** A wheel of fortune spinner with words — "The", "quick", "brown", "fox" — each with a percentage. Next spin: "flew" (5%), "ran" (40%), "jumped" (55%). Arrow lands on "ran."
+**Visual:**
+```
+   HOW HALLUCINATION HAPPENS — Token Probability
+
+   Input: "The capital of France is ___"
+
+   Model's token probability distribution:
+   ┌────────────────────────────────────────────────────────┐
+   │  "Paris"    ████████████████████████████████  92%     │
+   │  "Lyon"     ██                                 3%     │
+   │  "Berlin"   █                                  2%     │
+   │  "London"   █                                  2%     │
+   │  "Rome"     ░                                  1%     │
+   └────────────────────────────────────────────────────────┘
+   → Model correctly picks "Paris" (high confidence)
+
+   Hallucination: When model picks a plausible-but-wrong token
+   with moderate confidence on a factual question it wasn't
+   trained to answer correctly.
+
+   "The CEO of [obscure company] is ___"
+   → Model picks a plausible-sounding name with 40% confidence
+   → Outputs it as if certain → HALLUCINATION
+```
 **Content:**
 - LLMs are not "looking up facts" — they are predicting the next most likely word
 - They are trained on patterns, not truth
@@ -51,7 +74,29 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 4: Hallucination — The Three Root Causes
-**Visual:** Three columns labeled: 1) No ground truth, 2) Training data gaps, 3) Overconfidence by design
+**Visual:**
+```
+   THREE ROOT CAUSES OF HALLUCINATION
+
+   ┌──────────────────┬──────────────────┬──────────────────┐
+   │   TRAINING DATA  │  INFERENCE DESIGN│  TASK MISMATCH   │
+   │   GAPS           │  PATTERNS        │                  │
+   ├──────────────────┼──────────────────┼──────────────────┤
+   │ Model was never  │ Model trained to │ Asking model for │
+   │ trained on this  │ produce fluent,  │ precise facts it │
+   │ specific fact    │ confident text   │ was not designed │
+   │                  │ → fills gaps     │ to look up       │
+   │                  │ with plausible   │                  │
+   │                  │ patterns         │                  │
+   ├──────────────────┼──────────────────┼──────────────────┤
+   │ Ex: Recent event │ Ex: Generates a  │ Ex: "What is the │
+   │ after training   │ fake citation    │ exact stock price │
+   │ cutoff date      │ that sounds real │ right now?"      │
+   ├──────────────────┼──────────────────┼──────────────────┤
+   │ Fix: RAG with    │ Fix: Grounding   │ Fix: Use a tool  │
+   │ fresh data       │ in real data     │ (API call)       │
+   └──────────────────┴──────────────────┴──────────────────┘
+```
 **Content:**
 - **No ground truth:** The model was never taught "this is a fact, this is not"
 - **Training data gaps:** If the real answer wasn't in the training data, the model guesses
@@ -104,7 +149,32 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 9: How the Salesforce Einstein Trust Layer Mitigates These Risks
-**Visual:** A shield icon labeled "Einstein Trust Layer" with four sections: Data Masking, Toxicity Scoring, Zero Data Retention, Audit Trail
+**Visual:**
+```
+   EINSTEIN TRUST LAYER — Defense Against Hallucination
+
+   ┌─────────────────────────────────────────────────────────┐
+   │                EINSTEIN TRUST LAYER                     │
+   │                                                         │
+   │  ┌─────────────────────────────────────────────────┐    │
+   │  │  1. DATA MASKING / PII SCRUBBING                │    │
+   │  │     Remove sensitive data before sending to LLM │    │
+   │  ├─────────────────────────────────────────────────┤    │
+   │  │  2. GROUNDING (RAG)                             │    │
+   │  │     Attach verified customer data to prompt     │    │
+   │  │     Reduces hallucination with factual context  │    │
+   │  ├─────────────────────────────────────────────────┤    │
+   │  │  3. TOXICITY SCORING                            │    │
+   │  │     Filter harmful/inappropriate LLM outputs    │    │
+   │  ├─────────────────────────────────────────────────┤    │
+   │  │  4. ZERO DATA RETENTION                         │    │
+   │  │     LLM provider cannot store/train on your data│    │
+   │  ├─────────────────────────────────────────────────┤    │
+   │  │  5. AUDIT TRAIL                                 │    │
+   │  │     Log all AI interactions for compliance      │    │
+   │  └─────────────────────────────────────────────────┘    │
+   └─────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Salesforce built the Einstein Trust Layer specifically to make AI safe for enterprise use
 - It sits between your Salesforce data and the LLM
@@ -115,7 +185,30 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 10: Trust Layer and Hallucination — Grounding to Reality
-**Visual:** Diagram showing "prompt goes in → Trust Layer injects CRM data context → grounded prompt sent to LLM → grounded response returned"
+**Visual:**
+```
+   GROUNDING — How RAG Reduces Hallucination
+
+   WITHOUT GROUNDING:
+   User: "What are Sarah Chen's open cases?"
+   LLM: [has no CRM data] → Makes up case details → HALLUCINATION
+
+   ─────────────────────────────────────────────────────────
+
+   WITH GROUNDING (RAG):
+   ┌──────────────┐    ┌─────────────────────┐    ┌─────────┐
+   │ User query   │───▶│  1. RETRIEVE        │    │  LLM    │
+   │              │    │  Real data from     │───▶│         │
+   │ "What are    │    │  Salesforce CRM:    │    │ Generates│
+   │ Sarah Chen's │    │  - Case #00012: ... │    │ accurate │
+   │ open cases?" │    │  - Case #00034: ... │    │ answer   │
+   └──────────────┘    │                     │    │ grounded │
+                       │  2. AUGMENT prompt  │    │ in facts │
+                       │  with retrieved     │    └─────────┘
+                       │  real data context  │
+                       └─────────────────────┘
+   Result: Accurate, factual response — no hallucination
+```
 **Content:**
 - Grounding: the Trust Layer injects real, current data from your CRM into the prompt
 - Instead of the LLM guessing, it is given the actual facts
@@ -126,7 +219,27 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 11: Trust Layer and Bias — Toxicity Scoring and Data Masking
-**Visual:** Pipeline diagram showing "raw prompt → toxicity check → PII stripped → clean prompt → LLM → response → toxicity check → delivered to user"
+**Visual:**
+```
+   TOXICITY SCORING PIPELINE
+
+   User/Agent                  Einstein Trust Layer              LLM Response
+   generates     ──────────▶  ┌────────────────────┐  ──────▶  ┌──────────┐
+   output                     │  TOXICITY SCORER    │           │ BLOCKED  │
+                               │                    │           │ or       │
+                               │  Analyzes text for:│  ◀──────  │ PASSED   │
+                               │  ● Harmful content │           └──────────┘
+                               │  ● Hate speech     │
+                               │  ● Violence        │
+                               │  ● PII exposure    │
+                               │  ● Bias indicators │
+                               │                    │
+                               │  Score > threshold │
+                               │  → Block + alert   │
+                               │  Score < threshold │
+                               │  → Allow output    │
+                               └────────────────────┘
+```
 **Content:**
 - Toxicity Scoring: incoming prompts and outgoing responses are scored for harmful content
 - Outputs that score above a toxicity threshold are blocked before reaching the user

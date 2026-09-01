@@ -10,7 +10,26 @@
 ## Slides
 
 ### Slide 1: Why Pre-built Templates?
-**Visual:** A spectrum bar labeled "Build Effort" from left (Low) to right (High). On the left end: "Pre-built Agent" with a pre-assembled robot icon. In the middle: "Customized Pre-built" with the same robot but with custom parts added. On the right: "Custom Agent" with a blank canvas and tools. Below the bar: sample time estimates — Pre-built: hours, Customized: days, Custom: weeks. A star marks "Customized Pre-built" as the most common enterprise starting point.
+**Visual:**
+```
+  Build Effort
+  ◀── Low ─────────────────────────────────────── High ──▶
+
+  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+  │  Pre-built      │   │  Customized     │   │  Custom Agent   │
+  │  Agent          │   │  Pre-built  ★   │   │  (from scratch) │
+  │                 │   │  (most common   │   │                 │
+  │  Hours to       │   │   enterprise    │   │  Weeks to       │
+  │  deploy         │   │   starting pt)  │   │  deploy         │
+  └─────────────────┘   └─────────────────┘   └─────────────────┘
+         │                     │                     │
+    Full Identity,         Adjust persona,       Blank Identity,
+    Instructions,          refine Instructions,  no default Topics,
+    Topics, Actions        replace Actions for   no default Actions,
+    pre-configured         your data model       full control
+
+  ★ = recommended starting point for most enterprise deployments
+```
 **Content:**
 - Pre-built agent templates are **starting points** — fully configured agents with default Instructions, Topics, and Actions that reflect Salesforce's best practices for each use case
 - They reduce time-to-value: a Service Agent can be deployed in hours with minimal customization for standard service scenarios
@@ -20,7 +39,27 @@
 **Speaker Notes:** The exam will test your knowledge of when to use which template type. The key principle: always start with a pre-built template when one exists for the use case — it has Salesforce's recommended configurations baked in, including default escalation handling and safety instructions. Only reach for Custom Agent when no pre-built fits. This is consistent with Salesforce's general platform philosophy of "clicks before code" — applied here as "configure pre-built before building custom."
 
 ### Slide 2: Service Agent — Overview and Setup
-**Visual:** A Service Agent setup wizard walkthrough showing four numbered steps: (1) Choose "Service Agent" from the agent template gallery, (2) Configure Identity — enter agent name, description, company name, (3) Connect to a Knowledge Base — select Einstein Knowledge or other source, (4) Configure Deployment Channel — select Embedded Service Chat, Preview Agent. Each step shows a simplified screenshot mockup.
+**Visual:**
+```
+  Setup → Agentforce → Agents → New Agent → Service Agent
+
+  ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌──────────┐
+  │ STEP 1  │     │ STEP 2  │     │ STEP 3  │     │  STEP 4  │
+  │         │     │         │     │         │     │          │
+  │ Choose  │────▶│Configure│────▶│ Connect │────▶│Configure │
+  │ Service │     │Identity │     │Knowledge│     │Deployment│
+  │ Agent   │     │         │     │  Base   │     │ Channel  │
+  │template │     │ · Name  │     │         │     │          │
+  │         │     │ · Company│    │Einstein │     │Embedded  │
+  │         │     │ · Tone  │     │Knowledge│     │ Service  │
+  │         │     │ · Descr.│     │(required│     │  Chat    │
+  └─────────┘     └─────────┘     │ ≥1 pub. │     └──────────┘
+                                  │article) │          │
+                                  └─────────┘          ▼
+                                                  Preview agent
+                                                  in Builder
+                                                  simulator
+```
 **Content:**
 - **Primary use case:** Inbound customer service — case deflection, FAQ, order status, account inquiries, escalation to human agent
 - **Default Topics included:** General FAQ, Case Management, Order Inquiry, Authentication/Verification (configurable)
@@ -34,7 +73,26 @@
 **Speaker Notes:** The Service Agent setup wizard walks you through the minimum required configuration in roughly 30 minutes for a basic deployment. The key decisions are the Knowledge source (which articles the agent can search) and the deployment channel (where customers interact with the agent). For the lab in this course we will go through this setup end-to-end. For the exam, know the navigation path (Setup → Agentforce → Agents), the four default Topics, and the fact that at least one published Knowledge article is required for the Knowledge search action to return results.
 
 ### Slide 3: Service Agent — Customizing Topics and Actions
-**Visual:** Agentforce Builder UI mockup showing the Service Agent with its default Topics listed in a left panel (FAQ, Order Inquiry, Case Management). In the center, one Topic is expanded showing two Actions beneath it (Knowledge Search, Create Case). On the right, an "Edit Action" panel shows the Action description field with placeholder text. A pencil icon indicates editable fields.
+**Visual:**
+```
+  Agentforce Builder — Service Agent
+
+  LEFT PANEL                CENTER                    RIGHT PANEL
+  ──────────────────        ──────────────────         ─────────────────
+  Topics                    Topic: Order Inquiry       Edit Action
+  ┌──────────────┐          ┌──────────────────┐      ┌───────────────┐
+  │ FAQ          │          │ Actions:         │      │ Action Name:  │
+  │ ▶ Order      │◀─selected│                  │      │ Get Order     │
+  │   Inquiry    │          │  ✎ Knowledge     │─────▶│ Status        │
+  │ Case Mgmt    │          │    Search        │      │               │
+  │ Account Upd. │          │                  │      │ Description:  │
+  └──────────────┘          │  ✎ Create Case  │      │ [editable     │
+                            │    (Flow)        │      │  text field]  │
+  [+ Add Topic]             │                  │      │               │
+                            │  [+ Add Action]  │      │ ✎ pencil =    │
+                            └──────────────────┘      │  editable     │
+                                                      └───────────────┘
+```
 **Content:**
 - Default Topics can be **renamed, edited, or removed** based on your business needs
 - New Topics can be added to extend the agent beyond defaults — each new Topic requires a label, description, and at least one Action
@@ -45,7 +103,34 @@
 **Speaker Notes:** The most common customization need for Service Agent is replacing generic out-of-box actions with actions that query your specific data model. If you have a custom Order__c object instead of the standard Order object, the default order lookup action will not work — you need to build a Flow that queries your custom object and wire it in as a replacement. The good news is that everything else — the agent's identity, its escalation logic, its safety instructions — can be kept from the template. You are doing targeted replacement, not a full rebuild.
 
 ### Slide 4: Sales Development Rep (SDR) Agent
-**Visual:** A lead qualification workflow diagram. Left: a web form submission icon labeled "Inbound Lead." Center: SDR Agent in a conversation bubble exchanging messages (asking qualifying questions, gathering company size, budget, use case). Right: two outcomes — "Qualified: Book Meeting" (calendar icon) or "Unqualified: Nurture Sequence" (email icon). Above: a note reading "No human SDR required for routine qualification."
+**Visual:**
+```
+  Inbound Lead (web form)
+         │
+         ▼
+  ┌────────────────────────────────────────────────────────────┐
+  │                    SDR AGENT                               │
+  │                                                            │
+  │  "Thanks for your interest! To understand your needs,      │
+  │   I have a few quick questions..."                         │
+  │                                                            │
+  │  Topic: Lead Qualification                                 │
+  │    · Company size? · Budget range?                        │
+  │    · Timeline? · Decision maker?                          │
+  └────────────────────────────────────────────────────────────┘
+         │                              │
+   Lead qualifies                 Lead does not qualify
+         │                              │
+         ▼                              ▼
+  ┌──────────────────┐          ┌───────────────────┐
+  │  QUALIFIED       │          │   UNQUALIFIED      │
+  │  Book meeting    │          │   Nurture sequence │
+  │  with AE         │          │   (email drip)     │
+  │  (calendar link) │          │                   │
+  └──────────────────┘          └───────────────────┘
+
+  "No human SDR required for routine qualification"
+```
 **Content:**
 - **Primary use case:** Autonomous inbound lead qualification — respond to web-form leads, ask qualifying questions via email/chat, determine lead quality, book meetings with Account Executives
 - **Key capability:** Can send and receive emails autonomously (requires Email channel configuration)
@@ -56,7 +141,35 @@
 **Speaker Notes:** The SDR Agent is an external-facing agent — it communicates with your prospects, not your internal team. This is a critical distinction for the exam. Sales Coach, by contrast, is internal only — it reviews recordings and provides feedback to salespeople. For the exam, when you see a scenario about "automatically responding to inbound leads," think SDR Agent. When you see "providing feedback on sales conversations," think Sales Coach. A common trap question presents both use cases together and asks which agent handles which — they are completely separate agents.
 
 ### Slide 5: Sales Coach Agent
-**Visual:** A feedback loop diagram. Left: a sales rep icon after a call. Center: Sales Coach Agent analyzing: call recording (audio wave icon), CRM data (Salesforce cloud icon), opportunity details. Right: a coaching report shown in the rep's Salesforce interface — bullet points with coaching feedback, strength areas, improvement suggestions. Below: a note "Agent output goes to rep, not to customer."
+**Visual:**
+```
+  Sales Rep completes call
+         │
+         ▼
+  ┌─────────────────────────────────────────────────────┐
+  │              SALES COACH AGENT                      │
+  │                                                     │
+  │  Inputs analyzed:                                   │
+  │  ┌──────────────┐  ┌──────────────┐  ┌──────────┐  │
+  │  │ Call         │  │ CRM Data     │  │Opportunity│ │
+  │  │ Recording    │  │ (Account,    │  │ Details  │  │
+  │  │ (audio wave) │  │  Contact)    │  │ (stage,  │  │
+  │  └──────────────┘  └──────────────┘  │  amount) │  │
+  │                                      └──────────┘  │
+  │  Generates coaching feedback                        │
+  └─────────────────────────────────────────────────────┘
+         │
+         ▼
+  Coaching report in Salesforce UI (rep + manager view):
+  ┌─────────────────────────────────────────────────────┐
+  │  • Strength: Good discovery questions in first 5min │
+  │  • Improve: Did not address pricing objection       │
+  │  • Suggestion: Reference case study earlier         │
+  └─────────────────────────────────────────────────────┘
+         │
+         ▼
+  Output goes to REP — NOT to customer
+```
 **Content:**
 - **Primary use case:** Automated sales coaching — analyze sales call recordings and CRM data, generate coaching feedback for sales reps
 - **Who sees the output:** The sales rep and their manager — this is an internal tool, not customer-facing
@@ -67,7 +180,30 @@
 **Speaker Notes:** Sales Coach is different from Service Agent and SDR in one important way: it is primarily a generation/summarization agent, not an action-execution agent. Its core output is generated text (coaching feedback) rather than executed operations (creating records, sending messages). This makes it more analogous to a Prompt Template action than to a flow-execution agent. For the exam, Sales Coach questions often focus on use case identification rather than technical configuration, since its setup is more opinionated than Service Agent.
 
 ### Slide 6: Customizing Agent Persona and Identity
-**Visual:** An Identity configuration panel mockup showing four fields: Agent Name (text input, example: "Aria"), Agent Description (text area, example: "Aria is Acme's friendly digital service assistant who helps customers resolve service issues quickly"), Company Name (text input), and Persona Tone (dropdown: Professional, Friendly, Formal, Empathetic). Below, a preview panel showing how the agent introduces itself using the configured name and tone.
+**Visual:**
+```
+  Identity Configuration Panel
+  ┌────────────────────────────────────────────────────────────┐
+  │  Agent Name:        [ Aria                              ]  │
+  │                                                            │
+  │  Agent Description: [ Aria is Acme's friendly digital      │
+  │                       service assistant who helps          │
+  │                       customers resolve service issues      │
+  │                       quickly                           ]  │
+  │                                                            │
+  │  Company Name:      [ Acme Corp                         ]  │
+  │                                                            │
+  │  Persona Tone:      [ Friendly ▼ ]                         │
+  │                       · Professional                       │
+  │                       · Friendly     ◀ selected            │
+  │                       · Formal                             │
+  │                       · Empathetic                         │
+  └────────────────────────────────────────────────────────────┘
+  Preview: "Hi! I'm Aria, your Acme service assistant.
+            How can I help you today?"
+
+  Identity sets base persona → Instructions extend and refine it
+```
 **Content:**
 - **Agent Name** — the name customers see; use a persona name rather than "Chatbot" or "AI Assistant" for better engagement
 - **Agent Description** — used internally to describe the agent's purpose; also feeds into the system prompt to establish the persona
@@ -78,7 +214,32 @@
 **Speaker Notes:** Persona configuration is one of the highest-visibility customizations for business stakeholders — it is usually the first thing an end-client asks about. For the exam, know that persona is configured in the Identity section (name, company, tone) and refined in the Instructions section (behavioral detail). A question might ask "where would you configure the agent to always respond in a formal, professional tone?" — the answer is both Identity (Formal tone setting) and Instructions (explicit tone guidance). These two work together.
 
 ### Slide 7: Agent Lifecycle — Draft, Active, Deactivated
-**Visual:** A lifecycle state diagram with three boxes connected by arrows. Box 1: "Draft" (pencil icon) — agent is being configured; visible only in Agentforce Builder; cannot receive real conversations. Box 2: "Active" (green checkmark) — agent is published and receiving conversations on configured channels. Box 3: "Deactivated" (grey circle) — agent is turned off; channels stop routing to it. Arrows: Draft → Active (via "Activate" button), Active → Deactivated (via "Deactivate"), Deactivated → Draft (via "Edit / Reactivate").
+**Visual:**
+```
+  ┌──────────────────┐   Activate    ┌──────────────────┐
+  │                  │ ─────────────▶│                  │
+  │     DRAFT        │               │     ACTIVE       │
+  │                  │◀─────────────-│                  │
+  │  · Configuring   │   Deactivate  │  · Live          │
+  │  · Simulator     │               │  · Receiving     │
+  │    testing only  │               │    conversations │
+  │  · No live convs │               │  · Production    │
+  └──────────────────┘               └────────┬─────────┘
+           ▲                                  │
+           │                           Deactivate
+     Edit / Reactivate                        │
+           │                                  ▼
+           └──────────────────────   ┌──────────────────┐
+                                     │                  │
+                                     │   DEACTIVATED    │
+                                     │                  │
+                                     │  · Offline       │
+                                     │  · Channels stop │
+                                     │    routing       │
+                                     └──────────────────┘
+
+  Best practice: develop in Sandbox → test → promote to Production
+```
 **Content:**
 - **Draft state** — the agent is being configured; only accessible in Agentforce Builder; test conversations in Builder simulator do not count as production conversations
 - **Active state** — the agent is published and live; new configurations require deactivation or versioning before publish
@@ -88,7 +249,38 @@
 **Speaker Notes:** For the exam, the agent lifecycle state question usually appears in the deployment or testing section. Know that Draft agents can be tested in the Builder simulator but cannot take live conversations. The exam may ask what state an agent must be in before it can receive customer messages — the answer is Active. Also note that when you make changes to an Active agent, best practice is to deactivate it, make changes, test in the simulator, then reactivate. In practice, Salesforce allows some in-place edits, but deactivating is the recommended approach for significant changes.
 
 ### Slide 8: Choosing the Right Starting Point
-**Visual:** A decision flowchart. Start: "What is your use case?" Three branches: "Customer service, FAQ, case deflection" → Service Agent. "Inbound lead qualification, meeting booking" → SDR Agent. "Sales rep coaching, call analysis" → Sales Coach. Below: "None of the above?" → Custom Agent. Below the flowchart: a table showing which pre-built agent includes which capabilities (Knowledge search, Email channel, Call analysis, CRM write-back).
+**Visual:**
+```
+  What is your use case?
+         │
+    ┌────┴──────────────────────────────────────────┐
+    │                                               │
+    ▼                                               ▼
+  Customer service,          Sales rep coaching,    Inbound lead
+  FAQ, case deflection       call analysis          qualification,
+         │                        │                 meeting booking
+         ▼                        ▼                      │
+  SERVICE AGENT             SALES COACH              SDR AGENT
+         │                  (internal only)               │
+         └─────────────────────────┴───────────────────────┘
+                                   │
+                         None of the above?
+                    (HR, field service, IT helpdesk,
+                     internal ops, custom use case)
+                                   │
+                                   ▼
+                           CUSTOM AGENT
+                    (blank canvas — full control)
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  Use Case               │ Template     │ Facing  │ Channel       │
+  ├─────────────────────────┼──────────────┼─────────┼───────────────┤
+  │  Customer service/FAQ   │ Service      │ External│ Embedded Chat │
+  │  Lead qualification     │ SDR          │ External│ Email/Chat    │
+  │  Rep coaching           │ Sales Coach  │ Internal│ CRM UI        │
+  │  HR / Field Svc / Other │ Custom       │ Either  │ Slack / API   │
+  └──────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 | Use Case | Recommended Template |
 |----------|---------------------|

@@ -11,7 +11,22 @@
 ## Slides
 
 ### Slide 1: What Is Node.js?
-**Visual:** Diagram showing a web request flowing from browser → internet → server running Node.js. Inside the Node.js box: V8 engine (JavaScript execution), libuv (async I/O, event loop), and Node.js standard library (fs, http, etc.). Callout: "JavaScript outside the browser."
+**Visual:**
+```
+  Browser                    Server
+  ┌────────┐   HTTP request  ┌──────────────────────────────────────┐
+  │ Chrome │ ──────────────► │  Node.js Runtime                     │
+  │  (V8)  │ ◄────────────── │  ┌──────────┐  ┌──────────────────┐ │
+  └────────┘  HTTP response  │  │ V8 Engine│  │ libuv            │ │
+                             │  │ (JS exec)│  │ (async I/O,      │ │
+                             │  └──────────┘  │  event loop)     │ │
+                             │  ┌─────────────────────────────┐   │ │
+                             │  │ Node.js Standard Library    │   │ │
+                             │  │  fs  http  path  os  events │   │ │
+                             │  └─────────────────────────────┘   │ │
+                             └──────────────────────────────────────┘
+                             "JavaScript outside the browser"
+```
 **Content:**
 - **Node.js** is a runtime environment that lets JavaScript run on the server (outside the browser)
 - Built on Google's **V8 engine** — the same engine Chrome uses to run JavaScript
@@ -26,7 +41,22 @@
 **Speaker Notes:** The most important mental shift is that Node.js is JavaScript, but without the browser. There is no `document`, no `window`, no `alert()`. Instead you get `process`, `__dirname`, and APIs to read files and make network requests. The non-blocking I/O model is what makes Node.js performant for I/O-heavy tasks like API servers — it can handle thousands of concurrent connections without spawning thousands of threads.
 
 ### Slide 2: Node.js vs Browser JavaScript
-**Visual:** Two-column comparison table. Left column "Browser JS": window global, document/DOM, fetch API, localStorage, alert/prompt, setTimeout (web API). Right column "Node.js": global (not window), no DOM, http module, file system (fs), no alert, setTimeout (native), process object, __dirname, __filename, require/import.
+**Visual:**
+```
+  ┌──────────────────────────────┬──────────────────────────────┐
+  │  Browser JavaScript          │  Node.js                     │
+  ├──────────────────────────────┼──────────────────────────────┤
+  │  window (global object)      │  global (no window)          │
+  │  document / DOM              │  no DOM                      │
+  │  fetch API (built-in)        │  http module / fetch (v18+)  │
+  │  localStorage / sessionStore │  fs module (file system)     │
+  │  alert() / prompt()          │  no alert                    │
+  │  setTimeout (Web API)        │  setTimeout (native/libuv)   │
+  │  <script src="...">          │  require() / import          │
+  │  location, history           │  process object              │
+  │                              │  __dirname, __filename       │
+  └──────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 - **Global object:** Browser has `window`; Node.js has `global` (or just omit it — same as bare variable)
 - **No DOM:** `document`, `window.location`, `localStorage` — none of these exist in Node.js
@@ -174,7 +204,33 @@
 **Speaker Notes:** EventEmitter.emit is synchronous — all listeners fire before emit returns. This is different from browser's CustomEvent which dispatches asynchronously through the event loop. A common pattern is extending EventEmitter in your own classes so they can emit domain events. The memory leak warning about max listeners is a useful safety net — if you keep adding listeners without removing them (a common bug in long-running servers), Node.js will warn you after 10.
 
 ### Slide 7: The Node.js Event Loop
-**Visual:** Circular diagram of event loop phases in order: (1) Timers (setTimeout/setInterval callbacks), (2) Pending Callbacks (I/O errors), (3) Idle/Prepare (internal), (4) Poll (new I/O events), (5) Check (setImmediate callbacks), (6) Close Callbacks (socket.on('close')). Between phases: microtasks queue (Promises + process.nextTick) drains completely.
+**Visual:**
+```
+  ┌─────────────────────────────────────────────────────────┐
+  │               NODE.JS EVENT LOOP PHASES                 │
+  ├─────────────────────────────────────────────────────────┤
+  │  Phase 1: TIMERS        setTimeout / setInterval        │
+  │                ↓                                        │
+  │  ★ Microtasks drain (process.nextTick → Promises)       │
+  │                ↓                                        │
+  │  Phase 2: PENDING I/O   deferred I/O callbacks          │
+  │                ↓                                        │
+  │  ★ Microtasks drain                                     │
+  │                ↓                                        │
+  │  Phase 3: IDLE/PREPARE  internal use                    │
+  │                ↓                                        │
+  │  Phase 4: POLL          new I/O events; blocks if empty │
+  │                ↓                                        │
+  │  ★ Microtasks drain                                     │
+  │                ↓                                        │
+  │  Phase 5: CHECK         setImmediate() callbacks        │
+  │                ↓                                        │
+  │  Phase 6: CLOSE         socket.on('close', ...) etc.    │
+  │                ↓                                        │
+  │  ─────────────── loop back to Phase 1 ─────────────── │
+  └─────────────────────────────────────────────────────────┘
+  ★ process.nextTick fires before Promise microtasks
+```
 **Content:**
 - The event loop is how Node.js handles async operations without multiple threads
 - **Phase 1 — Timers:** Runs callbacks whose `setTimeout` / `setInterval` delay has passed

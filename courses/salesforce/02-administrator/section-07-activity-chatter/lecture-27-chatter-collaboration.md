@@ -8,7 +8,28 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Is Chatter?
-**Visual:** Chatter feed screenshot showing posts, comments, likes, file attachments, and @mentions on a record
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────┐
+  │  Opportunity: Acme Q4 Deal  ▶  Chatter Feed             │
+  ├──────────────────────────────────────────────────────────┤
+  │  [S] Sarah Chen  ·  2 hours ago                         │
+  │      Just got off a call with @JohnSmith —              │
+  │      customer is ready to move to Proposal!              │
+  │      #Q4Pipeline   [attachment: call_notes.pdf]         │
+  │      ♡ 3 Likes   ▷ 2 Comments   ▶ Share                 │
+  ├──────────────────────────────────────────────────────────┤
+  │    [J] John Smith  (reply)  ·  1 hour ago               │
+  │        Great news! Updating Stage to Proposal now.      │
+  ├──────────────────────────────────────────────────────────┤
+  │  [M] Mike Lee  ·  30 minutes ago                        │
+  │      Stage changed: Qualification ──▶ Proposal          │
+  │      (tracked field change — auto-logged in feed)       │
+  └──────────────────────────────────────────────────────────┘
+  
+  Feeds available on: Record pages, Profile pages,
+  Chatter Groups, and the Home/Chatter Tab (aggregated)
+```
 **Content:**
 - Chatter is Salesforce's enterprise social collaboration platform
 - Allows users to post updates, share files, comment, and @mention colleagues
@@ -19,7 +40,27 @@
 **Speaker Notes:** Chatter transforms Salesforce from a data entry system into a collaborative workspace. Instead of emailing your colleague about an Opportunity update, you post it directly on the Opportunity record where it's visible to everyone with access. This creates a contextual, searchable conversation history tied to the record.
 
 ### Slide 2: Chatter Feed Types
-**Visual:** Three feed types displayed side by side: Record Feed (on a Case), Profile Feed (on a User), Group Feed (in a Chatter Group)
+**Visual:**
+```
+  ┌──────────────────┬──────────────────┬────────────────────┐
+  │  RECORD FEED     │  PROFILE FEED    │  GROUP FEED        │
+  │  (on a Case)     │  (on a User)     │  (in a Group)      │
+  ├──────────────────┼──────────────────┼────────────────────┤
+  │  Case #00123     │  @JaneDoe        │  West Sales Team   │
+  │  ─────────────   │  ─────────────   │  ────────────────  │
+  │  [S] Update on   │  [J] Jane posted │  [T] Team: new     │
+  │      this case   │      a status    │      deal update   │
+  │  [J] Reply here  │  [M] Mike liked  │  [S] Reply below   │
+  │  [M] Stage chng  │      her post    │  [A] Anyone in     │
+  │      logged auto │                  │      group can see │
+  ├──────────────────┼──────────────────┼────────────────────┤
+  │  Contextual to   │  Personal wall   │  Team collab       │
+  │  the record      │  for the user    │  space             │
+  └──────────────────┴──────────────────┴────────────────────┘
+  
+  Home / Chatter Tab: Aggregated feed showing all posts from
+  followed records, followed people, and joined groups
+```
 **Content:**
 - **Record Feed:** Conversations and updates attached to a specific Salesforce record (Case, Opportunity, Contact, etc.)
 - **Profile Feed:** Posts on a user's personal profile; similar to a social media wall
@@ -30,7 +71,31 @@
 **Speaker Notes:** The aggregated Chatter feed on the home tab is the user's personalized news feed — they see updates from everything they follow. Record feeds are the most business-relevant: they keep conversations attached to the records they're about, creating institutional knowledge that doesn't disappear into email inboxes.
 
 ### Slide 3: Posts, Comments, Likes & @Mentions
-**Visual:** Chatter post showing: author avatar, post text with @mention highlighted, hashtag, Like count, Comment thread below
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────┐
+  │  [A] Alice Brown  ·  Today at 10:15 AM                    │
+  ├────────────────────────────────────────────────────────────┤
+  │                                                            │
+  │  Update on the Acme deal — looping in                     │
+  │  ┌────────────┐                                           │
+  │  │ @BobSmith  │  please review the contract draft.        │
+  │  └────────────┘  ▲ highlighted mention — notifies Bob     │
+  │  Attached for context. #ContractReview                    │
+  │  [contract_draft_v2.pdf]       ▲ searchable topic tag     │
+  │                                                           │
+  ├────────────────────────────────────────────────────────────┤
+  │  ♡ 5 Likes   ▷ Comment   ▶ Share                          │
+  ├────────────────────────────────────────────────────────────┤
+  │    [B] Bob Smith  (reply)  ·  10:30 AM                    │
+  │        Got it — will review by EOD.                       │
+  │    [C] Carol Lee  (reply)  ·  11:00 AM                    │
+  │        Looks good from Legal side.                        │
+  └────────────────────────────────────────────────────────────┘
+  
+  @Mention ──▶ immediate in-app + email notification to user
+  #Hashtag  ──▶ searchable topic tag, discoverable org-wide
+```
 **Content:**
 - **Posts:** Text updates, links, files, polls, or questions posted to a feed
 - **Comments:** Replies threaded under a post (keeps conversation organized)
@@ -41,7 +106,30 @@
 **Speaker Notes:** @Mentions are particularly powerful for getting someone's attention on a specific record. If you @mention a colleague on an Opportunity, they receive an in-app notification and typically an email, and the Opportunity now appears in their Chatter feed. This is much more effective than a general email because the context lives on the record.
 
 ### Slide 4: Chatter Groups
-**Visual:** Group type comparison table showing Public, Private, and Unlisted groups with visibility and join-ability differences
+**Visual:**
+```
+  ┌─────────────────┬──────────────────────┬──────────────────────┐
+  │  PUBLIC GROUP   │   PRIVATE GROUP      │  UNLISTED GROUP      │
+  ├─────────────────┼──────────────────────┼──────────────────────┤
+  │  Visible to     │  Visible to all      │  HIDDEN from all     │
+  │  all users      │  (name + description)│  non-members         │
+  ├─────────────────┼──────────────────────┼──────────────────────┤
+  │  Anyone can     │  Must REQUEST        │  Invite only or      │
+  │  join freely    │  to join             │  direct URL access   │
+  ├─────────────────┼──────────────────────┼──────────────────────┤
+  │  Content        │  Content visible     │  Content completely  │
+  │  searchable     │  to members only     │  private             │
+  │  org-wide       │                      │                      │
+  ├─────────────────┼──────────────────────┼──────────────────────┤
+  │  Use case:      │  Use case:           │  Use case:           │
+  │  Company-wide   │  Team-specific       │  Executive /         │
+  │  announcements  │  collaboration       │  sensitive topics    │
+  └─────────────────┴──────────────────────┴──────────────────────┘
+  
+  IMPORTANT: Chatter Groups ≠ Salesforce Public Groups
+  Chatter Groups = collaboration spaces
+  Public Groups   = sharing rules, queues, list view sharing
+```
 **Content:**
 - **Public Group:** Visible to all users; anyone can join and post; content searchable org-wide
 - **Private Group:** Visible to all users (they can see it exists); must REQUEST to join; content only visible to members
@@ -52,7 +140,31 @@
 **Speaker Notes:** The three group types address different collaboration needs. Public groups are for open, company-wide discussions. Private groups are for team-specific collaboration where membership is controlled but the group's existence is known. Unlisted groups are for sensitive topics — executive discussions, HR matters — where even the existence of the group shouldn't be publicly visible.
 
 ### Slide 5: Chatter Files
-**Visual:** File shared in Chatter feed showing file name, preview thumbnail, version history link, and share options
+**Visual:**
+```
+  ┌─────────────────────────────────────────────────────────────┐
+  │  [A] Alice Brown  ·  Today at 10:15 AM                     │
+  │      Here is the updated pricing sheet for Q4.             │
+  ├─────────────────────────────────────────────────────────────┤
+  │  ┌───────────────────────────────────────────────────────┐  │
+  │  │  [FILE]  pricing_2024_v3.xlsx                         │  │
+  │  │  ┌─────────────────┐   Size:     1.2 MB               │  │
+  │  │  │  [spreadsheet   │   Version:  3 of 3               │  │
+  │  │  │   preview icon] │   ▶ View Version History         │  │
+  │  │  └─────────────────┘   ▶ Download                     │  │
+  │  │                         ▶ Share with Person / Group   │  │
+  │  └───────────────────────────────────────────────────────┘  │
+  ├─────────────────────────────────────────────────────────────┤
+  │  FILE SIZE LIMITS:                                          │
+  │  ┌──────────────────────────────────┬───────────────────┐   │
+  │  │  Direct post attachment          │  25 MB max        │   │
+  │  ├──────────────────────────────────┼───────────────────┤   │
+  │  │  Salesforce Files library (CRM   │   2 GB max        │   │
+  │  │  Content / stored files)         │                   │   │
+  │  └──────────────────────────────────┴───────────────────┘   │
+  │  Version history preserved — old versions remain accessible  │
+  └─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Users can attach files to Chatter posts directly or share from Salesforce Files library
 - File size limits: up to 2 GB per file for files stored in Salesforce Files (CRM Content)
@@ -63,7 +175,32 @@
 **Speaker Notes:** The distinction between file size limits matters for the exam: 2 GB for files in Salesforce Files library, 25 MB per file attached directly to a Chatter post. Files shared in Chatter automatically benefit from Salesforce Files version control — when someone uploads a new version, old versions are preserved and accessible.
 
 ### Slide 6: Chatter Email Digest
-**Visual:** Email digest preview showing summary of Chatter activity with frequency options: Daily, Weekly, Never
+**Visual:**
+```
+  ┌───────────────────────────────────────────────────────────┐
+  │    CHATTER EMAIL DIGEST — Daily Summary                   │
+  │    From: Salesforce Chatter  |  To: user@company.com     │
+  ├───────────────────────────────────────────────────────────┤
+  │  Here's what happened since your last visit:             │
+  │                                                           │
+  │  ▶ @Alice Brown mentioned you on Acme Q4 Deal            │
+  │  ▶ 3 new posts in West Sales Team group                  │
+  │  ▶ Bob Smith liked your post on Case #00123              │
+  │  ▶ Stage changed on Beta Corp Opportunity                │
+  ├───────────────────────────────────────────────────────────┤
+  │  DIGEST FREQUENCY (User-Configurable):                    │
+  │  ┌───────────────────────────────────────────────────┐   │
+  │  │  ○ Every Post    immediate notification per post  │   │
+  │  │  ● Daily Digest  once-per-day summary email       │   │
+  │  │  ○ Weekly Digest once-per-week summary email      │   │
+  │  │  ○ Never         no Chatter email notifications   │   │
+  │  └───────────────────────────────────────────────────┘   │
+  ├───────────────────────────────────────────────────────────┤
+  │  @MENTION NOTIFICATIONS ARE ALWAYS IMMEDIATE             │
+  │  They bypass the digest frequency setting                │
+  │  Setup: Setup → Chatter Settings → Default Email Notif.  │
+  └───────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Chatter Email Digest sends a summary of new Chatter activity via email
 - Frequency options: Every Post (immediate), Daily Digest, Weekly Digest, Never
@@ -74,7 +211,37 @@
 **Speaker Notes:** Email Digest is how Chatter bridges the gap between Salesforce users who live in the app all day and those who don't. For occasional users, a daily digest catches them up on relevant conversations. Remember that @mention notifications are always real-time — they bypass the digest schedule to ensure important callouts are seen promptly.
 
 ### Slide 7: Enabling Chatter & Admin Settings
-**Visual:** Setup → Chatter Settings page showing toggles: Enable Chatter, Allow Records Without Feeds, Allow Coworker Invitations, Feed Tracking
+**Visual:**
+```
+  Setup → Chatter Settings
+  ┌──────────────────────────────────────────────────────────┐
+  │                  CHATTER SETTINGS                        │
+  ├──────────────────────────────────────────────────────────┤
+  │  [✓] Enable Chatter                                      │
+  │      Turns on Chatter for the entire org                 │
+  ├──────────────────────────────────────────────────────────┤
+  │  [✓] Allow Coworker Invitations                          │
+  │      Existing users can invite non-employees to          │
+  │      Chatter Free                                        │
+  ├──────────────────────────────────────────────────────────┤
+  │  [✓] Allow Records Without Feeds                         │
+  │      Objects without feed tracking remain accessible     │
+  ├──────────────────────────────────────────────────────────┤
+  │  Default Email Notification Settings                     │
+  │  ▶ Set org default for digest frequency                  │
+  └──────────────────────────────────────────────────────────┘
+  
+  Setup → Feed Tracking  (separate configuration page)
+  ┌──────────────────────────────────────────────────────────┐
+  │  Object:  Opportunity                                    │
+  │  ┌────────────────────────────────────────────────────┐  │
+  │  │  [✓] Stage       [✓] Amount      [ ] Close Date   │  │
+  │  │  [✓] Owner       [ ] Description [ ] Probability  │  │
+  │  └────────────────────────────────────────────────────┘  │
+  │  Tracked field changes appear as feed updates on records │
+  │  Must configure per object — not automatic               │
+  └──────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Enable Chatter: Setup → Chatter Settings → Enable Chatter
 - **Feed Tracking:** Configure which objects and fields have Chatter feeds and tracked field changes
@@ -85,7 +252,32 @@
 **Speaker Notes:** Feed Tracking is an important admin configuration. Not every object has feed tracking enabled by default, and you can choose which field changes appear in the record's Chatter feed. For example, tracking "Stage" changes on Opportunities means every stage change gets recorded as a Chatter feed update visible to followers.
 
 ### Slide 8: Chatter Free License vs Full Salesforce License
-**Visual:** Comparison table: Chatter Free (limited to Chatter, Files, Profiles, Groups) vs Full License (all CRM + Chatter features)
+**Visual:**
+```
+  ┌───────────────────────────┬──────────────────────────────────┐
+  │    CHATTER FREE LICENSE   │   FULL SALESFORCE LICENSE (CRM)  │
+  │    (Free of charge)       │                                  │
+  ├───────────────────────────┼──────────────────────────────────┤
+  │  [✓] Chatter Posts        │  [✓] Chatter Posts               │
+  │  [✓] Chatter Groups       │  [✓] Chatter Groups              │
+  │  [✓] File Sharing         │  [✓] File Sharing                │
+  │  [✓] User Profiles        │  [✓] User Profiles               │
+  │  [✓] @Mentions            │  [✓] @Mentions                   │
+  │  [✓] Hashtag Topics       │  [✓] Hashtag Topics              │
+  ├───────────────────────────┼──────────────────────────────────┤
+  │  [✗] Accounts             │  [✓] Accounts                    │
+  │  [✗] Contacts             │  [✓] Contacts                    │
+  │  [✗] Opportunities        │  [✓] Opportunities               │
+  │  [✗] Cases                │  [✓] Cases                       │
+  │  [✗] Custom Objects       │  [✓] Custom Objects              │
+  │  [✗] Reports / Dashboards │  [✓] Reports / Dashboards        │
+  ├───────────────────────────┼──────────────────────────────────┤
+  │  Best for:                │  Best for:                       │
+  │  HR, Facilities, external │  Sales, Service, all CRM users   │
+  │  collaborators, users     │  who need full Salesforce        │
+  │  awaiting full license    │  object access                   │
+  └───────────────────────────┴──────────────────────────────────┘
+```
 **Content:**
 - **Chatter Free License:** Free; allows access to Chatter features only — posts, groups, files, profiles; NO access to standard Salesforce objects (Accounts, Contacts, Cases, etc.)
 - **Chatter External License:** For external users outside the company (customers, partners) with restricted Chatter access

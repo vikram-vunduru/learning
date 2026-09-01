@@ -10,7 +10,41 @@
 ## Slides
 
 ### Slide 1: Atlas Reasoning Engine Overview
-**Visual:** A large circular diagram titled "Atlas Reasoning Engine" with four quadrants connected by directional arrows. Quadrant 1: "Observe" (eye icon, input feeds in from the left: user message + conversation history + agent context). Quadrant 2: "Reason" (brain icon, shows: read instructions, evaluate Topics, choose Action). Quadrant 3: "Act" (lightning bolt, shows: invoke Action, pass parameters). Quadrant 4: "Observe" (eye icon again, shows: receive action result, update context). A "Stop Conditions" callout on the outside: goal achieved, escalation needed, max iterations reached.
+**Visual:**
+```
+                    ┌─────────────────────────────────────┐
+                    │       ATLAS REASONING ENGINE        │
+                    └─────────────────────────────────────┘
+                                     │
+              ┌──────────────────────▼──────────────────────┐
+              │                  OBSERVE                     │
+              │  (message + history + Instructions + Context)│
+              └──────────────────────┬──────────────────────┘
+                                     │
+              ┌──────────────────────▼──────────────────────┐
+              │                   REASON                     │
+              │  Which Topic matches? Which Action to invoke?│
+              └──────────────────────┬──────────────────────┘
+                                     │
+              ┌──────────────────────▼──────────────────────┐
+              │                    ACT                       │
+              │    Invoke Action (Flow / Apex / Prompt /     │
+              │                  Knowledge)                  │
+              └──────────────────────┬──────────────────────┘
+                                     │
+              ┌──────────────────────▼──────────────────────┐
+              │                  OBSERVE                     │
+              │         (read action result, update context) │
+              └──────────────────────┬──────────────────────┘
+                                     │
+                    ┌────────────────┴─────────────────┐
+                    │         Done?                    │
+                    ├─── No ───▶ Loop back to REASON   │
+                    └─── Yes ──▶ Respond to user       │
+                                └──────────────────────┘
+
+  Stop conditions: goal achieved · escalation needed · max iterations reached
+```
 **Content:**
 - Atlas is a **Large Language Model (LLM) based planning engine** built into Salesforce's AI infrastructure
 - It does not execute code directly — it reasons about what tool to call, calls it, observes the result, and decides what to do next
@@ -20,7 +54,32 @@
 **Speaker Notes:** Think of Atlas as a thoughtful colleague who has been given a job description (Instructions), a list of things they can help with (Topics), and a set of tools they can use (Actions). When a customer message arrives, Atlas reads everything it knows, reasons about what the customer needs, picks the right tool, uses it, sees what happens, and then decides whether to answer or do something else. The loop is key — in a single customer message, Atlas might invoke three actions: first look up the customer's account, then retrieve their open cases, then summarize the relevant case. The customer sees one smooth reply but Atlas did three reasoning cycles to produce it.
 
 ### Slide 2: The Observation Step
-**Visual:** An inbox diagram showing what Atlas "sees" at the start of each reasoning cycle. Multiple input arrows point into a box labeled "Context Window": User message (highlighted), Conversation history (speech bubble icon), Agent Instructions (document icon), Topic descriptions (label icon), Action descriptions (gear icon), Previous action results (database icon). A small note: "All of this fits in the LLM's context window — clarity and conciseness matter."
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                    ATLAS CONTEXT WINDOW                          │
+  │                                                                  │
+  │  ┌─────────────────────────┐  ┌──────────────────────────────┐  │
+  │  │  ◀ User Message         │  │  Conversation History        │  │
+  │  │  (current input,        │  │  (prior turns in session)    │  │
+  │  │   highlighted priority) │  │                              │  │
+  │  └─────────────────────────┘  └──────────────────────────────┘  │
+  │                                                                  │
+  │  ┌─────────────────────────┐  ┌──────────────────────────────┐  │
+  │  │  Agent Instructions     │  │  Topic Descriptions          │  │
+  │  │  (system prompt,        │  │  (one per Topic — Atlas      │  │
+  │  │   every turn)           │  │   reads all to match intent) │  │
+  │  └─────────────────────────┘  └──────────────────────────────┘  │
+  │                                                                  │
+  │  ┌─────────────────────────┐  ┌──────────────────────────────┐  │
+  │  │  Action Descriptions    │  │  Prior Action Results        │  │
+  │  │  (one per Action —      │  │  (from earlier steps in      │  │
+  │  │   Atlas reads all)      │  │   this same turn)            │  │
+  │  └─────────────────────────┘  └──────────────────────────────┘  │
+  └──────────────────────────────────────────────────────────────────┘
+       "All of this fits in the LLM's context window —
+        clarity and conciseness matter"
+```
 **Content:**
 - **User message** — the current input from the user or customer
 - **Conversation history** — prior turns in this session; Atlas maintains context across multiple exchanges
@@ -32,7 +91,37 @@
 **Speaker Notes:** The observation step is why clear, concise instructions and descriptions matter so much. Every Topic description, every Action description, every line of Instructions is sent to the LLM on every reasoning cycle. Vague descriptions ("does stuff with orders") force Atlas to guess. Specific descriptions ("retrieves the status of an order given an order number; returns estimated delivery date and current fulfillment status") let Atlas route accurately. This is the key insight for the building section of the course: you are essentially writing prompts when you write descriptions.
 
 ### Slide 3: The Reasoning Step — Topic and Action Selection
-**Visual:** A decision tree diagram. Root node: "User message received." First branch: "Does any Topic description match the intent?" — Yes → "Which Topic best fits?" → "Within that Topic, which Action best matches?" → "Are all required inputs available?" — Yes → "Invoke Action." — No → "Ask user for missing information." The "No Topic match" branch leads to "Respond with out-of-scope message or escalate."
+**Visual:**
+```
+                    User message received
+                            │
+             ┌──────────────▼───────────────┐
+             │  Does any Topic description  │
+             │     match the intent?        │
+             └──────────────┬───────────────┘
+                      │             │
+                     Yes             No
+                      │             │
+                      ▼             ▼
+           Which Topic best    Out-of-scope response
+             fits intent?      or Escalate to human
+                      │
+                      ▼
+           Within that Topic,
+           which Action best
+              fits intent?
+                      │
+             ┌────────▼────────────────────┐
+             │  Are all required inputs    │
+             │  available in context?      │
+             └────────┬──────────┬─────────┘
+                     Yes          No
+                      │           │
+                      ▼           ▼
+               Invoke Action   Ask clarifying
+                               question → await
+                               user response → retry
+```
 **Content:**
 - Atlas first identifies the **best-matching Topic** by comparing user intent to Topic descriptions using semantic similarity
 - Within the matched Topic, Atlas identifies the **best-matching Action** by comparing the intent to Action descriptions
@@ -43,7 +132,24 @@
 **Speaker Notes:** The key exam concept here is that Topic and Action selection is semantic, not keyword-based. Atlas does not look for the word "order" — it understands the meaning of "I need to know where my package is" and maps that to the Order Status topic because the description says "handles customer inquiries about shipment status and delivery timing." This semantic matching means your descriptions should focus on what the action DOES and WHEN to use it, written in natural language, not technical jargon or system names. Poor description: "Invokes SF_ORDER_LOOKUP_API_V2." Good description: "Retrieves the current status and estimated delivery date for a customer's order given an order number."
 
 ### Slide 4: The Act Step — Invoking Actions
-**Visual:** Four parallel boxes labeled with the four action types, each showing the data flow. Box 1: Flow Action — Atlas extracts parameters from conversation → passes to Autolaunched Flow → Flow executes against Salesforce data → returns output variables to Atlas. Box 2: Apex Action — similar flow but through @InvocableMethod. Box 3: Prompt Template Action — Atlas populates merge fields → calls Prompt Builder template → returns generated text. Box 4: Knowledge Action — Atlas passes search query → Einstein Knowledge retrieves articles → returns relevant content.
+**Visual:**
+```
+  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  │   FLOW ACTION    │ │   APEX ACTION    │ │ PROMPT TEMPLATE  │ │ KNOWLEDGE ACTION │
+  │                  │ │                  │ │     ACTION       │ │                  │
+  │ Atlas extracts   │ │ Atlas extracts   │ │ Atlas populates  │ │ Atlas passes     │
+  │ params from      │ │ params from      │ │ template merge   │ │ search query     │
+  │ conversation     │ │ conversation     │ │ fields           │ │                  │
+  │        │         │ │        │         │ │        │         │ │        │         │
+  │        ▼         │ │        ▼         │ │        ▼         │ │        ▼         │
+  │ Autolaunched     │ │ @InvocableMethod │ │ Prompt Builder   │ │ Einstein         │
+  │   Flow runs      │ │   Apex runs      │ │ template + LLM   │ │ semantic search  │
+  │        │         │ │        │         │ │        │         │ │        │         │
+  │        ▼         │ │        ▼         │ │        ▼         │ │        ▼         │
+  │ Output variables │ │ Result object    │ │ Generated text   │ │ Top-N article    │
+  │ returned to Atlas│ │ returned to Atlas│ │ returned to Atlas│ │ content to Atlas │
+  └──────────────────┘ └──────────────────┘ └──────────────────┘ └──────────────────┘
+```
 **Content:**
 - **Flow Action** — invokes an Autolaunched Flow; Atlas maps conversation context to Flow input variables; Flow handles the Salesforce logic; output variables return to Atlas
 - **Apex Action** — invokes a method annotated with `@InvocableMethod`; same parameter passing mechanism as Flow
@@ -54,7 +160,33 @@
 **Speaker Notes:** For the exam, know the four primary action types and when to use each. Flow actions are the most common — they leverage existing automation and require no new code for most Salesforce orgs. Apex actions are used when you need logic that Flow cannot handle — complex calculations, callouts, or operations that require procedural code. Prompt Template actions are used when you need AI-generated content as part of the workflow — generating a case summary, drafting an email, producing a recommendation. Knowledge actions are used for FAQ and deflection scenarios where the answer lives in an article. You will be given a business requirement and asked which action type is most appropriate.
 
 ### Slide 5: The Second Observation — Processing Results
-**Visual:** A before/after diagram. Left (Before): Atlas has invoked a Flow action that returned: `{orderStatus: "Shipped", estimatedDelivery: "Dec 15", carrier: "FedEx", trackingNumber: "123456"}`. Right (After): Atlas now "knows" this data and adds it to the context. Below: example of Atlas reasoning after the observation — "The user asked about their order status. I now have the status (Shipped), delivery date (Dec 15), carrier (FedEx), and tracking number. I can now compose a helpful response."
+**Visual:**
+```
+  BEFORE (Action just invoked)          AFTER (Result received)
+  ─────────────────────────────         ──────────────────────────────────────
+  Atlas invoked:                        Action returned:
+  Get_Order_Status Flow                   {
+    input: orderId = "ORD-5678"             orderStatus:      "Shipped"
+                                            estimatedDelivery: "Dec 15"
+                                            carrier:          "FedEx"
+                                            trackingNumber:   "123456"
+                                          }
+                                                    │
+                                                    ▼
+                                          Atlas adds to context,
+                                          reasons again:
+
+                                          "I have: status (Shipped),
+                                           delivery date (Dec 15),
+                                           carrier (FedEx), tracking
+                                           (123456). I can compose
+                                           a complete response."
+                                                    │
+                                                    ▼
+                                          "Your order has shipped and
+                                           is expected Dec 15 via FedEx.
+                                           Track it at: 123456"
+```
 **Content:**
 - After an Action executes, its **output variables are added to Atlas's context**
 - Atlas then reasons again: "Do I have enough information to respond? Do I need to invoke another Action?"
@@ -65,7 +197,28 @@
 **Speaker Notes:** The second observation step is where the agent's intelligence really shows. A simple Flow would just format the order status data and return it. Atlas receives the data, thinks about what the user actually asked, considers whether there is anything else they might need, and crafts a natural-language response that addresses the complete need. This is also where things can go wrong — if an action returns an error or unexpected format, Atlas observes that and must decide what to do: retry, ask the user for different information, escalate. We will look at error handling more in the Testing lecture.
 
 ### Slide 6: Guardrails and Trust Layer Integration
-**Visual:** A layered safety diagram. Outermost layer: "Einstein Trust Layer" (data masking, zero data retention, audit log, toxicity filter). Middle layer: "Agent Instructions Guardrails" (what the agent will and will not do — scoped in Instructions). Inner layer: "Topic Scope" (which subjects the agent engages with). Center: "Atlas Reasoning." Arrows show that all LLM input/output passes through all three layers before reaching or leaving the agent.
+**Visual:**
+```
+  ╔═══════════════════════════════════════════════════════════════════╗
+  ║            EINSTEIN TRUST LAYER  (outermost layer)               ║
+  ║  Data Masking · Zero Data Retention · Toxicity · Audit Log       ║
+  ║  ┌───────────────────────────────────────────────────────────┐   ║
+  ║  │        AGENT INSTRUCTIONS GUARDRAILS                      │   ║
+  ║  │  "Never discuss competitors" · Escalation rules           │   ║
+  ║  │  Behavioral constraints · Exclusion list                  │   ║
+  ║  │  ┌─────────────────────────────────────────────────────┐  │   ║
+  ║  │  │              TOPIC SCOPE                            │  │   ║
+  ║  │  │  Only configured Topics engaged;                    │  │   ║
+  ║  │  │  Atlas does not improvise new Topics                │  │   ║
+  ║  │  │  ┌───────────────────────────────────────────────┐  │  │   ║
+  ║  │  │  │          ATLAS REASONING ENGINE               │  │  │   ║
+  ║  │  │  │  Max iterations · Action-level confirmation   │  │  │   ║
+  ║  │  │  └───────────────────────────────────────────────┘  │  │   ║
+  ║  │  └─────────────────────────────────────────────────────┘  │   ║
+  ║  └───────────────────────────────────────────────────────────┘   ║
+  ╚═══════════════════════════════════════════════════════════════════╝
+  All LLM input/output passes through all three layers
+```
 **Content:**
 - **Einstein Trust Layer** — operates at the infrastructure level; applies before prompts leave Salesforce and after responses arrive; handles data masking, toxicity filtering, audit logging, and zero data retention
 - **Agent Instructions guardrails** — natural language rules in the Instructions block: "Never discuss competitor products," "Always escalate billing disputes over $500," "Only assist with topics listed below"
@@ -75,7 +228,30 @@
 **Speaker Notes:** Guardrails work at multiple levels and this is tested on the exam. If someone asks about an agent safety question, identify which layer applies. A data privacy concern (SSNs going to an LLM) → Einstein Trust Layer. A policy concern (agent discussing competitor prices) → Agent Instructions. A capability concern (agent can't book flights because we didn't configure that Topic) → Topic scope. The exam will describe a scenario and ask which configuration change would address the concern — map it to the correct guardrail layer.
 
 ### Slide 7: When Atlas Gets Stuck — Failure Modes
-**Visual:** Four warning cards in an orange-bordered grid. Card 1: "No Topic Match" — question mark icon, description: "User asks out of scope — agent returns scoped response or escalates." Card 2: "Missing Parameters" — magnifying glass icon: "Required action input not in context — Atlas asks clarifying question." Card 3: "Action Error" — red X icon: "Action fails — Atlas observes error, may retry, ask user, or escalate." Card 4: "Max Iterations" — stopwatch icon: "Reasoning loop hits limit — agent returns partial answer or escalates."
+**Visual:**
+```
+  ┌──────────────────────────┐  ┌──────────────────────────┐
+  │  ⚠  NO TOPIC MATCH       │  │  ⚠  MISSING PARAMETERS   │
+  │                          │  │                          │
+  │  User asks out of scope  │  │  Required input not in   │
+  │  → agent returns scoped  │  │  context → Atlas auto-   │
+  │  response or escalates   │  │  generates clarifying    │
+  │  to a human agent        │  │  question; no code needed│
+  └──────────────────────────┘  └──────────────────────────┘
+
+  ┌──────────────────────────┐  ┌──────────────────────────┐
+  │  ✗  ACTION ERROR         │  │  ⏱  MAX ITERATIONS       │
+  │                          │  │                          │
+  │  Flow/Apex throws        │  │  Reasoning loop hits     │
+  │  exception → Atlas       │  │  configured limit →      │
+  │  observes error, may     │  │  agent returns partial   │
+  │  retry, ask user for     │  │  answer or escalates     │
+  │  new info, or escalate   │  │  to human                │
+  └──────────────────────────┘  └──────────────────────────┘
+
+  Hallucination risk: Atlas may generate plausible-but-wrong
+  responses → mitigated by grounding with verified sources
+```
 **Content:**
 - **No Topic Match** — if no Topic description semantically matches the input, Atlas responds with the "out of scope" message from Instructions, or escalates to a human if configured
 - **Missing required parameters** — Atlas generates a natural-language clarifying question; this loop continues until parameters are available or the user abandons
@@ -85,7 +261,30 @@
 **Speaker Notes:** Understanding failure modes is important for both the exam and for building reliable agents. The most dangerous failure mode from a business perspective is hallucination — the agent confidently providing wrong information. The mitigation is grounding: instead of asking Atlas to answer from its parametric knowledge, you provide verified Knowledge articles or Data Cloud records that Atlas uses as the source of truth. We will cover grounding strategies in detail in Lecture 07. For the exam, know that hallucination is addressed with grounding, and that missing parameters trigger clarifying questions automatically — you do not need to write custom code for that behavior.
 
 ### Slide 8: Optimizing Atlas Reasoning Quality
-**Visual:** A "Tuning Dials" infographic with four sliders, each labeled with a quality factor and a description of low vs. high settings. Dial 1: Instruction Clarity (vague → specific). Dial 2: Action Description Quality (jargon → natural language explaining purpose and inputs). Dial 3: Grounding Coverage (none → Knowledge + Data Cloud). Dial 4: Conversation Scope (all topics → tightly scoped Topics). Below: a quality score dial showing "Agent Reliability" going from red to green as all dials move right.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                    ATLAS QUALITY TUNING                          │
+  ├──────────────────────┬───────────────────────────────────────────┤
+  │  Instruction         │  Vague ◀─────────────────▶ Specific       │
+  │  Clarity             │  ░░░░░░░░░░░░░████████████████████        │
+  ├──────────────────────┼───────────────────────────────────────────┤
+  │  Action Description  │  Jargon ◀────────────────▶ Natural Lang.  │
+  │  Quality             │  ░░░░░░░░░░░░░████████████████████        │
+  │  (highest impact)    │                                           │
+  ├──────────────────────┼───────────────────────────────────────────┤
+  │  Grounding           │  None ◀──────────────────▶ Knowledge+Cloud│
+  │  Coverage            │  ░░░░░░░░░░░████████████████████          │
+  ├──────────────────────┼───────────────────────────────────────────┤
+  │  Topic Scope         │  Broad catch-all ◀────────▶ Tightly scoped│
+  │  Discipline          │  ░░░░░░░░░░░░░████████████████████        │
+  ├──────────────────────┼───────────────────────────────────────────┤
+  │  AGENT               │  Unreliable ◀───────────────▶ Reliable    │
+  │  RELIABILITY         │  ░░░░░░░░░░░████████████████████████████  │
+  └──────────────────────┴───────────────────────────────────────────┘
+  Use Agent Testing simulator to inspect Atlas reasoning trace
+  and identify where wrong routing decisions occur
+```
 **Content:**
 - **Instruction quality** — clear, specific Instructions reduce ambiguity; vague Instructions lead to inconsistent behavior
 - **Action description quality** — the most impactful tuning factor; Atlas uses descriptions for routing; write them like a colleague explaining what a function does and when to call it

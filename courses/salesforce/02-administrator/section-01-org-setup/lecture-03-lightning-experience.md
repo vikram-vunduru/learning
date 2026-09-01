@@ -8,7 +8,24 @@
 ## 📊 SLIDES
 
 ### Slide 1: Lightning Experience vs. Salesforce Classic
-**Visual:** Side-by-side screenshots — Classic (grey/blue tab-based navigation) vs. Lightning Experience (modern card-based layout with the App Launcher) — with a "Lightning" badge on the modern side.
+**Visual:**
+```
+  ┌──────────────────────────────────────┐   ┌──────────────────────────────────────┐
+  │       SALESFORCE CLASSIC             │   │    LIGHTNING EXPERIENCE  ⚡           │
+  ├──────────────────────────────────────┤   ├──────────────────────────────────────┤
+  │ Interface:  Tab-based navigation     │   │ Interface:  Card-based, modern       │
+  │ Style:      Grey/blue scheme         │   │ Style:      Clean, responsive        │
+  │ Mobile:     Limited support          │   │ Mobile:     Full mobile support      │
+  │ Status:     Legacy (no new features) │   │ Status:     Active, all new features │
+  │                                      │   │                                      │
+  │ Still supports some older:           │   │ Exclusive features:                  │
+  │  • Partner integrations              │   │  • Einstein AI features              │
+  │  • Some Visualforce pages            │   │  • Lightning App Builder             │
+  │                                      │   │  • Dynamic Forms                     │
+  │                                      │   │  • Path & Kanban views               │
+  └──────────────────────────────────────┘   └──────────────────────────────────────┘
+               ⚠  All new Salesforce features are Lightning-only
+```
 **Content:**
 - **Salesforce Classic:** Legacy interface; tab-based navigation; limited mobile support
 - **Lightning Experience:** Modern, component-based UI; introduced in 2015; default for all new orgs
@@ -18,7 +35,23 @@
 **Speaker Notes:** If you're studying for the admin exam today, Lightning Experience is the interface you need to know. Salesforce has not built new features for Classic since 2019, and the vast majority of customers have migrated. The exam will test your knowledge of Lightning-specific features like App Builder, Dynamic Forms, and Path — none of those exist in Classic.
 
 ### Slide 2: Switching Between Lightning and Classic
-**Visual:** Flow diagram showing the user profile menu (avatar icon) with arrows to "Switch to Salesforce Classic" and "Switch to Lightning Experience," plus an org-level toggle in Setup.
+**Visual:**
+```
+  USER LEVEL                              ADMIN LEVEL
+  ┌────────────────────────────────────┐  ┌────────────────────────────────────────┐
+  │  Click Avatar (top right)          │  │  Setup > Lightning Experience          │
+  │           │                        │  │  • Enable / disable for org            │
+  │           ▼                        │  │  • Remove Classic switch via Profile   │
+  │  ┌────────────────────────────┐    │  │  • Access Transition Assistant         │
+  │  │  Switch to Salesforce      │    │  └────────────────────────────────────────┘
+  │  │  Classic                   │    │
+  │  ├────────────────────────────┤    │  ┌────────────────────────────────────────┐
+  │  │  Switch to Lightning       │    │  │  Lightning Experience                  │
+  │  │  Experience                │    │  │  Transition Assistant                  │
+  │  └────────────────────────────┘    │  │  • Identifies Classic-only features    │
+  │  (Individual user toggle)          │  │  • Guides safe migration planning      │
+  └────────────────────────────────────┘  └────────────────────────────────────────┘
+```
 **Content:**
 - Users can switch by clicking their avatar > **Switch to Salesforce Classic / Switch to Lightning Experience**
 - Admins can enable/disable Lightning Experience at the org level: **Setup > Lightning Experience**
@@ -27,7 +60,24 @@
 **Speaker Notes:** Individual users have the ability to toggle between interfaces unless an admin restricts it. If you want to prevent users from reverting to Classic, you need to remove the Classic option at the profile level. The Lightning Experience Transition Assistant is a guided tool that helps admins understand what features are Classic-only and plan a safe migration.
 
 ### Slide 3: App Manager and Lightning Apps
-**Visual:** Screenshot of Setup > App Manager showing a list of apps with columns for App Name, Developer Name, Type (Lightning / Classic / Connected), and Visibility.
+**Visual:**
+```
+  Setup > App Manager
+  ┌──────────────────────────┬──────────────────────────┬──────────────────┬────────────┐
+  │  App Name                │  Developer Name          │  Type            │ Visibility │
+  ├──────────────────────────┼──────────────────────────┼──────────────────┼────────────┤
+  │  Sales                   │  Sales                   │  Lightning       │  Visible   │
+  │  Service Console         │  Service_Console         │  Lightning       │  Visible   │
+  │  Marketing               │  Marketing               │  Classic         │  Visible   │
+  │  Salesforce Connected    │  SF_Connected            │  Connected       │  Hidden    │
+  │  My Custom App           │  My_Custom_App           │  Lightning       │  Visible   │
+  └──────────────────────────┴──────────────────────────┴──────────────────┴────────────┘
+           │
+           ▼  Each Lightning App defines:
+  ┌─────────────────────┐   ┌─────────────────────┐   ┌─────────────────────┐
+  │  Navigation Items   │   │  Utility Bar        │   │  Assigned Profiles  │
+  └─────────────────────┘   └─────────────────────┘   └─────────────────────┘
+```
 **Content:**
 - Path: **Setup > App Manager**
 - App Manager lists all apps in the org — Lightning apps, Classic apps, and Connected apps
@@ -37,7 +87,24 @@
 **Speaker Notes:** App Manager is the central hub for managing what different groups of users see when they log in. A Lightning App defines the navigation bar items, the utility bar at the bottom, and which objects and tabs are accessible. Different teams — Sales, Service, Marketing — can have different apps with different navigation setups. App assignments are made via profiles, so users automatically get the right app based on their role.
 
 ### Slide 4: Lightning App Builder
-**Visual:** Screenshot of the Lightning App Builder canvas with component panel on the left, the page layout in the center, and properties panel on the right. A "Record Page" type is shown.
+**Visual:**
+```
+  Lightning App Builder — Record Page (Account)
+  ┌───────────────────────┬────────────────────────────────────────┬─────────────────────┐
+  │  COMPONENTS           │              CANVAS                    │   PROPERTIES        │
+  ├───────────────────────┤  ┌──────────────────────────────────┐  ├─────────────────────┤
+  │ Standard Components:  │  │  ┌─────────────────────────────┐ │  │ Component: Related  │
+  │  • Related Lists      │  │  │  Highlights Panel           │ │  │ List - Single       │
+  │  • Activity Timeline  │  │  └─────────────────────────────┘ │  ├─────────────────────┤
+  │  • Chatter            │  │  ┌─────────────┐ ┌────────────┐  │  │ Object: Account     │
+  │  • Rich Text          │  │  │  Details    │ │  Activity  │  │  │ Related List:       │
+  │                       │  │  │             │ │  Timeline  │  │  │  Contacts           │
+  │ Custom / AppExchange: │  │  └─────────────┘ └────────────┘  │  └─────────────────────┘
+  │  • LWC components     │  │  ┌─────────────────────────────┐ │
+  │  • Partner components │  │  │  Related Lists              │ │  ┌─────────────────────┐
+  │                       │  │  └─────────────────────────────┘ │  │  [ Save ] [Activate]│
+  └───────────────────────┘  └──────────────────────────────────┘  └─────────────────────┘
+```
 **Content:**
 - Path: **Setup > Lightning App Builder** (or from individual object settings)
 - Used to build and customize: **App Pages**, **Record Pages**, and **Home Pages**
@@ -47,7 +114,25 @@
 **Speaker Notes:** Lightning App Builder is the admin's primary tool for customizing page layouts in Lightning Experience. You can create a completely different record page for the Sales team versus the Service team — same object, different layout, driven by app and profile assignment. The activation step is critical: building a page in App Builder doesn't show it to users until you activate it and assign it.
 
 ### Slide 5: Navigation Bar Customization
-**Visual:** Animated-style diagram showing a navigation bar with items being dragged and reordered, with a "Personalize" button highlighted and the difference between admin-set defaults and user-personalized nav bars.
+**Visual:**
+```
+  ADMIN SETS DEFAULT (App Manager)        USER PERSONALIZES (if allowed)
+  ┌──────────────────────────────────┐    ┌──────────────────────────────────┐
+  │ [Home][Accounts][Contacts][Opp.] │ ─▶ │ [Home][Opp.][Cases][+ Add More] │
+  └──────────────────────────────────┘    └──────────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────────────────────────┐
+  │                          PERMISSION HIERARCHY                              │
+  ├────────────────────────────────────────────────────────────────────────────┤
+  │  Profile Tab Visibility  ──▶  CEILING (users cannot exceed this)           │
+  │           │                                                                │
+  │           ▼                                                                │
+  │  Admin Nav Bar Defaults  ──▶  What users see on first login                │
+  │           │                                                                │
+  │           ▼                                                                │
+  │  User Personalization    ──▶  Allowed unless admin locks the nav bar       │
+  └────────────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - The navigation bar is configured in the Lightning App definition (App Manager)
 - Admins set the **default** navigation items for the app
@@ -57,7 +142,25 @@
 **Speaker Notes:** There are two levels of navigation bar control to understand. Admins set what appears in the navigation bar when a user first gets the app — that's the default. Users can then personalize their own view unless the admin locks the navigation bar. Even when unlocked, the tab visibility settings on the user's profile still act as a ceiling — users can't see a tab that their profile has hidden.
 
 ### Slide 6: Home Page Customization
-**Visual:** Lightning App Builder canvas showing a Home Page layout with components: Today's Tasks, Performance Chart, Assistant, and a custom Rich Text banner — with an "Assign as Org Default" option highlighted.
+**Visual:**
+```
+  Lightning App Builder — Home Page
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │  ┌──────────────────────────────────────────────────────────────────┐  │
+  │  │  Welcome, Sales Team!  [Rich Text Banner — Custom Component]     │  │
+  │  └──────────────────────────────────────────────────────────────────┘  │
+  │  ┌────────────────────────────────┐  ┌─────────────────────────────┐   │
+  │  │  Today's Tasks                 │  │  Performance Chart          │   │
+  │  │  ☐ Follow up: Acme Corp        │  │  ▓▓▓▓▓▓░░░░  $62K / $100K  │   │
+  │  │  ☐ Send proposal: Globex       │  │                             │   │
+  │  └────────────────────────────────┘  └─────────────────────────────┘   │
+  │  ┌──────────────────────────────────────────────────────────────────┐  │
+  │  │  Assistant                                                        │  │
+  │  └──────────────────────────────────────────────────────────────────┘  │
+  └────────────────────────────────────────────────────────────────────────┘
+  Assignment levels (most broad → most targeted):
+  Org Default  ──▶  App Default  ──▶  App + Profile  ◀── most granular
+```
 **Content:**
 - Home pages are built in **Lightning App Builder** and assigned by app and/or profile
 - Standard home page components: Today's Tasks, Recent Items, Performance Chart, Assistant, News
@@ -67,7 +170,23 @@
 **Speaker Notes:** The home page is the first thing users see when they log in, so it's worth customizing for each major team. An executive might want a Performance Chart and news feed; a sales rep might want the Activity component and pipeline metrics. Use App + Profile assignment for the most granular targeting. Unlike the navigation bar, users cannot rearrange their own home page — only admins control it.
 
 ### Slide 7: Compact Layouts
-**Visual:** Annotated screenshot of a Contact record in Lightning Experience — the record highlights (top-left card) showing four fields: Name, Phone, Email, Title — with arrows indicating these come from the Compact Layout settings.
+**Visual:**
+```
+  Contact Record — Lightning Experience
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │  HIGHLIGHTS PANEL  ◀── Driven by Compact Layout                         │
+  ├──────────────────────┬────────────────────┬──────────────┬───────────────┤
+  │  Jane Smith          │  (415) 555-0100    │ j@acme.com   │  VP Sales     │
+  │  Name                │  Phone             │  Email       │  Title        │
+  └──────────────────────┴────────────────────┴──────────────┴───────────────┘
+            ▲  Configured at: Setup > Object Manager > Contact > Compact Layouts
+
+  Also controls fields shown in:
+  ┌──────────────────┐   ┌──────────────────────┐   ┌──────────────────────────────┐
+  │  Mobile Cards    │   │  Lookup Hover Cards  │   │  Activity Timeline Entries   │
+  └──────────────────┘   └──────────────────────┘   └──────────────────────────────┘
+  Best practice: 4–6 fields (Name, Phone, Email, Status, Key Date)
+```
 **Content:**
 - **Compact Layouts** define the fields shown in the record **highlights panel** (top of a record page)
 - Also control fields shown in **mobile cards**, **lookup hover cards**, and **Activity timeline entries**
@@ -77,7 +196,20 @@
 **Speaker Notes:** Compact layouts get less attention than page layouts, but they matter a lot for usability. The highlights panel at the top of every record page is driven by the compact layout. If your sales team needs to immediately see Account Name, Phone, and Owner when they open an Opportunity, configure those fields in the Opportunity compact layout. You can also create multiple compact layouts and assign them to specific record types.
 
 ### Slide 8: Key Lightning Experience Exam Facts
-**Visual:** Reference cheat-sheet card with eight bullet points.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │          ★  LIGHTNING EXPERIENCE — EXAM CHEAT SHEET  ★                 │
+  ├──────────────────────────────────────────────────────────────────────────┤
+  │  ▶  App Builder page types      →  App Pages, Record Pages, Home Pages  │
+  │  ▶  After building a page       →  Must ACTIVATE before users see it    │
+  │  ▶  Nav bar defaults            →  Set by admin in App Manager          │
+  │  ▶  Nav personalization         →  Users can customize unless locked    │
+  │  ▶  Highlights panel            →  Controlled by Compact Layout         │
+  │  ▶  New Salesforce features     →  Lightning only — not Classic         │
+  │  ▶  App assigned to users via   →  Profile                              │
+  └──────────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Lightning App Builder builds App Pages, Record Pages, and Home Pages
 - Pages must be **activated** in App Builder to be visible to users

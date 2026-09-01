@@ -11,7 +11,29 @@
 ## Slides
 
 ### Slide 1: Why Consent Management Matters in Data Cloud
-**Visual:** A scale icon balancing "Data Utility" (left) and "Customer Rights & Compliance" (right), with a Data Cloud logo above both sides representing the balance point.
+**Visual:**
+```
+                        DATA CLOUD
+                            │
+              ┌─────────────┴─────────────┐
+              │                           │
+              ▼                           ▼
+  ┌─────────────────────┐     ┌─────────────────────┐
+  │   DATA UTILITY      │     │  CUSTOMER RIGHTS    │
+  │                     │     │  & COMPLIANCE       │
+  │  • Unified profiles │     │                     │
+  │  • Segmentation     │     │  • GDPR (EU)        │
+  │  • Personalization  │     │  • CCPA (California)│
+  │  • AI grounding     │     │  • Right to opt out │
+  │  • Analytics        │     │  • Right to erasure │
+  └─────────────────────┘     └─────────────────────┘
+              │                           │
+              └─────────────┬─────────────┘
+                            │
+                            ▼
+              Consent must flow from collection
+              through activation — every step
+```
 
 **Content:**
 - Data Cloud aggregates vast amounts of customer data — which creates compliance obligations
@@ -26,7 +48,28 @@
 ---
 
 ### Slide 2: Contact Point Consent Fields
-**Visual:** A Contact Point Email record mockup showing key consent-related fields: HasOptedOutOfEmail (false), EmailOptOutDateTime (blank), EmailOptOutSource (blank), EffectiveDate, and CaptureDatetime.
+**Visual:**
+```
+  ContactPointEmail DMO Record
+  ──────────────────────────────────────────────────────────
+  EmailAddress:           john@co.com
+  IndividualId:           00U-001 (links to Individual)
+  ──────────────────────────────────────────────────────────
+  CONSENT FIELDS:
+  HasOptedOutOfEmail:     false   ← KEY FIELD for email segments
+  EmailOptOutDateTime:    (blank — not opted out)
+  EmailOptOutSource:      (blank)
+  CaptureDatetime:        2024-01-15T10:30:00Z
+  EffectiveDate:          2024-01-15
+  ──────────────────────────────────────────────────────────
+
+  ContactPointPhone DMO Record
+  ──────────────────────────────────────────────────────────
+  HasSmsOptedOut:         false   ← KEY FIELD for SMS segments
+  ──────────────────────────────────────────────────────────
+  RULE: Always add segment exclusion: HasOptedOutOfEmail = true
+        for ALL email-based activation segments
+```
 
 **Content:**
 - **HasOptedOutOfEmail** — Boolean field on Contact Point Email; true = opted out of email marketing
@@ -42,7 +85,28 @@
 ---
 
 ### Slide 3: Individual Privacy Fields
-**Visual:** An Individual DMO record mockup showing privacy-related fields: HasOptedOutOfEmail (on Individual level), DoNotProcess (GDPR right to erasure), DoNotTrack, HasOptedOutOfGeoTracking, and DataUsePurpose.
+**Visual:**
+```
+  Individual DMO Record — Privacy Fields
+  ──────────────────────────────────────────────────────────
+  FIELD                    │ VALUE  │ MAPS TO
+  ─────────────────────────┼────────┼──────────────────────
+  HasOptedOutOfEmail       │ false  │ Person-level email opt
+  DoNotProcess             │ false  │ GDPR Right to Erasure
+  DoNotTrack               │ false  │ Behavioral tracking opt
+  HasOptedOutOfGeoTracking │ false  │ Location data opt-out
+  HasOptedOutOfSharing     │ false  │ CCPA data sharing opt
+
+  ──────────────────────────────────────────────────────────
+  KEY MAPPINGS FOR EXAM:
+  ┌────────────────────┬──────────────────────────────────┐
+  │ GDPR right to      │ DoNotProcess = true on Individual│
+  │ erasure            │ + data deletion from DLO/DMO     │
+  ├────────────────────┼──────────────────────────────────┤
+  │ CCPA opt out of    │ HasOptedOutOfSharing = true       │
+  │ data sharing       │ on Individual                    │
+  └────────────────────┴──────────────────────────────────┘
+```
 
 **Content:**
 - The **Individual DMO** also has privacy fields that apply across all contact points
@@ -58,7 +122,26 @@
 ---
 
 ### Slide 4: Consent Categories
-**Visual:** A table showing three consent categories with their names, descriptions, and example use cases. Categories shown: Marketing, Analytics, and Personalization.
+**Visual:**
+```
+  CONSENT CATEGORIES — Granular Per-Purpose Consent
+  ──────────────────────────────────────────────────────────
+  ┌──────────────────────────┬──────────────┬──────────────┐
+  │ Category                 │ Customer A   │ Customer B   │
+  ├──────────────────────────┼──────────────┼──────────────┤
+  │ Marketing Communications │ OPT IN  ✓    │ OPT OUT  ✗   │
+  │ Product Analytics        │ OPT IN  ✓    │ OPT IN   ✓   │
+  │ Personalization          │ OPT IN  ✓    │ OPT OUT  ✗   │
+  │ Third-Party Sharing      │ OPT OUT ✗    │ OPT OUT  ✗   │
+  └──────────────────────────┴──────────────┴──────────────┘
+
+  Customer A: gets personalized marketing
+  Customer B: gets only analytics tracking, no marketing
+
+  Configured in: Setup → Consent Management → Consent Categories
+  Applied in segments: "Consent Category: Marketing = true"
+  MORE granular than a single HasOptedOutOfEmail field
+```
 
 **Content:**
 - **Consent Categories** allow granular consent management beyond a simple opt-in/opt-out
@@ -73,7 +156,30 @@
 ---
 
 ### Slide 5: Consent Data Ingestion
-**Visual:** Flow diagram showing: Customer submits preference center form → Consent data captured in external system → Ingested into Data Cloud via Ingestion API or Salesforce Connector → Contact Point / Individual consent fields updated → Segment exclusions applied.
+**Visual:**
+```
+  CONSENT SIGNAL FLOW
+  ──────────────────────────────────────────────────────────
+  Customer Action           Source System          Data Cloud
+  ─────────────────────────────────────────────────────────
+  Unsubscribes from   ──▶  MC unsubscribe    ──▶  MC Connector
+  MC email                  event                  (batch)
+
+  Opts out via        ──▶  CRM Contact       ──▶  Salesforce
+  preference form           HasOptedOut=true       Connector
+                                                   (incremental)
+
+  Submits CCPA        ──▶  External pref     ──▶  Ingestion API
+  opt-out request           center                 (STREAMING)
+                            (OneTrust, etc.)       ← preferred for
+                                                     fast compliance
+
+  All paths update Contact Point / Individual consent fields
+  in Data Cloud — must then flow to segment exclusion filters
+  ──────────────────────────────────────────────────────────
+  BEST PRACTICE: Streaming ingestion for consent = minimum
+                 compliance window (near-real-time opt-out)
+```
 
 **Content:**
 - Consent signals can be ingested from multiple sources:
@@ -89,7 +195,32 @@
 ---
 
 ### Slide 6: The Consent API
-**Visual:** A code snippet showing a POST request to the Salesforce Individual API endpoint that updates the HasOptedOutOfEmail field on an Individual record, authenticated with OAuth 2.0.
+**Visual:**
+```
+  CONSENT API — Programmatic Consent Management
+  ──────────────────────────────────────────────────────────
+  External System                         Data Cloud
+  ─────────────────────────────────────────────────────────
+  Step 1: Authenticate (OAuth 2.0)
+  POST /services/oauth2/token
+  → Bearer token
+
+  Step 2: Update consent
+  POST /services/data/v57.0/consent/action/optout
+  Authorization: Bearer {token}
+  {
+    "identifiers": [{"id": "john@co.com", "type": "email"}],
+    "action": "optout",
+    "purpose": "Marketing"                     │
+  }                                            ▼
+                                    Individual.HasOptedOutOfEmail
+                                    ContactPoint.HasOptedOutOfEmail
+                                    updated in Data Cloud
+
+  Step 3: Read consent status (before communication)
+  GET /services/data/v57.0/consent/...
+  → Current consent status returned
+```
 
 **Content:**
 - The **Consent API** allows programmatic management of consent preferences
@@ -104,7 +235,27 @@
 ---
 
 ### Slide 7: GDPR & CCPA in Practice
-**Visual:** Two compliance columns: Left "GDPR" with bullet points for key rights. Right "CCPA" with bullet points for key rights. A center section shows the corresponding Data Cloud feature for each right.
+**Visual:**
+```
+  ┌────────────────────────────┐  ┌────────────────────────────┐
+  │      GDPR (EU)             │  │      CCPA (California)     │
+  ├────────────────────────────┤  ├────────────────────────────┤
+  │ Right to erasure           │  │ Right to opt out of        │
+  │ → DoNotProcess = true      │  │ data sharing               │
+  │ → Delete from DLO/DMO      │  │ → HasOptedOutOfSharing=true│
+  ├────────────────────────────┤  ├────────────────────────────┤
+  │ Right of access            │  │ Right to know              │
+  │ → Data Explorer review     │  │ → Export customer data     │
+  ├────────────────────────────┤  ├────────────────────────────┤
+  │ Lawful basis               │  │ Right to delete            │
+  │ documentation              │  │ → Delete from Data Cloud   │
+  │ → Data Use Purpose objects │  │   + connected systems      │
+  ├────────────────────────────┤  ├────────────────────────────┤
+  │ Data minimization          │  │ Non-discrimination         │
+  │ → Limit DLO/DMO fields     │  │ → No service degradation   │
+  └────────────────────────────┘  └────────────────────────────┘
+  Data Cloud provides the TOOLS — compliance is the organization's RESPONSIBILITY
+```
 
 **Content:**
 - **GDPR (EU):**
@@ -123,7 +274,28 @@
 ---
 
 ### Slide 8: Consent Best Practices
-**Visual:** A checklist graphic with six checkboxes.
+**Visual:**
+```
+  CONSENT MANAGEMENT CHECKLIST
+  ──────────────────────────────────────────────────────────
+  ✅  Include HasOptedOutOfEmail = false exclusion in ALL
+      email activation segments (most important)
+
+  ✅  Ingest consent changes via streaming (Ingestion API)
+      to minimize opt-out processing lag window
+
+  ✅  Use Consent Categories for granular per-purpose consent
+      management beyond binary opt-in/opt-out
+
+  ✅  Document lawful basis for each data processing purpose
+      using Data Use Purpose objects (GDPR requirement)
+
+  ✅  Regularly audit consent field values — stale or missing
+      consent data is a compliance risk
+
+  ✅  Test consent exclusions before campaign launch —
+      validate opted-out customers are excluded in test runs
+```
 
 **Content:**
 - ✅ Always include `HasOptedOutOfEmail = false` exclusion in email activation segments

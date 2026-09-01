@@ -29,7 +29,22 @@
 ---
 
 ### Slide 2: A Brief History — Einstein's Origin Story
-**Visual:** Timeline graphic from 2016 to 2024. Key milestones marked as nodes on the timeline.
+**Visual:**
+```
+   SALESFORCE EINSTEIN — EVOLUTION TIMELINE
+
+   2016           2019           2021           2023           2024+
+    │              │              │              │              │
+    ▼              ▼              ▼              ▼              ▼
+  [Einstein       [Einstein      [Einstein      [Einstein      [Agentforce  ]
+   Platform       Automate]       GPT]           Copilot]       AI Agents   ]
+   launched]      Prediction     Generative     Conversational  Autonomous  ]
+                  Builder,       AI features    AI assistant    reasoning   ]
+                  Lead Score     Launch         (ChatGPT-style) Atlas engine]
+
+   ─────────────────────────────────────────────────────────────────────────▶
+   Predictive AI ────────────────────────────────────────▶ Generative & Agentic AI
+```
 **Content:**
 - **2016:** Salesforce introduces "Einstein" at Dreamforce — AI built into the CRM
 - **2019:** Einstein Voice and Einstein Analytics expand the brand
@@ -43,7 +58,31 @@
 ---
 
 ### Slide 3: The Einstein 1 Platform Architecture
-**Visual:** Layered architecture diagram. Bottom layer: "Data Cloud" (the data foundation). Middle layer: "Einstein AI" (sits across all clouds). Top layer: The clouds — Sales Cloud, Service Cloud, Marketing Cloud, Commerce Cloud, etc. Arrows showing AI flowing up from Einstein into each cloud.
+**Visual:**
+```
+   EINSTEIN PLATFORM — LAYERED ARCHITECTURE
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │                    APPLICATIONS LAYER                       │
+   │    Sales Cloud ● Service Cloud ● Marketing Cloud ●         │
+   │    Commerce Cloud ● Slack ● Field Service                   │
+   ├─────────────────────────────────────────────────────────────┤
+   │                   AI FEATURES LAYER                         │
+   │   Einstein Copilot ● Agentforce ● Prompt Builder            │
+   │   Lead Scoring ● Opp Scoring ● Next Best Action             │
+   ├─────────────────────────────────────────────────────────────┤
+   │                  TRUST & SAFETY LAYER                       │
+   │          Einstein Trust Layer (ZDR, Grounding,              │
+   │          Data Masking, Toxicity, Audit Trail)               │
+   ├─────────────────────────────────────────────────────────────┤
+   │                    DATA LAYER                               │
+   │       Salesforce Data Cloud (Unified Customer Profile,      │
+   │       Identity Resolution, Calculated Insights)             │
+   ├─────────────────────────────────────────────────────────────┤
+   │                 FOUNDATION MODEL LAYER                      │
+   │     Salesforce xGen ● OpenAI ● Anthropic ● Google ● Cohere │
+   └─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Foundation:** Salesforce Data Cloud unifies all customer data
 - **AI Layer:** Einstein sits in the middle — trained on your unified data
@@ -56,7 +95,24 @@
 ---
 
 ### Slide 4: Einstein the Brand vs. Einstein Features
-**Visual:** Two-column table. Left column: "Einstein (Brand)" with the umbrella icon. Right column: "Specific Features" with a list of named products.
+**Visual:**
+```
+   EINSTEIN BRANDING vs. FEATURES — What's the Difference?
+
+   ┌──────────────────────────────┬──────────────────────────────┐
+   │      EINSTEIN BRAND          │    UNDERLYING AI FEATURES    │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ "Einstein" = Salesforce's    │ Lead Scoring (predictive ML) │
+   │ AI brand name across all     │ Opportunity Scoring          │
+   │ products                     │ Case Classification          │
+   │                              │ Forecasting                  │
+   │ Like "Siri" is Apple's AI    │ Prediction Builder (custom)  │
+   │ brand for many features      │ Next Best Action             │
+   │                              │ Prompt Builder (gen AI)      │
+   │ The brand ≠ one feature      │ Einstein Copilot             │
+   │ The brand = many features    │ Agentforce (autonomous)      │
+   └──────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 **Einstein (the brand/platform):** The overarching AI capability in Salesforce
 
@@ -74,7 +130,26 @@
 ---
 
 ### Slide 5: The Three Types of Einstein AI
-**Visual:** Three columns with icons. Column 1: A crystal ball icon — "Predictive AI." Column 2: A chat bubble with a sparkle — "Generative AI." Column 3: A robot with action arrows — "Agentic AI."
+**Visual:**
+```
+   EINSTEIN PLATFORM — THREE AI CAPABILITY PILLARS
+
+   ┌──────────────────┬──────────────────┬──────────────────┐
+   │  PREDICTIVE AI   │  GENERATIVE AI   │  AGENTIC AI      │
+   ├──────────────────┼──────────────────┼──────────────────┤
+   │ What will happen?│ Create content   │ Take autonomous  │
+   │                  │                  │ actions          │
+   ├──────────────────┼──────────────────┼──────────────────┤
+   │ Lead Scoring     │ Prompt Builder   │ Agentforce       │
+   │ Opp Scoring      │ Sales Emails     │ Service Agent    │
+   │ Case Classif.    │ Case Summaries   │ SDR Agent        │
+   │ Forecasting      │ Einstein Copilot │ Sales Coach      │
+   │ Prediction Bldr  │ Article Gen.     │ Atlas Reasoning  │
+   ├──────────────────┼──────────────────┼──────────────────┤
+   │ ML / statistical │ LLMs + Prompts   │ LLM + Tools +    │
+   │ models           │                  │ Planning loops   │
+   └──────────────────┴──────────────────┴──────────────────┘
+```
 **Content:**
 **Predictive AI:** Uses historical data to forecast future outcomes
 - Example: "This lead has a 78% chance of converting"
@@ -147,7 +222,24 @@
 ---
 
 ### Slide 9: Which Products Use Which Type — Reference Table
-**Visual:** Clean three-column table with subtle color coding (blue for Predictive, purple for Generative, green for Agentic).
+**Visual:**
+```
+   EINSTEIN PRODUCTS — QUICK REFERENCE MAP
+
+   ┌────────────────────┬──────────────────────┬────────────────────────┐
+   │  PRODUCT           │  AI TYPE             │  PRIMARY USE CASE      │
+   ├────────────────────┼──────────────────────┼────────────────────────┤
+   │ Lead Scoring       │ Predictive           │ Sales prioritization   │
+   │ Opp Scoring        │ Predictive           │ Pipeline management    │
+   │ Forecasting        │ Predictive           │ Revenue prediction     │
+   │ Case Classification│ Predictive           │ Service routing        │
+   │ Prediction Builder │ Predictive (custom)  │ Any custom prediction  │
+   │ Next Best Action   │ Predictive + Rules   │ Rep recommendations    │
+   │ Prompt Builder     │ Generative           │ Content generation     │
+   │ Einstein Copilot   │ Generative           │ Conversational AI      │
+   │ Agentforce         │ Agentic              │ Autonomous AI agents   │
+   └────────────────────┴──────────────────────┴────────────────────────┘
+```
 
 **Content:**
 

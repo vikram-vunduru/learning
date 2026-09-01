@@ -19,7 +19,19 @@
 **Speaker Notes:** Lightning Web Components represents Salesforce's shift from proprietary frameworks to open web standards. Unlike Visualforce (server-rendered) and Aura (custom framework), LWC uses technologies that are becoming native to browsers. This means LWC code is more aligned with what JavaScript developers already know, and it performs better because rendering happens in the browser rather than requiring a server round-trip for every interaction.
 
 ### Slide 2: Component Bundle Files
-**Visual:** Folder structure showing myComponent/ containing myComponent.html, myComponent.js, myComponent.css, and myComponent.js-meta.xml with role labels for each
+**Visual:**
+```
+  myComponent/
+  ├── myComponent.html         ← template (required; single <template> root)
+  ├── myComponent.js           ← JavaScript class (required; extends LightningElement)
+  ├── myComponent.css          ← component-scoped styles (optional)
+  ├── myComponent.js-meta.xml  ← deployment config (required)
+  └── myComponent.svg          ← custom App Builder icon (optional)
+
+  All files must share the same name as the folder.
+  Folder name: kebab-case  →  JS class name: PascalCase
+  e.g.  my-account-tile   →  MyAccountTile
+```
 **Content:**
 - **myComponent.html** — the component template; must have a single `<template>` root element
 - **myComponent.js** — the JavaScript controller class; imports decorators and exports the component class
@@ -59,7 +71,26 @@
 **Speaker Notes:** The key attribute on for:each is critical for LWC's virtual DOM diffing algorithm — it uses the key to identify which items in the list changed, were added, or were removed. Without a unique key, LWC cannot efficiently update the DOM and may produce incorrect rendering. Best practice is to use a unique ID field (like the Salesforce record Id) as the key. Using the array index as a key is allowed but not recommended because it breaks diffing when items are reordered.
 
 ### Slide 6: Shadow DOM and CSS Scoping
-**Visual:** Diagram showing the Shadow DOM boundary around a component, with styles from the parent component unable to penetrate the boundary and affect child component elements
+**Visual:**
+```
+  ┌─────────────────────────────────────────┐
+  │  Parent Component                       │
+  │  .parent-class { color: red; }          │
+  │                                         │
+  │  ┌──────────────────────────────────┐   │
+  │  │  #shadow-root  ← boundary        │   │
+  │  │  ╔══════════════════════════╗    │   │
+  │  │  ║  Child Component         ║    │   │
+  │  │  ║  .child-class { ... }   ║    │   │
+  │  │  ║  (parent styles          ║    │   │
+  │  │  ║   cannot penetrate here) ║    │   │
+  │  │  ╚══════════════════════════╝    │   │
+  │  └──────────────────────────────────┘   │
+  └─────────────────────────────────────────┘
+  Parent .parent-class styles CANNOT reach inside child shadow root.
+  Use :host to style the component's root element from inside.
+  Use SLDS utility classes — available inside all shadow roots.
+```
 **Content:**
 - LWC uses Shadow DOM to encapsulate component internals
 - CSS styles in a component's .css file apply only to elements in that component's template
@@ -82,7 +113,27 @@
 **Speaker Notes:** The js-meta.xml file is the deployment manifest for an LWC component. If isExposed is false or missing, the component can still be used programmatically by other components but won't appear in App Builder or Experience Builder drag-and-drop interfaces. The targets list controls which types of pages the component can be added to. Adding targetConfigs with property elements allows admins to configure the component's @api properties through the App Builder UI without writing code.
 
 ### Slide 8: Lifecycle Hooks
-**Visual:** Lifecycle flowchart showing constructor → connectedCallback → renderedCallback → disconnectedCallback, with notes on what to do in each
+**Visual:**
+```
+  Component Created
+        │
+        ▼
+  constructor()        ← initialize, no DOM access
+        │
+        ▼
+  connectedCallback()  ← DOM ready, fetch data, subscribe
+        │
+        ▼
+  render() [auto]      ← framework renders template
+        │
+        ▼
+  renderedCallback()   ← post-render DOM work
+        │
+       ...  (re-renders on @api/@track changes)
+        │
+        ▼
+  disconnectedCallback() ← cleanup listeners, timers, subscriptions
+```
 **Content:**
 - `constructor()` — called when component instance is created; call super() first; cannot access DOM
 - `connectedCallback()` — called when component is inserted into the DOM; safe for initialization, event listeners

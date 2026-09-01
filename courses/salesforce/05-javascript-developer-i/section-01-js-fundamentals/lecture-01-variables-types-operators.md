@@ -9,7 +9,22 @@
 ## Slides
 
 ### Slide 1: var, let, and const — Choosing the Right Declaration
-**Visual:** Three vertical columns, one per keyword, each showing the keyword name, its scope (function / block / block), whether it can be reassigned (yes / yes / no), whether it is hoisted (yes, initialized to undefined / yes, TDZ / yes, TDZ), and a color-coded "use this when" recommendation. A sticky note on `var` says "Avoid in modern JavaScript."
+**Visual:**
+```
+  ┌──────────────────┬──────────────────┬──────────────────────────────┐
+  │  var             │  let             │  const                       │
+  ├──────────────────┼──────────────────┼──────────────────────────────┤
+  │  function-scoped │  block-scoped    │  block-scoped                │
+  │  hoisted:        │  hoisted:        │  hoisted:                    │
+  │  init=undefined  │  TDZ until decl  │  TDZ until decl              │
+  │  can reassign    │  can reassign    │  cannot reassign binding     │
+  │  can re-declare  │  cannot re-decl  │  cannot reassign binding     │
+  │                  │                  │  (object contents can mutate)│
+  ├──────────────────┼──────────────────┼──────────────────────────────┤
+  │  ⚠ AVOID        │  use for mutable │  use by default              │
+  │  (legacy code)   │  bindings        │  (preferred in LWC)          │
+  └──────────────────┴──────────────────┴──────────────────────────────┘
+```
 **Content:**
 - `var` — function-scoped, hoisted and initialized to `undefined`, can be re-declared and reassigned; legacy keyword
 - `let` — block-scoped, hoisted but in the **Temporal Dead Zone** until the declaration line, can be reassigned but not re-declared in the same scope
@@ -23,7 +38,25 @@ const z = 3;    // block scope — use for everything else
 **Speaker Notes:** The modern JavaScript convention is to use `const` by default and `let` only when you know you need to reassign. Reach for `var` only when maintaining legacy code. This convention is especially important in LWC, where using `const` signals to other developers that a binding is stable. On the JSI exam, `var` vs `let` vs `const` scoping questions are extremely common — especially edge cases with hoisting and the temporal dead zone.
 
 ### Slide 2: The Seven Primitive Types + Object
-**Visual:** A taxonomy diagram showing one root node labeled "JavaScript Values" splitting into two branches: "Primitives" (7 nodes: number, string, boolean, null, undefined, symbol, bigint) and "Object" (1 node with sub-nodes: plain object, array, function, Date, Map, Set). Each primitive node shows a sample value literal.
+**Visual:**
+```
+  JavaScript Values
+  ├── Primitives (immutable, compared by value)
+  │   ├── number      → 42, 3.14, NaN, Infinity
+  │   ├── string      → "hello", 'world', `template`
+  │   ├── boolean     → true, false
+  │   ├── null        → null  (intentional absence)
+  │   ├── undefined   → undefined  (unassigned / missing)
+  │   ├── symbol      → Symbol('description')
+  │   └── bigint      → 9007199254740991n
+  └── Object (mutable, compared by reference)
+      ├── plain object  → { key: value }
+      ├── array         → [1, 2, 3]
+      ├── function      → function() {} / () => {}
+      ├── Date          → new Date()
+      ├── Map / Set     → new Map(), new Set()
+      └── null*         → typeof null === "object"  ← bug!
+```
 **Content:**
 - **number** — `42`, `3.14`, `NaN`, `Infinity` — all floating point (no integer type)
 - **string** — `"hello"`, `'world'`, `` `template ${literal}` ``
@@ -37,7 +70,27 @@ const z = 3;    // block scope — use for everything else
 **Speaker Notes:** The distinction between primitives and objects is foundational. When you assign a primitive to a new variable, you copy the value. When you assign an object, you copy the reference — both variables now point to the same object in memory. This explains why `const arr = []; arr.push(1)` works: you are mutating the array contents, not reassigning the `arr` binding. The `typeof null === "object"` quirk is a classic exam trap — it is a bug in JavaScript that exists for historical reasons.
 
 ### Slide 3: typeof Operator and Type Checking
-**Visual:** A two-column table showing expression on the left and result on the right for: `typeof 42`, `typeof "hello"`, `typeof true`, `typeof undefined`, `typeof null`, `typeof {}`, `typeof []`, `typeof function(){}`, `typeof Symbol()`, `typeof 42n`. Results color-coded with surprising ones (`"object"` for null and array) in orange.
+**Visual:**
+```
+  ┌──────────────────────────┬───────────────┬─────────────────────┐
+  │ Expression               │ Result        │ Note                │
+  ├──────────────────────────┼───────────────┼─────────────────────┤
+  │ typeof 42                │ "number"      │                     │
+  │ typeof "hello"           │ "string"      │                     │
+  │ typeof true              │ "boolean"     │                     │
+  │ typeof undefined         │ "undefined"   │                     │
+  │ typeof null              │ "object"      │ ← bug! not "null"   │
+  │ typeof {}                │ "object"      │                     │
+  │ typeof []                │ "object"      │ ← arrays are objects│
+  │ typeof function(){}      │ "function"    │                     │
+  │ typeof Symbol()          │ "symbol"      │                     │
+  │ typeof 42n               │ "bigint"      │                     │
+  │ typeof NaN               │ "number"      │ ← NaN is a number   │
+  └──────────────────────────┴───────────────┴─────────────────────┘
+  To check for null:  value === null
+  To check for array: Array.isArray(value)
+  To check for NaN:   Number.isNaN(value)
+```
 **Content:**
 - `typeof value` returns a **string** describing the type
 - Key results to memorize:
@@ -54,7 +107,27 @@ const z = 3;    // block scope — use for everything else
 **Speaker Notes:** `typeof` is a unary prefix operator, not a function — no parentheses required, though they are legal. The JSI exam loves `typeof null` and `typeof NaN` because both return counterintuitive results. `NaN` stands for "Not a Number" but `typeof NaN` is `"number"` because `NaN` is a numeric value (IEEE 754 says so). The only reliable way to check for `NaN` is `Number.isNaN(value)` — do not use `isNaN()` (the global one), which coerces non-numbers first and produces incorrect results for strings.
 
 ### Slide 4: Type Coercion — == vs ===
-**Visual:** A split diagram showing `==` on the left surrounded by swirling arrows representing type conversion, with a warning badge labeled "coercion happens here." On the right, `===` with a rigid wall labeled "no conversion — type must match." Below each side, a truth table showing 6 common comparisons and their result under each operator.
+**Visual:**
+```
+  == (loose equality)           === (strict equality)
+  ┌─────────────────────┐       ┌──────────────────────────┐
+  │ coercion happens ⚠  │       │ no conversion             │
+  │ converts types      │       │ type AND value must match │
+  │ before comparing    │       │                           │
+  └─────────────────────┘       └──────────────────────────┘
+
+  ┌───────────────────┬──────────┬──────────┬───────────────────────┐
+  │ Expression        │ ==       │ ===      │ Why                   │
+  ├───────────────────┼──────────┼──────────┼───────────────────────┤
+  │ 0 == false        │ true     │ false    │ false coerces to 0    │
+  │ "" == false       │ true     │ false    │ both coerce to 0      │
+  │ null == undefined │ true     │ false    │ special rule          │
+  │ NaN == NaN        │ false    │ false    │ NaN ≠ everything      │
+  │ [] == false       │ true     │ false    │ []→""→0, false→0      │
+  │ "5" == 5          │ true     │ false    │ string coerces to num │
+  └───────────────────┴──────────┴──────────┴───────────────────────┘
+  Rule: always use === unless checking null/undefined with == null
+```
 **Content:**
 - `==` (loose equality) — performs **type coercion** before comparing
 - `===` (strict equality) — compares **both type and value**, no coercion

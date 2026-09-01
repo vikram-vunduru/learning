@@ -51,7 +51,29 @@
 ---
 
 ### Slide 3: The Evolution — Copilot to Agentforce
-**Visual:** Timeline arrow from left to right. Left: "Einstein Copilot (2024) — AI Assistant, you ask it questions." Middle: "Einstein Copilot Studio — you configure what it can do." Right: "Agentforce (late 2024/2025) — Autonomous Agents, they work independently."
+**Visual:**
+```
+   EVOLUTION: From Chatbot → Copilot → Agentforce
+
+   GENERATION 1          GENERATION 2           GENERATION 3
+   (Rule-Based)          (Einstein Copilot)     (Agentforce)
+        │                       │                     │
+        ▼                       ▼                     ▼
+   ┌──────────────┐    ┌──────────────────┐   ┌──────────────────┐
+   │ Chatbot      │    │ Einstein Copilot │   │ Agentforce Agent │
+   │              │    │                  │   │                  │
+   │ Pre-scripted │    │ LLM-powered      │   │ Fully autonomous │
+   │ decision     │    │ conversational   │   │ action-taking    │
+   │ trees        │    │ AI assistant     │   │ agents           │
+   │              │    │                  │   │                  │
+   │ "Press 1 for │    │ "Tell me what    │   │ Handles entire   │
+   │  billing..." │    │  you need and    │   │ workflow end-to- │
+   │              │    │  I'll assist"    │   │ end without rep  │
+   │ Cannot learn │    │ Context-aware    │   │ Atlas Reasoning  │
+   │ Cannot adapt │    │ CRM-integrated   │   │ Engine multi-step│
+   └──────────────┘    └──────────────────┘   └──────────────────┘
+        2010s                 2023                  2024+
+```
 **Content:**
 **Why the evolution happened:**
 - Copilot was reactive — it waited for you to ask it something
@@ -71,7 +93,30 @@
 ---
 
 ### Slide 4: Agentforce Architecture — The Three Core Concepts
-**Visual:** Three-part diagram. Each part has an icon and brief description. Part 1: "Topics" (a tag/label icon). Part 2: "Actions" (a lightning bolt icon). Part 3: "Atlas Reasoning Engine" (a brain/circuit icon). Arrows connecting them in sequence.
+**Visual:**
+```
+   AGENTFORCE — THREE CORE COMPONENTS
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │                     AGENTFORCE AGENT                        │
+   │                                                             │
+   │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+   │  │   TOPICS     │  │   ACTIONS    │  │  ATLAS REASONING │  │
+   │  │              │  │              │  │  ENGINE           │  │
+   │  │ Domain scope │  │ What the     │  │                  │  │
+   │  │ and context  │  │ agent can DO │  │ The brain that   │  │
+   │  │              │  │              │  │ plans, reasons,  │  │
+   │  │ "Handle      │  │ ● Query CRM  │  │ and decides what │  │
+   │  │  billing     │  │ ● Send email │  │ actions to take  │  │
+   │  │  questions"  │  │ ● Update rec │  │                  │  │
+   │  │              │  │ ● Run Flow   │  │ Multi-step       │  │
+   │  │ Defines what │  │ ● Call API   │  │ planning loop:   │  │
+   │  │ the agent    │  │              │  │ observe→plan     │  │
+   │  │ talks about  │  │ Configured   │  │ →act→evaluate    │  │
+   │  │              │  │ by admin     │  │                  │  │
+   │  └──────────────┘  └──────────────┘  └──────────────────┘  │
+   └─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 **1. Topics**
 - Define WHAT the agent is responsible for
@@ -93,7 +138,48 @@
 ---
 
 ### Slide 5: Atlas Reasoning Engine — How It Actually Thinks
-**Visual:** Flowchart showing Atlas Reasoning Engine process: Input received → Classify intent → Match to Topic → Plan action sequence → Execute actions → Evaluate output → Respond or escalate.
+**Visual:**
+```
+   ATLAS REASONING ENGINE — Planning Loop
+
+                       Customer Request / Goal
+                                │
+                                ▼
+                    ┌─────────────────────┐
+                    │  1. UNDERSTAND      │
+                    │  Parse intent,      │
+                    │  identify goal      │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │  2. PLAN            │
+                    │  Break into steps,  │
+                    │  select actions     │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │  3. ACT             │
+                    │  Execute actions    │
+                    │  (CRM, email, API)  │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │  4. EVALUATE        │
+                    │  Did it work?       │
+                    │  Is goal met?       │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────┴──────────┐
+                    │                     │
+                   YES                   NO
+                    │                     │
+                    ▼                     ▼
+              COMPLETE              LOOP BACK to PLAN
+              Deliver result        Try different approach
+```
 **Content:**
 **How Atlas works (simplified):**
 1. Receives input (message, trigger, record change)
@@ -209,7 +295,42 @@
 ---
 
 ### Slide 11: Human Escalation — Critical Design Principle
-**Visual:** Flowchart showing escalation logic: Agent Handling → Escalation Triggers (out of scope / high frustration / explicit request / policy threshold) → Human Agent notified → Context transferred → Human takes over.
+**Visual:**
+```
+   AGENTFORCE ESCALATION FLOW
+
+   Customer contacts Agentforce Service Agent
+                    │
+                    ▼
+          ┌─────────────────┐
+          │ Agent handles   │
+          │ request using   │
+          │ Topics/Actions  │
+          └────────┬────────┘
+                   │
+        ┌──────────┴──────────┐
+        │                     │
+        ▼                     ▼
+   RESOLVED             CANNOT RESOLVE
+   Autonomously         (complex / sensitive)
+        │                     │
+        ▼                     ▼
+   Close case /        ┌────────────────┐
+   Confirm resolution  │ ESCALATE to    │
+                       │ Human Agent    │
+                       │                │
+                       │ Passes:        │
+                       │ ● Full context │
+                       │ ● Case summary │
+                       │ ● Prior steps  │
+                       │ ● Customer data│
+                       └────────┬───────┘
+                                │
+                                ▼
+                       Human resolves with
+                       full context — no
+                       customer restart
+```
 **Content:**
 **When Agentforce escalates to a human:**
 - Issue falls outside defined Topics
@@ -231,7 +352,24 @@
 ---
 
 ### Slide 12: Exam Summary — Agentforce Key Facts
-**Visual:** Clean summary table with key facts, formatted for easy review.
+**Visual:**
+```
+   AGENTFORCE AGENTS — REFERENCE TABLE
+
+   ┌─────────────────────┬──────────────────────────────────────────┐
+   │  AGENT TYPE         │  PRIMARY FUNCTION                        │
+   ├─────────────────────┼──────────────────────────────────────────┤
+   │ Service Agent       │ Handle customer service requests 24/7    │
+   │ SDR Agent           │ Qualify leads, book meetings for sales   │
+   │ Sales Coach Agent   │ Coach reps with feedback on calls/emails │
+   │ Custom Agents       │ Built by admins for any business process │
+   ├─────────────────────┼──────────────────────────────────────────┤
+   │ CORE COMPONENTS:    │                                          │
+   │ Topics              │ Define what the agent handles            │
+   │ Actions             │ What the agent can do (CRM, email, Flow) │
+   │ Atlas Reasoning     │ The multi-step planning engine           │
+   └─────────────────────┴──────────────────────────────────────────┘
+```
 **Content:**
 | Concept | Key Fact |
 |---|---|

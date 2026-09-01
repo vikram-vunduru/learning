@@ -8,7 +8,30 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Is Delegated Administration?
-**Visual:** Diagram showing a System Administrator at the top with an arrow pointing to a "Delegated Admin" user (wearing a "Limited Admin" badge), who has arrows pointing to a subset of users in specific roles — illustrating scoped admin authority.
+**Visual:**
+```
+         ┌───────────────────────────────┐
+         │     SYSTEM ADMINISTRATOR      │
+         │       (Full org access)       │
+         └──────────────┬────────────────┘
+                        │ grants scoped authority
+                        ▼
+         ┌───────────────────────────────┐
+         │       DELEGATED ADMIN         │
+         │     [ Limited Admin Badge ]   │
+         │     (No Sys Admin profile)    │
+         └───┬───────────────────────────┘
+             │ can manage only
+      ┌──────┴───────────────────┐
+      ▼                          ▼
+ ┌──────────┐              ┌──────────┐
+ │ User in  │              │ User in  │
+ │ Role A   │              │ Role B   │
+ └──────────┘              └──────────┘
+   (in scope)                (in scope)
+
+  ✗ Users outside defined roles = out of scope
+```
 **Content:**
 - **Delegated Administration** allows a non-System Administrator user to perform specific admin tasks
 - The delegated admin does NOT have a System Administrator profile
@@ -18,7 +41,20 @@
 **Speaker Notes:** Delegated Administration is Salesforce's answer to the question: "How can I let a department head manage their own team without making them a full System Administrator?" The delegated admin gets a focused set of admin powers — enough to handle day-to-day user management within their group, but not enough to change org-wide settings, security policies, or configuration outside their defined scope.
 
 ### Slide 2: What Delegated Administrators CAN Do
-**Visual:** Green checkmark list of permitted actions with icons: Create/Edit Users (person+ icon), Reset Passwords (key icon), Assign Permission Sets (badge icon), Manage Specified Custom Objects (object icon), Unlock Users (lock icon).
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │           DELEGATED ADMINS CAN DO                           │
+  ├──────────────────────────────────────────────────────────────┤
+  │  ✓  Create and edit users in specified roles                 │
+  │  ✓  Reset passwords for users in their group                │
+  │  ✓  Unlock users locked out due to failed logins            │
+  │  ✓  Assign specified permission sets to users               │
+  │  ✓  Manage specified custom objects                         │
+  │       (create, edit, delete records; customize              │
+  │        fields and layouts for those objects)                │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Create and edit users** within the specified roles (but cannot assign profiles beyond what's allowed)
 - **Reset passwords** for users in the delegated group
@@ -28,7 +64,20 @@
 **Speaker Notes:** Delegated admins can handle the most common, day-to-day user management tasks that would otherwise require a ticket to the IT admin team. Reset a locked account, onboard a new team member, assign a permission set for a project — all of these are within scope. The custom object management capability is particularly useful for teams that own their own Salesforce objects, like a custom "Project" object managed by the PMO team.
 
 ### Slide 3: What Delegated Administrators CANNOT Do
-**Visual:** Red X list of prohibited actions: Create/Edit Profiles (profile icon), Create/Edit Roles (hierarchy icon), Change Org-Wide Defaults (globe/shield icon), Manage Standard Objects (standard object icons), Manage other delegated admin groups.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │           DELEGATED ADMINS CANNOT DO                        │
+  ├──────────────────────────────────────────────────────────────┤
+  │  ✗  Create or modify Profiles                               │
+  │       (can only assign pre-approved profiles)               │
+  │  ✗  Create or edit Roles in the hierarchy                   │
+  │  ✗  Change Org-Wide Defaults or sharing settings            │
+  │  ✗  Manage Standard Objects (Accounts, Contacts, etc.)      │
+  │  ✗  Access Setup areas outside their defined scope          │
+  │  ✗  Grant permissions they themselves don't have            │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Cannot create or modify Profiles** — they can only assign profiles that the System Admin has pre-approved for delegation
 - **Cannot create or edit Roles** in the role hierarchy
@@ -39,7 +88,31 @@
 **Speaker Notes:** The limitations of delegated admins are as important as their capabilities — and the exam tests both. The principle of least privilege applies here too: a delegated admin cannot hand out permissions they don't have. They cannot change profiles, roles, or org-wide security. They're working within a carefully fenced perimeter. If they need to do something outside that perimeter, they escalate to the System Administrator.
 
 ### Slide 4: Configuring Delegated Admin Groups
-**Visual:** Four-step configuration flow in Setup: Step 1 — Create the Delegated Group (give it a name); Step 2 — Assign Delegated Admins to the group (add users); Step 3 — Specify User Roles the group can manage (select roles); Step 4 — Specify Profiles they can assign; optionally Step 5 — Assign Custom Objects they can manage.
+**Visual:**
+```
+  Setup > Security > Delegated Administration
+  ┌──────────────────────────────────────────────────────────────┐
+  │                                                              │
+  │  Step 1 ──▶  Create Delegated Group                         │
+  │              (e.g., "West Region User Admins")               │
+  │                     │                                        │
+  │                     ▼                                        │
+  │  Step 2 ──▶  Add Delegated Admin Users to Group             │
+  │              (the people who will have limited admin power)  │
+  │                     │                                        │
+  │                     ▼                                        │
+  │  Step 3 ──▶  Specify Roles They Can Manage                  │
+  │              (defines their user management territory)       │
+  │                     │                                        │
+  │                     ▼                                        │
+  │  Step 4 ──▶  Specify Profiles They Can Assign               │
+  │              (controls what user types they can create)      │
+  │                     │                                        │
+  │                     ▼                                        │
+  │  Step 5 ──▶  (Optional) Assign Custom Objects               │
+  │              (objects they can administer)                   │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Navigate to: **Setup > Security > Delegated Administration**
 - **Step 1:** Create a new Delegated Group (e.g., "West Region User Admins")
@@ -50,7 +123,25 @@
 **Speaker Notes:** The configuration is straightforward but requires thoughtful planning. When you specify which roles a delegated admin can manage, you're defining their user management territory. When you specify which profiles they can assign, you're controlling what kind of users they can create. If you don't list a profile here, the delegated admin cannot assign it — this is how you prevent them from creating users with inappropriate access levels.
 
 ### Slide 5: Delegated Admin Scope — Role-Based Limits
-**Visual:** Role hierarchy tree with a highlighted region around the "West Region Manager" role and all roles below it, labeled "Delegated Admin Scope." An arrow from the Delegated Admin user points into this highlighted region only.
+**Visual:**
+```
+  FULL ROLE HIERARCHY
+  ┌──────────────────────────────────────────────────────────────┐
+  │             CEO                                              │
+  │              │                                               │
+  │       ┌──────┴──────────┐                                   │
+  │    VP East           VP West                                 │
+  │       │                 │                                    │
+  │    East Mgr    ╔════════╧════════════════════════╗           │
+  │       │        ║  DELEGATED ADMIN SCOPE           ║           │
+  │    East Reps   ║   West Region Manager ◀───────── ╬── Delegated Admin
+  │    (out of     ║          │                        ║           │
+  │     scope)     ║   ┌──────┴──────┐                ║           │
+  │                ║  West Rep A  West Rep B           ║           │
+  │                ╚═══════════════════════════════════╝           │
+  └──────────────────────────────────────────────────────────────┘
+  ▶ Delegated Admin can only manage users within the highlighted scope
+```
 **Content:**
 - Delegated admins can only manage users in the **specific roles** listed in their group configuration
 - If a user is in a role not included in the group, the delegated admin cannot manage them
@@ -59,7 +150,24 @@
 **Speaker Notes:** Role-based scoping is the mechanism that prevents a delegated admin from managing users outside their organizational domain. A West Region manager should be able to manage their West Region sales reps and support agents, but not the East Region team. By specifying exactly which roles are in scope, you give each department manager just the right amount of user management authority.
 
 ### Slide 6: Delegated Admin Experience — What It Looks Like
-**Visual:** Screenshot of what a delegated admin sees when they navigate to Setup — a simplified Setup menu with only Users and the custom objects they manage visible. Contrast with a full admin's Setup menu.
+**Visual:**
+```
+  ┌───────────────────────────────┐   ┌───────────────────────────────┐
+  │     FULL ADMIN SETUP MENU     │   │   DELEGATED ADMIN SETUP MENU  │
+  ├───────────────────────────────┤   ├───────────────────────────────┤
+  │ Users                         │   │ Users (scoped to their roles) │
+  │ Profiles                      │   │ Permission Sets (limited)     │
+  │ Permission Sets                │   │ [Custom Object A]             │
+  │ Permission Set Groups          │   │ [Custom Object B]             │
+  │ Roles                         │   │                               │
+  │ Security Controls             │   │  (no security settings)       │
+  │ Object Manager                │   │  (no profile editing)         │
+  │ Flows / Process Builder       │   │  (no role management)         │
+  │ Org-Wide Defaults             │   │  (no org-wide settings)       │
+  │ Sharing Rules                 │   │                               │
+  │ ... (full access)             │   │  Focused & simplified         │
+  └───────────────────────────────┘   └───────────────────────────────┘
+```
 **Content:**
 - Delegated admins access their tasks via Setup — but see a **simplified Setup menu**
 - They see: their delegated users list, password reset options, permission set assignment
@@ -69,7 +177,22 @@
 **Speaker Notes:** One of the underrated benefits of delegated administration is that it gives department managers just enough power to be self-sufficient without overwhelming them with the full complexity of Salesforce Setup. When a delegated admin logs into Setup, they see a focused, simplified menu. There's far less risk of someone accidentally changing a critical setting when they can't even see it.
 
 ### Slide 7: Delegated Admin Use Cases
-**Visual:** Three real-world scenario cards: 1) "Regional Manager manages their team's users" — HR/Sales use case. 2) "IT Help Desk resets passwords and unlocks accounts" — IT use case. 3) "Object Owner customizes their department's custom app" — Operations use case.
+**Visual:**
+```
+  ┌──────────────────────────┐  ┌──────────────────────────┐  ┌──────────────────────────┐
+  │  SCENARIO 1              │  │  SCENARIO 2              │  │  SCENARIO 3              │
+  │  Regional Manager        │  │  IT Help Desk            │  │  Object Owner            │
+  ├──────────────────────────┤  ├──────────────────────────┤  ├──────────────────────────┤
+  │ Use Case: HR / Sales     │  │ Use Case: IT Support     │  │ Use Case: Operations     │
+  │                          │  │                          │  │                          │
+  │ • Create/edit users      │  │ • Reset passwords        │  │ • Manage custom object   │
+  │   in their region        │  │   across all roles       │  │   fields & layouts       │
+  │ • Reset passwords        │  │ • Unlock locked-out      │  │ • Create, edit, delete   │
+  │ • Assign regional        │  │   accounts               │  │   records for their      │
+  │   permission sets        │  │ Without full admin       │  │   department object      │
+  │                          │  │ access                   │  │                          │
+  └──────────────────────────┘  └──────────────────────────┘  └──────────────────────────┘
+```
 **Content:**
 - **Scenario 1 — Regional Manager:** Create and edit users in their region, reset passwords, assign regional permission sets
 - **Scenario 2 — IT Help Desk:** Reset passwords and unlock users across all roles — without full admin access
@@ -79,7 +202,25 @@
 **Speaker Notes:** These three scenarios represent the most common real-world applications of delegated administration. In large organizations with dozens of departments, the System Administrator team cannot feasibly handle every password reset and new hire onboarding ticket. Delegated administration distributes that responsibility to the people who are closest to the work, while keeping the keys to the kingdom safely in the hands of the certified admin team.
 
 ### Slide 8: Key Delegated Administration Exam Facts
-**Visual:** Cheat-sheet reference card with two sections: CAN and CANNOT.
+**Visual:**
+```
+  ┌──────────────────────────────────┬──────────────────────────────────┐
+  │           CAN DO                 │          CANNOT DO               │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │ ✓ Create/edit users in           │ ✗ Create or modify Profiles      │
+  │   specified roles                │ ✗ Create or edit Roles           │
+  │ ✓ Reset passwords                │ ✗ Change OWD or sharing settings │
+  │ ✓ Unlock users                   │ ✗ Manage Standard Objects        │
+  │ ✓ Assign specified               │ ✗ Grant permissions they         │
+  │   permission sets                │   don't themselves have          │
+  │ ✓ Manage specified               │ ✗ Access Setup outside scope     │
+  │   custom objects                 │                                  │
+  ├──────────────────────────────────┴──────────────────────────────────┤
+  │  No System Administrator profile required                           │
+  │  Scope defined by: roles + profiles + custom objects                │
+  │  Configured at: Setup > Security > Delegated Administration         │
+  └─────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **CAN:** Create/edit users in specified roles; reset passwords; unlock users; assign specified permission sets; manage specified custom objects
 - **CANNOT:** Modify profiles or roles; change OWD or sharing settings; manage standard objects; grant permissions they don't have

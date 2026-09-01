@@ -8,7 +8,25 @@
 ## 📊 SLIDES
 
 ### Slide 1: Formula Fields — The Basics
-**Visual:** A formula field card showing Return Type = "Currency," Formula = "Amount * Discount__c / 100," and Result displayed on a record as "Discounted Amount: $4,500"
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  NEW FORMULA FIELD: Discounted Amount                           │
+  │  Return Type:  Currency                                         │
+  │  Formula:      Amount * Discount__c / 100                       │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  RECORD — Opportunity: "Acme Renewal"                           │
+  │  ┌────────────────────────────────────────────────────────────┐ │
+  │  │  Amount:              $5,000.00                            │ │
+  │  │  Discount (%):        10                                   │ │
+  │  │  Discounted Amount:   $4,500.00   ← formula result         │ │
+  │  │                                     (read-only)            │ │
+  │  └────────────────────────────────────────────────────────────┘ │
+  │                                                                  │
+  │  ⚠ Value is NEVER stored in the database                        │
+  │    Recalculated every time the record is loaded or queried       │
+  └──────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Formula fields are **read-only** fields that calculate their value dynamically at runtime
 - The value is **never stored** in the database — it is computed every time the record is loaded or queried
@@ -18,7 +36,28 @@
 **Speaker Notes:** Because formula fields calculate at runtime, they always reflect current data. Change the underlying field values and the formula result updates instantly — no save required. However, this means formula fields cannot be used as the source for Roll-Up Summary filters because they are not stored values.
 
 ### Slide 2: Formula Operators and Syntax
-**Visual:** A syntax reference card with columns: Operator, Symbol, Example
+**Visual:**
+```
+  ┌─────────────────┬──────────────────┬────────────────────────────────┐
+  │  CATEGORY       │  OPERATOR        │  EXAMPLE                       │
+  ├─────────────────┼──────────────────┼────────────────────────────────┤
+  │  Arithmetic     │  +  -  *  /  ^   │  Amount * 0.9                  │
+  │                 │                  │  Price ^ 2  (exponent)         │
+  ├─────────────────┼──────────────────┼────────────────────────────────┤
+  │  Text / Concat  │  &               │  FirstName & " " & LastName    │
+  │                 │                  │  (literal space in "quotes")   │
+  ├─────────────────┼──────────────────┼────────────────────────────────┤
+  │  Comparison     │  =   <>          │  Stage = "Closed Won"          │
+  │                 │  >   <           │  Amount > 100000               │
+  │                 │  >=  <=          │  CloseDate >= TODAY()          │
+  ├─────────────────┼──────────────────┼────────────────────────────────┤
+  │  Logical        │  &&  (AND)       │  (Amount > 0) && (Stage="Won") │
+  │                 │  ||  (OR)        │  (A = "X") || (B = "Y")        │
+  ├─────────────────┼──────────────────┼────────────────────────────────┤
+  │  Grouping       │  ( )             │  (A + B) * C                   │
+  └─────────────────┴──────────────────┴────────────────────────────────┘
+  Strings must be in "double quotes"   │   Field references use no quotes
+```
 **Content:**
 - **Arithmetic:** + (add), - (subtract), * (multiply), / (divide), ^ (exponent)
 - **Text:** & (concatenate strings), e.g., FirstName & " " & LastName
@@ -28,7 +67,26 @@
 **Speaker Notes:** Concatenation with & is one of the most useful formula patterns. Combining First Name and Last Name into a Full Name display field, or building a formatted address string, are classic admin use cases. Remember to add literal spaces in double quotes between tokens, like " " between first and last name.
 
 ### Slide 3: Common Formula Functions
-**Visual:** A function reference table with three columns: Function Name, What It Does, Example
+**Visual:**
+```
+  ┌────────────────────────────────┬────────────────────────────┬───────────────────────────────┐
+  │  FUNCTION                      │  WHAT IT DOES              │  EXAMPLE                      │
+  ├────────────────────────────────┼────────────────────────────┼───────────────────────────────┤
+  │  IF(cond, true_val, false_val) │  Conditional logic         │  IF(Amount>1000,"High","Low") │
+  │  BLANKVALUE(field, default)    │  Returns default if blank  │  BLANKVALUE(Discount__c, 0)   │
+  │  ISBLANK(field)                │  True if blank OR null     │  IF(ISBLANK(Email),"N/A",     │
+  │                                │  (preferred over ISNULL)   │     Email)                    │
+  │  ISNULL(field)                 │  True if null only         │  IF(ISNULL(Amount), 0, Amt)   │
+  │                                │  (misses empty strings)    │                               │
+  │  TEXT(value)                   │  Converts to text string   │  TEXT(Stage)                  │
+  │  VALUE(text)                   │  Converts text to number   │  VALUE(Qty_Text__c)           │
+  │  DATE(year, month, day)        │  Constructs a date         │  DATE(2025, 12, 31)           │
+  │  TODAY()                       │  Returns today's date      │  CloseDate - TODAY()          │
+  │  NOW()                         │  Returns current datetime  │  NOW() - CreatedDate          │
+  │  LEN(text)                     │  Character count           │  LEN(Description__c)          │
+  └────────────────────────────────┴────────────────────────────┴───────────────────────────────┘
+  Prefer ISBLANK over ISNULL — handles both empty strings AND null values
+```
 **Content:**
 - **IF(condition, true_value, false_value)** — conditional logic
 - **BLANKVALUE(field, default)** — returns default if field is blank; use instead of null checks
@@ -41,7 +99,31 @@
 **Speaker Notes:** ISBLANK is preferred over ISNULL for new formula fields because ISBLANK handles both empty text strings and null values, while ISNULL only handles null. On old fields that predate this distinction, ISNULL may still appear. Know both for the exam but prefer ISBLANK in practice.
 
 ### Slide 4: Cross-Object Formulas
-**Visual:** A formula field on Opportunity with the expression "Account.Industry" shown, with a diagram tracing the lookup path: Opportunity → Account (lookup) → Industry field
+**Visual:**
+```
+  CROSS-OBJECT FORMULA on Opportunity
+
+  Formula expression:  Account.Industry
+  ──────────────────────────────────────────────────────────────────────
+  Opportunity  ──(lookup)──▶  Account  ──▶  Industry (field value)
+     │                           │
+     │  Account.Industry         │  1 relationship hop
+     └───────────────────────────┘
+
+  CUSTOM RELATIONSHIP SYNTAX:
+  ──────────────────────────────────────────────────────────────────────
+  Custom_Account__c  →  the field API name (ends in __c)
+  Custom_Account__r  →  use __r for traversal in formulas
+
+  Example:  Custom_Account__r.Name
+
+  MAXIMUM DEPTH: 5 relationship hops
+  ──────────────────────────────────────────────────────────────────────
+  Opportunity → Account → Parent Account → Owner → Profile → Name
+       1            2           3             4        5    (field)
+  ──────────────────────────────────────────────────────────────────────
+  Formula syntax:  Account.Parent.Owner.Profile.Name
+```
 **Content:**
 - Cross-object formulas reference fields on **parent objects** by traversing lookup or master-detail relationships
 - Syntax: use dot notation — **RelationshipFieldName.FieldName** (e.g., Account.Industry, Owner.Name)

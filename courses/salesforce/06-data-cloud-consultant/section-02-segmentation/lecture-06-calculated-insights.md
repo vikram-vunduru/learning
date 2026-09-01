@@ -11,7 +11,23 @@
 ## Slides
 
 ### Slide 1: What Are Calculated Insights?
-**Visual:** Two panels side by side. Left panel: raw Sales Order DMO with individual order rows. Right panel: a Calculated Insight named "Customer_Purchase_Stats" showing aggregate columns: TotalOrders=14, TotalRevenue=3240.00, LastPurchaseDate=2024-09-15.
+**Visual:**
+```
+  RAW DATA (Sales Order DMO)         CALCULATED INSIGHT OUTPUT
+  ─────────────────────────          ─────────────────────────────────
+  OrderId  │ IndivId │ Amount        Customer_Purchase_Stats CI
+  ─────────┼─────────┼───────        ──────────────────────────────────
+  SO-001   │ 00U-001 │ $120          IndividualId │ TotalOrders │ TotalRevenue │ LastPurchDate
+  SO-002   │ 00U-001 │ $340  ──SQL──▶ 00U-001     │     14      │   $3,240.00  │ 2024-09-15
+  SO-003   │ 00U-001 │ $85   GROUP   ──────────────────────────────────
+  SO-004   │ 00U-001 │ $210   BY     One row per customer
+  ...      │         │
+  SO-101   │ 00U-002 │ $500  ──SQL──▶ 00U-002     │      3      │   $1,100.00  │ 2024-08-30
+  SO-102   │ 00U-002 │ $300
+  SO-103   │ 00U-002 │ $300
+
+  Many rows per customer             One summary row per customer
+```
 
 **Content:**
 - **Calculated Insights (CI)** are pre-computed aggregate metrics derived from DMO data using SQL
@@ -26,7 +42,31 @@
 ---
 
 ### Slide 2: The Calculated Insight Editor
-**Visual:** A code editor mockup showing a CI SQL query with proper formatting. Surrounding the editor are metadata fields: CI Name, Description, Refresh Schedule dropdown, and a "Preview" button.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────┐
+  │  CI Name:        Customer_Purchase_Stats                 │
+  │  Description:    90-day purchase metrics per customer    │
+  │  Refresh Sched:  [ Daily at 4 AM  ▼ ]                   │
+  │  ──────────────────────────────────────────────────────  │
+  │  SQL EDITOR:                                             │
+  │                                                          │
+  │  SELECT                                                  │
+  │      i.Id AS IndividualId,          ← DIMENSION         │
+  │      COUNT(so.Id) AS TotalOrders,   ← MEASURE           │
+  │      SUM(so.TotalAmount) AS TotalRevenue,   ← MEASURE   │
+  │      MAX(so.OrderDate) AS LastOrderDate     ← MEASURE   │
+  │  FROM Individual__dlm AS i                              │
+  │  JOIN SalesOrder__dlm AS so                             │
+  │      ON so.IndividualId__c = i.Id                       │
+  │  WHERE so.OrderDate >= DATEADD(day, -90, CURRENT_DATE)  │
+  │  GROUP BY i.Id                      ← REQUIRED          │
+  │                                                          │
+  │  [ Preview Results ]  [ Save & Publish ]                │
+  └──────────────────────────────────────────────────────────┘
+  Note: DMO API names end in __dlm
+  Note: CIs are pre-computed — NOT run at segment query time
+```
 
 **Content:**
 - Accessed from Data Cloud Setup → Calculated Insights → New
@@ -42,7 +82,27 @@
 ---
 
 ### Slide 3: Aggregation Functions
-**Visual:** A reference table showing five aggregation functions with syntax examples and use cases. Each row: function name, example SQL, use case description.
+**Visual:**
+```
+  ┌────────────────────┬───────────────────────────────┬──────────────────────────┐
+  │ Function           │ Example SQL                   │ Use Case                 │
+  ├────────────────────┼───────────────────────────────┼──────────────────────────┤
+  │ COUNT(field)       │ COUNT(so.Id) AS TotalOrders   │ Number of orders/sessions│
+  │ COUNT(DISTINCT f)  │ COUNT(DISTINCT ProductId)     │ Unique products purchased │
+  │ SUM(field)         │ SUM(so.TotalAmount) AS Total  │ Total spend, quantity    │
+  │ AVG(field)         │ AVG(so.TotalAmount) AS AvgAmt │ Average order value      │
+  │ MAX(field)         │ MAX(so.OrderDate) AS LastDate │ Most recent purchase date│
+  │ MIN(field)         │ MIN(so.OrderDate) AS FirstDt  │ First purchase date      │
+  └────────────────────┴───────────────────────────────┴──────────────────────────┘
+  All functions IGNORE NULL values (standard SQL behavior)
+
+  Business question → Function:
+  "How many purchases?" → COUNT
+  "What is total spend?" → SUM
+  "What is average basket size?" → AVG
+  "When did they last buy?" → MAX on date field
+  "When did they first buy?" → MIN on date field
+```
 
 **Content:**
 - **COUNT(field)** — Count of non-null values; use for number of orders, number of sessions
@@ -58,7 +118,24 @@
 ---
 
 ### Slide 4: CI Structure — Dimensions vs. Measures
-**Visual:** An annotated SQL query. The GROUP BY columns are highlighted in blue and labeled "Dimensions." The aggregate function columns (SUM, COUNT, MAX) are highlighted in orange and labeled "Measures."
+**Visual:**
+```
+  SELECT
+      i.Id AS IndividualId,          ← DIMENSION (GROUP BY key)
+      so.ProductCategory AS Category,← DIMENSION (additional grouping)
+      COUNT(so.Id) AS TotalOrders,   ← MEASURE (aggregate output)
+      SUM(so.TotalAmount) AS Revenue,← MEASURE (aggregate output)
+      MAX(so.OrderDate) AS LastDate  ← MEASURE (aggregate output)
+  FROM Individual__dlm AS i
+  JOIN SalesOrder__dlm AS so ON so.IndividualId__c = i.Id
+  WHERE so.OrderDate >= DATEADD(day, -90, CURRENT_DATE)
+  GROUP BY i.Id, so.ProductCategory  ← DIMENSIONS listed here
+
+  ────────────────────────────────────────────────────
+  DIMENSIONS = GROUP BY columns → define row granularity
+  MEASURES   = Aggregate function outputs → filterable values
+  In segments: filter on MEASURE values (e.g., Revenue >= 1000)
+```
 
 **Content:**
 - **Dimensions:** The grouping fields that define who/what each CI row represents
@@ -104,7 +181,24 @@ GROUP BY i.Id
 ---
 
 ### Slide 6: CI Refresh Schedule
-**Visual:** A timeline showing: CI data becomes stale → refresh job runs at scheduled time → CI results updated → segment using CI can now use updated values.
+**Visual:**
+```
+  REFRESH DEPENDENCY CHAIN (must run in this order)
+  ──────────────────────────────────────────────────────────
+
+  2:00 AM ── Data Stream refresh ──▶ DMO data updated
+                                          │
+  4:00 AM ────────────────────────────────▼
+           CI refresh ──▶ Processes updated DMO data ──▶ CI values fresh
+                                          │
+  6:00 AM ────────────────────────────────▼
+           Segment refresh ──▶ Uses fresh CI values ──▶ Membership updated
+
+  If CI refresh runs BEFORE Data Stream completes:
+  CI processes yesterday's DMO data → stale CI values → wrong segment
+
+  SOLUTION: Use Job Scheduler job chaining to enforce correct order
+```
 
 **Content:**
 - CIs are pre-computed on a **schedule** — they do not run in real-time
@@ -119,7 +213,27 @@ GROUP BY i.Id
 ---
 
 ### Slide 7: Using CIs in Segments
-**Visual:** Segment Builder UI mockup showing a criteria row using a Calculated Insight: "Calculated Insight: Customer_Purchase_Stats" → "TotalRevenue" → "greater than or equal to" → "1000."
+**Visual:**
+```
+  SEGMENT BUILDER — Using a Calculated Insight as criteria
+  ──────────────────────────────────────────────────────────
+  Criteria Source: [ Calculated Insight ▼ ]
+
+  ┌────────────────────────┬──────────────┬──────────────────┐
+  │ Customer_Purchase_Stats│ TotalRevenue │ >= 1000          │
+  └────────────────────────┴──────────────┴──────────────────┘
+  AND (attribute filter)
+  ┌──────────────┬──────────────┬──────────────────────────┐
+  │ Individual   │ LoyaltyTier  │ equals "Gold"            │
+  └──────────────┴──────────────┴──────────────────────────┘
+  AND (related attribute filter)
+  ┌──────────────────────────────────────────────────────────┐
+  │ Has SalesOrder WHERE OrderDate in last 30 days           │
+  └──────────────────────────────────────────────────────────┘
+
+  Combined segment: "Gold tier customers with TotalRevenue >= $1000
+                     who also made a purchase in the last 30 days"
+```
 
 **Content:**
 - In Segment Builder, select **Calculated Insight** as the criteria source
@@ -134,7 +248,25 @@ GROUP BY i.Id
 ---
 
 ### Slide 8: CI Limitations & Best Practices
-**Visual:** Two-column card layout: "Limitations" on the left (red), "Best Practices" on the right (green).
+**Visual:**
+```
+  ┌──────────────────────────────────┐  ┌──────────────────────────────────┐
+  │         LIMITATIONS              │  │        BEST PRACTICES            │
+  │  (red — watch out for these)     │  │  (green — follow these)          │
+  ├──────────────────────────────────┤  ├──────────────────────────────────┤
+  │ Not real-time — as fresh as      │  │ Name with metric + time window:  │
+  │ last scheduled refresh           │  │ TotalSpend_90d, Orders_30d       │
+  ├──────────────────────────────────┤  ├──────────────────────────────────┤
+  │ Complex multi-DMO JOINs can      │  │ Schedule CI refresh AFTER the    │
+  │ be slow to process               │  │ dependent Data Stream completes  │
+  ├──────────────────────────────────┤  ├──────────────────────────────────┤
+  │ CIs can only reference DMO data  │  │ Use WHERE clauses to limit data  │
+  │ — NOT DLO data                   │  │ processed (filter by date range) │
+  ├──────────────────────────────────┤  ├──────────────────────────────────┤
+  │ There is a limit on active CIs   │  │ Preview before publishing to     │
+  │ per Data Cloud instance          │  │ validate SQL logic               │
+  └──────────────────────────────────┘  └──────────────────────────────────┘
+```
 
 **Content:**
 - **Limitations:**

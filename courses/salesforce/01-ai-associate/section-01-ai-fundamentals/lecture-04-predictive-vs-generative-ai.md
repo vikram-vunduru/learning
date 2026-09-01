@@ -17,7 +17,27 @@ By the end of this lecture, students will be able to:
 ## SLIDES
 
 ### Slide 1: Two Flavors of AI — And Why It Matters
-**Visual:** Split screen — left side shows a weather forecast icon (predictive), right side shows a paintbrush creating something new (generative)
+**Visual:**
+```
+┌─────────────────────────────┬─────────────────────────────┐
+│       PREDICTIVE AI         │       GENERATIVE AI         │
+│                             │                             │
+│   Historical Data           │   Prompt / Input            │
+│         │                   │         │                   │
+│         ▼                   │         ▼                   │
+│   [ML Model trained         │   [Large Language Model     │
+│    on past patterns]        │    / Generative Model]      │
+│         │                   │         │                   │
+│         ▼                   │         ▼                   │
+│   Prediction / Score        │   New Content / Response    │
+│                             │                             │
+│ "What WILL happen?"         │ "What should I CREATE?"     │
+│                             │                             │
+│ ● Lead Score: 87%           │ ● "Here is a draft email    │
+│ ● Case: High Priority       │    for this opportunity..." │
+│ ● Forecast: $2.4M           │ ● "Case summary: Customer   │
+└─────────────────────────────┴─────────────────────────────┘
+```
 **Content:**
 - AI is not one single thing — there are different types
 - Two types you MUST know for the exam: Predictive AI and Generative AI
@@ -118,7 +138,20 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 10: Side-by-Side Comparison — The Exam Loves This
-**Visual:** Clean two-column table
+**Visual:**
+```
+┌────────────────────┬──────────────────────────┬──────────────────────────┐
+│                    │     PREDICTIVE AI         │     GENERATIVE AI        │
+├────────────────────┼──────────────────────────┼──────────────────────────┤
+│ Core question      │ What will happen?         │ What should I create?    │
+│ Output type        │ Score / classification    │ Text, image, code        │
+│ Training           │ Labeled historical data   │ Massive text/image data  │
+│ Uncertainty        │ Confidence interval       │ May hallucinate          │
+│ Salesforce example │ Lead Scoring, Forecasting │ Prompt Builder, Copilot  │
+│ Tech foundation    │ Regression, classification│ LLMs, Transformers       │
+│ Human oversight    │ Low (score is clear)      │ High (output varies)     │
+└────────────────────┴──────────────────────────┴──────────────────────────┘
+```
 **Content:**
 
 | Dimension | Predictive AI | Generative AI |
@@ -135,7 +168,28 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 11: They Can Work Together
-**Visual:** Pipeline diagram — Predictive AI feeds a score into a workflow that triggers Generative AI to write an outreach email
+**Visual:**
+```
+   COMBINED AI PIPELINE — Predictive + Generative Working Together
+
+   ┌─────────────┐    ┌─────────────────────────────────────────────┐
+   │  CRM DATA   │    │              SALESFORCE AI LAYER             │
+   │             │    │                                              │
+   │ Lead record │───▶│  STEP 1: Predictive AI                      │
+   │ - Industry  │    │  ● Einstein Lead Scoring → Score: 91%        │
+   │ - Revenue   │    │  ● Identifies: High-value opportunity        │
+   │ - Behavior  │    │             │                                │
+   └─────────────┘    │             ▼                                │
+                      │  STEP 2: Generative AI                      │
+                      │  ● Prompt Builder receives score + context   │
+                      │  ● LLM generates: personalized outreach email│
+                      │  ● "Dear Sarah, given your company's growth.."│
+                      │             │                                │
+                      └─────────────┼────────────────────────────────┘
+                                    ▼
+                         REP SEES: Score + Draft Email
+                         Both AI types working together
+```
 **Content:**
 - Modern AI systems often combine both types
 - Predictive AI identifies the right customer (lead score = 90)

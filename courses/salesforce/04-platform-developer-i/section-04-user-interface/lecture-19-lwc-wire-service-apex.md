@@ -9,7 +9,22 @@
 ## Slides
 
 ### Slide 1: What Is the Wire Service?
-**Visual:** Data flow diagram: Salesforce Data Service in the center, @wire decorator connecting to component properties on the right and to wire adapters (getRecord, Apex method) on the left
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────────┐
+  │                   Wire Service Data Flow                       │
+  │                                                                │
+  │  LDS Adapters            Wire Service         Component       │
+  │  (getRecord,             ┌───────────┐        ┌───────────┐   │
+  │   getObjectInfo,  ──────►│  @wire    │───────►│  { data,  │   │
+  │   getRelatedList)        │ decorator │        │   error } │   │
+  │                          └─────┬─────┘        └───────────┘   │
+  │  Apex Methods                  │ reactive:                     │
+  │  (@AuraEnabled(           re-fetches when                      │
+  │   cacheable=true)) ────►  $ parameters change                  │
+  └────────────────────────────────────────────────────────────────┘
+  Wire = reactive reads  |  Imperative Apex = writes / triggered reads
+```
 **Content:**
 - The Wire Service is LWC's reactive data binding mechanism to Salesforce data
 - Connects component properties to data sources via wire adapters
@@ -80,7 +95,27 @@
 **Speaker Notes:** NavigationMixin is a mixin pattern — it extends LightningElement with navigation methods. The syntax this[NavigationMixin.Navigate] looks unusual but is standard JavaScript computed property access with a Symbol key. Common page reference types: standard__recordPage for record pages, standard__objectPage for object home pages, standard__namedPage for named pages like the home page or related list. For the exam, know the import path and the mixin application syntax.
 
 ### Slide 8: Lightning Data Service vs. Apex
-**Visual:** Decision flowchart: "Single record CRUD?" → LDS (lightning-record-form, lightning-record-view-form, lightning-record-edit-form); "Complex query or bulk data?" → Apex with @wire or imperative
+**Visual:**
+```
+  Need to work with Salesforce data in LWC?
+           │
+           ▼
+  Single record CRUD (standard fields)?
+  ├─ YES ──► Lightning Data Service base components:
+  │           lightning-record-form
+  │           lightning-record-view-form
+  │           lightning-record-edit-form
+  └─ NO
+           │
+           ▼
+  READ operation (complex query / bulk)?
+  ├─ YES ──► @wire with @AuraEnabled(cacheable=true) Apex
+  └─ NO (DML / user-triggered / conditional?)
+           │
+           ▼
+           Imperative Apex call (async/await or .then/.catch)
+           └─ call refreshApex() after DML to update wire cache
+```
 **Content:**
 - **Lightning Data Service (LDS)**: handles single-record Create/Read/Update/Delete automatically; uses the platform cache
 - Base components for LDS: `lightning-record-form`, `lightning-record-view-form`, `lightning-record-edit-form`

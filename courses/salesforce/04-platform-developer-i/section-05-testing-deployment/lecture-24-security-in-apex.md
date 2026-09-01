@@ -9,7 +9,22 @@
 ## Slides
 
 ### Slide 1: Apex Security Context — The Default Behavior
-**Visual:** Layered diagram showing: System Administrator at top → Apex Code Layer (runs as system by default) → Database, with a warning icon showing "sharing rules bypassed"
+**Visual:**
+```
+  Running User (e.g., Sales Rep)
+           │
+           ▼
+  ┌────────────────────────────────────────────────────────┐
+  │  Apex Code Layer  (system context by default)          │
+  │  ⚠ Bypasses: sharing rules, OWD, manual shares        │
+  │  ⚠ Bypasses: CRUD permissions, FLS                    │
+  │                                                        │
+  │  FIX: use  with sharing  and explicit CRUD/FLS checks  │
+  └────────────────────────────────────────────────────────┘
+           │
+           ▼
+  Database (ALL records accessible without sharing keyword)
+```
 **Content:**
 - By default, Apex runs in **system context**: it bypasses sharing rules (OWD, sharing rules, manual shares)
 - This means all records are accessible regardless of the running user's sharing access
@@ -21,7 +36,24 @@
 ---
 
 ### Slide 2: with sharing, without sharing, inherited sharing
-**Visual:** Three class declaration code blocks side-by-side with arrows showing: with sharing → respects running user's record visibility; without sharing → sees all records; inherited sharing → adopts caller's context
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────┐
+  │  Keyword             │ Record Visibility Enforcement      │
+  ├──────────────────────────────────────────────────────────┤
+  │  with sharing        │ Enforces running user's sharing    │
+  │                      │ SOQL returns only accessible rows  │
+  ├──────────────────────────────────────────────────────────┤
+  │  without sharing     │ Bypasses ALL sharing rules         │
+  │                      │ Returns all records regardless     │
+  ├──────────────────────────────────────────────────────────┤
+  │  inherited sharing   │ Uses caller's sharing context      │
+  │                      │ Best for reusable utility classes  │
+  ├──────────────────────────────────────────────────────────┤
+  │  (no keyword)        │ System context — UNSAFE default    │
+  │                      │ ⚠ Always declare explicitly!       │
+  └──────────────────────────────────────────────────────────┘
+```
 **Content:**
 - `with sharing`: enforces **sharing rules** for the running user — SOQL returns only records the user can see
 ```apex

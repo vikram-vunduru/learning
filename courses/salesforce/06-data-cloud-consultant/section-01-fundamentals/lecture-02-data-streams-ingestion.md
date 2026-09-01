@@ -11,7 +11,26 @@
 ## Slides
 
 ### Slide 1: What Is a Data Stream?
-**Visual:** A configuration panel mockup showing a Data Stream setup screen with fields for Source Connection, Object, Refresh Schedule, and Field Selection.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────┐
+  │              DATA STREAM CONFIGURATION                   │
+  │  ──────────────────────────────────────────────────────  │
+  │  Source Connection:   [ Salesforce Org — Production ]    │
+  │  Source Object:       [ Contact                      ]   │
+  │  Refresh Type:        [ Batch  ▼ ]  [ Streaming ▼ ]     │
+  │  Refresh Schedule:    [ Every 12 hours               ]   │
+  │  Field Selection:     [ FirstName, LastName, Email.. ]   │
+  │                                                          │
+  │  Target DLO:          Contact_DLO__dlm                   │
+  └──────────────────────────────────────────────────────────┘
+              │
+              ▼  (on schedule)
+  ┌──────────────────────┐
+  │  DATA LAKE OBJECT    │
+  │  (raw ingested data) │
+  └──────────────────────┘
+```
 
 **Content:**
 - A **Data Stream** is the configuration object that defines data ingestion into Data Cloud
@@ -25,7 +44,21 @@
 ---
 
 ### Slide 2: Connector Types — Salesforce Connector
-**Visual:** A bi-directional arrow diagram between "Salesforce CRM (Source Org)" and "Data Cloud" with the label "Salesforce Connector" on the arrow. A secondary arrow shows "Data Actions" flowing back from Data Cloud to CRM.
+**Visual:**
+```
+  ┌──────────────────────┐                ┌──────────────────────┐
+  │   SALESFORCE CRM     │                │     DATA CLOUD       │
+  │   (Source Org)       │                │                      │
+  │                      │───Data Stream─▶│  Contact_DLO__dlm    │
+  │  Contacts            │                │  Account_DLO__dlm    │
+  │  Accounts            │                │  Opportunity_DLO__dlm│
+  │  Opportunities       │                │                      │
+  │  Custom Objects      │                │                      │
+  │                      │◀──Data Actions─│  (insights back      │
+  └──────────────────────┘                │   to CRM)            │
+                                          └──────────────────────┘
+             Salesforce Connector (bidirectional)
+```
 
 **Content:**
 - The **Salesforce Connector** ingests standard and custom CRM objects into Data Cloud
@@ -40,7 +73,21 @@
 ---
 
 ### Slide 3: Connector Types — Cloud Storage (S3, GCS, Azure)
-**Visual:** Icons for Amazon S3, Google Cloud Storage, and Azure Blob Storage with arrows pointing into a Data Cloud box. A document icon labeled "CSV/JSON/Parquet" is shown on each arrow.
+**Visual:**
+```
+  ┌─────────────────┐
+  │  Amazon S3      │──CSV/JSON/Parquet──┐
+  └─────────────────┘                   │
+  ┌─────────────────┐                   ▼
+  │  Google Cloud   │──CSV/JSON/Parquet──▶ ┌──────────────────────┐
+  │  Storage (GCS)  │                      │     DATA CLOUD       │
+  └─────────────────┘                   ▶  │                      │
+  ┌─────────────────┐                   │  │  Batch ingestion on  │
+  │  Azure Blob     │──CSV/JSON/Parquet──┘  │  configured schedule │
+  │  Storage        │                      └──────────────────────┘
+  └─────────────────┘
+        Scheduled batch pickup (not streaming)
+```
 
 **Content:**
 - Cloud storage connectors bring files from **Amazon S3, Google Cloud Storage, or Azure Blob Storage**
@@ -55,7 +102,25 @@
 ---
 
 ### Slide 4: Connector Types — Ingestion API
-**Visual:** A code snippet showing a POST request to a Data Cloud Ingestion API endpoint with a JSON payload. An arrow shows it flowing into a Data Cloud "Streaming DLO."
+**Visual:**
+```
+  External System                       Data Cloud
+  (website / mobile / IoT)
+                                   ┌──────────────────────┐
+  POST /ingest/sources/{id}/        │                      │
+  Authorization: Bearer {token}    │  Streaming DLO       │
+  Content-Type: application/json   │  (near-real-time)    │
+                                   │                      │
+  {                                │  Records arrive      │
+    "customerId": "C-1234",  ──────▶│  within seconds      │
+    "event": "ProductView",  │      │                      │
+    "productId": "SKU-999",  │      └──────────────────────┘
+    "timestamp": "2024-09..."│
+  }                          │
+                             │
+  OAuth 2.0 Connected App ───┘
+  (Consumer Key + Secret → Bearer Token)
+```
 
 **Content:**
 - The **Ingestion API** enables real-time, event-driven data ingestion into Data Cloud
@@ -70,7 +135,23 @@
 ---
 
 ### Slide 5: Connector Types — MuleSoft & Marketing Cloud
-**Visual:** Two side-by-side panels. Left panel shows MuleSoft logo with "Any Source" pointing through MuleSoft into Data Cloud. Right panel shows Marketing Cloud logo with an arrow pointing into Data Cloud labeled "MC Connector."
+**Visual:**
+```
+  ┌──────────────────────────────┐  ┌──────────────────────────────┐
+  │      MULESOFT CONNECTOR      │  │  MARKETING CLOUD CONNECTOR   │
+  │  ──────────────────────────  │  │  ──────────────────────────  │
+  │                              │  │                              │
+  │  Any Source  ──▶  MuleSoft   │  │  MC Subscribers  ──▶        │
+  │  (SAP, legacy ERP, etc.)     │  │  MC Engagement Events        │
+  │        │                     │  │        │                     │
+  │        ▼                     │  │        ▼                     │
+  │   Data Cloud (DLO)           │  │   Data Cloud (DLO)           │
+  │                              │  │        │                     │
+  │  Use: MuleSoft already in    │  │        ▼  (also)             │
+  │  environment, custom         │  │  Activation back to MC       │
+  │  transformations needed      │  │  Journeys & Sends            │
+  └──────────────────────────────┘  └──────────────────────────────┘
+```
 
 **Content:**
 - **MuleSoft Connector:** Enables any MuleSoft-connected system to push data into Data Cloud
@@ -87,7 +168,25 @@
 ---
 
 ### Slide 6: Batch vs. Streaming Ingestion
-**Visual:** Two parallel timelines. Top timeline labeled "Batch" shows data arriving in large blocks at scheduled intervals (6h, 12h, 24h). Bottom timeline labeled "Streaming" shows a continuous flow of small data points arriving in near-real-time.
+**Visual:**
+```
+  BATCH INGESTION
+  ───────────────
+  Time:  ──────────┬──────────────────┬──────────────────┬──────▶
+                   │                  │                  │
+              [6 AM load]        [12 PM load]       [6 PM load]
+              ████████████            ████████████       ████████████
+              (large block)           (large block)      (large block)
+              Sources: Salesforce Connector, S3/GCS, Marketing Cloud
+              Latency: up to 24 hours
+
+  STREAMING INGESTION
+  ───────────────────
+  Time:  ──•──•─•──•───•──•─•──•──•──•─•──•──•──•─•──•──•──•──▶
+            events arrive continuously in near-real-time
+            Sources: Ingestion API (streaming mode)
+            Latency: seconds to minutes
+```
 
 **Content:**
 - **Batch Ingestion:** Data is pulled on a schedule; options are 1, 6, 12, or 24 hours (or manual)
@@ -104,7 +203,29 @@
 ---
 
 ### Slide 7: Ingestion API — Authentication Deep Dive
-**Visual:** A step-by-step flow diagram: (1) Create Connected App in Salesforce org → (2) Get Consumer Key + Secret → (3) Exchange for OAuth 2.0 token → (4) POST to Ingestion API endpoint with Bearer token in header.
+**Visual:**
+```
+  Step 1: Create Connected App          Step 2: Get Credentials
+  ─────────────────────────────         ─────────────────────────────
+  ┌─────────────────────────┐           Consumer Key:    ABC123xyz
+  │  Salesforce Setup       │           Consumer Secret: s3cr3t456
+  │  Apps > Connected Apps  │
+  │  [New Connected App]    │
+  │  ✓ Enable OAuth         │
+  │  ✓ Ingestion API scope  │
+  └─────────────────────────┘
+
+  Step 3: Exchange for Token            Step 4: Call Ingestion API
+  ─────────────────────────────         ─────────────────────────────
+  POST /services/oauth2/token           POST /api/v1/ingest/...
+  grant_type=client_credentials         Authorization: Bearer eyJ...
+  client_id=ABC123xyz
+  client_secret=s3cr3t456
+        │                                     │
+        ▼                                     ▼
+  { "access_token": "eyJ..." }         Data lands in DLO
+  (token expires — app must refresh)
+```
 
 **Content:**
 - Ingestion API uses **OAuth 2.0 Client Credentials** flow (server-to-server)
@@ -119,7 +240,34 @@
 ---
 
 ### Slide 8: Choosing the Right Connector
-**Visual:** A decision flowchart. Start → "Is the source a Salesforce CRM org?" → Yes: Salesforce Connector. No → "Does it deliver files to cloud storage?" → Yes: S3/GCS/Azure. No → "Is MuleSoft in the environment?" → Yes: MuleSoft. No → "Does it need real-time streaming?" → Yes: Ingestion API. No → "Is it Marketing Cloud?" → Yes: MC Connector.
+**Visual:**
+```
+  START: What is the data source?
+          │
+          ▼
+  Is it a Salesforce CRM org?
+  ├── YES ──▶  SALESFORCE CONNECTOR
+  └── NO
+          │
+          ▼
+  Does it deliver files to S3 / GCS / Azure?
+  ├── YES ──▶  CLOUD STORAGE CONNECTOR (CSV / JSON / Parquet)
+  └── NO
+          │
+          ▼
+  Is it real-time event data (web / mobile / IoT)?
+  ├── YES ──▶  INGESTION API (OAuth 2.0 Connected App)
+  └── NO
+          │
+          ▼
+  Is it Marketing Cloud data or activation?
+  ├── YES ──▶  MARKETING CLOUD CONNECTOR
+  └── NO
+          │
+          ▼
+  Is MuleSoft already in the environment?
+  └── YES ──▶  MULESOFT CONNECTOR
+```
 
 **Content:**
 - **Salesforce CRM data** → Salesforce Connector (native, no middleware)

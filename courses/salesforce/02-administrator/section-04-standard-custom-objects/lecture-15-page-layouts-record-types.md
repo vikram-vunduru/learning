@@ -8,7 +8,31 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Is a Page Layout?
-**Visual:** A wireframe of a Salesforce record detail page with labeled zones: Header, Fields section, Related Lists section, Highlights Panel, and Buttons/Actions bar
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │  [ Edit ]  [ Delete ]  [ Clone ]  [ Follow ]   ← BUTTONS/ACTIONS BAR │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │  Account Name: Acme Corp    Industry: Technology    ← HIGHLIGHTS PANEL│
+  │  Phone: 555-1234            Website:  acme.com                        │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │  FIELDS SECTION                                                       │
+  │  ┌─────────────────────────────────┬────────────────────────────┐    │
+  │  │  Account Name    Acme Corp      │  Phone        555-1234     │    │
+  │  │  Industry        Technology     │  Website      acme.com     │    │
+  │  │  Annual Revenue  $5,000,000     │  Employees    250          │    │
+  │  │  Description     (text area)    │  Rating       Hot          │    │
+  │  └─────────────────────────────────┴────────────────────────────┘    │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │  RELATED LISTS SECTION                                               │
+  │  ┌─────────────────────────┐  ┌─────────────────────────┐           │
+  │  │  Contacts  (3)          │  │  Opportunities  (5)     │           │
+  │  └─────────────────────────┘  └─────────────────────────┘           │
+  │  ┌─────────────────────────┐  ┌─────────────────────────┐           │
+  │  │  Cases  (2)             │  │  Activity History       │           │
+  │  └─────────────────────────┘  └─────────────────────────┘           │
+  └──────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - A page layout controls the **presentation** of a record's detail and edit pages
 - Determines: which fields appear, field order, which fields are required or read-only on the layout, and which related lists show at the bottom
@@ -17,7 +41,28 @@
 **Speaker Notes:** Page layouts are about user experience, not security. A field hidden on a page layout can still be accessed via reports or the API if Field-Level Security allows it. If you need to truly hide a field, use FLS — not page layouts. This distinction is frequently tested.
 
 ### Slide 2: Page Layout Editor
-**Visual:** Mockup of the Page Layout Editor showing the palette at the top with draggable fields, and the layout canvas below with sections and field slots
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │  PAGE LAYOUT EDITOR — Account Layout                                │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │  PALETTE  (drag fields from here)                                   │
+  │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐       │
+  │  │  Rating    │ │  Fax       │ │  Naics     │ │  Sic Code  │  ...  │
+  │  └────────────┘ └────────────┘ └────────────┘ └────────────┘       │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │  LAYOUT CANVAS  (drop fields here)                                  │
+  │  ┌──────────────────────────────────────────────────────────────┐   │
+  │  │  ── Account Information ─────────────────────────────────── │   │
+  │  │  [ Account Name  *required ]   [ Phone                    ] │   │
+  │  │  [ Industry                ]   [ Website                  ] │   │
+  │  │  ── Additional Details ──────────────────────────────────── │   │
+  │  │  [ Description                                (1-col)      ] │   │
+  │  └──────────────────────────────────────────────────────────────┘   │
+  │  * = required on layout    [R] = read-only on layout                │
+  │  (double-click a field slot to toggle Required / Read-Only)         │
+  └──────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Access: **Setup > Object Manager > [Object] > Page Layouts > [Layout Name]**
 - The palette at the top shows available fields, related lists, buttons, and actions
@@ -27,7 +72,25 @@
 **Speaker Notes:** Making a field required on a page layout is different from making it required at the field level. A page layout required field only enforces the requirement via the Salesforce UI — API inserts and bulk data loads can bypass page layout requirements. For true data integrity, use Validation Rules.
 
 ### Slide 3: Related Lists on Page Layouts
-**Visual:** The bottom section of a page layout editor showing the Related Lists zone with items like Contacts, Opportunities, Cases, and Activities with drag-and-drop handles
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │  PAGE LAYOUT EDITOR — Related Lists Zone                            │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │  ── Related Lists ────────────────────────────────────────────────  │
+  │  ┌──────────────────────────────────────────────────────────────┐   │
+  │  │  ⠿  Contacts           [ Edit Columns ]  [ Properties ]     │   │
+  │  │  ⠿  Opportunities      [ Edit Columns ]  [ Properties ]     │   │
+  │  │  ⠿  Cases              [ Edit Columns ]  [ Properties ]     │   │
+  │  │  ⠿  Activity History   [ Edit Columns ]  [ Properties ]     │   │
+  │  └──────────────────────────────────────────────────────────────┘   │
+  │                                                                      │
+  │  ⠿ = drag handle  (reorder by dragging up/down)                     │
+  │                                                                      │
+  │  Each related list shows different columns per layout               │
+  │  Different profiles can see different sets of related lists          │
+  └──────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Related lists appear at the bottom of record pages and show child records from related objects
 - Add, remove, and order related lists from the page layout editor
@@ -36,7 +99,31 @@
 **Speaker Notes:** If a user says "I cannot see the Contacts section on an Account," the first thing to check is their page layout. The related list might not be on the layout assigned to their profile. This is a common admin troubleshooting scenario that appears in exam questions.
 
 ### Slide 4: What Are Record Types?
-**Visual:** A business scenario diagram: Company sells to both B2B Customers and B2C Consumers; two record type cards labeled "Business Account" and "Consumer Account" each pointing to different page layouts and picklist value sets
+**Visual:**
+```
+  Company sells to TWO types of customers — same Account object, different behavior
+  ──────────────────────────────────────────────────────────────────────────────────
+                          ┌───────────────────┐
+                          │   ACCOUNT OBJECT  │
+                          └────────┬──────────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │                             │
+         ┌──────────▼──────────┐       ┌──────────▼──────────┐
+         │  RECORD TYPE:        │       │  RECORD TYPE:        │
+         │  Business Account    │       │  Consumer Account    │
+         │  (B2B)               │       │  (B2C)               │
+         ├──────────────────────┤       ├──────────────────────┤
+         │  Page Layout:        │       │  Page Layout:        │
+         │  Business Layout     │       │  Consumer Layout     │
+         │  (shows SIC Code,    │       │  (shows Consumer     │
+         │   NAICS, Industry)   │       │   Segment, Age)      │
+         ├──────────────────────┤       ├──────────────────────┤
+         │  Picklist Values:    │       │  Picklist Values:    │
+         │  Enterprise, SMB,    │       │  Premium, Standard,  │
+         │  Government          │       │  Basic               │
+         └──────────────────────┘       └──────────────────────┘
+```
 **Content:**
 - Record types allow different **page layouts**, **picklist values**, and **business processes** for different user profiles on the same object
 - Each record has exactly one record type assigned
@@ -45,7 +132,28 @@
 **Speaker Notes:** Record types solve the "same object, different workflows" problem. A single Opportunity object can serve both a standard B2B Sales process and a specialized Renewal process, each with its own layout, stages, and required fields. Without record types, you would need two separate objects.
 
 ### Slide 5: The Record Type → Layout → Picklist Relationship
-**Visual:** A three-node relationship diagram: Record Type in the center, with arrows to Page Layout on the left ("controls presentation"), Picklist Values on the right ("controls available choices"), and Business Process below ("controls stage/status options")
+**Visual:**
+```
+                        ┌───────────────────────┐
+   controls             │                       │   controls
+   presentation         │     RECORD TYPE       │   available choices
+  ┌─────────────────────│    (the hub/connector)│─────────────────────┐
+  │                     │                       │                     │
+  │                     └───────────┬───────────┘                     │
+  │                                 │ controls                        │
+  ▼                                 │ stage/status                    ▼
+┌───────────────────┐               │               ┌────────────────────────┐
+│   PAGE LAYOUT     │               │               │   PICKLIST VALUES      │
+│                   │               │               │                        │
+│  - Field order    │               ▼               │  - Available Stage     │
+│  - Required fields│  ┌────────────────────────┐  │    options             │
+│  - Read-only      │  │   BUSINESS PROCESS     │  │  - Available Status    │
+│    fields         │  │                        │  │    options             │
+│  - Related lists  │  │  Sales / Support /     │  │                        │
+│  - Buttons        │  │  Lead / Solution       │  │  (subset of master     │
+│                   │  │                        │  │   picklist values)     │
+└───────────────────┘  └────────────────────────┘  └────────────────────────┘
+```
 **Content:**
 - **Record Type → Page Layout:** Each profile-record type combination maps to one page layout
 - **Record Type → Picklist Values:** Each record type specifies which values from the master picklist are available
@@ -54,7 +162,36 @@
 **Speaker Notes:** This three-way relationship is the heart of record type functionality and a major exam topic. Picture the record type as a hub. It does not contain picklist values or layouts — it points to them. A single page layout can be used by multiple record types. A single business process can be shared across record types too.
 
 ### Slide 6: Business Processes
-**Visual:** Four business process type cards: Sales Process (Opportunity Stages), Support Process (Case Statuses), Lead Process (Lead Statuses), Solution Process (Solution Statuses)
+**Visual:**
+```
+  ┌──────────────────────────┐  ┌──────────────────────────┐
+  │  SALES PROCESS           │  │  SUPPORT PROCESS         │
+  │  Object: Opportunity     │  │  Object: Case            │
+  │──────────────────────────│  │──────────────────────────│
+  │  Controls which STAGE    │  │  Controls which STATUS   │
+  │  values are available    │  │  values are available    │
+  │                          │  │                          │
+  │  Example values:         │  │  Example values:         │
+  │   Prospecting            │  │   New                    │
+  │   Qualification          │  │   Working                │
+  │   Proposal/Price Quote   │  │   Escalated              │
+  │   Closed Won             │  │   Closed                 │
+  └──────────────────────────┘  └──────────────────────────┘
+
+  ┌──────────────────────────┐  ┌──────────────────────────┐
+  │  LEAD PROCESS            │  │  SOLUTION PROCESS        │
+  │  Object: Lead            │  │  Object: Solution        │
+  │──────────────────────────│  │──────────────────────────│
+  │  Controls which STATUS   │  │  Controls which STATUS   │
+  │  values are available    │  │  values are available    │
+  │                          │  │                          │
+  │  Example values:         │  │  (less commonly used)    │
+  │   New                    │  │                          │
+  │   Working                │  │                          │
+  │   Converted              │  │                          │
+  └──────────────────────────┘  └──────────────────────────┘
+  Create the Business Process first → then assign it to a Record Type
+```
 **Content:**
 - **Sales Process** — defines which Opportunity Stage values are available for a given record type
 - **Support Process** — defines which Case Status values are available
@@ -64,7 +201,26 @@
 **Speaker Notes:** Business processes are created at Setup under each respective object. You create the process, select the stage/status values to include, name it, then assign it to a record type. This is how you get an "Enterprise Sales" record type with stages for large deals and a "SMB Sales" record type with a simpler, faster stage sequence.
 
 ### Slide 7: Assigning Record Types to Profiles
-**Visual:** A profile detail page showing the Record Type Settings section with a table of objects and their default + available record types per profile
+**Visual:**
+```
+  Setup > Users > Profiles > [Profile Name] > Record Type Settings
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │  RECORD TYPE SETTINGS: Sales Representative Profile                 │
+  ├───────────────────┬──────────────────────────────┬───────────────────┤
+  │  OBJECT           │  AVAILABLE RECORD TYPES       │  DEFAULT          │
+  ├───────────────────┼──────────────────────────────┼───────────────────┤
+  │  Account          │  ☑ Business Account           │  Business         │
+  │                   │  ☑ Consumer Account           │  Account ▼        │
+  ├───────────────────┼──────────────────────────────┼───────────────────┤
+  │  Opportunity      │  ☑ Standard Sale              │  Standard         │
+  │                   │  ☑ Renewal                    │  Sale ▼           │
+  │                   │  ☐ Partner-Led (not assigned) │                   │
+  ├───────────────────┼──────────────────────────────┼───────────────────┤
+  │  Case             │  ☑ Technical Support          │  Technical        │
+  │                   │  ☑ Billing Issue              │  Support ▼        │
+  └───────────────────┴──────────────────────────────┴───────────────────┘
+  User with only 1 available record type → no selection prompt shown
+```
 **Content:**
 - Navigate to **Setup > Users > Profiles > [Profile Name] > Record Type Settings**
 - For each object, assign which record types the profile can use
@@ -74,7 +230,25 @@
 **Speaker Notes:** If a user is not seeing a record type option they should have, check their profile's Record Type Settings. If a user is being prompted to choose a record type when they should just get one by default, check that the default is set correctly on the profile. These are classic admin troubleshooting questions.
 
 ### Slide 8: Page Layout Assignment
-**Visual:** The Page Layout Assignment screen for an object showing a matrix with profiles as rows and record types as columns, and a page layout in each cell
+**Visual:**
+```
+  Object Manager > Account > Page Layouts > Page Layout Assignment
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │  [ Edit Assignment ]                                                 │
+  ├─────────────────────┬─────────────────────────┬──────────────────────┤
+  │  PROFILE            │  Business Account (RT)   │  Consumer Account(RT)│
+  ├─────────────────────┼─────────────────────────┼──────────────────────┤
+  │  Sales Rep          │  Business Layout        │  Consumer Layout     │
+  ├─────────────────────┼─────────────────────────┼──────────────────────┤
+  │  Sales Manager      │  Manager Layout         │  Consumer Layout     │
+  ├─────────────────────┼─────────────────────────┼──────────────────────┤
+  │  System Admin       │  Admin Full Layout      │  Admin Full Layout   │
+  ├─────────────────────┼─────────────────────────┼──────────────────────┤
+  │  Read Only          │  Read Only Layout       │  Read Only Layout    │
+  └─────────────────────┴─────────────────────────┴──────────────────────┘
+  Each cell = Profile + Record Type → which Page Layout they see
+  One layout can serve multiple profile/record-type combinations
+```
 **Content:**
 - Navigate to **Setup > Object Manager > [Object] > Page Layouts > Page Layout Assignment**
 - This matrix shows every profile-record type combination and which page layout each receives

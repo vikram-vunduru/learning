@@ -17,7 +17,18 @@ By the end of this lecture, students will be able to:
 ## SLIDES
 
 ### Slide 1: Welcome to the AI Fundamentals Section
-**Visual:** Clean title card — "Section 1: AI Fundamentals" with a simple brain icon and the Salesforce cloud logo
+**Visual:**
+```
+╔══════════════════════════════════════════════════════════╗
+║         LECTURE 1: WHAT IS ARTIFICIAL INTELLIGENCE?     ║
+║                                                          ║
+║   ● ── ● ── ●        AI unlocks pattern recognition,    ║
+║   |    |    |         prediction, and automation         ║
+║   ● ── ● ── ●        at superhuman scale.                ║
+║   |    |    |                                            ║
+║   ● ── ● ── ●        Section 1: AI Fundamentals          ║
+╚══════════════════════════════════════════════════════════╝
+```
 **Content:**
 - What this section covers
 - Why AI fundamentals matter for the exam
@@ -48,7 +59,19 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 4: Traditional Software vs. AI — The Fundamental Difference
-**Visual:** Two-column comparison table
+**Visual:**
+```
+┌────────────────────────────────┬────────────────────────────────┐
+│        WHAT AI IS              │       WHAT AI IS NOT           │
+├────────────────────────────────┼────────────────────────────────┤
+│ ● Pattern recognition in data  │ ✗ Magic or sentience           │
+│ ● Statistical prediction       │ ✗ Perfect or infallible        │
+│ ● Automation of decisions      │ ✗ A single technology          │
+│ ● Learning from examples       │ ✗ Human-level general reason.  │
+│ ● Finding correlations         │ ✗ Objective (reflects data)    │
+│ ● Scaling human judgment       │ ✗ A replacement for humans     │
+└────────────────────────────────┴────────────────────────────────┘
+```
 **Content:**
 - **Traditional Software:** Humans write explicit rules → Computer follows rules → Output
 - **AI Software:** Humans provide examples/data → AI finds the rules itself → Output
@@ -59,7 +82,19 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 5: A Quick History of AI (The Exam-Relevant Parts)
-**Visual:** Horizontal timeline from 1950 to today
+**Visual:**
+```
+1950          1960s         1980s         1990s-2000s    2010s         2020s+
+ │             │             │               │              │             │
+ ▼             ▼             ▼               ▼              ▼             ▼
+[Turing Test] [ELIZA       ][Expert        ][Machine      ][Deep         ][Generative
+[Alan Turing ] [chatbot     ][Systems       ][Learning     ][Learning     ][AI & LLMs ]
+[1950        ] [1966        ][rules-based   ][statistical  ][neural nets  ][GPT, DALL-E]
+                             [AI            ][models       ][ImageNet     ][Salesforce ]
+                                                            [2012         ][Einstein   ]
+───────────────────────────────────────────────────────────────────────────────────────▶
+                                        AI EVOLUTION TIMELINE
+```
 **Content:**
 - **1950:** Alan Turing proposes the Turing Test — "Can a machine think?"
 - **1956:** Term "Artificial Intelligence" coined at Dartmouth Conference
@@ -86,7 +121,21 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 7: Types of AI Systems in the Real World
-**Visual:** Four quadrant grid showing categories
+**Visual:**
+```
+                     NARROW ◄────────────────────────────────► GENERAL
+                            │                                 │
+           HIGH             │  Narrow AI (ANI)                │  AGI (hypothetical)
+           CAPABILITY       │  ● Chess engines                │  ● Human-level reasoning
+                            │  ● Image recognition            │  ● Any cognitive task
+                            │  ● GPT-4, Einstein AI           │  ● Not yet achieved
+        ───────────────────────────────────────────────────────────────────────
+                            │  Weak Narrow AI                 │  Superintelligence
+           LOW              │  ● Simple classifiers           │  ● Beyond human
+           CAPABILITY       │  ● Rule-based chatbots          │  ● Theoretical only
+                            │  ● Early spam filters           │  ● ASI
+                            │                                 │
+```
 **Content:**
 - **Reactive Machines:** No memory, just responds (Deep Blue chess computer)
 - **Limited Memory:** Uses recent data to improve (self-driving cars, recommendation engines)
@@ -112,7 +161,25 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 9: AI Inside the Salesforce Platform
-**Visual:** Salesforce Einstein logo with radiating product names
+**Visual:**
+```
+                    ┌─────────────────────────────────────┐
+                    │           SALESFORCE EINSTEIN        │
+                    │        "AI Built Into the CRM"       │
+                    └──────────────────┬──────────────────┘
+                                       │
+         ┌─────────────────────────────┼──────────────────────────┐
+         │                             │                          │
+         ▼                             ▼                          ▼
+┌─────────────────┐          ┌─────────────────┐        ┌─────────────────┐
+│ PREDICTIVE AI   │          │ GENERATIVE AI   │        │ AUTONOMOUS AI   │
+│                 │          │                 │        │                 │
+│ Lead Scoring    │          │ Prompt Builder  │        │ Agentforce      │
+│ Opp. Scoring    │          │ Einstein Copilot│        │ Service Agent   │
+│ Forecasting     │          │ Sales Emails    │        │ SDR Agent       │
+│ Case Classif.   │          │ Case Summaries  │        │ Sales Coach     │
+└─────────────────┘          └─────────────────┘        └─────────────────┘
+```
 **Content:**
 - **Einstein (since 2016):** Salesforce's AI layer built into the CRM
 - **Einstein Lead Scoring:** Predicts which leads are most likely to convert
@@ -126,7 +193,25 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 10: The Three Core AI Capabilities Salesforce Talks About
-**Visual:** Three icons — crystal ball, chatbot, robot arm
+**Visual:**
+```
+┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐
+│  PREDICTIVE AI   │   │  GENERATIVE AI   │   │  AUTONOMOUS AI   │
+│                  │   │                  │   │                  │
+│  Data In         │   │  Prompt In       │   │  Goal In         │
+│     │            │   │     │            │   │     │            │
+│     ▼            │   │     ▼            │   │     ▼            │
+│  [ML Model]      │   │  [LLM/Gen Model] │   │  [AI Agent]      │
+│     │            │   │     │            │   │     │            │
+│     ▼            │   │     ▼            │   │     ▼            │
+│  Prediction Out  │   │  New Content Out │   │  Actions Out     │
+│                  │   │                  │   │                  │
+│  Ex: Lead Score  │   │  Ex: Email Draft │   │  Ex: Agentforce  │
+└──────────────────┘   └──────────────────┘   └──────────────────┘
+        ▲                       ▲                      ▲
+   "What WILL          "What should I         "What should I
+    happen?"            CREATE?"               DO next?"
+```
 **Content:**
 - **Predictive AI:** Uses historical data to predict future outcomes (Einstein Scoring)
 - **Generative AI:** Creates new content — text, code, emails (Einstein Copilot, Prompt Builder)

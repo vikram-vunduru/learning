@@ -11,7 +11,29 @@
 ## Slides
 
 ### Slide 1: Data Cloud as the AI Foundation
-**Visual:** A pyramid diagram. Base layer: "Data Cloud (Unified Customer Profile + Vector Database)." Middle layer: "Einstein Platform (Models, Grounding, Reasoning)." Top layer: "Agentforce / Einstein Copilot (AI Assistants & Agents)." Arrows flow upward from Data Cloud through each layer.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────┐
+  │      TOP LAYER: AI AGENTS & ASSISTANTS                   │
+  │   Agentforce (autonomous agents)  Einstein Copilot       │
+  │   (takes actions on behalf of users) (assists users)     │
+  └────────────────────────────┬─────────────────────────────┘
+                               │  grounding (retrieves context)
+  ┌────────────────────────────▼─────────────────────────────┐
+  │      MIDDLE LAYER: EINSTEIN PLATFORM                     │
+  │   LLM Models   │   Reasoning   │   Prompt Assembly       │
+  └────────────────────────────┬─────────────────────────────┘
+                               │  provides data context
+  ┌────────────────────────────▼─────────────────────────────┐
+  │      BASE LAYER: DATA CLOUD                              │
+  │   Unified Customer Profile  │  Calculated Insights       │
+  │   (DMOs, Unified Individual)│  (behavioral metrics)      │
+  │   Vector Database           │  Consent data              │
+  │   (semantic search)         │                            │
+  └──────────────────────────────────────────────────────────┘
+  Without grounding: AI generates GENERIC responses
+  With grounding:    AI generates PERSONALIZED responses
+```
 
 **Content:**
 - Data Cloud is the **data foundation for all Salesforce AI features**
@@ -26,7 +48,30 @@
 ---
 
 ### Slide 2: Grounding — How It Works
-**Visual:** A step-by-step sequence diagram: (1) User sends message to Agentforce. (2) Agentforce identifies the customer. (3) Agentforce queries Data Cloud for Unified Individual profile, recent CIs, and relevant vector matches. (4) Data Cloud returns context. (5) Agentforce generates personalized response using context + LLM.
+**Visual:**
+```
+  GROUNDING WORKFLOW (step by step)
+  ──────────────────────────────────────────────────────────
+  User/Customer          Agentforce/Copilot         Data Cloud
+  ──────────────────────────────────────────────────────────
+  (1) Sends message  ──▶  Identifies customer
+  "What's the status      (Unified Individual ID)
+   of my order?"               │
+                          (2)  └──▶ Query: Unified Individual
+                               │         profile + recent CIs
+                          (3)       ◀── Returns: last order,
+                               │         loyalty tier, history
+                          (4)  └──▶ Vector search: semantically
+                               │         relevant knowledge articles
+                          (5)  Assembles context into LLM prompt:
+                               │  [customer data] + [user message]
+                               │  + [knowledge articles]
+                          (6)  LLM generates personalized response:
+                               │  "Your order #SO-442 placed 9/14
+                               │   is shipping. Expected: 9/18."
+  ◀────────────────────────────┘
+  Personalized because it knows THIS customer's specific order
+```
 
 **Content:**
 - **Grounding process:**
@@ -44,7 +89,31 @@
 ---
 
 ### Slide 3: The Vector Database in Data Cloud
-**Visual:** A diagram showing unstructured text documents (product descriptions, knowledge articles, support cases) being converted by an embedding model into vector representations stored in a "Vector Database" within Data Cloud. A semantic search arrow shows a query finding the most similar vectors.
+**Visual:**
+```
+  VECTOR DATABASE — Semantic Search Capability
+  ──────────────────────────────────────────────────────────
+  INDEXING (preparation):
+  ┌──────────────────┐     ┌────────────────┐     ┌──────────────────┐
+  │ Knowledge        │     │  Embedding     │     │  Vector          │
+  │ Articles /       │────▶│  Model         │────▶│  Database        │
+  │ Product Docs /   │     │  (converts to  │     │  (stored         │
+  │ Support Cases    │     │   vector math) │     │   embeddings)    │
+  └──────────────────┘     └────────────────┘     └──────────────────┘
+
+  RETRIEVAL (at query time):
+  Customer query: "my car won't start"
+          │
+          ▼ Embedding model converts query to vector
+  Vector Database finds SEMANTICALLY SIMILAR matches:
+  → "vehicle fails to start troubleshooting" (high similarity)
+  → "ignition system fault diagnosis"        (high similarity)
+  → "car battery replacement guide"          (high similarity)
+  (Even though no exact keyword match to "car won't start")
+
+  KEYWORD search would MISS these if phrasing differs
+  SEMANTIC search FINDS them because meaning is similar
+```
 
 **Content:**
 - Data Cloud includes a **vector database** for storing and querying unstructured data as vector embeddings
@@ -61,7 +130,32 @@
 ---
 
 ### Slide 4: Einstein Copilot & Data Cloud
-**Visual:** An Einstein Copilot chat interface showing a sales rep asking "What's the latest status on this account?" and Copilot responding with a data-enriched answer that includes the customer's recent purchases, open cases, and predicted churn risk score — all sourced from Data Cloud.
+**Visual:**
+```
+  EINSTEIN COPILOT — Sales Rep Experience
+  ──────────────────────────────────────────────────────────
+  Sales Rep in Salesforce CRM:
+  ┌──────────────────────────────────────────────────────┐
+  │ Ask Copilot: "What's the latest on this account?"    │
+  └──────────────────────────────────────────────────────┘
+                         │
+                         ▼ Copilot queries Data Cloud (grounding)
+  Data Cloud returns:
+  • Unified Individual profile (name, tier, contact)
+  • CI: TotalSpend90d = $8,200
+  • Recent purchases (SalesOrder DMO)
+  • Predicted churn risk: 72% (Model Builder output)
+                         │
+                         ▼ LLM assembles personalized summary
+  ┌──────────────────────────────────────────────────────┐
+  │ Copilot response:                                    │
+  │ "Acme Corp is a Gold tier customer with $8,200 in    │
+  │  spend this quarter. They purchased Product X on     │
+  │  9/10. Note: churn risk is elevated at 72% —         │
+  │  consider a proactive check-in call."                │
+  └──────────────────────────────────────────────────────┘
+  No-code integration: configured in Copilot setup
+```
 
 **Content:**
 - **Einstein Copilot** is an AI assistant embedded in the Salesforce CRM experience
@@ -78,7 +172,35 @@
 ---
 
 ### Slide 5: Agentforce & Data Cloud
-**Visual:** An Agentforce service agent flowchart: Customer submits service request → Agentforce retrieves Unified Individual profile from Data Cloud → Checks order history via CI → Executes resolution action → Confirms resolution using Data Cloud consent/contact point data.
+**Visual:**
+```
+  AGENTFORCE SERVICE AGENT — Autonomous Workflow
+  ──────────────────────────────────────────────────────────
+  Customer submits service request
+          │
+          ▼
+  Agentforce retrieves Unified Individual profile
+  from Data Cloud → knows customer tier, history
+          │
+          ▼
+  Checks order history via CI (TotalOrders, LastOrderDate)
+  Identifies: package delayed in transit
+          │
+          ▼
+  Executes resolution action autonomously:
+  • Issues replacement shipment
+  • Updates case status
+  • Sends confirmation to customer's preferred contact point
+          │
+          ▼
+  Uses Data Cloud consent data to verify:
+  customer has consented to automated communications
+  before sending confirmation
+
+  Agentforce vs. Copilot:
+  Copilot = assists users (suggests, answers)
+  Agentforce = takes ACTIONS autonomously
+```
 
 **Content:**
 - **Agentforce** is Salesforce's autonomous AI agent platform (goes beyond Copilot responses to full task execution)
@@ -95,7 +217,30 @@
 ---
 
 ### Slide 6: Einstein Personalization & Next Best Action
-**Visual:** A website product page with a "Recommended for You" section showing personalized product cards. Behind the scenes, a data flow shows: Unified Individual → Einstein Model → Personalized Recommendations.
+**Visual:**
+```
+  WEBSITE PERSONALIZATION — Powered by Data Cloud
+  ──────────────────────────────────────────────────────────
+  Customer visits website  ──▶  Identified via cookie / login
+          │
+          ▼
+  Einstein retrieves from Data Cloud:
+  • Unified Individual → Gold tier, Age 35, Chicago
+  • CI: top product categories = Electronics, Smart Home
+  • CI: TotalSpend90d = $1,800
+  • Segment membership: "High-Value Active Buyers"
+          │
+          ▼
+  PERSONALIZED PAGE CONTENT:
+  ┌───────────────────────────────────────┐
+  │  Recommended for You                  │
+  │  [Smart Speaker] [4K TV] [Smart Lock] │
+  │  Gold member exclusive 15% discount   │
+  └───────────────────────────────────────┘
+  NEXT BEST ACTION: "Call this customer" (churn risk > 70%)
+  Rule-based (segment membership) + AI-based (propensity score)
+  CI values (churn probability, LTV) feed NBA recommendations
+```
 
 **Content:**
 - **Einstein Personalization:** uses Data Cloud unified profiles to personalize web and app experiences
@@ -111,7 +256,33 @@
 ---
 
 ### Slide 7: Model Builder
-**Visual:** Model Builder UI mockup showing: (1) Data source selection (Data Cloud DMOs/CIs), (2) Model type selection (Binary Classification), (3) Feature selection panel, (4) Training status, (5) Prediction output field.
+**Visual:**
+```
+  MODEL BUILDER — Custom AI Model Workflow
+  ──────────────────────────────────────────────────────────
+  STEP 1: Select Data Source
+  ┌────────────────────────────────────────────────────┐
+  │ Training Data: [Data Cloud DMOs / CIs ▼]           │
+  │ Selected: SalesOrder DMO, Individual DMO, Churn CI │
+  └────────────────────────────────────────────────────┘
+          │
+  STEP 2: Configure Model
+  ┌────────────────────────────────────────────────────┐
+  │ Type: [Binary Classification ▼]                    │
+  │ Target: Churned (Yes/No)                           │
+  │ Features: TotalOrders, DaysSinceLastPurchase, Tier │
+  └────────────────────────────────────────────────────┘
+          │
+  STEP 3: Train & Deploy → model runs within Salesforce
+          │
+  STEP 4: Predictions stored back in Data Cloud
+  ┌────────────────────────────────────────────────────┐
+  │ Unified Individual.ChurnProbability_Score = 0.72   │
+  └────────────────────────────────────────────────────┘
+          │
+  STEP 5: Use in Segment
+  "ChurnProbability_Score > 0.70" → Activate for proactive outreach
+```
 
 **Content:**
 - **Model Builder** is Salesforce's no-code/low-code tool for building and deploying custom AI models
@@ -127,7 +298,28 @@
 ---
 
 ### Slide 8: AI + Data Cloud Implementation Considerations
-**Visual:** A two-column considerations card: "Requirements for AI Grounding" (left) and "Common Implementation Pitfalls" (right).
+**Visual:**
+```
+  ┌──────────────────────────────────┐  ┌──────────────────────────────────┐
+  │  REQUIREMENTS FOR AI GROUNDING   │  │   COMMON IMPLEMENTATION PITFALLS │
+  ├──────────────────────────────────┤  ├──────────────────────────────────┤
+  │ Unified Individuals correctly    │  │ Using raw DLO data for grounding  │
+  │ resolved (IR properly configured)│  │ → not supported; use DMOs         │
+  ├──────────────────────────────────┤  ├──────────────────────────────────┤
+  │ Key CIs must be current          │  │ Stale CI data leading to          │
+  │ (refresh schedule coordinated    │  │ inaccurate AI recommendations     │
+  │  with AI invocation timing)      │  │                                   │
+  ├──────────────────────────────────┤  ├──────────────────────────────────┤
+  │ Vector embeddings indexed and    │  │ Missing field mappings causing    │
+  │ current for semantic search      │  │ incomplete Unified Profiles       │
+  │                                  │  │ → poor AI personalization         │
+  ├──────────────────────────────────┤  ├──────────────────────────────────┤
+  │ Consent respected — don't ground │  │ Ignoring consent: using opted-out │
+  │ AI with opted-out customer data  │  │ data for AI content is a violation│
+  └──────────────────────────────────┘  └──────────────────────────────────┘
+  PRINCIPLE: AI quality = Data Cloud quality
+             Garbage in → Garbage out at every layer
+```
 
 **Content:**
 - **Requirements for effective AI grounding:**

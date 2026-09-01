@@ -8,7 +8,30 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Is a Profile?
-**Visual:** Diagram of a profile as a container with labeled sections inside: Object Permissions, Field Permissions, App Settings, Tab Settings, Login Hours, IP Ranges, Apex/VF Page Access — all flowing into a "User" icon at the bottom.
+**Visual:**
+```
+  ┌───────────────────────────────────────────────────────┐
+  │                      PROFILE                          │
+  │  ┌──────────────────┐    ┌──────────────────────────┐ │
+  │  │ Object           │    │ Field Permissions        │ │
+  │  │ Permissions      │    │ (Field-Level Security)   │ │
+  │  └──────────────────┘    └──────────────────────────┘ │
+  │  ┌──────────────────┐    ┌──────────────────────────┐ │
+  │  │ App Settings     │    │ Tab Settings             │ │
+  │  └──────────────────┘    └──────────────────────────┘ │
+  │  ┌──────────────────┐    ┌──────────────────────────┐ │
+  │  │ Login Hours      │    │ Login IP Ranges          │ │
+  │  └──────────────────┘    └──────────────────────────┘ │
+  │  ┌─────────────────────────────────────────────────┐  │
+  │  │ Apex / Visualforce Page Access                  │  │
+  │  └─────────────────────────────────────────────────┘  │
+  └───────────────────────────────┬───────────────────────┘
+                                  │ assigned to
+                                  ▼
+                            ┌───────────┐
+                            │   USER    │
+                            └───────────┘
+```
 **Content:**
 - A **Profile** is a collection of settings and permissions assigned to every user
 - Every user must have exactly **one Profile** assigned at all times
@@ -18,7 +41,22 @@
 **Speaker Notes:** The Profile is the single most important access control assignment on a user record — a user can exist without a role, but they cannot exist without a profile. Think of the profile as the user's access blueprint. It determines what objects they can read, create, edit, or delete, what fields they can see, and when they're allowed to log in. Every setting in a profile applies equally to every user who has that profile assigned.
 
 ### Slide 2: What Profiles Control
-**Visual:** Six-panel grid — each panel showing one category of profile settings with an icon: Object Permissions (object icon), Field Permissions (field icon), App Settings (app grid), Tab Settings (tab bars), Login Hours (clock), Login IP Ranges (shield/network icon).
+**Visual:**
+```
+  ┌───────────────────────┬───────────────────────┬───────────────────────┐
+  │   OBJECT PERMISSIONS  │   FIELD PERMISSIONS   │    APP SETTINGS       │
+  │                       │                       │                       │
+  │ Read   Create   Edit  │ Read / Edit /         │ Which Lightning apps  │
+  │ Delete  View All      │ No Access per field   │ are visible to user   │
+  │ Modify All            │ per object            │                       │
+  ├───────────────────────┼───────────────────────┼───────────────────────┤
+  │    TAB SETTINGS       │    LOGIN HOURS        │   LOGIN IP RANGES     │
+  │                       │                       │                       │
+  │ Default On            │ Days & times login    │ IP addresses from     │
+  │ Default Off           │ is permitted for      │ which login is        │
+  │ Hidden                │ this profile          │ allowed               │
+  └───────────────────────┴───────────────────────┴───────────────────────┘
+```
 **Content:**
 - **Object Permissions:** Read, Create, Edit, Delete, View All, Modify All per object
 - **Field Permissions:** Read, Edit, or no access per field per object (Field-Level Security)
@@ -29,7 +67,24 @@
 **Speaker Notes:** Profiles are dense — they contain settings for almost every dimension of access. Object permissions control what the user can do with records. Field-level security is critical for sensitive data like Social Security numbers or salary fields. Tab settings control what shows up in the navigation bar by default. Login Hours and IP Ranges give you time-of-day and network-level security controls.
 
 ### Slide 3: Standard vs. Custom Profiles
-**Visual:** Two-column comparison: Standard Profiles (padlock icon, limited editing, examples: System Administrator, Standard User, Read Only, Solution Manager) vs. Custom Profiles (pencil icon, fully editable, cloned from standard).
+**Visual:**
+```
+  ┌──────────────────────────────────┬──────────────────────────────────┐
+  │       STANDARD PROFILES          │        CUSTOM PROFILES           │
+  │              [lock]              │              [pencil]            │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │ Provided by Salesforce           │ Created by cloning standard      │
+  │ Limited editing options          │ Fully editable                   │
+  │ Cannot be deleted                │ Can be deleted if unassigned     │
+  │                                  │                                  │
+  │ Examples:                        │ Best practice:                   │
+  │ • System Administrator           │ Clone Standard User as base      │
+  │ • Standard User                  │ for most custom profiles         │
+  │ • Read Only                      │                                  │
+  │ • Solution Manager               │ System Administrator profile     │
+  │ • Chatter Free User              │ = full access; assign sparingly  │
+  └──────────────────────────────────┴──────────────────────────────────┘
+```
 **Content:**
 - **Standard Profiles:** Provided by Salesforce; limited editing options; cannot be deleted
 - Common standard profiles: System Administrator, Standard User, Read Only, Chatter Free User, Marketing User
@@ -39,7 +94,24 @@
 **Speaker Notes:** You can never modify a standard profile the way you can a custom profile — Salesforce limits what you can change on them. That's why real-world admins almost always work with custom profiles that were cloned from a standard. The System Administrator profile is the most powerful one — users with this profile can do everything in the org. Assign it sparingly and audit who has it regularly.
 
 ### Slide 4: What Is a Permission Set?
-**Visual:** Diagram showing a user with a Profile (foundation layer) and two Permission Sets floating above it (add-on layers), with arrows showing "additive permissions only — cannot remove what the profile grants."
+**Visual:**
+```
+  ╔═════════════════════════════════════════════════════════╗
+  ║       PERMISSION SET B    ──▶  additive only            ║
+  ╠═════════════════════════════════════════════════════════╣
+  ║       PERMISSION SET A    ──▶  additive only            ║
+  ╠═════════════════════════════════════════════════════════╣
+  ║                 PROFILE (foundation)                    ║
+  ║        baseline permissions; cannot be removed          ║
+  ╚═════════════════════════════════════════════════════════╝
+                             │ assigned to
+                             ▼
+                       ┌───────────┐
+                       │   USER    │
+                       └───────────┘
+  ▶ Permission Sets can only ADD permissions
+  ▶ Cannot remove what the Profile already grants
+```
 **Content:**
 - A **Permission Set** is a collection of permissions that can be assigned to users **in addition to** their Profile
 - Key rule: Permission Sets can only **ADD** permissions — they cannot restrict or remove profile permissions
@@ -49,7 +121,25 @@
 **Speaker Notes:** This is one of the most important concepts in Salesforce access control, and the exam tests it constantly. If a profile gives a user Read access to Accounts, a permission set can grant them Edit access — but you cannot use a permission set to take away the Read access the profile already grants. Permission sets are purely additive. This makes them perfect for handling exceptions: most users on a profile have the same base permissions, but a few need a little extra access — give those users a permission set rather than creating a whole new profile.
 
 ### Slide 5: Permission Set Groups
-**Visual:** Pyramid diagram: Permission Set A + Permission Set B + Permission Set C → Permission Set Group → assigned to User. Arrows showing the group bundles multiple permission sets for efficient assignment.
+**Visual:**
+```
+  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+  │ Permission Set A│  │ Permission Set B│  │ Permission Set C│
+  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘
+           │                   │                     │
+           └───────────────────┼─────────────────────┘
+                               │ bundled into
+                               ▼
+                  ┌─────────────────────────────┐
+                  │    PERMISSION SET GROUP      │
+                  │  "e.g. Sales Team Access"    │
+                  └──────────────┬──────────────┘
+                                 │ assigned to
+                                 ▼
+                           ┌───────────┐
+                           │   USER    │
+                           └───────────┘
+```
 **Content:**
 - **Permission Set Groups** bundle multiple Permission Sets into a single assignable unit
 - Introduced in Spring '20; simplifies managing complex permission combinations
@@ -59,7 +149,26 @@
 **Speaker Notes:** If you have a user type that needs six different permission sets, managing those individually across hundreds of users is painful. Permission Set Groups solve this by letting you bundle permission sets into a group and assign the whole bundle at once. When a user's role changes, you remove one group and add another — much cleaner than toggling individual permission sets. Muting permission sets are an advanced feature that lets you carve out specific permissions within a group without rebuilding all the sets.
 
 ### Slide 6: Principle of Least Privilege
-**Visual:** Pyramid graphic with layers from bottom to top: "Everyone gets minimal default access (Profile)" → "Additional access added as needed (Permission Sets)" → "Admin access strictly controlled (System Administrator profile)." Lock icons at each layer.
+**Visual:**
+```
+       ┌──────────────────────────────────────────────┐
+       │    SYSTEM ADMINISTRATOR PROFILE  [lock]      │
+       │    Strictly controlled; assign sparingly      │
+       └────────────────────┬─────────────────────────┘
+                            │ only when truly needed
+       ┌────────────────────┴─────────────────────────┐
+       │    PERMISSION SETS  [lock]                   │
+       │    Additional access added to individuals     │
+       │    who need it; additive only                 │
+       └────────────────────┬─────────────────────────┘
+                            │ foundation for everyone
+       ┌────────────────────┴─────────────────────────┐
+       │    PROFILE (Everyone)  [lock]                │
+       │    Minimal default access                     │
+       │    Configured conservatively                  │
+       └──────────────────────────────────────────────┘
+                Principle of Least Privilege
+```
 **Content:**
 - **Principle of Least Privilege:** Give users only the permissions they need — nothing more
 - Profiles should be set to the minimum required access for the typical user in that group
@@ -69,7 +178,37 @@
 **Speaker Notes:** The principle of least privilege is the security philosophy that underlies all of Salesforce's access control design. If you build profiles that are overly permissive and then try to use permission sets to restrict access, you'll run into the problem that permission sets are additive only — they can't remove permissions. So the right approach is to configure profiles conservatively and use permission sets to elevate specific individuals. This is both a best practice and a recurring exam scenario.
 
 ### Slide 7: Profile vs. Permission Set — When to Use Which
-**Visual:** Decision flow chart: "Does this apply to ALL users of a type?" → Yes → Use Profile. "Does it apply to only SOME users within a group?" → Yes → Use Permission Set. "Is it temporary or role-based extra access?" → Yes → Use Permission Set.
+**Visual:**
+```
+  START: Assign a permission setting
+        │
+        ▼
+  Does this apply to ALL users of this type?
+        │
+  Yes ──┴──▶  ┌──────────────────────────────────┐
+              │         USE PROFILE               │
+              │ e.g., object CRUD, login hours,   │
+              │ IP ranges, app/tab settings        │
+              └──────────────────────────────────-┘
+        │
+  No   ▼
+  Does it apply to only SOME users within the group?
+        │
+  Yes ──┴──▶  ┌──────────────────────────────────┐
+              │      USE PERMISSION SET           │
+              │ e.g., extra object access for     │
+              │ select individuals                │
+              └──────────────────────────────────-┘
+        │
+  No   ▼
+  Is it temporary or cross-profile role-based access?
+        │
+  Yes ──┴──▶  ┌──────────────────────────────────┐
+              │      USE PERMISSION SET           │
+              │ Reusable across profiles; assign  │
+              │ and remove as needed              │
+              └──────────────────────────────────-┘
+```
 **Content:**
 - Use **Profile** for: permissions every user of that type needs all the time (object CRUD, login hours, IP ranges)
 - Use **Permission Set** for: permissions that only some users within a group need; temporary access; cross-cutting permissions that span multiple profiles
@@ -78,7 +217,23 @@
 **Speaker Notes:** A question the exam often poses is "when should you use a permission set instead of creating a new profile?" The answer is: whenever only a subset of users within a profile group needs the extra access. Creating a new profile for one or two users is unnecessary overhead. A permission set assigned to those two users is cleaner, easier to audit, and doesn't proliferate profile clutter. Note that login hour and IP range restrictions are profile-only — you can't set those in a permission set.
 
 ### Slide 8: Key Profiles and Permission Sets Exam Facts
-**Visual:** Cheat-sheet reference card.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │      PROFILES & PERMISSION SETS — EXAM REFERENCE               │
+  ├────────────────────────┬─────────────────────────────────────────┤
+  │ User ↔ Profile         │ Exactly ONE profile per user (required) │
+  │ User ↔ Perm Sets       │ ZERO or MANY permission sets (optional) │
+  │ Permission Sets        │ ADDITIVE ONLY — cannot remove profile   │
+  │                        │ permissions                             │
+  │ Login Hours            │ Profile ONLY — not in permission sets   │
+  │ Login IP Ranges        │ Profile ONLY — not in permission sets   │
+  │ Standard profiles      │ Cannot be deleted                       │
+  │ Custom profiles        │ Can be deleted if unassigned            │
+  │ Sys Admin profile      │ Full access — assign sparingly          │
+  │ Perm Set Groups        │ Bundle multiple sets; assign as one     │
+  └────────────────────────┴─────────────────────────────────────────┘
+```
 **Content:**
 - Every user must have exactly one Profile; users can have zero or many Permission Sets
 - Permission Sets are **additive only** — they cannot remove profile permissions

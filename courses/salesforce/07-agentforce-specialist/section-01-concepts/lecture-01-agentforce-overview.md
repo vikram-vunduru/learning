@@ -10,7 +10,32 @@
 ## Slides
 
 ### Slide 1: From Assistant to Agent — The Shift
-**Visual:** A side-by-side timeline. Left column labeled "Einstein Copilot (2024)" shows a chat bubble icon with a user asking a question and the AI answering but waiting for approval before doing anything. Right column labeled "Agentforce (2024–present)" shows an agent icon receiving a goal, then autonomously executing a chain of steps — lookup, decide, act, report — without waiting at each step. An arrow at the bottom points right with "More Autonomous."
+**Visual:**
+```
+  Einstein Copilot (2024)              Agentforce (2024–present)
+  ─────────────────────────            ─────────────────────────
+  User asks question                   User defines goal
+         │                                     │
+         ▼                                     ▼
+   AI suggests action                  Agent observes context
+         │                                     │
+         ▼                                     ▼
+   [Approve?] ──Yes──▶ Execute         Agent reasons: which
+         │                             Topic? which Action?
+         ▼                                     │
+   Wait for next question              Agent acts autonomously
+   (user must drive each step)                 │
+                                              ▼
+                                       Agent observes result
+                                              │
+                                       Done? ─No──▶ Loop back
+                                              │
+                                             Yes
+                                              ▼
+                                       Reports to user
+
+  ◀────── More Assisted ──────────────────────── More Autonomous ──────▶
+```
 **Content:**
 - **Einstein Copilot** — conversational AI assistant embedded in Salesforce; suggested actions but required human approval at each step; primarily reactive
 - **Agentforce** — autonomous AI agents that can complete multi-step tasks end-to-end without prompting at each step; proactive and goal-directed
@@ -20,7 +45,42 @@
 **Speaker Notes:** The most important conceptual shift to internalize is the difference between an assistant and an agent. An assistant answers questions and waits. An agent receives a goal and works toward it autonomously, using whatever tools are available. Agentforce agents can handle an entire customer service interaction — from greeting, to understanding the issue, to looking up account data, to executing a refund flow — without a human agent ever stepping in, if the conversation fits within defined scope. This is what makes Agentforce significant: it is not a better chatbot, it is a software colleague that can be assigned to do real work.
 
 ### Slide 2: Atlas Reasoning Engine — The Brain
-**Visual:** A circular flow diagram labeled "Atlas Reasoning Engine" with four nodes connected by arrows: 1) Observe (receives input — customer message, context data), 2) Reason (LLM evaluates available Topics and Actions, plans next step), 3) Act (invokes selected Action — Flow, Apex, Prompt, Knowledge), 4) Observe again (receives action result, updates context). A "Guardrails" box hovers around the entire loop with a shield icon.
+**Visual:**
+```
+            ┌─────────────────────────────────────┐
+            │       ATLAS REASONING ENGINE        │
+            └─────────────────────────────────────┘
+                             │
+          ┌──────────────────▼──────────────────┐
+          │              OBSERVE                 │
+          │  User message + History + Context    │
+          └──────────────────┬──────────────────┘
+                             │
+          ┌──────────────────▼──────────────────┐
+          │               REASON                 │
+          │  Match Topic → Select Action         │
+          └──────────────────┬──────────────────┘
+                             │
+          ┌──────────────────▼──────────────────┐
+          │                ACT                   │
+          │  Invoke Action (Flow/Apex/Knowledge) │
+          └──────────────────┬──────────────────┘
+                             │
+          ┌──────────────────▼──────────────────┐
+          │              OBSERVE                 │
+          │    Read result, update context       │
+          └──────────────────┬──────────────────┘
+                             │
+               ┌─────────────┴──────────────────┐
+               │           Done?                │
+               ├── No ──▶ Loop back to REASON   │
+               └── Yes ──▶ Respond to user      │
+               └────────────────────────────────┘
+
+  ╔═══════════════════════════════════════════════════╗
+  ║   GUARDRAILS: Einstein Trust Layer wraps loop     ║
+  ╚═══════════════════════════════════════════════════╝
+```
 **Content:**
 - **Atlas Reasoning Engine** is the LLM-based planning system that powers all Agentforce agents
 - It operates in a continuous **Observe → Reason → Act → Observe** loop
@@ -31,7 +91,28 @@
 **Speaker Notes:** Understanding the Atlas Reasoning Engine loop is the single most exam-relevant architectural concept in this course. Questions will describe a scenario — "the agent receives a message and needs to decide whether to look up a knowledge article or execute a flow" — and ask what happens architecturally. The answer is always: Atlas examines its available Topics and Actions, reads their descriptions, reasons about which one best matches the intent, then invokes it. The quality of your Action descriptions directly determines whether Atlas routes correctly. We will go much deeper on Atlas in Lecture 02, but establish the loop in your memory now.
 
 ### Slide 3: Agent Types — Pre-built Templates
-**Visual:** A 2x2 grid of agent type cards. Each card shows: agent name, an icon, a one-line description, and the primary Salesforce cloud it applies to. Cards: Service Agent (Service Cloud icon), Sales Development Rep — SDR (Sales Cloud icon), Sales Coach (Sales Cloud icon), Custom Agent (wrench icon, "build from scratch").
+**Visual:**
+```
+  ┌──────────────────────────┬──────────────────────────┐
+  │      SERVICE AGENT       │   SALES DEV REP (SDR)    │
+  │   ☁  Service Cloud       │   ☁  Sales Cloud         │
+  │                          │                          │
+  │  Inbound customer        │  Qualifies inbound       │
+  │  service: case           │  leads via email/chat;   │
+  │  deflection, FAQ,        │  books meetings with     │
+  │  order lookups,          │  AEs for qualified       │
+  │  escalation              │  leads autonomously      │
+  ├──────────────────────────┼──────────────────────────┤
+  │      SALES COACH         │      CUSTOM AGENT        │
+  │   ☁  Sales Cloud         │   ⚙  Any Cloud           │
+  │                          │                          │
+  │  Analyzes call           │  Blank canvas — define   │
+  │  recordings; generates   │  your own Identity,      │
+  │  coaching feedback for   │  Instructions, Topics,   │
+  │  sales reps (internal,   │  and Actions from        │
+  │  not customer-facing)    │  scratch                 │
+  └──────────────────────────┴──────────────────────────┘
+```
 **Content:**
 - **Service Agent** — handles inbound customer service: case deflection, FAQ, order lookups, escalation to human agent; deploys via embedded chat, mobile, API
 - **Sales Development Rep (SDR)** — autonomously qualifies inbound leads: responds to web form submissions, asks qualifying questions, books meetings; reduces SDR workload for low-touch leads
@@ -41,7 +122,31 @@
 **Speaker Notes:** For the exam, know the use case for each pre-built agent type. The common trap is confusing Sales Coach (internal, coaching reps) with SDR (external-facing, qualifying leads). Service Agent is by far the most commonly deployed agent type and will appear most often in exam scenarios. Custom agents are used when pre-built templates do not match the use case — for example, an HR employee self-service agent or a field service scheduling agent. The underlying mechanics — Topics, Actions, Atlas reasoning — are identical regardless of agent type.
 
 ### Slide 4: Autonomous vs Assisted Actions
-**Visual:** Two columns. Left: "Autonomous Actions" — agent icon with green checkmarks executing a chain of actions (lookup → update record → send message) with no human in the loop. Right: "Assisted Actions" — same chain but with a human icon at the end holding a "Approve?" card before the last step executes. Below: a spectrum bar labeled "Trust Level Required" with Assisted on the left and Autonomous on the right.
+**Visual:**
+```
+  AUTONOMOUS ACTIONS                  ASSISTED ACTIONS
+  ──────────────────                  ────────────────
+  Agent receives request              Agent receives request
+         │                                   │
+         ▼                                   ▼
+    Lookup data ✓                       Lookup data ✓
+         │                                   │
+         ▼                                   ▼
+    Update record ✓                     Update record ✓
+         │                                   │
+         ▼                                   ▼
+    Send message ✓                    ┌──[Human Review]──┐
+         │                            │  "Approve this   │
+         ▼                            │   action?"       │
+    Done — no human step              └──────┬───────────┘
+                                            Yes          No
+                                             │            │
+                                             ▼            ▼
+                                          Execute      Cancelled
+
+  ◀── Lower Risk/Consequence ────────────── Higher Risk/Consequence ──▶
+  ◀── Start here ────────────────────────── Move here over time ──────▶
+```
 **Content:**
 - **Autonomous actions** — agent executes without waiting for human confirmation; appropriate for low-risk, well-defined operations (lookup data, send a standard message, create a case)
 - **Assisted actions** — agent prepares the action but surfaces it to a human for review before execution; used for higher-risk operations (update financial data, send external communications on behalf of a person)
@@ -51,7 +156,31 @@
 **Speaker Notes:** The exam will ask you to identify which action type is appropriate for a given scenario. The governing principle is risk: the higher the consequence of a wrong action, the more you want a human in the loop. A lookup action (retrieving order status) is naturally autonomous — there is no risk in reading data. A credit refund action should probably be assisted until you have tested the agent extensively. For the exam, look for keywords like "automatically," "without human intervention," or "requires approval" to signal which type is being tested.
 
 ### Slide 5: Agent Anatomy — The Four Building Blocks
-**Visual:** A diagram of an agent represented as a building, with four labeled floors: Floor 1 — Identity (agent name, persona, description), Floor 2 — Instructions (system prompt defining behavior, tone, constraints), Floor 3 — Topics (subject areas the agent can handle), Floor 4 — Actions (callable tools within each Topic). Arrows on the right side show the relationship: Identity sets the persona, Instructions shape behavior, Topics scope conversations, Actions deliver outcomes.
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────────┐
+  │                      AGENTFORCE AGENT                         │
+  ├─────────┬──────────────────────────────────────────────────────┤
+  │ Floor 4 │  ACTIONS                                            │
+  │         │  Get Order Status (Flow) · Cancel Order (Flow)      │
+  │         │  Knowledge Search · Create Case (Flow)              │
+  ├─────────┼──────────────────────────────────────────────────────┤
+  │ Floor 3 │  TOPICS                                             │
+  │         │  Order Management · Billing Inquiries               │
+  │         │  Account Updates · Technical Support                │
+  ├─────────┼──────────────────────────────────────────────────────┤
+  │ Floor 2 │  INSTRUCTIONS                                       │
+  │         │  Tone · Behavior Rules · Escalation Triggers        │
+  │         │  Exclusions ("Never discuss competitors")           │
+  ├─────────┼──────────────────────────────────────────────────────┤
+  │ Floor 1 │  IDENTITY                                           │
+  │         │  Name: "Aria" · Company: Acme Corp                  │
+  │         │  Persona: friendly service assistant                │
+  └─────────┴──────────────────────────────────────────────────────┘
+       │              │               │               │
+  Sets persona   Instructions    Topics scope    Actions deliver
+                shape behavior   conversations    outcomes
+```
 **Content:**
 - **Identity** — the agent's name, persona description, and role. Example: "Aria, your friendly service assistant for Acme Corp."
 - **Instructions** — the system-level prompt that governs the agent's overall behavior: tone, what it should and should not do, escalation rules, compliance constraints
@@ -61,7 +190,27 @@
 **Speaker Notes:** This anatomy is foundational — every configuration decision in Agentforce maps to one of these four layers. When you are asked on the exam "where would you configure the agent's tone of voice?" the answer is Instructions. "Where would you add a new capability?" — add a Topic with Actions. "How does the agent know it can look up orders?" — the Topic description tells Atlas this is within scope. Memorize these four layers and you will be able to answer most scenario-based questions by mapping the scenario to the right layer.
 
 ### Slide 6: Einstein Trust Layer — Safety Net
-**Visual:** An architectural diagram showing: User message → Agentforce Agent → Einstein Trust Layer (box in center with sub-labels: data masking, toxicity filter, zero data retention, audit log) → LLM (e.g., OpenAI GPT-4 or Salesforce's own model) → response back through Trust Layer → agent → user. Arrows flow in both directions through the Trust Layer.
+**Visual:**
+```
+  User Message
+       │
+       ▼
+┌──────────────────────────────────────────────────────────┐
+│                  EINSTEIN TRUST LAYER                    │
+│  ┌─────────────┐  ┌──────────────┐  ┌─────────────────┐ │
+│  │Data Masking │  │  Toxicity    │  │  Zero Retention │ │
+│  │(PII/PCI)    │  │  Detection   │  │   (no training) │ │
+│  └─────────────┘  └──────────────┘  └─────────────────┘ │
+│                       Audit Log                          │
+└──────────────────────────────────────────────────────────┘
+       │
+       ▼
+  External LLM
+  (OpenAI / Salesforce Model)
+       │
+       ▼
+  Response ──▶ Trust Layer ──▶ Agent ──▶ User
+```
 **Content:**
 - All LLM calls from Agentforce pass through the **Einstein Trust Layer**
 - Key Trust Layer functions:
@@ -74,7 +223,29 @@
 **Speaker Notes:** The Einstein Trust Layer is a high-frequency exam topic across all AI certifications. For Agentforce specifically, emphasize that the Trust Layer sits between your Salesforce org and any external LLM — whether that is OpenAI's model or Salesforce's own models. No customer data is used to train the LLM. Data masking happens before the prompt leaves the org. These are the talking points that matter for the exam, and for real customer conversations when they ask "is my data safe with Agentforce?"
 
 ### Slide 7: Agentforce in the Salesforce Ecosystem
-**Visual:** A Salesforce platform diagram showing: Agentforce Studio (where you build agents) at the top, connected to: Flows (Process Automation), Apex (Code), Prompt Builder (AI Templates), Einstein Knowledge (Articles), Data Cloud (Unified Data). Below the platform, deployment channels: Embedded Chat, Salesforce Mobile, Slack, API. The Einstein Trust Layer wraps around everything.
+**Visual:**
+```
+  ╔══════════════════════════════════════════════════════════════════╗
+  ║                     EINSTEIN TRUST LAYER                        ║
+  ║  ┌────────────────────────────────────────────────────────────┐  ║
+  ║  │                   AGENTFORCE STUDIO                        │  ║
+  ║  │          (Build · Configure · Manage Agents)               │  ║
+  ║  └──────┬──────────┬──────────┬──────────┬────────────────────┘  ║
+  ║         │          │          │          │                        ║
+  ║   ┌─────▼──┐  ┌────▼───┐  ┌──▼──────┐  ┌▼────────┐  ┌────────┐  ║
+  ║   │ Flows  │  │  Apex  │  │ Prompt  │  │Einstein │  │  Data  │  ║
+  ║   │(Auto-  │  │(@Invoc │  │ Builder │  │Knowledge│  │ Cloud  │  ║
+  ║   │launched│  │ able)  │  │Templates│  │Articles │  │Unified │  ║
+  ║   └────────┘  └────────┘  └─────────┘  └─────────┘  └────────┘  ║
+  ║                                                                   ║
+  ║           Deployment Channels                                     ║
+  ║   ┌──────────┐  ┌────────┐  ┌──────┐  ┌─────┐                   ║
+  ║   │Embedded  │  │Salesfor│  │Slack │  │ API │                   ║
+  ║   │  Chat    │  │ce Mobile│  │      │  │     │                   ║
+  ║   └──────────┘  └────────┘  └──────┘  └─────┘                   ║
+  ╚══════════════════════════════════════════════════════════════════╝
+  Licensing: consumption-based (per conversation, not per seat)
+```
 **Content:**
 - **Agentforce Studio** is the primary UI for building and managing agents (Setup → Agentforce → Agents)
 - Agents are built FROM existing Salesforce assets: they invoke Flows you already have, Apex you already wrote, Knowledge articles your team already maintains
@@ -85,7 +256,33 @@
 **Speaker Notes:** The key architectural insight is that Agentforce is not a standalone AI system — it is a orchestration layer that connects to the Salesforce platform capabilities you already use. The flows are the same flows you use for automation. The knowledge is the same Salesforce Knowledge you use for case management. This is why an experienced Salesforce developer can get productive with Agentforce quickly: most of the "actions" are things that already exist in their org. The exam will test this understanding — you will see questions that describe a Flow that exists in org and ask how to wire it to an agent.
 
 ### Slide 8: Key Terminology Recap
-**Visual:** A glossary card layout with 8 terms in bold, each followed by a one-sentence definition. Formatted as a quick-reference reference card with a light blue background.
+**Visual:**
+```
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                    AGENTFORCE QUICK REFERENCE                       │
+  ├──────────────────────────┬──────────────────────────────────────────┤
+  │ Agentforce               │ Salesforce's autonomous AI agent platform │
+  ├──────────────────────────┼──────────────────────────────────────────┤
+  │ Atlas Reasoning Engine   │ LLM-based planning engine powering all   │
+  │                          │ Agentforce agents                        │
+  ├──────────────────────────┼──────────────────────────────────────────┤
+  │ Topic                    │ A domain of conversation an agent is     │
+  │                          │ configured to handle                     │
+  ├──────────────────────────┼──────────────────────────────────────────┤
+  │ Action                   │ A callable operation (Flow, Apex, Prompt │
+  │                          │ Template, Knowledge) within a Topic      │
+  ├──────────────────────────┼──────────────────────────────────────────┤
+  │ Agent Instructions       │ System-level prompt defining overall     │
+  │                          │ behavior and constraints                 │
+  ├──────────────────────────┼──────────────────────────────────────────┤
+  │ Autonomous Action        │ Agent executes without human confirmation│
+  ├──────────────────────────┼──────────────────────────────────────────┤
+  │ Assisted Action          │ Human must confirm before execution      │
+  ├──────────────────────────┼──────────────────────────────────────────┤
+  │ Einstein Trust Layer     │ Safety/governance layer mediating all    │
+  │                          │ LLM calls from Salesforce                │
+  └──────────────────────────┴──────────────────────────────────────────┘
+```
 **Content:**
 | Term | Definition |
 |------|-----------|

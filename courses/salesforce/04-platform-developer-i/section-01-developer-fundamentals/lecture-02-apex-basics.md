@@ -59,7 +59,23 @@ public class MyClass {
 **Speaker Notes:** The class structure is straightforward for anyone with OOP experience. Notice that the access modifier comes first, then the `class` keyword, then the name. Inside, you have variables, a constructor, and methods. The meta.xml file is required for all Salesforce metadata and contains the API version — it should never be deleted.
 
 ### Slide 4: Access Modifiers
-**Visual:** Concentric circles diagram showing scope from innermost to outermost: private (class only) → protected (class + subclasses) → public (same namespace/application) → global (all namespaces including managed packages).
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  global   — all namespaces, managed packages, web services       │
+  │  ┌──────────────────────────────────────────────────────────┐    │
+  │  │  public   — same org / namespace                         │    │
+  │  │  ┌────────────────────────────────────────────────┐      │    │
+  │  │  │  protected  — class + subclasses only           │      │    │
+  │  │  │  ┌────────────────────────────────────────┐     │      │    │
+  │  │  │  │  private  — defining class only (default)    │      │    │
+  │  │  │  └────────────────────────────────────────┘     │      │    │
+  │  │  └────────────────────────────────────────────┘      │    │
+  │  └──────────────────────────────────────────────────────┘    │
+  └──────────────────────────────────────────────────────────────────┘
+  Top-level class: must be public or global
+  Methods/variables: default to private if no modifier
+```
 **Content:**
 - **private:** Accessible only within the defining class — default for inner classes and methods if omitted
 - **protected:** Accessible within the class and all subclasses (used with virtual/abstract classes)
@@ -70,7 +86,24 @@ public class MyClass {
 **Speaker Notes:** The key distinction that appears on the exam is `public` versus `global`. Public classes are visible across your org, but if you are building a managed package that other orgs will install, any method you want to expose to package consumers must be declared `global`. Changing a global method's signature after it is installed in packages breaks those packages — Salesforce enforces this.
 
 ### Slide 5: Static vs Instance Members
-**Visual:** Two-column diagram showing a class with an instance variable `count` that has a separate value per object, versus a static variable `totalCount` that has one shared value for the entire class/transaction.
+**Visual:**
+```
+  INSTANCE (per object)            STATIC (per transaction, shared)
+  ┌──────────┐  ┌──────────┐       ┌─────────────────────────────┐
+  │ Counter  │  │ Counter  │       │     Counter (class)          │
+  │ obj1     │  │ obj2     │       │  callCount = 3  ← one value  │
+  │ id = 1   │  │ id = 2   │       │  shared by ALL instances     │
+  └──────────┘  └──────────┘       └─────────────────────────────┘
+
+  MyClass obj = new MyClass();     MyClass.staticMethod();
+  obj.instanceMethod();            ← called on class, not object
+
+  Static variable use case:
+  public class TriggerHelper {
+      public static Boolean hasRun = false;  ← stays true for
+  }                                           entire transaction
+                                             → prevents recursion
+```
 **Content:**
 - **Instance variables/methods:** Belong to a specific object instance; require `new MyClass()` to access
 - **Static variables/methods:** Belong to the class itself; accessed as `MyClass.methodName()`

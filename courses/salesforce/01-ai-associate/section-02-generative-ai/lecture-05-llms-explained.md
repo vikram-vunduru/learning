@@ -18,7 +18,15 @@ By the end of this lecture, students will be able to:
 ## SLIDES
 
 ### Slide 1: The Engine Under the Hood
-**Visual:** A sports car hood open, revealing a complex engine — labeled "LLM" — powering the entire car (labeled "Einstein Copilot, Prompt Builder, Agentforce")
+**Visual:**
+```
+╔══════════════════════════════════════════════════════════╗
+║        LECTURE 5: LARGE LANGUAGE MODELS EXPLAINED       ║
+║                                                          ║
+║   "The engine behind generative AI"                      ║
+║   Section 2: Generative AI                               ║
+╚══════════════════════════════════════════════════════════╝
+```
 **Content:**
 - Everything in Generative AI runs on an LLM
 - LLM = Large Language Model
@@ -52,7 +60,27 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 4: How LLMs Are Trained — Step 1: Tokenization
-**Visual:** The sentence "Salesforce uses AI" broken into colored blocks: [Sales][force][ uses][ AI]
+**Visual:**
+```
+   TOKENIZATION — Breaking text into tokens
+
+   Raw text: "Salesforce Einstein scores leads"
+                │
+                ▼
+   Token split:  ["Sales", "force", " Ein", "stein", " scores", " leads"]
+                │
+                ▼
+   Token IDs:   [1842, 943, 17124, 267, 8901, 3204]
+                │
+                ▼
+   Embeddings:  Each token → high-dimensional vector
+                [0.24, -0.15, 0.87, 0.03, ...] (768+ numbers each)
+
+   ● LLMs don't read words — they process token ID sequences
+   ● Average English word ≈ 1.3 tokens
+   ● "ChatGPT" is 3 tokens: "Chat" + "G" + "PT"
+   ● Token limits define context window size
+```
 **Content:**
 - Before training, text must be broken into chunks called **tokens**
 - Tokens are NOT exactly words — they're word fragments, words, or punctuation
@@ -64,7 +92,28 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 5: How LLMs Are Trained — Step 2: Embeddings
-**Visual:** A 3D coordinate space where words like "King," "Queen," "Man," "Woman" are plotted as points clustered by meaning
+**Visual:**
+```
+   WORD EMBEDDING SPACE (conceptual — actual is 768+ dimensions)
+
+                 "joyful"●
+                          ╲
+              "happy" ●────╲──── "elated" ●
+                      │     ╲
+                      │      "content" ●
+                      │
+   "invoice" ●        │                     "purchase" ●
+              ╲       │                         /
+               ╲      │                        /
+        "bill" ●╲─────┼──────────────── "buy" ●
+                      │
+              ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+   Key insight: Similar meanings → close vectors in space
+   ● "happy" and "joyful" are close together
+   ● "happy" and "invoice" are far apart
+   ● Enables semantic search (meaning-based, not keyword-based)
+```
 **Content:**
 - Each token is converted to an **embedding** — a list of numbers (a vector)
 - Embeddings capture *meaning*, not just spelling
@@ -76,7 +125,27 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 6: How LLMs Are Trained — Step 3: The Transformer
-**Visual:** A simplified diagram showing tokens going in, an "Attention" layer highlighting which words pay attention to which other words, output tokens coming out
+**Visual:**
+```
+   TRANSFORMER SELF-ATTENTION MECHANISM
+
+   Input tokens: "The  customer  loves  the  product"
+                   │       │       │      │       │
+                   ▼       ▼       ▼      ▼       ▼
+               [Query] [Query] [Query] [Query] [Query]   ← each token
+               [Key  ] [Key  ] [Key  ] [Key  ] [Key  ]     asks: "which
+               [Value] [Value] [Value] [Value] [Value]      others matter
+                   │                               │        to me?"
+                   └───────── attention weights ───┘
+                                     │
+                                     ▼
+                          Context-aware representations
+                          (each token now knows about
+                           all other tokens in the sequence)
+
+   "loves" attends to "customer" AND "product" simultaneously
+   This parallel context is the transformer's superpower
+```
 **Content:**
 - The **Transformer** architecture is the core innovation behind modern LLMs
 - Key mechanism: **Attention** — the model learns which words to "pay attention to" relative to each other
@@ -100,7 +169,29 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 8: Context Window — The LLM's Working Memory
-**Visual:** A spotlight shining on part of a long document — the spotlight represents the context window; the rest is in darkness
+**Visual:**
+```
+   LLM CONTEXT WINDOW — What the model "sees" at one time
+
+   ┌─────────────────────────────────────────────────────────┐
+   │                    CONTEXT WINDOW                       │
+   │              (model's working memory)                   │
+   │                                                         │
+   │  ┌─────────────────────────────────────────────────┐    │
+   │  │  System prompt: "You are a helpful Salesforce   │    │
+   │  │  assistant..."                                  │    │
+   │  │                                                 │    │
+   │  │  Conversation history: [prior turns]            │    │
+   │  │                                                 │    │
+   │  │  RAG context: [retrieved knowledge articles]   │    │
+   │  │                                                 │    │
+   │  │  User message: "Summarize this case..."         │    │
+   │  └─────────────────────────────────────────────────┘    │
+   │                                                         │
+   │  Everything outside the window = model cannot see it   │
+   │  Window size: GPT-4 ~128K tokens, Claude ~200K tokens   │
+   └─────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Context window:** the maximum amount of text an LLM can "see" at one time
 - Measured in tokens (e.g., 8K, 32K, 128K, 1M tokens)
@@ -126,7 +217,28 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 10: The LLM Landscape — Major Players
-**Visual:** Four logo tiles: OpenAI (GPT-4o), Anthropic (Claude), Google (Gemini), Meta (Llama)
+**Visual:**
+```
+   LLM LANDSCAPE (as of 2024)
+
+   ┌─────────────────┬──────────────────────────────────────────────┐
+   │  PROVIDER       │  MODELS / NOTES                              │
+   ├─────────────────┼──────────────────────────────────────────────┤
+   │ OpenAI          │ GPT-4, GPT-4o, o1 — powers many apps         │
+   │ Anthropic       │ Claude 3.5 Sonnet/Opus — strong reasoning     │
+   │ Google          │ Gemini 1.5 Pro — multimodal, long context     │
+   │ Meta            │ Llama 3 — open-source, self-hostable          │
+   │ Mistral         │ Mistral Large — European, open-weight         │
+   │ Salesforce      │ xGen — foundation model for Einstein features │
+   ├─────────────────┼──────────────────────────────────────────────┤
+   │ SALESFORCE USE  │ Connects to partner LLMs via Einstein Trust   │
+   │                 │ Layer — model-agnostic architecture           │
+   └─────────────────┴──────────────────────────────────────────────┘
+
+   ● Salesforce is NOT locked into one LLM
+   ● Model choice abstracted behind the Trust Layer
+   ● Key: data never retained by LLM providers (Zero Data Retention)
+```
 **Content:**
 - **GPT-4o** (OpenAI): one of the most widely used; powers many commercial AI products
 - **Claude** (Anthropic): known for safety, nuance, and handling long contexts; strong at reasoning
@@ -150,7 +262,33 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 12: LLM Limitations You Must Know
-**Visual:** Warning signs over three concepts: Hallucination, Knowledge Cutoff, Bias
+**Visual:**
+```
+   LLM LIMITATIONS — Key Risks
+
+   ┌─────────────────────────────────────────────────────────┐
+   │  ⚠ HALLUCINATION                                        │
+   │  Model generates plausible-sounding but false content   │
+   │  Cause: training to predict likely tokens, not truth    │
+   │  Mitigation: RAG, grounding, human review               │
+   ├─────────────────────────────────────────────────────────┤
+   │  ⚠ KNOWLEDGE CUTOFF                                     │
+   │  Training data has a cutoff date → no recent events     │
+   │  Mitigation: RAG with live data, retrieval augmentation │
+   ├─────────────────────────────────────────────────────────┤
+   │  ⚠ CONTEXT WINDOW LIMIT                                 │
+   │  Only processes tokens within its window                │
+   │  Long documents must be chunked or summarized           │
+   ├─────────────────────────────────────────────────────────┤
+   │  ⚠ BIAS FROM TRAINING DATA                              │
+   │  Inherits biases present in internet-scale text corpus  │
+   │  Mitigation: RLHF, safety fine-tuning, Einstein filters │
+   ├─────────────────────────────────────────────────────────┤
+   │  ⚠ NO PERSISTENT MEMORY                                 │
+   │  Each conversation starts fresh (unless explicitly stored│
+   │  Agentforce manages memory through context management   │
+   └─────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Hallucination:** LLMs can confidently generate false information
 - **Knowledge cutoff:** LLMs only know about events up to their training date

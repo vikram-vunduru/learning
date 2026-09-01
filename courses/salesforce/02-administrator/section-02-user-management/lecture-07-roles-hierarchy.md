@@ -8,7 +8,27 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Is a Role?
-**Visual:** Org chart tree diagram — CEO at the top, VP Sales and VP Service below, then Sales Manager and Service Manager below those, with Sales Reps and Service Agents at the bottom. Each node labeled as a "Role."
+**Visual:**
+```
+              ┌──────────────────────┐
+              │         CEO          │
+              └──────────┬───────────┘
+             ┌───────────┴───────────┐
+             ▼                       ▼
+    ┌─────────────────┐   ┌─────────────────┐
+    │    VP Sales     │   │   VP Service    │
+    └────────┬────────┘   └────────┬────────┘
+             ▼                     ▼
+    ┌─────────────────┐   ┌─────────────────┐
+    │  Sales Manager  │   │ Service Manager │
+    └────────┬────────┘   └────────┬────────┘
+        ┌────┴────┐            ┌────┴────┐
+        ▼         ▼            ▼         ▼
+  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+  │ Sales Rep│ │ Sales Rep│ │Svc Agent │ │Svc Agent │
+  └──────────┘ └──────────┘ └──────────┘ └──────────┘
+                      [Each node = a Role]
+```
 **Content:**
 - A **Role** defines a user's position in the organizational hierarchy
 - Roles control **record visibility** — users higher in the hierarchy can see records owned by users below them
@@ -18,7 +38,22 @@
 **Speaker Notes:** Roles and profiles are two separate concepts that serve different purposes. Profiles control what a user can do — their permissions. Roles control what records a user can see — their visibility. A user higher up in the role hierarchy gains access to records owned by everyone beneath them in the tree. This "roll up" of visibility is a fundamental design feature of Salesforce's sharing model.
 
 ### Slide 2: Roles vs. Profiles — Key Distinction
-**Visual:** Two-column side-by-side comparison with clear headers: "Profile" on the left and "Role" on the right. Key comparison rows: Controls, Required?, One Per User?, Primary Purpose.
+**Visual:**
+```
+  ┌──────────────────────┬──────────────────────────────┬──────────────────────────────┐
+  │                      │          PROFILE             │           ROLE               │
+  ├──────────────────────┼──────────────────────────────┼──────────────────────────────┤
+  │ Controls             │ Permissions (what you DO)    │ Record visibility (what      │
+  │                      │ Object CRUD, field access,   │ you SEE) based on            │
+  │                      │ app/tab/login settings       │ ownership hierarchy           │
+  ├──────────────────────┼──────────────────────────────┼──────────────────────────────┤
+  │ Required?            │ Yes — every user needs one   │ No — optional                │
+  ├──────────────────────┼──────────────────────────────┼──────────────────────────────┤
+  │ One Per User?        │ Yes — exactly one            │ Yes — at most one            │
+  ├──────────────────────┼──────────────────────────────┼──────────────────────────────┤
+  │ Primary Purpose      │ Access control & settings    │ Data visibility & rollups    │
+  └──────────────────────┴──────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 - **Profile:** Controls permissions (what you can DO — CRUD on objects, field access, app access)
 - **Role:** Controls record visibility (what records you can SEE — based on ownership hierarchy)
@@ -29,7 +64,32 @@
 **Speaker Notes:** This comparison is tested on virtually every practice exam and the real CRT-101. The profile defines what operations a user can perform. The role defines which records the user can access based on where they sit in the organizational tree. A sales rep could have a profile that grants Create and Edit on Opportunities, but if their OWD is Private, they can only see their own Opportunities — unless someone above them in the role hierarchy shares downward, or the sharing model opens it up.
 
 ### Slide 3: Org-Wide Defaults + Role Hierarchy = Complete Sharing Model
-**Visual:** Layered funnel diagram — four layers from widest (most restrictive) to narrowest: Org-Wide Defaults (base layer) → Role Hierarchy → Sharing Rules → Manual Sharing. Each layer expands access from the one below it.
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────────┐
+  │              ORG-WIDE DEFAULTS (OWD)                          │
+  │   Most restrictive baseline — default access for all users    │
+  └────────────────────────────────────────────────────────────────┘
+                              │ opens access upward
+                              ▼
+       ┌──────────────────────────────────────────────────┐
+       │              ROLE HIERARCHY                       │
+       │   Managers see records owned by subordinates      │
+       └──────────────────────────────────────────────────┘
+                              │ extends access horizontally
+                              ▼
+            ┌────────────────────────────────────────┐
+            │           SHARING RULES                 │
+            │  Extend to specific groups / criteria   │
+            └────────────────────────────────────────┘
+                              │ one-off record exceptions
+                              ▼
+                  ┌──────────────────────────────┐
+                  │       MANUAL SHARING          │
+                  │   Individual record shares    │
+                  └──────────────────────────────┘
+  Each layer can only OPEN access — never restrict below OWD
+```
 **Content:**
 - **Org-Wide Defaults (OWD):** The most restrictive baseline — defines default access for records a user doesn't own
 - **Role Hierarchy:** Opens access upward — managers see records owned by subordinates
@@ -39,7 +99,27 @@
 **Speaker Notes:** The four layers of the sharing model work together. OWD is the tightest possible baseline. The role hierarchy automatically opens access upward through the org chart. Sharing rules then extend access horizontally — across teams or to specific groups — that the hierarchy doesn't cover. Manual sharing is the last resort for individual records. Understanding that this is a one-way open model is key: you can only expand access above the OWD baseline, never restrict below it.
 
 ### Slide 4: How Role Hierarchy Affects Record Access
-**Visual:** Role hierarchy tree with arrows showing record visibility: "Sales Rep owns an Account → Sales Manager can see it → VP Sales can see it → CEO can see it." Downward arrows labeled "No automatic access."
+**Visual:**
+```
+              ┌─────────────────────────────┐
+              │            CEO              │ ◀── sees all records below
+              └──────────────┬──────────────┘
+                             │ ▲ visibility rolls up
+              ┌──────────────┴──────────────┐
+              │          VP Sales           │ ◀── sees Sales Mgr & Rep records
+              └──────────────┬──────────────┘
+                             │ ▲ visibility rolls up
+              ┌──────────────┴──────────────┐
+              │        Sales Manager        │ ◀── sees Sales Rep records
+              └──────────────┬──────────────┘
+                             │ ▲ visibility rolls up
+              ┌──────────────┴──────────────┐
+              │          Sales Rep          │  owns Accounts / Opportunities
+              └─────────────────────────────┘
+
+  ▶ Access flows UPWARD only
+  ✗ No automatic downward access (Sales Rep cannot see Manager's records)
+```
 **Content:**
 - Users can see records owned by everyone **below them** in the hierarchy
 - Users do **NOT** automatically see records owned by peers or users above them
@@ -49,7 +129,24 @@
 **Speaker Notes:** It's important to understand the direction of visibility in the role hierarchy. Access flows upward — managers see what their subordinates own, not the other way around. A Sales Rep cannot see their manager's private records just because of the hierarchy. Also note the "Grant Access Using Hierarchies" checkbox on custom objects — it defaults to checked, but if an admin unchecks it, the role hierarchy won't grant visibility on that object even if OWD is Private.
 
 ### Slide 5: Setting Up the Role Hierarchy
-**Visual:** Salesforce Setup tree view of roles, showing how to drag and add roles. A "CEO" node at top with expandable branches. The "Add Role" button and "Assign Users" option are highlighted.
+**Visual:**
+```
+  Setup > Roles > Set Up Roles
+  ┌──────────────────────────────────────────────────────────┐
+  │  ROLE HIERARCHY                          [Add Role]      │
+  ├──────────────────────────────────────────────────────────┤
+  │  ▼ CEO                                  [Assign Users]   │
+  │    ▼ VP Sales                           [Add Sub-Role]   │
+  │      ▼ Sales Manager — East             [Assign Users]   │
+  │            Sales Rep — East A           [Assign Users]   │
+  │            Sales Rep — East B           [Assign Users]   │
+  │      ▼ Sales Manager — West             [Assign Users]   │
+  │            Sales Rep — West A           [Assign Users]   │
+  │    ▼ VP Service                         [Add Sub-Role]   │
+  │      ▶ Service Manager                                   │
+  └──────────────────────────────────────────────────────────┘
+  Users can be assigned to a role from this page or the user record
+```
 **Content:**
 - Path: **Setup > Roles > Set Up Roles**
 - The hierarchy is displayed as a tree; click roles to expand and add sub-roles
@@ -59,7 +156,31 @@
 **Speaker Notes:** Building the role hierarchy is one of the first org setup tasks a Salesforce admin does. The tree view in Setup makes it easy to visualize the structure. The key best practice is to keep it simple — don't create a role for every possible job title. Focus on the levels that matter for record visibility: you need enough levels to give managers appropriate access, but too many levels creates a complex, hard-to-maintain structure.
 
 ### Slide 6: Role Hierarchy and Reports
-**Visual:** Funnel diagram showing a manager running a "My Team's Opportunities" report — the funnel collects Opportunity data from all users in the manager's role and all sub-roles below them.
+**Visual:**
+```
+  Manager: VP Sales runs "My Team's Opportunities" report
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    VP Sales (report scope)                   │
+  └──────────────────────────┬───────────────────────────────────┘
+               ┌─────────────┴──────────────┐
+               ▼                            ▼
+      ┌─────────────────┐         ┌─────────────────┐
+      │  Sales Mgr East │         │  Sales Mgr West │
+      └────────┬────────┘         └────────┬────────┘
+          ┌────┴────┐                 ┌────┴────┐
+          ▼         ▼                 ▼         ▼
+      ┌───────┐ ┌───────┐         ┌───────┐ ┌───────┐
+      │ Rep A │ │ Rep B │         │ Rep C │ │ Rep D │
+      └───┬───┘ └───┬───┘         └───┬───┘ └───┬───┘
+          └─────────┴─────────────────┴──────────┘
+                              │
+                              ▼
+           ┌──────────────────────────────────────┐
+           │  All Opportunities from all sub-roles │
+           │  roll up into VP Sales "My Team's"    │
+           │  report automatically                 │
+           └──────────────────────────────────────┘
+```
 **Content:**
 - The role hierarchy powers **report rollups** — "My Team's Accounts" type reports
 - A manager sees all records owned by users in their role and all subordinate roles
@@ -69,7 +190,23 @@
 **Speaker Notes:** The role hierarchy has two effects: security (who can see which records) and reporting (whose records roll up into a manager's reports). If your role hierarchy is inaccurate — for instance, a sales rep is assigned to the wrong role — their records won't roll up into the correct manager's reports. This can cause forecasting and pipeline reporting to be wrong. It's worth doing a periodic audit of role assignments to ensure the hierarchy reflects your actual org structure.
 
 ### Slide 7: Portal Roles
-**Visual:** Extended role hierarchy diagram showing the internal tree on the left with a dashed line separating it from a "Portal Roles" section on the right — showing Customer Community User and Partner Community User nodes.
+**Visual:**
+```
+  INTERNAL ROLE HIERARCHY            │   PORTAL ROLES (per Account)
+  ───────────────────────────────────┼──────────────────────────────────
+         CEO                         │
+          │                          │   Acme Corp (Account)
+    ┌─────┴──────┐                   │   ├── Customer Executive
+  VP Sales   VP Service              │   └── Customer User
+     │            │                  ┃
+  Sales Mgr   Service Mgr            ┃   Beta Inc (Account)
+     │            │           ─ ─ ─ ─╋─ ─├── Partner Manager
+  Sales Reps  Service Agents         │   └── Partner User
+                                     │
+  ◀── Internal users ───────────────▶│◀──── External users ──────────▶
+  (above portal users in hierarchy)  │ (account-scoped; isolated from
+                                     │  each other)
+```
 **Content:**
 - **Portal roles** apply to Experience Cloud (community) users — external users like customers and partners
 - Portal user roles exist separately from the internal role hierarchy
@@ -79,7 +216,25 @@
 **Speaker Notes:** If your company has an Experience Cloud site — a customer or partner portal — those external users need roles too. Portal roles are a separate subsystem within the role hierarchy, organized under each customer account. This prevents customers from seeing each other's data while allowing internal support agents to see all customer submissions. The exam occasionally tests portal role concepts, so knowing they exist and are account-scoped is useful.
 
 ### Slide 8: Key Roles and Hierarchy Exam Facts
-**Visual:** Cheat-sheet reference card.
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │          ROLES & HIERARCHY — EXAM REFERENCE                     │
+  ├────────────────────────┬─────────────────────────────────────────┤
+  │ Roles control          │ Record VISIBILITY (what you SEE)        │
+  │ Profiles control       │ Permissions (what you DO)               │
+  ├────────────────────────┼─────────────────────────────────────────┤
+  │ Role                   │ Optional; Profile is required           │
+  │ Hierarchy flow         │ UPWARD only — managers see subordinates │
+  │ Custom objects         │ "Grant Access Using Hierarchies" must   │
+  │                        │  be checked for hierarchy to apply      │
+  │ Report rollups         │ "My Team's Records" uses role hierarchy │
+  ├────────────────────────┼─────────────────────────────────────────┤
+  │ Sharing layers         │ OWD → Role Hierarchy → Sharing Rules → │
+  │                        │ Manual Sharing (can only open access;   │
+  │                        │ never restrict below OWD)               │
+  └────────────────────────┴─────────────────────────────────────────┘
+```
 **Content:**
 - Roles control **record visibility** (what you can SEE); Profiles control **permissions** (what you can DO)
 - Role is **optional**; Profile is **required**

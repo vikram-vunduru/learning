@@ -54,7 +54,25 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 4: Building the Network — Layers
-**Visual:** Three-column diagram: Input Layer → Hidden Layers → Output Layer
+**Visual:**
+```
+     INPUT LAYER        HIDDEN LAYER 1      HIDDEN LAYER 2     OUTPUT LAYER
+         │                    │                   │                  │
+    ┌────┴────┐          ┌────┴────┐         ┌────┴────┐       ┌────┴────┐
+    │         │          │         │         │         │       │         │
+    ○ x₁ ─────┼──────── ○ h₁ ─────┼──────── ○ h₃ ──────┼────── ○ ŷ      │
+    │         │    ╲     │    ╲    │    ╲    │          │       │ (pred.) │
+    ○ x₂ ─────┼──── ╲─── ○ h₂ ─────┼─────── ○ h₄ ──────┼────── │         │
+    │         │     ╲    │         │    ╲    │          │       └─────────┘
+    ○ x₃ ─────┼──────╲── ○ h₃ ─────┼──────╲─○ h₅ ──────┤
+    │         │          │         │         │          │
+    └─────────┘          └─────────┘         └──────────┘
+
+    Examples:            Weighted             Weighted
+    - Annual Revenue     connections          connections
+    - Industry           (learned weights)    (learned weights)
+    - Lead Source
+```
 **Content:**
 - **Input Layer:** Receives raw data (features) — each node = one feature
   - Example: Lead's industry, company size, web visits, email opens (4 input nodes)
@@ -69,7 +87,24 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 5: How a Neural Network Learns — The Forward Pass
-**Visual:** Animated flow diagram — data flowing left to right through the network
+**Visual:**
+```
+       FORWARD PASS — Data flows left to right
+
+   Input          Weights          Activation        Output
+  features       multiply            function        prediction
+     │               │                  │               │
+     ▼               ▼                  ▼               ▼
+  [x₁, x₂, x₃] → [w·x + b] → [ReLU / Sigmoid] → [prediction ŷ]
+
+  Step 1: Receive inputs (features)
+  Step 2: Multiply each input by its weight, add bias → z = w·x + b
+  Step 3: Apply activation function → a = f(z) — introduces non-linearity
+  Step 4: Pass activations to next layer
+  Step 5: Final layer outputs prediction
+
+  Each neuron: receives inputs, computes weighted sum, applies activation, passes forward
+```
 **Content:**
 - **Forward Pass:** Input data flows from left to right through the network
   - Step 1: Features enter the input layer (company size = 500, industry = tech, etc.)
@@ -83,7 +118,25 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 6: How a Neural Network Learns — Backpropagation
-**Visual:** The same network diagram but with arrows flowing RIGHT TO LEFT, representing error correction
+**Visual:**
+```
+       BACKPROPAGATION — Error flows right to left
+
+   ┌───────────┐    ┌───────────┐    ┌───────────┐    ┌───────────┐
+   │  INPUT    │    │  HIDDEN   │    │  HIDDEN   │    │  OUTPUT   │
+   │  LAYER    │    │  LAYER 1  │    │  LAYER 2  │    │  LAYER    │
+   └─────┬─────┘    └─────┬─────┘    └─────┬─────┘    └─────┬─────┘
+         │                │                │                │
+         │ ──── forward pass ─────────────────────────────▶ │ prediction
+         │                │                │                │
+         │                │                │            LOSS FUNCTION
+         │                │                │            (prediction vs truth)
+         │                │                │                │
+         │ ◄─────────────── gradient (error signal) ────────│
+         │                │                │
+   Weights updated   Weights updated   Weights updated
+   (gradient descent)
+```
 **Content:**
 - **Backpropagation:** After the forward pass produces an error, the network corrects itself
   - Step 1: Calculate how wrong the prediction was (error signal)
@@ -112,7 +165,25 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 8: What Is Deep Learning?
-**Visual:** Shallow network (1-2 hidden layers) vs. Deep network (many hidden layers) side by side
+**Visual:**
+```
+   SHALLOW NETWORK             DEEP NETWORK
+   (1-2 hidden layers)         (many hidden layers)
+
+   Input  Hidden  Output       Input  H1  H2  H3  H4  H5  Output
+     ○──── ○ ──── ○              ○────○───○───○───○───○────○
+     ○──── ○ ──── ○              ○────○───○───○───○───○────○
+     ○──── ○                     ○────○───○───○───○───○────○
+                                 ○────○───○───○───○───○
+
+   ● Learns simple patterns     ● Learns hierarchical features
+   ● Faster to train            ● Layer 1: edges/words
+   ● Less data needed           ● Layer 2: shapes/phrases
+   ● Lower accuracy ceiling     ● Layer 3: objects/concepts
+                                ● Much more powerful
+                                ● Requires more data & compute
+   Example: Traditional ML      Example: GPT, image recognition
+```
 **Content:**
 - **Machine Learning:** Algorithms that learn from data — includes decision trees, linear regression, random forests, AND neural networks
 - **Deep Learning:** A subset of machine learning that specifically uses neural networks with MANY layers (deep = many hidden layers)
@@ -179,7 +250,28 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 13: ML vs. Deep Learning — Know the Hierarchy
-**Visual:** Nested circles: AI → Machine Learning → Deep Learning
+**Visual:**
+```
+   ┌─────────────────────────────────────────────────────────┐
+   │                  ARTIFICIAL INTELLIGENCE                 │
+   │                  (any technique that enables             │
+   │                   machines to imitate intelligence)      │
+   │  ┌───────────────────────────────────────────────┐      │
+   │  │              MACHINE LEARNING                  │      │
+   │  │      (algorithms that learn from data          │      │
+   │  │       without being explicitly programmed)     │      │
+   │  │  ┌────────────────────────────────────┐        │      │
+   │  │  │          DEEP LEARNING              │        │      │
+   │  │  │   (multi-layer neural networks      │        │      │
+   │  │  │    that learn hierarchical          │        │      │
+   │  │  │    representations from data)       │        │      │
+   │  │  └────────────────────────────────────┘        │      │
+   │  └───────────────────────────────────────────────┘      │
+   └─────────────────────────────────────────────────────────┘
+
+   AI ⊃ ML ⊃ Deep Learning     All DL is ML. All ML is AI.
+                                Not all AI is ML.
+```
 **Content:**
 - AI (broadest): Any technique that enables machines to perform tasks requiring human intelligence
 - Machine Learning (subset of AI): Systems that learn from data — decision trees, random forests, SVMs, linear regression, neural networks
