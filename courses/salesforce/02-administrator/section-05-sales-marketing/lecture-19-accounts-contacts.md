@@ -238,7 +238,31 @@
 **Speaker Notes:** Account sharing has a cascade effect. If Account OWD is Private, a user who gets access to an Account (through a sharing rule or team) also gets access to the account's Contacts and Opportunities. This is why Account is the central record — sharing flows outward from it.
 
 ### Slide 8: Key Admin Configuration Points
-**Visual:** Checklist of admin actions for Account and Contact setup
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │         ACCOUNT & CONTACT ADMIN CONFIGURATION CHECKLIST         │
+  ├───┬──────────────────────────────────────────────────────────────┤
+  │ ✓ │ Enable Person Accounts                                       │
+  │   │ Setup → Account Settings → Enable Person Accounts            │
+  │   │ ⚠ IRREVERSIBLE — cannot be undone once enabled              │
+  ├───┼──────────────────────────────────────────────────────────────┤
+  │ ✓ │ Enable Contacts to Multiple Accounts                         │
+  │   │ Setup → Account Settings → Allow related contacts            │
+  ├───┼──────────────────────────────────────────────────────────────┤
+  │ ✓ │ Configure Account Teams                                      │
+  │   │ Setup → Account Teams → Enable Account Teams                 │
+  ├───┼──────────────────────────────────────────────────────────────┤
+  │ ✓ │ Contact Roles Picklist Values                                │
+  │   │ Setup → Opportunity Contact Roles                            │
+  ├───┼──────────────────────────────────────────────────────────────┤
+  │ ✓ │ Account & Contact Page Layouts                               │
+  │   │ Object Manager → Account/Contact → Page Layouts              │
+  ├───┼──────────────────────────────────────────────────────────────┤
+  │ ✓ │ Validation Rules & Required Fields                           │
+  │   │ Object Manager → Account/Contact → Validation Rules          │
+  └───┴──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Enable Person Accounts: Setup → Account Settings → Enable Person Accounts (irreversible)
 - Enable Contacts to Multiple Accounts: Setup → Account Settings

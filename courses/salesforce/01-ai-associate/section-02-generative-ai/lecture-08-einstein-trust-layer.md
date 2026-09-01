@@ -147,7 +147,39 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 8: Data Flow Through the Trust Layer — Step by Step
-**Visual:** A horizontal flowchart with 8 labeled steps, arrows connecting each step, color-coded (orange for outgoing, blue for incoming)
+**Visual:**
+```
+   EINSTEIN TRUST LAYER — 8-STEP DATA FLOW
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │                                                             │
+   │  1. USER/AGENT initiates AI request in Salesforce           │
+   │          │                                                  │
+   │          ▼                                                  │
+   │  2. DATA MASKING — PII and sensitive fields replaced        │
+   │     with tokens before leaving Salesforce                   │
+   │          │                                                  │
+   │          ▼                                                  │
+   │  3. GROUNDING — Relevant CRM data retrieved via RAG         │
+   │     and added to prompt as context                          │
+   │          │                                                  │
+   │          ▼                                                  │
+   │  4. SECURE PROMPT sent to LLM partner API                  │
+   │          │                                                  │
+   │          ▼                                                  │
+   │  5. LLM PROCESSES prompt (under ZDR agreement)             │
+   │          │                                                  │
+   │          ▼                                                  │
+   │  6. RESPONSE RETURNED to Trust Layer                       │
+   │          │                                                  │
+   │          ▼                                                  │
+   │  7. TOXICITY SCORING — response checked for harmful content │
+   │          │                                                  │
+   │          ▼                                                  │
+   │  8. AUDIT TRAIL logged → SAFE RESPONSE delivered to user   │
+   │                                                             │
+   └─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 1. User triggers AI feature in Salesforce
 2. Salesforce retrieves relevant CRM data (grounding)
@@ -165,7 +197,27 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 9: Zero Data Retention — The Deep Dive
-**Visual:** Two timelines side by side — "Without ZDR" shows data flowing to LLM and branching into "stored in LLM database" and "used for future training"; "With ZDR" shows data flowing to LLM, being processed, and immediately deleted
+**Visual:**
+```
+   ZERO DATA RETENTION (ZDR) — What It Means
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │           WITHOUT ZDR              │       WITH ZDR         │
+   ├────────────────────────────────────┼────────────────────────┤
+   │ Your data → LLM API                │ Your data → LLM API    │
+   │ LLM provider CAN:                  │ LLM provider CANNOT:   │
+   │ ● Store your prompts               │ ● Store prompts        │
+   │ ● Log your data                    │ ● Log your data        │
+   │ ● Use data to retrain model        │ ● Retrain on your data │
+   │ ● Analyze your data                │ ● Analyze your content │
+   │                                    │                        │
+   │ Risk: Your CRM data could          │ Contractual guarantee: │
+   │ train competitor models            │ data is transient only │
+   └────────────────────────────────────┴────────────────────────┘
+
+   ZDR is contractually enforced with all LLM partners
+   in the Einstein Trust Layer program.
+```
 **Content:**
 - Without ZDR: LLM providers may retain your data for model improvement, bug analysis, or internal research
 - With ZDR: Contractual obligation to process and discard immediately
@@ -177,7 +229,24 @@ By the end of this lecture, students will be able to:
 ---
 
 ### Slide 10: Trust Layer vs. No Trust Layer — A Comparison
-**Visual:** Side-by-side comparison table with 5 rows
+**Visual:**
+```
+   AI IN SALESFORCE: With vs. Without Trust Layer
+
+   ┌────────────────────────────────────────────────────────────┐
+   │  WITHOUT TRUST LAYER          │  WITH TRUST LAYER          │
+   ├───────────────────────────────┼────────────────────────────┤
+   │ Raw PII sent to LLM           │ PII masked before LLM call │
+   │ LLM may hallucinate facts     │ Grounding reduces hallucin.│
+   │ No content safety filter      │ Toxicity scoring filters   │
+   │ Data may be stored by LLM     │ Zero Data Retention prot.  │
+   │ No compliance audit trail     │ Full audit trail logged    │
+   │ CRM data could train rivals   │ Data cannot leave boundary │
+   ├───────────────────────────────┼────────────────────────────┤
+   │ RISK: Non-compliant,          │ BENEFIT: Enterprise-grade  │
+   │ insecure, unreliable          │ secure, compliant AI       │
+   └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 | Aspect | No Trust Layer | With Einstein Trust Layer |
 |---|---|---|

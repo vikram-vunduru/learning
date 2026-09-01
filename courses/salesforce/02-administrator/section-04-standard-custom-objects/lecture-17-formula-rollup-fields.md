@@ -133,7 +133,29 @@
 **Speaker Notes:** Cross-object formulas are powerful but have a depth limit of 5 hops. Each hop is one relationship traversal. In practice, going beyond 3 levels is rare. The __r notation for custom relationships trips up many admins — remember that the lookup field's API name ends in __c but the relationship traversal uses __r instead.
 
 ### Slide 5: Roll-Up Summary Fields
-**Visual:** An Account record showing a "Total Opportunity Amount" field with the value $250,000, below which is a small related list showing 5 Opportunity records each with their Amount values that sum to $250,000
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  ACCOUNT: Acme Corp                                              │
+  │  ──────────────────────────────────────────────────────────────  │
+  │  Total Opportunity Amount:  $250,000   ← Roll-Up Summary (SUM)  │
+  │  Open Opportunity Count:    5          ← Roll-Up Summary (COUNT)│
+  ├──────────────────────────────────────────────────────────────────┤
+  │  RELATED: Opportunities                                          │
+  │  ┌────────────────────────────────┬──────────────────────────┐  │
+  │  │  Opportunity Name              │  Amount                  │  │
+  │  ├────────────────────────────────┼──────────────────────────┤  │
+  │  │  Project Alpha                 │  $80,000                 │  │
+  │  │  Project Beta                  │  $50,000                 │  │
+  │  │  Platform Renewal              │  $70,000                 │  │
+  │  │  Support Expansion             │  $30,000                 │  │
+  │  │  New Module                    │  $20,000                 │  │
+  │  ├────────────────────────────────┼──────────────────────────┤  │
+  │  │  SUM  ─────────────────────────│  $250,000  ✓             │  │
+  │  └────────────────────────────────┴──────────────────────────┘  │
+  └──────────────────────────────────────────────────────────────────┘
+  Roll-Up Summary is created on the MASTER (Account), references CHILDREN (Opps)
+```
 **Content:**
 - Roll-Up Summary fields aggregate values from **child records** onto the **master object** in a master-detail relationship
 - Four aggregation types: **COUNT**, **SUM**, **MIN**, **MAX**
@@ -144,7 +166,30 @@
 **Speaker Notes:** Roll-Up Summary fields must be created on the master object — not the child. The data lives on child records but the summary is surfaced on the master. You can apply a filter to count or sum only specific child records — for example, only count Opportunities where Stage = "Closed Won."
 
 ### Slide 6: Roll-Up Summary Constraints
-**Visual:** A "Cannot Use Roll-Up Summary" warning card listing prohibited scenarios with X marks
+**Visual:**
+```
+  ROLL-UP SUMMARY — CONSTRAINTS / CANNOT BE USED WHEN:
+  ──────────────────────────────────────────────────────────────────────
+  ✗  Relationship is a LOOKUP (not Master-Detail)
+     └─ Fix: convert to Master-Detail, or use Flow/Apex workaround
+
+  ✗  Roll-up field VALUE references a Formula field
+     └─ Formula values are not stored → cannot be aggregated
+
+  ✗  FILTER CRITERIA references a Cross-Object Formula field
+     └─ Same reason — cross-object formula values not stored
+
+  ✗  More than 25 Roll-Up Summary fields already on the object
+     └─ Hard limit: 25 per object
+
+  ✗  Created on the DETAIL side of the relationship
+     └─ Roll-Up Summary fields belong on the MASTER only
+
+  ⚠  Child record changes trigger recalculation
+     └─ May be ASYNCHRONOUS in large orgs (value may lag briefly)
+  ──────────────────────────────────────────────────────────────────────
+  Most tested: "Can I have Roll-Up Summary on a Lookup?" → NO
+```
 **Content:**
 - **Requires Master-Detail:** Roll-Up Summary fields are NOT available for Lookup relationships
 - **Cannot reference formula fields** in the roll-up field value (because formulas are not stored)
@@ -155,7 +200,31 @@
 **Speaker Notes:** The most common exam trap is asking whether you can create a Roll-Up Summary in a Lookup relationship — the answer is always no. If a question describes a scenario that needs a roll-up but the relationship is a Lookup, the solution involves either changing it to a Master-Detail (if appropriate) or using a workaround like a scheduled Apex or Flow.
 
 ### Slide 7: When to Use Formula vs. Roll-Up Summary
-**Visual:** A decision flowchart: "Does the calculation reference child records?" → Yes → Roll-Up Summary / No → "Does it reference fields on the same or parent record?" → Yes → Formula Field
+**Visual:**
+```
+  CHOOSING THE RIGHT CALCULATED FIELD TYPE
+  ──────────────────────────────────────────────────────────────────────
+
+        Does the calculation reference CHILD records?
+                          │
+             ┌────────────┴────────────┐
+             │ YES                     │ NO
+             ▼                         ▼
+    Is there a Master-Detail       Does it reference fields on
+    relationship to those          the SAME or PARENT record?
+    child records?                            │
+             │                    ┌───────────┴───────────┐
+   ┌─────────┴─────────┐          │ YES                   │ NO
+   │ YES    │ NO        │          ▼                       ▼
+   ▼        ▼           │    FORMULA FIELD         Not declarative
+ROLL-UP   Use Flow or   │    (same or parent       → Use Apex or
+SUMMARY   Apex to        │     record reference)    Flow to maintain
+FIELD     maintain it    │     Read-only            calculated value
+
+  ──────────────────────────────────────────────────────────────────────
+  Both Formula and Roll-Up Summary are READ-ONLY — users cannot edit them
+  Both can be used in reports, list views, and validation rules
+```
 **Content:**
 - **Use Formula Field when:** calculating from fields on the same record or parent records, displaying conditional text, transforming data types, building dynamic URLs or links
 - **Use Roll-Up Summary when:** aggregating data from child records in a master-detail relationship (count of Opportunities, total contract value, latest close date)
@@ -164,7 +233,36 @@
 **Speaker Notes:** A common admin design mistake is trying to create a Roll-Up Summary on a record that has a Lookup relationship. Always check the relationship type first. If roll-up is needed and the relationship is a Lookup, you may need to convert it to Master-Detail — but weigh the trade-offs of cascade delete and the 2 master-detail limit.
 
 ### Slide 8: Advanced Formula Patterns
-**Visual:** Three formula example cards showing: (1) Age calculation with TODAY()-BirthDate__c, (2) Discount percentage display using TEXT(Discount__c * 100) & "%", (3) Days until close using CloseDate - TODAY()
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  (1) DAYS ELAPSED / AGE                                         │
+  │  Formula:  TODAY() - BirthDate__c                               │
+  │  Returns:  number of days  (e.g., 14965 days ≈ 41 years)        │
+  │  Return type: Number                                            │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  (2) DISPLAY DISCOUNT AS TEXT PERCENTAGE                        │
+  │  Formula:  TEXT(Discount__c * 100) & "%"                        │
+  │  Returns:  "15%"  (converts number to text, appends % symbol)   │
+  │  Return type: Text                                              │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  (3) DAYS UNTIL CLOSE DATE                                      │
+  │  Formula:  CloseDate - TODAY()                                  │
+  │  Returns:  days remaining (negative value = overdue)            │
+  │  Return type: Number                                            │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  (4) CONDITIONAL TIER LABEL                                     │
+  │  Formula:  IF(Amount > 100000, "High Value", "Standard")        │
+  │  Returns:  text string based on Amount threshold                │
+  │  Return type: Text                                              │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  (5) NULL-SAFE CALCULATION                                      │
+  │  Formula:  BLANKVALUE(Commission__c, 0) * Rate__c               │
+  │  Returns:  0 × Rate instead of error when Commission is blank   │
+  │  Return type: Number or Currency                                │
+  └──────────────────────────────────────────────────────────────────┘
+  Note: subtracting two Date fields returns a NUMBER — set return type accordingly
+```
 **Content:**
 - **Age/Duration:** TODAY() - Date_Field__c returns a number of days
 - **Days until close:** CloseDate - TODAY() → returns days remaining as a number

@@ -8,7 +8,27 @@
 ## 📊 SLIDES
 
 ### Slide 1: The Opportunity Object
-**Visual:** Opportunity record showing key fields: Opportunity Name, Account Name, Stage, Close Date, Amount, Probability, Forecast Category
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                   OPPORTUNITY RECORD                         │
+  ├────────────────────────┬─────────────────────────────────────┤
+  │ Opportunity Name       │ Acme Corp – Platform License        │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Account Name           │ Acme Corporation  [Lookup →]        │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Stage                  │ Proposal/Price Quote                │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Close Date             │ 09/30/2025                          │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Amount                 │ $75,000                             │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Probability            │ 50%   (auto-set from Stage)         │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Forecast Category      │ Best Case  (auto-set from Stage)    │
+  └────────────────────────┴─────────────────────────────────────┘
+  Stage drives both Probability and Forecast Category automatically
+```
 **Content:**
 - Opportunity represents a potential revenue deal in progress
 - Required fields by default: Opportunity Name, Close Date, Stage
@@ -18,7 +38,32 @@
 **Speaker Notes:** The Opportunity object is the heart of sales pipeline management. Admins must understand how the Stage picklist, Probability, and Forecast Category work together — they're tightly coupled and frequently tested on the Admin exam.
 
 ### Slide 2: Opportunity Stages & Probability
-**Visual:** Pipeline funnel with stage names and corresponding probability percentages at each level
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────────┐
+  │                    OPPORTUNITY PIPELINE                        │
+  ├──────────────────────────────────────────────┬─────────────────┤
+  │ Stage                                        │ Probability     │
+  ├──────────────────────────────────────────────┼─────────────────┤
+  │ ████████████████████████████  Prospecting    │     10%         │
+  ├──────────────────────────────────────────────┼─────────────────┤
+  │ ██████████████████████████    Qualification  │     20%         │
+  ├──────────────────────────────────────────────┼─────────────────┤
+  │ ████████████████████████      Needs Analysis │     25%         │
+  ├──────────────────────────────────────────────┼─────────────────┤
+  │ ████████████████████          Value Prop     │     50%         │
+  ├──────────────────────────────────────────────┼─────────────────┤
+  │ ██████████████████            Proposal/Quote │     75%         │
+  ├──────────────────────────────────────────────┼─────────────────┤
+  │ ████████████████              Negotiation    │     90%         │
+  ├──────────────────────────────────────────────┼─────────────────┤
+  │ ██████████████████████████████ Closed Won    │    100%         │
+  ├──────────────────────────────────────────────┼─────────────────┤
+  │ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ Closed Lost   │      0%         │
+  └──────────────────────────────────────────────┴─────────────────┘
+  Stage → auto-sets Probability → auto-sets Forecast Category
+  (Probability can be manually overridden by the rep)
+```
 **Content:**
 - Stages are configured in the Stage picklist: Object Manager → Opportunity → Fields → Stage
 - Each stage has: Stage Name, Type (Open/Closed Won/Closed Lost), Probability (%), Forecast Category
@@ -28,7 +73,26 @@
 **Speaker Notes:** The Stage field is a picklist, but it's special: each value has metadata attached — probability and forecast category. Admins configure this in Object Manager, not just through a normal picklist edit. Remember that probability can always be manually adjusted by the rep regardless of stage.
 
 ### Slide 3: Forecast Categories
-**Visual:** Table mapping Stage Types to Forecast Categories with definitions for each category
+**Visual:**
+```
+  ┌────────────────┬──────────────────┬─────────────────────────────────────┐
+  │ Forecast       │ Stage Type       │ Definition                          │
+  │ Category       │                  │                                     │
+  ├────────────────┼──────────────────┼─────────────────────────────────────┤
+  │ Pipeline       │ Open             │ Early-stage; uncertain; being        │
+  │                │ (Low prob)       │ tracked as potential pipeline        │
+  ├────────────────┼──────────────────┼─────────────────────────────────────┤
+  │ Best Case      │ Open             │ Deal is possible if everything       │
+  │                │ (Mid prob)       │ goes right; may or may not close     │
+  ├────────────────┼──────────────────┼─────────────────────────────────────┤
+  │ Commit         │ Open             │ Rep is highly confident this deal    │
+  │                │ (High prob)      │ WILL close this period               │
+  ├────────────────┼──────────────────┼─────────────────────────────────────┤
+  │ Closed         │ Closed Won       │ Deal is finalized (won or lost);     │
+  │                │ Closed Lost      │ included in actuals reporting        │
+  └────────────────┴──────────────────┴─────────────────────────────────────┘
+  Managers review forecasts at Category level, not individual Stage level
+```
 **Content:**
 - Forecast Categories roll up opportunities into sales forecasts
 - Standard categories: **Pipeline** (early stage), **Best Case** (possible if things go well), **Commit** (sales rep is confident), **Closed** (Won or Lost)
@@ -38,7 +102,26 @@
 **Speaker Notes:** The exam tests the names and meanings of forecast categories. "Commit" means the rep is highly confident the deal will close this period. "Best Case" means it might close. "Pipeline" is early-stage and uncertain. "Closed" applies to both Won and Lost opportunities.
 
 ### Slide 4: Opportunity Teams
-**Visual:** Opportunity record showing Opportunity Team related list with Team Member, Role, and Opportunity Access columns
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                     OPPORTUNITY TEAM                             │
+  ├────────────────────────┬────────────────────┬────────────────────┤
+  │ Team Member            │ Role               │ Opportunity Access │
+  ├────────────────────────┼────────────────────┼────────────────────┤
+  │ Alice Johnson (Owner)  │ Account Executive  │ Read/Write         │
+  ├────────────────────────┼────────────────────┼────────────────────┤
+  │ Carlos Reyes           │ Sales Engineer     │ Read/Write         │
+  ├────────────────────────┼────────────────────┼────────────────────┤
+  │ Maria Santos           │ Sales Manager      │ Read Only          │
+  ├────────────────────────┼────────────────────┼────────────────────┤
+  │ David Park             │ Solutions Architect│ Read Only          │
+  └────────────────────────┴────────────────────┴────────────────────┘
+
+  Opportunity Teams = deal-specific (per Opportunity)
+  Account Teams     = account-level (persists across all deals)
+  Team Roles = vendor-side roles  ≠  Contact Roles (customer-side)
+```
 **Content:**
 - Opportunity Teams allow multiple users to collaborate on a single opportunity
 - Each team member has a Team Role (e.g., Account Executive, Sales Engineer, Sales Manager)
@@ -48,7 +131,35 @@
 **Speaker Notes:** Opportunity Teams solve a common problem: large deals involve multiple people from the vendor side. Adding someone to an Opportunity Team grants them record access and visibility. Remember that the Team Role values are separate from Contact Roles — those are for the people on the CUSTOMER side.
 
 ### Slide 5: Products & Price Books
-**Visual:** Diagram showing Product catalog → Standard Price Book → Custom Price Book → Opportunity
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────┐
+  │                    PRODUCT CATALOG                         │
+  │  Product A  │  Product B  │  Product C  │  Product D       │
+  └──────────────────────────┬─────────────────────────────────┘
+                             │  (Every product needs a Standard Price)
+                             ▼
+  ┌────────────────────────────────────────────────────────────┐
+  │          STANDARD PRICE BOOK  (default, auto-created)      │
+  │  Product A: $1,000 │ Product B: $2,500 │ Product C: $500   │
+  └──────────────────────────┬─────────────────────────────────┘
+                             │  (Copy entries at alternate prices)
+                  ┌──────────┴───────────────┐
+                  │                          │
+                  ▼                          ▼
+  ┌───────────────────────────┐  ┌───────────────────────────┐
+  │   PARTNER PRICE BOOK      │  │  ENTERPRISE PRICE BOOK    │
+  │   Product A: $800         │  │  Product A: $900          │
+  │   Product B: $2,000       │  │  Product B: $2,200        │
+  └──────────────┬────────────┘  └─────────────┬─────────────┘
+                 └────────────────┬─────────────┘
+                                  │  One Price Book per Opportunity
+                                  ▼
+                           ┌──────────────┐
+                           │ OPPORTUNITY  │
+                           │  Line Items  │
+                           └──────────────┘
+```
 **Content:**
 - **Product:** An item or service sold by your company (the catalog)
 - **Standard Price Book:** The default system price book; every product must have a standard price
@@ -59,7 +170,26 @@
 **Speaker Notes:** Think of Products as the catalog and Price Books as different "menus" with different prices for the same items. The Standard Price Book is automatically created in every Salesforce org. Custom Price Books let you offer partner pricing, regional pricing, or promotional pricing.
 
 ### Slide 6: Opportunity Products (Line Items)
-**Visual:** Opportunity record showing Products related list with columns: Product Name, Quantity, Unit Price, Total Price
+**Visual:**
+```
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                    OPPORTUNITY PRODUCTS                            │
+  ├──────────────────────┬──────────┬────────────┬─────────────────────┤
+  │ Product Name         │ Quantity │ Unit Price │ Total Price         │
+  ├──────────────────────┼──────────┼────────────┼─────────────────────┤
+  │ Platform License     │    5     │ $10,000    │ $50,000             │
+  ├──────────────────────┼──────────┼────────────┼─────────────────────┤
+  │ Implementation Svc   │    1     │ $15,000    │ $15,000             │
+  ├──────────────────────┼──────────┼────────────┼─────────────────────┤
+  │ Training Package     │    2     │  $5,000    │ $10,000             │
+  ├──────────────────────┼──────────┼────────────┼─────────────────────┤
+  │                      │          │  TOTAL     │ $75,000 ◀── Amount  │
+  └──────────────────────┴──────────┴────────────┴─────────────────────┘
+
+  Line Item Total = Quantity × Unit Price (minus Discount)
+  Once products are added → Amount field is READ-ONLY (calculated)
+  Only ONE Price Book can be selected per Opportunity
+```
 **Content:**
 - Opportunity Products (also called line items) link Products to Opportunities with quantity and price
 - When products are added, the Opportunity Amount auto-calculates from line item totals
@@ -70,7 +200,29 @@
 **Speaker Notes:** The relationship between Opportunities and Products is called Opportunity Product (or OpportunityLineItem in the API). When a Price Book is selected on the Opportunity and products are added, the Amount field is locked to the total of the line items — it can no longer be edited manually.
 
 ### Slide 7: Revenue & Quantity Schedules
-**Visual:** Timeline diagram showing one Opportunity Product split into monthly revenue installments
+**Visual:**
+```
+  OPPORTUNITY PRODUCT: Platform License — $12,000/year
+  Revenue Schedule Type: Monthly  (12 installments)
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ Jan  │ Feb  │ Mar  │ Apr  │ May  │ Jun  │ Jul  │ Aug  │ Sep ...  │
+  │$1,000│$1,000│$1,000│$1,000│$1,000│$1,000│$1,000│$1,000│$1,000   │
+  └──────────────────────────────────────────────────────────────────┘
+  Each cell = 1 Revenue Schedule Entry
+  Total: 12 × $1,000 = $12,000  (matches line item total)
+
+  ─────────────────────────────────────────────────────────────────
+  QUANTITY SCHEDULE EXAMPLE: 120 units over 12 months
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ Jan │ Feb │ Mar │ Apr │ May │ Jun │ Jul │ Aug │ Sep │ Oct ...    │
+  │ 10  │ 10  │ 10  │ 10  │ 10  │ 10  │ 10  │ 10  │ 10  │ 10       │
+  └──────────────────────────────────────────────────────────────────┘
+
+  Enable per product: Product record → Enable Revenue/Quantity Schedule
+  Forecast reports reflect scheduled amounts by period
+```
 **Content:**
 - Schedules allow a single line item to be distributed over time
 - **Revenue Schedule:** Splits revenue from a product across multiple periods (e.g., monthly SaaS fees)
