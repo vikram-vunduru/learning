@@ -17,7 +17,18 @@
 ## SLIDES
 
 ### Slide 1: Title Slide
-**Visual:** Image of a textbook, practice exam papers, and a final exam sheet arranged sequentially. AI/sparkle overlay.
+**Visual:**
+```
+╔══════════════════════════════════════════════════════════╗
+║         LECTURE 20: TRAINING DATA EXPLAINED             ║
+║                                                          ║
+║  [TEXTBOOK] → Study patterns   (Training Set)            ║
+║  [PRACTICE ] → Tune & adjust   (Validation Set)          ║
+║  [FINAL EXAM] → True measure   (Test Set)                ║
+║                                                          ║
+║  "A model is only as good as what it learned from"       ║
+╚══════════════════════════════════════════════════════════╝
+```
 **Content:**
 - Lecture 20: Training Data Explained
 - "A model is only as good as what it learned from"
@@ -28,7 +39,27 @@
 ---
 
 ### Slide 2: What Is Training Data?
-**Visual:** Diagram showing raw data flowing into a model training process, producing a "trained model" artifact.
+**Visual:**
+```
+   TRAINING DATA — THE ML LEARNING PROCESS
+
+   ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+   │  TRAINING DATA   │    │  LEARNING        │    │  TRAINED MODEL   │
+   │                  │    │  PROCESS         │    │  (artifact)      │
+   │ Historical       │───▶│                  │───▶│                  │
+   │ records with     │    │ Algorithm scans  │    │ Encoded pattern: │
+   │ KNOWN outcomes   │    │ thousands of     │    │ "Industry=Tech   │
+   │                  │    │ examples, finds  │    │  + Revenue>$1M   │
+   │ Ex: 4,200 leads  │    │ patterns that    │    │  + Pricing visit │
+   │ labeled          │    │ predict the      │    │  → 80% conv.     │
+   │ Converted: 842   │    │ label            │    │  probability"    │
+   │ Not Conv.: 3,358 │    │                  │    │                  │
+   └──────────────────┘    └──────────────────┘    └──────────────────┘
+                                                             │
+                                                             ▼
+                                                   NEW LEAD ARRIVES
+                                                   → Prediction: 78%
+```
 **Content:**
 - **Training data** is the dataset used to teach a machine learning model
 - The model studies this data to find patterns, correlations, and rules
@@ -41,7 +72,32 @@
 ---
 
 ### Slide 3: Labeled vs. Unlabeled Data
-**Visual:** Two columns with examples. Left: labeled images with tags. Right: unlabeled data without tags.
+**Visual:**
+```
+   LABELED vs. UNLABELED DATA
+
+   ┌──────────────────────────────┬──────────────────────────────┐
+   │       LABELED DATA           │      UNLABELED DATA          │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ Each record has the          │ Records without assigned     │
+   │ "right answer" attached      │ outcomes — no labels         │
+   │                              │                              │
+   │ Lead: {...}  → Converted ✓   │ Customer: {...}  → ???       │
+   │ Email: {...} → Spam ✓        │ Transaction: {...} → ???     │
+   │ Image: {...} → Cat ✓         │                              │
+   │                              │                              │
+   │ Required for:                │ Used for:                    │
+   │ SUPERVISED LEARNING          │ UNSUPERVISED LEARNING        │
+   │                              │                              │
+   │ Expensive to produce         │ Cheaper — no human          │
+   │ (humans must label it)       │ labeling required            │
+   │                              │                              │
+   │ Salesforce advantage:        │ Ex: Customer segmentation    │
+   │ CRM data has implicit        │ (AI finds its own groups)    │
+   │ labels (Converted,           │                              │
+   │ Closed Won, etc.)            │                              │
+   └──────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 **Labeled Data:**
 - Each record has a **label** — the "right answer" the model is trying to learn
@@ -63,7 +119,30 @@
 ---
 
 ### Slide 4: The Labeling Analogy
-**Visual:** Teacher grading papers on left, stack of ungraded papers on right.
+**Visual:**
+```
+   THE GRADING ANALOGY FOR LABELED DATA
+
+   ┌────────────────────────────┬────────────────────────────┐
+   │    LABELED DATA            │    UNLABELED DATA          │
+   │    = GRADED EXAM           │    = UNGRADED ESSAYS       │
+   ├────────────────────────────┼────────────────────────────┤
+   │                            │                            │
+   │  Q1: Paris ✓               │  Essay A: [no grade]       │
+   │  Q2: 1776  ✓               │  Essay B: [no grade]       │
+   │  Q3: Newton ✓              │  Essay C: [no grade]       │
+   │  Q4: H₂O   ✗               │                            │
+   │                            │  Can group by: length,     │
+   │  You know which            │  topic, writing style      │
+   │  answers are right         │  But NOT which are "good"  │
+   │                            │                            │
+   │ Annotation: Human labels   │ Clustering: AI finds       │
+   │ each record (expensive)    │ groups without guidance    │
+   │                            │                            │
+   │ Salesforce advantage:      │                            │
+   │ CRM history = pre-labeled  │                            │
+   └────────────────────────────┴────────────────────────────┘
+```
 **Content:**
 **The Grading Analogy:**
 - **Labeled data** = a graded exam — you know which answers were right and wrong

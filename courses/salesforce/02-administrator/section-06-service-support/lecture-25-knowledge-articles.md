@@ -76,7 +76,30 @@
 **Speaker Notes:** The exam may reference both but favors Lightning Knowledge concepts. The key difference: Classic Knowledge uses separate Article Type objects, making each type behave like a different object. Lightning Knowledge uses one Article object with Record Types — a model familiar to any Salesforce admin.
 
 ### Slide 3: Article Record Types
-**Visual:** Record Type selector showing options: FAQ, How-To, Solution, Reference Guide
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │             New Article — Select a Record Type               │
+  ├──────────────────────────────────────────────────────────────┤
+  │                                                              │
+  │  ◉  FAQ                                                      │
+  │     Fields: Question, Answer, Related Category               │
+  │                                                              │
+  │  ○  How-To Guide                                             │
+  │     Fields: Overview, Steps (rich text), Prerequisites       │
+  │                                                              │
+  │  ○  Known Issue / Solution                                   │
+  │     Fields: Issue Description, Workaround, Fix Date          │
+  │                                                              │
+  │  ○  Reference Guide                                          │
+  │     Fields: Summary, Detailed Content, Related Products      │
+  │                                                              │
+  │              [ Continue ]    [ Cancel ]                      │
+  └──────────────────────────────────────────────────────────────┘
+  Each Record Type → its own page layout, fields, validation rules
+  Setup: Object Manager → Knowledge → Record Types
+  Agents must have the Record Type assigned to their profile
+```
 **Content:**
 - Record Types in Lightning Knowledge differentiate article categories
 - Examples: FAQ (question/answer format), How-To (step-by-step), Known Issue (bug documentation), Reference (product specs)
@@ -87,7 +110,29 @@
 **Speaker Notes:** Record Types for Knowledge work exactly like Record Types on any other Salesforce object. They let you create different structures for different kinds of articles. A How-To article needs different fields than a Known Issue article. Using Record Types keeps your knowledge base organized and consistent.
 
 ### Slide 4: Data Categories for Visibility
-**Visual:** Tree diagram showing Data Category Groups (Product, Region) with categories branching beneath each (Product A, Product B; North America, Europe)
+**Visual:**
+```
+  DATA CATEGORY GROUPS
+
+  ┌───────────────────┐                  ┌───────────────────┐
+  │     PRODUCT       │                  │      REGION       │
+  │  Category Group   │                  │  Category Group   │
+  └─────────┬─────────┘                  └─────────┬─────────┘
+            │                                      │
+     ┌──────┴──────┐                    ┌──────────┴──────────┐
+     │             │                    │                     │
+     ▼             ▼                    ▼                     ▼
+┌──────────┐ ┌──────────┐         ┌──────────────┐  ┌──────────────┐
+│ Product A│ │ Product B│         │ North America │  │    Europe    │
+└────┬─────┘ └──────────┘         └──────┬───────┘  └──────┬───────┘
+     │                                   │                  │
+  ┌──┴──┐                         ┌──────┴────┐      ┌──────┴────┐
+  ▼     ▼                         ▼           ▼      ▼           ▼
+ A.1   A.2                    US/Canada    LATAM    UK           DACH
+
+  Articles tagged with categories ──▶ Visibility set per profile
+  Dual purpose: Organization taxonomy AND access control
+```
 **Content:**
 - Data Categories control which articles are visible to which users and channels
 - Structure: Category Group → Categories → Subcategories (up to 5 levels)
@@ -98,7 +143,33 @@
 **Speaker Notes:** Data Categories serve a dual purpose: they're an organizational taxonomy AND a visibility control mechanism. An agent in the North America region might only see articles tagged with the "North America" category. This lets you maintain one knowledge base while showing different content to different audiences.
 
 ### Slide 5: Article Lifecycle
-**Visual:** Status flow: Draft → In Review → Published → Archived (with arrows showing transitions and possible return paths)
+**Visual:**
+```
+  ┌──────────┐
+  │  DRAFT   │◀──────────────────────────────────────────┐
+  │(Writing) │                                           │
+  └────┬─────┘                                           │ Restore
+       │  Submit for Review                              │ (→ Draft)
+       ▼                                                 │
+  ┌──────────┐                                      ┌────┴──────┐
+  │   IN     │                                      │ ARCHIVED  │
+  │  REVIEW  │                                      │(Retained, │
+  └────┬─────┘                                      │ not live) │
+       │  Approve and Publish                        └───────────┘
+       ▼                                                  ▲
+  ┌──────────────────────────┐                            │ Archive
+  │       PUBLISHED          │────────────────────────────┘
+  │  (Live and visible)      │  (removes from search/portals)
+  └──────────┬───────────────┘
+             │  [Edit]
+             ▼
+     New DRAFT version created
+     Original Published version stays LIVE
+     until new draft is published
+
+  Only ONE version is Published at a time
+  Archived ≠ Deleted → can be restored to Draft
+```
 **Content:**
 - **Draft:** Article is being written; not visible to end users
 - **In Review / Review:** Article has been submitted for review; not yet published
@@ -110,7 +181,32 @@
 **Speaker Notes:** The lifecycle ensures content quality before publication. The important nuance for the exam: when you edit a published article, Salesforce creates a new DRAFT version. The original published version remains live until you publish the new draft. This prevents accidental removal of working content during editing.
 
 ### Slide 6: Article Actions & Management
-**Visual:** Article record action menu showing: Submit for Review, Publish, Archive, Restore, Delete options
+**Visual:**
+```
+  ARTICLE: "How to Reset Your Password"   Status: Published
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Actions ▼                                                   │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Edit            ──▶  Creates new DRAFT version              │
+  │                       Original Published stays live          │
+  │                       during editing                         │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Submit for      ──▶  Sends Draft to reviewer queue          │
+  │  Review                                                      │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Publish         ──▶  Makes current Draft live               │
+  │                       (replaces old Published version)       │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Archive         ──▶  Removes from search and portals        │
+  │                       Record is RETAINED (not deleted)       │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Restore         ──▶  Moves Archived article back to Draft   │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Delete          ──▶  Available for Draft or Archived only   │
+  │                       (Published articles cannot be deleted) │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Promote to Knowledge Base:** Suggests articles from case solutions
 - **Promote Solution:** Converts a Case Solution to a Knowledge article (Classic-era feature)
@@ -122,7 +218,31 @@
 **Speaker Notes:** Archiving is the clean way to remove an outdated article from active use without permanently deleting it. You archive first, which removes it from user-facing search, and the article can be restored to Draft if it needs to be updated and republished. Permanent deletion is typically reserved for junk or accidental drafts.
 
 ### Slide 7: Knowledge in Case Management
-**Visual:** Case record showing Knowledge search sidebar with suggested articles and "Attach to Case" button
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                       CASE RECORD                            │
+  │  Case #: 00001042  │  Subject: Login page not loading        │
+  ├──────────────────────────────┬───────────────────────────────┤
+  │   CASE DETAILS               │   KNOWLEDGE SIDEBAR           │
+  │                              ├───────────────────────────────┤
+  │   Status:   Working          │  Suggested Articles           │
+  │   Priority: High             │  ─────────────────────────    │
+  │   Account:  Acme Corp        │  ► How to Clear Cache         │
+  │   Contact:  Jane Doe         │    (87% relevance match)      │
+  │   Description:               │                               │
+  │   Cannot log in              │  ► Login Troubleshooting      │
+  │   since 8am today...         │    Guide (82% match)          │
+  │                              │                               │
+  │                              │  ► Browser Compatibility      │
+  │                              │    Matrix (75% match)         │
+  │                              │                               │
+  │                              │  [Attach to Case]             │
+  │                              │  [View Full Article]          │
+  └──────────────────────────────┴───────────────────────────────┘
+  Suggested Articles: uses case Subject + Description for matching
+  Agents can also create new articles directly from case solutions
+```
 **Content:**
 - Agents can search the Knowledge base directly from a Case record
 - Articles can be attached to a Case (tracked in the Knowledge Articles related list)
@@ -133,7 +253,30 @@
 **Speaker Notes:** The Case-Knowledge integration is the primary use case for agents. Instead of opening a separate tab and searching, agents get article suggestions right on the case. When an agent finds the right article, they can view it, attach it to the case for tracking, or even share the article URL with the customer via email.
 
 ### Slide 8: Knowledge Permissions & Channels
-**Visual:** Table showing four channels: Internal App, Customer Community, Partner Community, Public Knowledge Base with checkboxes for visibility
+**Visual:**
+```
+  ARTICLE: "Login Troubleshooting Guide" — Publication Channels:
+  ┌───────────────────────┬───────────────────────────┬──────────┐
+  │ Channel               │ Audience                  │ Visible? │
+  ├───────────────────────┼───────────────────────────┼──────────┤
+  │ Internal App          │ Agents (Salesforce org)   │ ☑ Yes    │
+  ├───────────────────────┼───────────────────────────┼──────────┤
+  │ Customer Community    │ Logged-in customers       │ ☑ Yes    │
+  ├───────────────────────┼───────────────────────────┼──────────┤
+  │ Partner Community     │ Partners (portal)         │ ☐ No     │
+  ├───────────────────────┼───────────────────────────┼──────────┤
+  │ Public Site           │ Anyone on the web         │ ☑ Yes    │
+  └───────────────────────┴───────────────────────────┴──────────┘
+
+  USER PERMISSIONS FOR KNOWLEDGE:
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Knowledge User (checkbox)    ──▶ Can search & read articles│
+  │  Manage Articles (permission) ──▶ Can create, publish,      │
+  │                                   archive articles          │
+  └─────────────────────────────────────────────────────────────┘
+  Data Category Visibility: Setup → Data Category Visibility
+                            (set per profile)
+```
 **Content:**
 - Article Visibility is controlled per channel during publication
 - Channels: **Internal App** (agents in Salesforce), **Customer Community** (logged-in customers), **Partner Community** (partners), **Public Site** (anyone on the web)

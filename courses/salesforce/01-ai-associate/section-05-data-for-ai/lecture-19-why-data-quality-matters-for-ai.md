@@ -434,7 +434,25 @@ The 6 Dimensions of Data Quality:
 ---
 
 ### Slide 12: Exam Recap and Key Terms
-**Visual:** Table of key terms and definitions.
+**Visual:**
+```
+   DATA QUALITY — EXAM KEY TERMS
+
+   ┌────────────────────┬────────────────────────────────────────┐
+   │  TERM              │  ONE-LINE DEFINITION                   │
+   ├────────────────────┼────────────────────────────────────────┤
+   │ GIGO               │ Garbage In, Garbage Out — bad data     │
+   │                    │ produces bad AI output                 │
+   │ Data Quality       │ Fitness of data for its intended use   │
+   │ Accuracy           │ Data correctly represents reality      │
+   │ Completeness       │ No missing values in required fields   │
+   │ Consistency        │ Data agrees across systems and time    │
+   │ Timeliness         │ Data is current and up-to-date         │
+   │ Validity           │ Data conforms to format/rule standards │
+   │ Uniqueness         │ Each entity appears only once          │
+   │ Data Profiling     │ Analyzing data to understand quality   │
+   └────────────────────┴────────────────────────────────────────┘
+```
 **Content:**
 
 | Term | One-Line Definition |
