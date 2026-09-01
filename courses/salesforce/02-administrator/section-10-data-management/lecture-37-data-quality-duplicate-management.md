@@ -10,7 +10,29 @@
 ## 📊 SLIDES
 
 ### Slide 1: The Duplicate Management Framework
-**Visual:** Three-tier architecture diagram: Matching Rules (bottom) → Duplicate Rules (middle) → User Experience (top: alert/block message), with arrows showing the flow
+**Visual:**
+```
+  ┌─────────────────────────────────────────────────────────────┐
+  │  USER EXPERIENCE (top)                                      │
+  │  Alert banner / Block error / Silent log                    │
+  └───────────────────────────┬─────────────────────────────────┘
+                              ▲
+                              │ triggers action
+  ┌───────────────────────────┴─────────────────────────────────┐
+  │  DUPLICATE RULES (middle)                                   │
+  │  WHAT to do when a duplicate is detected                    │
+  │  → Alert  │  Block  │  Report (allow + log)                 │
+  └───────────────────────────┬─────────────────────────────────┘
+                              ▲
+                              │ references
+  ┌───────────────────────────┴─────────────────────────────────┐
+  │  MATCHING RULES (bottom)                                    │
+  │  HOW to identify potential duplicates                       │
+  │  → Which fields to compare and what match type to use       │
+  └─────────────────────────────────────────────────────────────┘
+
+  Works on: Save (new/edit records)  AND  Duplicate Jobs (existing data)
+```
 **Content:**
 - Salesforce's duplicate management consists of two components:
   1. **Matching Rules:** Define HOW to identify a potential duplicate (the algorithm)
@@ -22,7 +44,27 @@
 **Speaker Notes:** The two-tier approach separates the detection logic from the enforcement action. This means you can reuse the same matching rule in multiple duplicate rules with different actions. For example, one duplicate rule might just alert users (for Contacts), while another blocks saves entirely (for critical Account records). This architecture gives admins granular control.
 
 ### Slide 2: Matching Rules — How Duplicate Detection Works
-**Visual:** Matching Rule configuration screen showing a field list with match types: Exact, First Word, Last Word, Full Name, Email (exact), Phone (fuzzy — normalizes formatting)
+**Visual:**
+```
+  Matching Rule Configuration — Contact Example
+
+  ┌──────────────┬──────────────────────┬─────────────────────────┐
+  │ Field        │ Match Type           │ Example                 │
+  ├──────────────┼──────────────────────┼─────────────────────────┤
+  │ First Name   │ Fuzzy — First Word   │ "Bob" matches "Robert"  │
+  │ Last Name    │ Exact                │ "Smith" = "Smith" only  │
+  │ Email        │ Exact                │ full address must match │
+  │ Phone        │ Fuzzy — Normalize    │ 555-1234 = (555) 1234   │
+  │ Account Name │ Fuzzy — Acronym      │ "IBM" = "Intl Business  │
+  │              │                      │  Machines"              │
+  └──────────────┴──────────────────────┴─────────────────────────┘
+
+  Fields combined → weighted match score
+  Score above threshold → flagged as potential duplicate
+
+  Match types: Exact │ Fuzzy │ First Word │ Last Word │ Acronym │
+               Phone (normalize) │ Email
+```
 **Content:**
 - A **Matching Rule** specifies:
   - Which **fields** to compare between the new record and existing records
@@ -38,7 +80,27 @@
 **Speaker Notes:** Fuzzy matching is what makes Salesforce duplicate detection intelligent. Instead of just checking if "IBM" equals "IBM," fuzzy matching can detect that "IBM Corp" and "International Business Machines Corporation" likely refer to the same company. Different match types are better for different field types. Phone normalization is particularly useful because users enter phone numbers in many formats. The matching threshold is a percentage score — records above the threshold are flagged as potential duplicates.
 
 ### Slide 3: Standard Matching Rules and Duplicate Rules
-**Visual:** Table showing three standard sets: (1) Standard Contact Matching Rule + Standard Contact Duplicate Rule, (2) Standard Lead Matching Rule + Standard Lead Duplicate Rule, (3) Standard Account Matching Rule + Standard Account Duplicate Rule
+**Visual:**
+```
+  ┌──────────────────────┬──────────────────────┬──────────────────────┐
+  │  CONTACTS            │  LEADS               │  ACCOUNTS            │
+  ├──────────────────────┼──────────────────────┼──────────────────────┤
+  │ Standard Contact     │ Standard Lead        │ Standard Account     │
+  │ Matching Rule        │ Matching Rule        │ Matching Rule        │
+  │                      │                      │                      │
+  │ Fields: First Name,  │ Fields: First Name,  │ Fields: Account Name,│
+  │ Last Name,           │ Last Name,           │ Billing Address      │
+  │ Account Name, Email  │ Company, Email       │                      │
+  ├──────────────────────┼──────────────────────┼──────────────────────┤
+  │ Standard Contact     │ Standard Lead        │ Standard Account     │
+  │ Duplicate Rule       │ Duplicate Rule       │ Duplicate Rule       │
+  │                      │                      │                      │
+  │ Default action:      │ Default action:      │ Default action:      │
+  │ ALERT (warn, allow)  │ ALERT (warn, allow)  │ ALERT (warn, allow)  │
+  └──────────────────────┴──────────────────────┴──────────────────────┘
+
+  ⚠ Standard rules are INACTIVE by default — admin must ACTIVATE them
+```
 **Content:**
 - **Standard Contact Matching Rule:** Matches on First Name, Last Name, Account Name, Email (fuzzy + exact combinations)
 - **Standard Lead Matching Rule:** Matches on First Name, Last Name, Company, Email
@@ -51,7 +113,27 @@
 **Speaker Notes:** Standard rules come pre-configured but inactive. An admin must activate them for them to have any effect. This is a common gotcha — duplicate rules only work when activated. The default standard rules use the Alert action, which warns users without blocking saves. If your business needs stricter enforcement, edit the rule to use the Block action instead. You can also create custom matching and duplicate rules for custom objects or for more complex matching logic.
 
 ### Slide 4: Duplicate Rule Actions — Alert, Block, Report
-**Visual:** Three outcome screenshots: (1) Alert: yellow banner "Possible duplicate found" with option to continue, (2) Block: red error "Record cannot be saved - duplicate detected", (3) Report Only: no UI feedback, record saves but logged
+**Visual:**
+```
+  ┌──────────────────────┬──────────────────────┬──────────────────────┐
+  │  ALERT               │  BLOCK               │  REPORT              │
+  │  (warn, allow)       │  (prevent save)      │  (silent log)        │
+  ├──────────────────────┼──────────────────────┼──────────────────────┤
+  │ ⚠ Yellow banner:     │ ✗ Red error:         │ Record saves         │
+  │ "Possible duplicate  │ "Record cannot be    │ with no visible      │
+  │  found"              │  saved — duplicate   │ warning to user      │
+  │                      │  detected"           │                      │
+  │ Shows existing       │ User cannot save     │ Duplicate pair       │
+  │ duplicate records    │ until resolved       │ logged in system     │
+  │ for comparison       │                      │ report               │
+  │                      │                      │                      │
+  │ User can review      │ Admin must resolve   │ Admin reviews        │
+  │ and save anyway      │ or use bypass        │ report periodically  │
+  ├──────────────────────┼──────────────────────┼──────────────────────┤
+  │ Strictness: LOW      │ Strictness: HIGH     │ Strictness: NONE     │
+  │ Good for rollout     │ Zero tolerance       │ Background monitor   │
+  └──────────────────────┴──────────────────────┴──────────────────────┘
+```
 **Content:**
 - **Alert:**
   - Shows a warning to the user: "Possible duplicate found"
@@ -69,7 +151,29 @@
 **Speaker Notes:** The three actions represent three different philosophies. Alert trusts users to make the right call — it warns but doesn't block. Block takes control away from the user — zero tolerance for duplicates. Report is the stealth option — silent monitoring that lets admins review the duplicate situation without disrupting workflows. Choose Alert for initial rollout to avoid user frustration; switch to Block once data quality standards are established and users understand the process.
 
 ### Slide 5: Duplicate Rules Configuration Details
-**Visual:** Duplicate Rule configuration screen showing: Object selector, Action (Alert/Block), On Create/On Edit checkboxes, Security settings (run on profile exceptions), and Associated Matching Rule selector
+**Visual:**
+```
+  Duplicate Rule Configuration Screen
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Object:  [Contact                              ▼]           │
+  │  Action:  ◉ Alert  ○ Block  ○ Allow with Report             │
+  │                                                              │
+  │  When to run:                                                │
+  │  ☑ On Create    ☑ On Edit                                    │
+  │                                                              │
+  │  Compare against:                                            │
+  │  ◉ All records (recommended — full coverage)                 │
+  │  ○ Records user can access (limited by sharing)              │
+  │                                                              │
+  │  Profile/Permission Set bypass:                              │
+  │  [Add profiles or permission sets to skip this rule]         │
+  │  ← use for data migration users, system admin bypass         │
+  │                                                              │
+  │  Associated Matching Rule:                                   │
+  │  [Standard Contact Matching Rule            ▼]              │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **When to run:**
   - **On Create:** Check for duplicates when a new record is created
@@ -84,7 +188,32 @@
 **Speaker Notes:** The "compare against" setting is important. If set to "records user can access," a user with limited data visibility might not be alerted to duplicates that exist outside their sharing scope. For true org-wide deduplication, set it to "all records." The profile bypass is essential for data migration: temporarily add your data migration profile to the bypass list so imports aren't blocked by duplicate rules.
 
 ### Slide 6: Duplicate Jobs — Cleaning Existing Data
-**Visual:** Setup → Duplicate Jobs screen showing: Create New Job (select object, associated rules), Job status (Running/Complete), Results showing X potential duplicates found, Download Results button
+**Visual:**
+```
+  Setup → Duplicate Management → Duplicate Jobs
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  [ + New Job ]                                               │
+  │                                                              │
+  │  Object to scan: [Account                        ▼]         │
+  │  Matching Rule:  [Standard Account Matching Rule ▼]         │
+  │  Filter (optional): [Modified in last 90 days]              │
+  │                                                              │
+  │  [ Run Job ]                                                 │
+  └──────────────────────────────────────────────────────────────┘
+                        │
+                        ▼  (job runs asynchronously)
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Job Status: Complete                                        │
+  │  Potential duplicates found: 247 pairs                       │
+  │                                                              │
+  │  [ Download Results CSV ]                                    │
+  └──────────────────────────────────────────────────────────────┘
+                        │
+                        ▼  admin manually reviews and merges
+  Does NOT auto-merge — false positives exist (e.g., two different
+  "John Smith" contacts may be genuinely different people)
+```
 **Content:**
 - **Duplicate Jobs** scan existing records in the org for duplicates
 - Useful when duplicate rules are newly activated — existing data may already have duplicates
@@ -99,7 +228,29 @@
 **Speaker Notes:** Duplicate Jobs are the after-the-fact cleanup tool. If you enable duplicate rules today but have three years of data with duplicates, Duplicate Jobs help you find and clean that existing mess. The job produces a report of potential duplicate pairs — you then review and merge the ones that are actual duplicates. The job doesn't merge automatically because false positives exist — two "John Smith" Contacts might be genuinely different people.
 
 ### Slide 7: Merging Duplicate Records
-**Visual:** Merge Records screen showing: three Contact records side by side with radio buttons to choose the master record and individual field value selections, with a "Merge" button
+**Visual:**
+```
+  Merge Records — Contact Example (up to 3 at once)
+
+  ┌──────────────────┬──────────────────┬──────────────────┐
+  │  Record A        │  Record B        │  Record C        │
+  │  (Master ◉)      │  (Merge ○)       │  (Merge ○)       │
+  ├──────────────────┼──────────────────┼──────────────────┤
+  │ First: John      │ First: John      │ First: John      │
+  │ Last:  Smith     │ Last:  Smith     │ Last:  Smith     │
+  ├──────────────────┼──────────────────┼──────────────────┤
+  │ Phone: ◉555-1234 │ Phone: ○         │ Phone: ○         │
+  │ Email: ○         │ Email: ◉j@co.com │ Email: ○         │
+  │ Title: ○         │ Title: ○         │ Title:◉Director  │
+  └──────────────────┴──────────────────┴──────────────────┘
+  Cherry-pick best values from each record ──▶ [ Merge ]
+
+  After merge:
+  • Master record (A) preserved with ID intact
+  • Records B and C deleted
+  • All Activities, Opportunities, Cases from B & C reparented to A
+  • Requires "Delete" permission on the object
+```
 **Content:**
 - Merge combines duplicate records into a single "master" record
 - **Supported objects (standard merge tool):** Accounts, Contacts, Leads
@@ -114,7 +265,35 @@
 **Speaker Notes:** The merge operation is critical because it consolidates history. When you merge two Contacts, all Activities, Opportunities, and Cases associated with both Contacts are transferred to the master record. The master record's ID is preserved, which matters for integrations and reports. Always review field values carefully before merging — you can cherry-pick the best data from each duplicate. For example, one record might have the right phone number but the other has the right email.
 
 ### Slide 8: Data Quality Best Practices
-**Visual:** Data quality pyramid showing layers: Governance (top) → Validation Rules → Duplicate Management → Import Best Practices → Training (base)
+**Visual:**
+```
+  Data Quality — Layered Approach
+
+           ┌───────────────────────────────┐
+           │      GOVERNANCE               │  ← standards, audits,
+           │  policies + training          │    user training
+           └───────────────┬───────────────┘
+                           │
+           ┌───────────────▼───────────────┐
+           │    VALIDATION RULES           │  ← prevent bad data
+           │  required fields + formats    │    from entering
+           └───────────────┬───────────────┘
+                           │
+           ┌───────────────▼───────────────┐
+           │  DUPLICATE MANAGEMENT         │  ← prevent/detect/
+           │  matching + duplicate rules   │    flag duplicates
+           └───────────────┬───────────────┘
+                           │
+           ┌───────────────▼───────────────┐
+           │  IMPORT BEST PRACTICES        │  ← clean data
+           │  dedup before import, map     │    at ingestion
+           └───────────────┬───────────────┘
+                           │
+           ┌───────────────▼───────────────┐
+           │  REMEDIATION                  │  ← fix existing
+           │  merge tools + bulk updates   │    bad data
+           └───────────────────────────────┘
+```
 **Content:**
 - **Prevention layer:** Validation rules, required fields, duplicate rules (block on create)
 - **Detection layer:** Duplicate rules (alert), Duplicate Jobs, reports

@@ -12,7 +12,28 @@
 ## Slides
 
 ### Slide 1: Why Voice Testing Is Different
-**Visual:** Split diagram — on the left, a software test pyramid (unit, integration, E2E) for a standard app; on the right, a voice test matrix adding speech recognition accuracy, audio quality, latency, and human factors as new test dimensions
+**Visual:**
+```
+  STANDARD TEST PYRAMID          VOICE TEST MATRIX (additional dimensions)
+  ┌─────────────────────┐        ┌─────────────────────────────────────┐
+  │         E2E         │        │  Speech Recognition Accuracy        │
+  │    ─────────────    │        │   Word Error Rate (WER) testing     │
+  │     Integration     │ ──▶    ├─────────────────────────────────────┤
+  │  ───────────────    │  add   │  Audio Quality                      │
+  │       Unit          │  these │   MOS score, latency, jitter        │
+  │  ───────────────    │        ├─────────────────────────────────────┤
+  └─────────────────────┘        │  Latency / Conversational Feel      │
+                                 │   Response time under 2 seconds     │
+                                 ├─────────────────────────────────────┤
+                                 │  Human Factors                      │
+                                 │   Prompt clarity, retry phrasing,   │
+                                 │   natural conversation flow          │
+                                 ├─────────────────────────────────────┤
+                                 │  Voice-Specific Failure Modes       │
+                                 │   Silence, background noise,        │
+                                 │   accents, DTMF timing              │
+                                 └─────────────────────────────────────┘
+```
 
 **Content:**
 - Voice adds dimensions that do not exist in traditional software testing
@@ -28,7 +49,31 @@
 ---
 
 ### Slide 2: Three Testing Modes
-**Visual:** Three-panel comparison — Panel 1: Amazon Connect test call interface; Panel 2: Salesforce Debug Log viewer with voice events highlighted; Panel 3: Agentforce Conversation Simulator interface
+**Visual:**
+```
+  THREE TESTING MODES — USE IN SEQUENCE
+
+  BUILD PHASE              INTEGRATION PHASE         PRE-LAUNCH PHASE
+  ┌─────────────────┐      ┌──────────────────┐      ┌──────────────────┐
+  │  CONVERSATION   │      │  DEBUG LOGS      │      │  AMAZON CONNECT  │
+  │  SIMULATOR      │      │                  │      │  TEST CALLS      │
+  │                 │      │  Enable at FINE  │      │                  │
+  │  Text-based     │      │  level for Voice │      │  Real phone call │
+  │  No phone needed│      │  integration user│      │  Full PSTN stack │
+  │  Fast iteration │      │                  │      │  Audio quality   │
+  │                 │      │  Shows:          │      │  CTI behavior    │
+  │  Tests:         │      │  • Flow element  │      │  Agent desktop   │
+  │  • NLU logic    │      │    execution     │      │  experience      │
+  │  • Intent routing      │  • SOQL results  │      │                  │
+  │  • Agent replies│      │  • DML ops       │      │  Validates:      │
+  │  • Escalation   │      │  • Exceptions    │      │  Full end-to-end │
+  │    paths        │      │                  │      │  Ring time       │
+  └─────────────────┘      └──────────────────┘      └──────────────────┘
+       │                         │                         │
+       └─────────────────────────┴─────────────────────────┘
+                     ────────────────────────────────────▶
+                          Increasing fidelity and effort
+```
 
 **Content:**
 - **Amazon Connect Test Calls:** make real calls from the Connect console; tests full phone stack including CTI, routing, and Voice Flow
@@ -42,7 +87,29 @@
 ---
 
 ### Slide 3: Test Case Categories
-**Visual:** Five-column table with categories as headers: Happy Path, Mishear/Low Confidence, Silence, DTMF Input, Escalation Trigger — with two example test cases under each
+**Visual:**
+```
+  VOICE TEST CASE CATEGORIES
+  ┌─────────────┬──────────────────┬──────────────┬─────────────┬──────────────────┐
+  │ Happy Path  │ Mishear /        │ Silence      │ DTMF Input  │ Escalation       │
+  │             │ Low Confidence   │              │             │ Trigger          │
+  ├─────────────┼──────────────────┼──────────────┼─────────────┼──────────────────┤
+  │ Clear       │ Mumbled speech   │ Caller goes  │ Each key    │ "Speak to agent" │
+  │ intent      │                  │ silent       │ 1-9, *, #   │ phrase           │
+  ├─────────────┼──────────────────┼──────────────┼─────────────┼──────────────────┤
+  │ Expected    │ Background noise │ No-input     │ Unexpected  │ Complaint        │
+  │ resolution  │                  │ timeout      │ key         │ language keyword │
+  │ achieved    │ Ambiguous        │ fires        │             │                  │
+  ├─────────────┤ utterance        ├──────────────┼─────────────┼──────────────────┤
+  │ No errors   │                  │ 3-retry      │ Partial     │ Confidence       │
+  │ or fallback │ Low confidence   │ logic works  │ input       │ threshold retry  │
+  │ needed      │ triggers retry   │              │ (stops mid) │ exhausted        │
+  │             │                  │ Escalate on  ├─────────────┼──────────────────┤
+  │             │ Retry exhausted  │ 3rd silence  │ Digit       │ Specific intent  │
+  │             │ → escalate       │ → Transfer   │ timeout     │ trigger (legal,  │
+  │             │                  │   to Agent   │             │ fraud, billing)  │
+  └─────────────┴──────────────────┴──────────────┴─────────────┴──────────────────┘
+```
 
 **Content:**
 - **Happy Path:** caller states intent clearly, system responds correctly, resolution achieved without errors
@@ -56,7 +123,32 @@
 ---
 
 ### Slide 4: Verifying Transcription Quality
-**Visual:** Side-by-side comparison of intended utterance vs. transcribed text for ten test phrases; some show correct transcription, some show errors with highlighted differences
+**Visual:**
+```
+  TRANSCRIPTION QUALITY TESTING — WER ANALYSIS
+  ┌──────────────────────────────────────────────────────────┐
+  │  Utterance (intended)           Transcribed Output       │
+  ├─────────────────────────────────┼────────────────────────┤
+  │  "Check my account balance"     │ "Check my account      │  ✓ Correct
+  │                                 │  balance"              │
+  ├─────────────────────────────────┼────────────────────────┤
+  │  "KloudSync subscription"       │ "cloud sync            │  ✗ WER: 2/3
+  │                                 │  subscription"         │    ← add to vocab
+  ├─────────────────────────────────┼────────────────────────┤
+  │  "BCMS billing portal"          │ "be cms billing portal"│  ✗ WER: 2/4
+  │                                 │                        │    ← add acronym
+  ├─────────────────────────────────┼────────────────────────┤
+  │  "Account number 90210"         │ "Account number 90210" │  ✓ Correct
+  ├─────────────────────────────────┼────────────────────────┤
+  │  "I'd like to upgrade my plan"  │ "I'd like to upgrade   │  ✓ Correct
+  │                                 │  my plan"              │
+  └──────────────────────────────────────────────────────────┘
+
+  Fix: Amazon Transcribe Custom Vocabulary
+       Add product names, acronyms, industry jargon with phonetic hints
+  Target: Word Error Rate (WER) < 15% for English
+  Test with: diverse speaker profiles (accents, ages, speech rates)
+```
 
 **Content:**
 - Test transcription quality by comparing spoken phrases to Amazon Transcribe output in Call Recordings/Transcripts
@@ -71,7 +163,43 @@
 ---
 
 ### Slide 5: Debugging Misrouted Intents
-**Visual:** Flow chart showing the debug path: incorrect routing observed → check VoiceCall record intent field → check Debug Log for Flow execution → check Agentforce agent conversation log → identify failure point
+**Visual:**
+```
+  MISROUTED INTENT DEBUGGING PATH
+  ┌──────────────────────────────────────────────────────────┐
+  │  Symptom: caller routed to wrong queue                   │
+  └──────────────────────┬───────────────────────────────────┘
+                         │
+                         ▼
+  Step 1: Check VoiceCall record ──▶ Intent field value
+                         │
+          ┌──────────────┴──────────────┐
+          │                             │
+   Intent CORRECT                Intent WRONG or EMPTY
+   but routing failed                   │
+          │                    ┌────────┴────────┐
+          ▼                    │                 │
+   Problem: Flow Decision   Intent wrong    Intent empty
+   logic or queue assignment      │               │
+          │                       ▼               ▼
+          ▼                  NLU config      Transcription /
+  Step 2: Enable Debug Log   in Agent       STT integration
+  FINE level for Voice       Studio         layer issue
+  integration user                │               │
+          │                       ▼               ▼
+          ▼              Check: Agentforce   Check: Amazon
+  Step 3: Check Flow     conversation log   Connect CTR
+  execution order,       (Agent Studio >    (Contact Trace
+  SOQL results,          Conversation       Record)
+  exceptions             History)
+
+  COMMON ROOT CAUSES:
+  ┌─────────────────────────────────────────────────────────┐
+  │  • Intent name mismatch between Flow and Agent config   │
+  │  • Missing entity extraction in agent definition        │
+  │  • Flow Decision criteria logic error                   │
+  └─────────────────────────────────────────────────────────┘
+```
 
 **Content:**
 - Symptom: caller routed to wrong queue or agent fails to understand intent correctly
@@ -87,7 +215,29 @@
 ---
 
 ### Slide 6: Voice Quality Metrics
-**Visual:** Dashboard with four metric tiles: MOS Score (current: 4.1/5.0, target: ≥4.0), Round-Trip Latency (current: 285ms, target: <400ms), Packet Loss (current: 0.3%, target: <1%), Jitter (current: 12ms, target: <30ms)
+**Visual:**
+```
+  VOICE QUALITY METRICS DASHBOARD (Amazon CloudWatch — Connect deployments)
+  ┌──────────────────────────┐  ┌──────────────────────────┐
+  │   MOS SCORE              │  │  ROUND-TRIP LATENCY      │
+  │                          │  │                          │
+  │   4.1 / 5.0    ✓         │  │   285 ms         ✓       │
+  │   Target: ≥ 4.0          │  │   Target: < 400 ms       │
+  │   ████████████░          │  │   ░░░████░░░░░░░░░       │
+  │   Below 3.6: unacceptable│  │   > 600ms: talk-overs    │
+  └──────────────────────────┘  └──────────────────────────┘
+  ┌──────────────────────────┐  ┌──────────────────────────┐
+  │   PACKET LOSS            │  │   JITTER                 │
+  │                          │  │                          │
+  │   0.3 %        ✓         │  │   12 ms          ✓       │
+  │   Target: < 1 %          │  │   Target: < 30 ms        │
+  │   > 1%: audible artifacts│  │   > 30ms: choppy audio   │
+  │   ░░░░░░░░░░░░░░░░       │  │   ░░░░░░░░░░░░░░░░       │
+  └──────────────────────────┘  └──────────────────────────┘
+  MOS score is derived from latency + packet loss + jitter
+  Most common root cause for failures: agent-side Wi-Fi quality
+  Best practice: wired connections for voice agents
+```
 
 **Content:**
 - **MOS Score (Mean Opinion Score):** 1-5 scale for perceived voice quality; 4.0+ = acceptable, 3.6+ = minimum for business use
@@ -102,7 +252,30 @@
 ---
 
 ### Slide 7: User Acceptance Testing Checklist
-**Visual:** UAT checklist table with columns: Test Area, Test Description, Pass Criteria, Result, Notes — with fifteen rows covering key test scenarios
+**Visual:**
+```
+  USER ACCEPTANCE TESTING CHECKLIST
+  ┌──────────────────────────────────────────────────────┬────────┬──────────┐
+  │  Test Area / Description                             │ Pass?  │ Notes    │
+  ├──────────────────────────────────────────────────────┼────────┼──────────┤
+  │  ANI lookup fires, screen pop for known caller       │ [ ]    │          │
+  │  No-match: new caller flow works correctly           │ [ ]    │          │
+  │  DTMF input accepted and stored on VoiceCall record  │ [ ]    │          │
+  │  Speech recognition: all vocabulary utterances pass  │ [ ]    │          │
+  │  Happy path: autonomous resolution, no agent needed  │ [ ]    │          │
+  │  Silence: 3-retry logic, escalation fires on 3rd     │ [ ]    │          │
+  │  "Speak to an agent" routes to correct queue         │ [ ]    │          │
+  │  Escalated call: agent receives conversation history │ [ ]    │          │
+  │  Agent Assist: suggestions appear within 3 seconds   │ [ ]    │          │
+  │  Call recording starts/stops, accessible in console  │ [ ]    │          │
+  │  Post-call survey fires after call disconnects       │ [ ]    │          │
+  │  ACW timer starts automatically; agent transitions   │ [ ]    │          │
+  │  Supervisor: monitor calls, see sentiment gauge      │ [ ]    │          │
+  │  Call reporting populates VoiceCall object correctly │ [ ]    │          │
+  │  Load test: 20 concurrent calls, no degradation      │ [ ]    │          │
+  └──────────────────────────────────────────────────────┴────────┴──────────┘
+  Include actual agents in UAT at least 2 weeks before go-live
+```
 
 **Content:**
 - ANI lookup and screen pop fires correctly for known caller

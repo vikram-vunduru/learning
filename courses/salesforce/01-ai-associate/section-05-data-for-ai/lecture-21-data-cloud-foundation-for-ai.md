@@ -41,7 +41,28 @@
 ---
 
 ### Slide 2: What Is Salesforce Data Cloud?
-**Visual:** Central hub diagram — Data Cloud in center with arrows coming in from multiple sources: CRM, Website, Mobile App, ERP, Marketing Platforms, Commerce, Service.
+**Visual:**
+```
+   DATA CLOUD — THE UNIFIED DATA HUB
+
+                    ┌───────────────────────────────┐
+                    │         DATA CLOUD            │
+                    │   (Customer Data Platform)    │
+                    └───────────────┬───────────────┘
+                                    │
+         ┌──────────┬───────────────┼───────────────┬──────────┐
+         │          │               │               │          │
+         ▼          ▼               ▼               ▼          ▼
+   ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+   │Salesforce│ │  Website │ │ Mobile   │ │  ERP /   │ │Marketing │
+   │   CRM    │ │Analytics │ │   App    │ │ Commerce │ │ Platform │
+   └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘
+
+   DATA CLOUD INGESTS ALL → HARMONIZES → UNIFIES INTO ONE PROFILE
+
+   Output: Real-time Unified Customer Profile for every customer
+   Used by: Einstein AI, Agentforce, Marketing Cloud, all apps
+```
 **Content:**
 - **Data Cloud** is Salesforce's Customer Data Platform (CDP) — built natively on the Salesforce platform
 - It **ingests, harmonizes, and unifies** customer data from any source
@@ -55,7 +76,30 @@
 ---
 
 ### Slide 3: Why AI Needs a Complete Customer View
-**Visual:** Two scenarios side by side. Left: AI agent with only CRM data (partial view). Right: AI agent with Data Cloud unified profile (complete view).
+**Visual:**
+```
+   WITHOUT DATA CLOUD vs. WITH DATA CLOUD
+
+   ┌──────────────────────────────┬──────────────────────────────┐
+   │   AI WITHOUT DATA CLOUD      │   AI WITH DATA CLOUD         │
+   │   (partial picture)          │   (complete picture)         │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ AI sees: 3 CRM cases         │ AI sees: ALL touchpoints     │
+   │          current opp value   │ ● 3 CRM cases                │
+   │                              │ ● Purchased on website 2 days│
+   │ Misses:                      │   ago                        │
+   │ ● Recent web purchase        │ ● VIP loyalty member (top 5%)│
+   │ ● VIP loyalty status         │ ● Billing complaint last week│
+   │ ● Billing dispute last week  │ ● 12 email opens this month  │
+   │                              │                              │
+   │ Recommends: generic offer    │ Recommends: personalized     │
+   │ "How can I help you today?"  │ "I see you recently purchased│
+   │                              │  — is your question about    │
+   │                              │  that order?"                │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ Result: poor AI quality      │ Result: intelligent, precise │
+   └──────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 **Without Data Cloud (partial picture):**
 - AI agent sees: last 3 CRM cases, current opportunity value
@@ -74,7 +118,34 @@
 ---
 
 ### Slide 4: How Data Cloud Feeds Agentforce
-**Visual:** Flow diagram: Data Cloud → Retrieval/Grounding → Agentforce AI Agent → Customer Interaction.
+**Visual:**
+```
+   HOW DATA CLOUD GROUNDS AGENTFORCE
+
+   ┌──────────┐   ┌──────────────────────────────────────────────┐
+   │ CUSTOMER │   │             AGENTFORCE AGENT                  │
+   │ initiates│   │                                              │
+   │ chat     │──▶│  Step 1: Receive customer query              │
+   └──────────┘   │                │                             │
+                  │                ▼                             │
+                  │  Step 2: QUERY DATA CLOUD                    │
+                  │  Retrieve Unified Customer Profile           │
+                  │  in real-time                                │
+                  │                │                             │
+                  │                ▼                             │
+                  │  Step 3: CONTEXT RETURNED                    │
+                  │  Purchase history, cases, loyalty status     │
+                  │                │                             │
+                  │                ▼                             │
+                  │  Step 4: GROUNDED PROMPT                     │
+                  │  Real customer data added to LLM prompt      │
+                  │                │                             │
+                  │                ▼                             │
+                  │  Step 5: GENERATE accurate, personal response│
+                  └──────────────────────────────────────────────┘
+   This process = RAG (Retrieval-Augmented Generation)
+   Data Cloud = the Retrieval layer
+```
 **Content:**
 **The grounding process:**
 1. Customer initiates interaction with an Agentforce AI agent
@@ -93,7 +164,35 @@
 ---
 
 ### Slide 5: Identity Resolution — Merging Duplicates for Better AI
-**Visual:** Three separate "customer records" with different names (Jon Smith, Jonathan Smith, J. Smith) converging into one Unified Profile.
+**Visual:**
+```
+   IDENTITY RESOLUTION — From Fragments to One Profile
+
+   Before Identity Resolution:
+
+   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+   │  CRM Lead    │  │ Web Analytics│  │  E-commerce  │  │ Call Center  │
+   │              │  │              │  │              │  │              │
+   │ Jon Smith    │  │ User: cookie │  │ J. Smith     │  │ Jonathan S.  │
+   │ jon@co.com   │  │ xyz123       │  │ jsmith@co.com│  │ 415-555-0123 │
+   │ (trade show) │  │ (anonymous)  │  │ (purchased)  │  │ (called in)  │
+   └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘
+          │                 │                  │                 │
+          └─────────────────┼──────────────────┼─────────────────┘
+                            │
+                            ▼ Identity Resolution (matching rules)
+                            │ Match: email domain + name + phone
+                            │
+                            ▼
+                   ┌──────────────────────────────────────────┐
+                   │          UNIFIED INDIVIDUAL               │
+                   │                                          │
+                   │  Jonathan Smith                          │
+                   │  All emails linked                       │
+                   │  Complete interaction history: CRM +     │
+                   │  web behavior + purchases + support      │
+                   └──────────────────────────────────────────┘
+```
 **Content:**
 **The problem:** Enterprise data has duplicate and fragmented customer records
 - Web analytics tracks by cookie
@@ -118,7 +217,32 @@ Same person = 4+ different records across systems
 ---
 
 ### Slide 6: Data Model in Data Cloud
-**Visual:** Simplified entity diagram showing Data Cloud's core objects: Individual, Contact Point, Unified Individual, Engagement, Product Catalog.
+**Visual:**
+```
+   DATA CLOUD — KEY CONCEPTS
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │  CONCEPT               DESCRIPTION                          │
+   ├────────────────────────┬────────────────────────────────────┤
+   │ Data Model Objects     │ Standard schema (like SF Objects)  │
+   │ (DMOs)                 │ e.g., Individual, Engagement       │
+   ├────────────────────────┼────────────────────────────────────┤
+   │ Data Streams           │ Ingestion pipelines from external  │
+   │                        │ systems into Data Cloud            │
+   ├────────────────────────┼────────────────────────────────────┤
+   │ Unified Individual     │ Merged, de-duplicated customer     │
+   │                        │ record after identity resolution   │
+   ├────────────────────────┼────────────────────────────────────┤
+   │ Engagement Events      │ Behavioral data: email opens,      │
+   │                        │ web visits, purchases              │
+   ├────────────────────────┼────────────────────────────────────┤
+   │ Segments               │ Groups of Unified Profiles meeting │
+   │                        │ defined criteria                   │
+   ├────────────────────────┼────────────────────────────────────┤
+   │ Calculated Insights    │ Custom computed metrics stored on  │
+   │                        │ Unified Profiles for AI use        │
+   └────────────────────────┴────────────────────────────────────┘
+```
 **Content:**
 **Data Cloud Key Concepts:**
 - **Data Model Objects (DMOs)** — the standard schema objects in Data Cloud (similar to Salesforce Objects)
@@ -132,7 +256,32 @@ Same person = 4+ different records across systems
 ---
 
 ### Slide 7: Calculated Insights as AI Inputs
-**Visual:** Formula/calculation icon → data output examples: propensity score, LTV, engagement score.
+**Visual:**
+```
+   CALCULATED INSIGHTS — Pre-Computed AI Signals
+
+   Raw Data → [Calculated Insight Formula] → AI-Ready Metric
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │  EXAMPLE CALCULATED INSIGHTS:                               │
+   │                                                             │
+   │  Customer Lifetime Value (CLV)                              │
+   │  = Sum(all purchases) + predicted future purchase value     │
+   │  → Used by Einstein Scoring to prioritize high-LTV leads   │
+   │                                                             │
+   │  Propensity to Purchase Score                               │
+   │  = f(email opens, page views, add-to-cart events)           │
+   │  → Used by Next Best Action to rank offers                 │
+   │                                                             │
+   │  Engagement Score                                           │
+   │  = weighted(email interactions + web visits + cases)        │
+   │  → Identifies at-risk customers for proactive service      │
+   │                                                             │
+   │  Churn Risk Score                                           │
+   │  = similarity to historical churned customer profiles       │
+   │  → Triggers retention Agentforce flows                     │
+   └─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 **Calculated Insights:**
 - Custom metrics computed from unified Data Cloud data
@@ -152,7 +301,28 @@ Same person = 4+ different records across systems
 ---
 
 ### Slide 8: Data Cloud and Einstein AI — The Integration
-**Visual:** Two-layer diagram. Bottom layer: Data Cloud (data foundation). Top layer: Einstein AI features sitting on top, drawing from Data Cloud.
+**Visual:**
+```
+   DATA CLOUD + EINSTEIN AI — THE INTEGRATION
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │               EINSTEIN AI FEATURES (Top Layer)              │
+   │  Lead Scoring │ Next Best Action │ Agentforce │ Einstein Cop.│
+   │       │              │                │              │      │
+   │       └──────────────┴────────────────┴──────────────┘      │
+   │                              │                               │
+   │                   draws data from                           │
+   │                              │                               │
+   └──────────────────────────────▼──────────────────────────────┘
+   ┌─────────────────────────────────────────────────────────────┐
+   │               DATA CLOUD (Bottom Layer)                     │
+   │  Unified Customer Profile │ Identity Resolution             │
+   │  Calculated Insights      │ Real-time Behavioral Data       │
+   │  Segmentation             │ Cross-channel interaction history│
+   └─────────────────────────────────────────────────────────────┘
+
+   Principle: More complete data → More accurate AI → Better outcomes
+```
 **Content:**
 **How Data Cloud enhances Einstein AI:**
 - **Einstein Lead Scoring** — uses Data Cloud unified profiles to incorporate web behavior, marketing engagement, and purchase history in scoring (not just CRM fields)
@@ -167,7 +337,33 @@ Same person = 4+ different records across systems
 ---
 
 ### Slide 9: Data Cloud Architecture for AI — Key Exam Points
-**Visual:** Summary architecture diagram with the four key components labeled: Data Ingestion, Identity Resolution, Unified Profile, Activation.
+**Visual:**
+```
+   DATA CLOUD ARCHITECTURE — 4 KEY PILLARS (EXAM FOCUS)
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │                                                              │
+   │  1. DATA INGESTION                                           │
+   │     ● Data Streams pull from CRM, web, mobile, external     │
+   │     ● Continuous, real-time ingestion                        │
+   │                          │                                   │
+   │                          ▼                                   │
+   │  2. IDENTITY RESOLUTION                                      │
+   │     ● Match records across systems (email, phone, ID)        │
+   │     ● Merge into single Unified Individual profile           │
+   │                          │                                   │
+   │                          ▼                                   │
+   │  3. UNIFIED CUSTOMER PROFILE                                 │
+   │     ● Complete 360° view: CRM + web + mobile + transact.    │
+   │     ● Real-time, always current                              │
+   │                          │                                   │
+   │                          ▼                                   │
+   │  4. ACTIVATION                                               │
+   │     ● Powers Einstein AI, Agentforce, Marketing, Segments   │
+   │     ● Grounds AI responses with verified customer data       │
+   │                                                              │
+   └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 **The Four Pillars (Exam Focus):**
 
@@ -183,7 +379,39 @@ Same person = 4+ different records across systems
 ---
 
 ### Slide 10: Real-World Scenario — Data Cloud in Action
-**Visual:** Customer journey map with Data Cloud layer highlighted showing touchpoints being captured.
+**Visual:**
+```
+   DATA CLOUD IN ACTION — PREMIUM RETAILER SCENARIO
+
+   CUSTOMER JOURNEY:
+   ──────────────────────────────────────────────────────────────
+   Anonymous web browse  →  Call to support  →  In-store purchase
+   (cookie tracked)         (case created)       (POS data)
+          │                      │                    │
+          └──────────────────────┼────────────────────┘
+                                 │
+                    DATA CLOUD — Identity Resolution
+                    Links: cookie + case + POS = ONE person
+                                 │
+                                 ▼
+                    UNIFIED INDIVIDUAL: complete profile
+                                 │
+                                 ▼
+          AGENTFORCE AGENT receives chat from customer:
+          "I have a question about my recent purchase"
+                                 │
+                                 ▼ (Data Cloud grounding)
+          AGENT KNOWS:
+          ● Recent in-store purchase: cashmere coat
+          ● Open service case: sizing question
+          ● VIP loyalty status: top 10%
+                                 │
+                                 ▼
+          AGENT RESPONDS:
+          "I see you recently purchased our cashmere coat in-store.
+           Is your question related to that? Your VIP status
+           entitles you to free alterations at any location."
+```
 **Content:**
 **Scenario: Premium Retailer**
 - Customer visits website (anonymous) → browsing data ingested to Data Cloud

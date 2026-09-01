@@ -11,7 +11,26 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Are Sandboxes?
-**Visual:** Diagram showing Production org at top, with three sandbox instances branching below: Developer Sandbox, Partial Sandbox, Full Sandbox — all with bidirectional "Refresh" arrows pointing to Production
+**Visual:**
+```
+                    ┌─────────────────────────┐
+                    │      PRODUCTION         │
+                    │   (live org — users)    │
+                    └────────────┬────────────┘
+             Refresh ◀───────────┤───────────▶ Refresh
+           (copy from prod)      │           (copy from prod)
+       ┌────────────────┬────────┴────────┬────────────────┐
+       ▼                ▼                 ▼                ▼
+  ┌──────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────┐
+  │Developer │  │Developer Pro │  │   Partial    │  │   Full   │
+  │ Sandbox  │  │   Sandbox    │  │   Sandbox    │  │ Sandbox  │
+  │  200 MB  │  │    1 GB      │  │    5 GB      │  │ = Prod   │
+  │ No data  │  │   No data    │  │ Sample data  │  │ All data │
+  └──────────┘  └──────────────┘  └──────────────┘  └──────────┘
+
+  All sandboxes: isolated from Production
+  URL format: https://[sandbox-name].sandbox.my.salesforce.com
+```
 **Content:**
 - A **sandbox** is a copy of your Salesforce org used for development, testing, and training
 - Sandboxes are isolated from Production — changes in sandbox don't affect live users
@@ -23,9 +42,26 @@
 **Speaker Notes:** Sandboxes are fundamental to professional Salesforce development. No admin should make significant changes directly in Production — always test in a sandbox first. The key differentiator between sandbox types is data: Developer sandboxes have no data, Full sandboxes have all your production data. This affects both the testing fidelity you can achieve and the cost/size of the sandbox.
 
 ### Slide 2: Developer and Developer Pro Sandboxes
-**Visual:** Two cards side by side:
-Card 1 — Developer Sandbox: 200MB storage, No data copy, Refresh every 1 day, Multiple per org
-Card 2 — Developer Pro Sandbox: 1GB storage, No data copy, Refresh every 1 day, Multiple per org
+**Visual:**
+```
+  ┌────────────────────────────────┬────────────────────────────────┐
+  │  DEVELOPER SANDBOX             │  DEVELOPER PRO SANDBOX         │
+  ├────────────────────────────────┼────────────────────────────────┤
+  │  Storage:   200 MB             │  Storage:   1 GB               │
+  │  Data:      None (metadata     │  Data:      None (metadata     │
+  │             only)              │             only)              │
+  │  Refresh:   Every 1 day        │  Refresh:   Every 1 day        │
+  │  Quantity:  Multiple per org   │  Quantity:  Multiple per org   │
+  ├────────────────────────────────┼────────────────────────────────┤
+  │  Use for:                      │  Use for:                      │
+  │  • Individual feature dev      │  • Larger dev projects         │
+  │  • Admin config testing        │  • More test data storage      │
+  │  • Unit testing                │  • Functionally same as Dev    │
+  │  • Day-to-day admin work       │    but more space              │
+  └────────────────────────────────┴────────────────────────────────┘
+  Both: no sensitive production data — safe for developer access
+        daily refresh keeps metadata fresh from production
+```
 **Content:**
 - **Developer Sandbox:**
   - **Storage:** 200 MB total (data + files)
@@ -42,9 +78,27 @@ Card 2 — Developer Pro Sandbox: 1GB storage, No data copy, Refresh every 1 day
 **Speaker Notes:** Developer sandboxes are the most commonly used sandbox type. Every Salesforce org comes with at least one (Enterprise edition includes more). Because they have no production data, they're safe to use without concerns about exposing sensitive customer information. The daily refresh means you can refresh quickly to get a fresh copy of production metadata. The small storage means they can't hold much data, but admins typically create sample data manually or via Data Loader for testing.
 
 ### Slide 3: Partial and Full Sandboxes
-**Visual:** Two cards side by side:
-Card 1 — Partial Sandbox: 5GB storage, Sample data copy (selected objects), Refresh every 5 days
-Card 2 — Full Sandbox: Same as Production storage, Complete data copy, Refresh every 29 days
+**Visual:**
+```
+  ┌────────────────────────────────┬────────────────────────────────┐
+  │  PARTIAL COPY SANDBOX          │  FULL SANDBOX                  │
+  ├────────────────────────────────┼────────────────────────────────┤
+  │  Storage:   5 GB               │  Storage:   Same as Production │
+  │  Data:      Sample data        │  Data:      Complete copy of   │
+  │             (template-based    │             ALL production data │
+  │              selected objects) │                                │
+  │  Refresh:   Every 5 days       │  Refresh:   Every 29 days      │
+  ├────────────────────────────────┼────────────────────────────────┤
+  │  Use for:                      │  Use for:                      │
+  │  • Integration testing         │  • Performance testing         │
+  │  • UAT with realistic data     │  • Final pre-release testing   │
+  │  • QA testing                  │  • Exact production replica    │
+  │                                │  • Data integrity validation   │
+  ├────────────────────────────────┼────────────────────────────────┤
+  │  Requires Sandbox Template     │  Most expensive sandbox type   │
+  │  defining objects to copy      │  Slowest to refresh (29 days)  │
+  └────────────────────────────────┴────────────────────────────────┘
+```
 **Content:**
 - **Partial Copy Sandbox:**
   - **Storage:** 5 GB
@@ -61,7 +115,34 @@ Card 2 — Full Sandbox: Same as Production storage, Complete data copy, Refresh
 **Speaker Notes:** Full sandboxes are the closest you can get to a production environment for testing. Because they contain all production data, they're subject to strict access controls — you should mask sensitive data in a Full sandbox before giving developers access. The 29-day refresh interval means you can't refresh frequently; plan your testing windows carefully. Partial sandboxes are the sweet spot: enough real data for meaningful testing, faster refresh, and less storage required.
 
 ### Slide 4: Sandbox Refresh Process
-**Visual:** Timeline showing: Sandbox Refresh Request → Sandbox becomes unavailable (maintenance mode) → Copy process runs → Sandbox restored with fresh metadata/data → Users notified
+**Visual:**
+```
+  Admin clicks "Refresh" on sandbox
+
+          │
+          ▼
+  ┌───────────────────────────────────────┐
+  │  Sandbox enters maintenance mode      │
+  │  (temporarily unavailable)           │
+  └───────────────────────────────────────┘
+          │
+          ▼
+  ┌───────────────────────────────────────┐
+  │  Salesforce copies from Production    │
+  │  Metadata (always) + Data (by type)  │
+  └───────────────────────────────────────┘
+          │
+          ▼
+  ┌───────────────────────────────────────┐
+  │  Sandbox restored — fresh copy        │
+  │  Users re-login with sandbox creds    │
+  └───────────────────────────────────────┘
+
+  ⚠ ALL existing sandbox content is DELETED — no recovery
+  ⚠ Any work done since last refresh is permanently lost
+  ✓ Sandbox URL and ID remain the same
+  ✓ Refresh intervals: Dev=1 day │ Dev Pro=1 day │ Partial=5 days │ Full=29 days
+```
 **Content:**
 - **Refreshing** a sandbox creates a new copy from Production (metadata and data based on type)
 - **Impact of refreshing:**
@@ -75,7 +156,29 @@ Card 2 — Full Sandbox: Same as Production storage, Complete data copy, Refresh
 **Speaker Notes:** Refresh is both powerful and potentially destructive. If you've been building in a sandbox for months and refresh it, you lose all that work. Always commit your work to a version control system or a change set before refreshing. The refresh interval is a minimum wait — you can refresh anytime after the interval, not just exactly at the interval. After a full sandbox refresh, the sandbox URL changes from sandbox.my.salesforce.com to reflect the new version.
 
 ### Slide 5: What Are Change Sets?
-**Visual:** Three-step diagram: Production (left) → Outbound Change Set built → Deployment Connection → Inbound Change Set received → Deployed to Production (right)
+**Visual:**
+```
+  SANDBOX (Development)              PRODUCTION
+  ─────────────────────              ──────────
+  Build & configure                  Live org
+        │
+        │ 1. Create Change Set
+        │    (add components)
+        ▼
+  CHANGE SET (outbound)
+        │
+        │ 2. Upload to target
+        │    via Deployment Connection
+        ▼
+  CHANGE SET (inbound)  ──▶  3. Validate & Deploy
+        │
+        ▼
+  PRODUCTION (deployed)
+
+  OR: Salesforce CLI (sf project deploy) for DevOps pipelines
+
+  Change sets move METADATA only — never data records
+```
 **Content:**
 - **Change Sets** are a mechanism to deploy metadata (configuration) between Salesforce orgs
 - Deploy: Sandbox → Production, Sandbox → Sandbox, or Production → Sandbox
@@ -88,7 +191,28 @@ Card 2 — Full Sandbox: Same as Production storage, Complete data copy, Refresh
 **Speaker Notes:** Change sets are the point-and-click deployment mechanism for Salesforce admins. Unlike the Salesforce CLI which requires code knowledge, change sets work in the Setup UI. The outbound change set is like packing a box in the source org. The deployment connection is like the shipping lane between orgs. The inbound change set is the received package in the target org. You still need to "open the box" by running the deployment. Change sets only carry metadata — they never move actual data records.
 
 ### Slide 6: Building an Outbound Change Set
-**Visual:** Outbound Change Set builder screen showing: Change Set Name, Description, and "Add" button for components, with a table of added components: Custom Object, Field, Page Layout, Validation Rule
+**Visual:**
+```
+  Setup → Outbound Change Sets → New
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Change Set Name: [Q3 Release — Discount Fields            ] │
+  │  Description:     [Adds Discount_Rate__c field + validation] │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Components Added:                                           │
+  │  ┌────────────────────┬────────────────┬────────────────┐   │
+  │  │ Type               │ Name           │ Object         │   │
+  │  ├────────────────────┼────────────────┼────────────────┤   │
+  │  │ Custom Object      │ Opportunity    │                │   │
+  │  │ Custom Field       │ Discount_Rate__c│ Opportunity   │   │
+  │  │ Page Layout        │ Opp Layout     │ Opportunity    │   │
+  │  │ Validation Rule    │ Require Disc.  │ Opportunity    │   │
+  │  └────────────────────┴────────────────┴────────────────┘   │
+  │                                                              │
+  │  [ Add Components ]  [ View/Add Dependencies ]  [ Upload ]  │
+  └──────────────────────────────────────────────────────────────┘
+  ⚠ Click "View/Add Dependencies" — Salesforce does NOT auto-add them
+```
 **Content:**
 - **Create outbound change set:** Setup → Outbound Change Sets → New
 - Add components:
@@ -101,7 +225,33 @@ Card 2 — Full Sandbox: Same as Production storage, Complete data copy, Refresh
 **Speaker Notes:** Building a change set is straightforward, but the Dependencies button is crucial. Salesforce does NOT automatically include dependent components. If you add a custom field to a change set, you must also manually add the custom object it belongs to, the page layout it's on, and any validation rules that reference it. Forgetting dependencies is the most common cause of change set deployment failures. Always click "View/Add Dependencies" and review the list carefully before uploading.
 
 ### Slide 7: Change Set Limitations
-**Visual:** Red X list of limitations: No automatic dependency detection, No rollback, No version control, Limited components, Manual process
+**Visual:**
+```
+  Change Set Limitations
+
+  ┌────┬──────────────────────────────────────────────────────────┐
+  │ ✗  │ No automatic dependency inclusion                        │
+  │    │ → Must manually add ALL dependent components             │
+  │    │   or deployment will fail                                │
+  ├────┼──────────────────────────────────────────────────────────┤
+  │ ✗  │ No rollback                                              │
+  │    │ → Once deployed, must manually reverse changes           │
+  ├────┼──────────────────────────────────────────────────────────┤
+  │ ✗  │ No version control                                       │
+  │    │ → Does not integrate with Git or source control          │
+  ├────┼──────────────────────────────────────────────────────────┤
+  │ ✗  │ Limited component types                                  │
+  │    │ → Some components require Salesforce CLI / scratch orgs  │
+  ├────┼──────────────────────────────────────────────────────────┤
+  │ ✗  │ Sequential only                                          │
+  │    │ → Cannot run multiple deployments simultaneously         │
+  ├────┼──────────────────────────────────────────────────────────┤
+  │ ✗  │ No automated CI/CD pipeline                              │
+  │    │ → Use Salesforce CLI or DevOps Center for automation     │
+  └────┴──────────────────────────────────────────────────────────┘
+  Appropriate for: small orgs, config-only deployments
+  Consider Salesforce CLI/DevOps Center for: large teams, CI/CD
+```
 **Content:**
 - **No automatic dependency inclusion:** You must manually add ALL dependent components
   - Missing a dependency = deployment failure in target org
@@ -114,7 +264,29 @@ Card 2 — Full Sandbox: Same as Production storage, Complete data copy, Refresh
 **Speaker Notes:** Change sets are appropriate for smaller organizations or for admins doing configuration-only deployments. For large development teams, CI/CD pipelines, or complex projects with many developers, Salesforce recommends the Salesforce CLI with metadata API or the Salesforce DevOps Center. But for the admin exam, change sets are the expected deployment mechanism to know. Understanding their limitations helps you advise clients on when to consider more advanced deployment tools.
 
 ### Slide 8: Release Management Workflow
-**Visual:** Pipeline diagram: Developer Sandbox → (change set deploy) → UAT Sandbox → (change set deploy) → Production, with validation and testing steps labeled at each stage
+**Visual:**
+```
+  DEVELOPER         PARTIAL / UAT         PRODUCTION
+  SANDBOX           SANDBOX               ──────────
+  ──────────        ───────────────
+  Build &           Business users test   Live org
+  unit test         with realistic data
+      │                   │                   │
+      │  1. Change Set     │  2. Change Set    │
+      │  ─────────────▶    │  ────────────▶    │
+      │                   │                   │
+      │  Validate first    │  Validate first   │
+      │  then deploy       │  then deploy      │
+
+  Best Practices:
+  ┌──────────────────────────────────────────────────────────────┐
+  │  ✓ Never build directly in Production                        │
+  │  ✓ Validate change set BEFORE deploying (catches errors)     │
+  │  ✓ Deploy during low-traffic windows (weekends / off-hours)  │
+  │  ✓ Maintain a deployment checklist                           │
+  │  ✓ Refresh sandboxes regularly to stay in sync with Prod     │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Typical Release Pipeline:**
   1. **Developer Sandbox:** Build and unit test new features

@@ -16,7 +16,21 @@
 ## SLIDES
 
 ### Slide 1: Title Slide
-**Visual:** Side-by-side visual — left: a clean spreadsheet/table. Right: a jumble of emails, chat transcripts, PDFs, audio waveforms, and images.
+**Visual:**
+```
+╔══════════════════════════════════════════════════════════╗
+║     LECTURE 22: STRUCTURED vs. UNSTRUCTURED DATA        ║
+║                                                          ║
+║  STRUCTURED         │  UNSTRUCTURED                     ║
+║  ┌────┬──────┬───┐  │  📧 Emails                        ║
+║  │Name│Amount│Stg│  │  📄 PDFs & Contracts              ║
+║  ├────┼──────┼───┤  │  💬 Chat transcripts              ║
+║  │Acme│$45K  │Neg│  │  📞 Call recordings               ║
+║  │Inc │$12K  │Won│  │  🔍 Social media posts            ║
+║  └────┴──────┴───┘  │                                   ║
+║  Rows & columns     │  80-90% of enterprise data        ║
+╚══════════════════════════════════════════════════════════╝
+```
 **Content:**
 - Lecture 22: Structured vs. Unstructured Data
 - "Most of your business knowledge is locked in unstructured data — AI is the key"
@@ -27,7 +41,25 @@
 ---
 
 ### Slide 2: What Is Structured Data?
-**Visual:** Database table showing rows and columns — customer records with fields like Name, Email, Revenue, Industry, Lead Score.
+**Visual:**
+```
+   STRUCTURED DATA — Tabular, Queryable, Schema-Defined
+
+   Example: Salesforce Opportunity Object
+   ┌────────────────────┬───────────────┬────────────┬──────────┐
+   │  Account Name      │  Amount       │  Stage     │ Close Dt │
+   ├────────────────────┼───────────────┼────────────┼──────────┤
+   │  Acme Corp         │  $45,000      │  Negotiate │ 3/31/24  │
+   │  TechStart Inc     │  $12,000      │  Closed Won│ 2/15/24  │
+   │  Global Retail     │  $180,000     │  Prospect  │ 6/30/24  │
+   │  Sunrise Health    │  $67,500      │  Proposal  │ 4/15/24  │
+   └────────────────────┴───────────────┴────────────┴──────────┘
+
+   ● Each column has a defined data type and meaning
+   ● Queryable with SQL: SELECT * WHERE Amount > 50000
+   ● Used natively by traditional ML (no preprocessing needed)
+   ● Salesforce CRM = almost entirely structured data
+```
 **Content:**
 **Structured Data:**
 - Organized in rows and columns (tabular format)
@@ -48,7 +80,32 @@
 ---
 
 ### Slide 3: What Is Unstructured Data?
-**Visual:** Collage of unstructured data types — email screenshot, chat transcript, PDF document, audio waveform, image, video thumbnail, social media post.
+**Visual:**
+```
+   UNSTRUCTURED DATA — No Schema, Requires Interpretation
+
+   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+   │  EMAIL           │  │  SUPPORT TICKET  │  │  CALL RECORDING  │
+   │                  │  │                  │  │                  │
+   │ "Hi, I've been   │  │ "System keeps    │  │ [Audio waveform] │
+   │  waiting 3 weeks │  │  crashing when   │  │  Customer:       │
+   │  for my refund.  │  │  I try to export │  │  "I've called    │
+   │  This is         │  │  reports. Very   │  │   three times    │
+   │  unacceptable."  │  │  frustrating."   │  │   about this..." │
+   └──────────────────┘  └──────────────────┘  └──────────────────┘
+
+   ┌──────────────────┐  ┌──────────────────┐
+   │  PDF CONTRACT    │  │  REVIEW          │
+   │                  │  │                  │
+   │ Section 4.2:     │  │ ★★★★☆            │
+   │ "Vendor shall    │  │ "Love the quality│
+   │  maintain 99.9%  │  │  but sizes run   │
+   │  uptime..."      │  │  small"          │
+   └──────────────────┘  └──────────────────┘
+
+   Cannot be queried with SQL — meaning must be EXTRACTED
+   80-90% of enterprise data is unstructured
+```
 **Content:**
 **Unstructured Data:**
 - Not organized in a predefined schema
@@ -70,7 +127,30 @@
 ---
 
 ### Slide 4: Semi-Structured Data (Bonus Concept)
-**Visual:** JSON/XML code snippet next to a structured table, positioned between the structured and unstructured examples.
+**Visual:**
+```
+   SEMI-STRUCTURED DATA — Has Structure, Not Relational
+
+   JSON (API response — semi-structured):
+   {
+     "leadId": "00Q3M000005LZ9p",
+     "firstName": "Sarah",
+     "lastName": "Chen",
+     "company": "TechCorp",
+     "leadScore": 87,
+     "factors": [
+       {"name": "Annual Revenue", "impact": 0.34},
+       {"name": "Industry", "impact": 0.28}
+     ]
+   }
+
+   ● Has structure (keys and values, hierarchy)
+   ● Not a flat table — cannot directly query with SQL
+   ● Machine-readable, flexible schema
+   ● Salesforce APIs return JSON
+   ● Einstein returns prediction scores as JSON objects
+   ● Data Cloud ingests behavioral events as JSON streams
+```
 **Content:**
 **Semi-Structured Data:**
 - Has some organizational structure, but not fully relational
@@ -88,7 +168,31 @@
 ---
 
 ### Slide 5: Why Unstructured Data Is Valuable for AI
-**Visual:** Iceberg diagram — structured data (10-20%) visible above water, unstructured data (80-90%) hidden below surface. AI unlocks the submerged portion.
+**Visual:**
+```
+   THE DATA ICEBERG — MOST VALUE IS BELOW THE SURFACE
+
+                           ▲
+                          ╱│╲
+                         ╱ │ ╲
+                        ╱  │  ╲
+                       ╱ STRUCT╲         ABOVE WATER:
+                      ╱─ ─ ─ ─ ─╲        10-20% of data
+                     │   URED     │       CRM fields,
+                     │   10-20%   │       spreadsheets,
+                     │            │       databases
+   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ WATERLINE ─ ─ ─ ─
+                     │            │
+                     │UNSTRUCTURED│       BELOW WATER:
+                     │            │       80-90% of data
+                     │  80-90%    │       Emails, calls,
+                     │            │       PDFs, social,
+                     │  Previously│       reviews, chats
+                     │  "dark"    │
+                     │  data      │       AI unlocks this
+                     │            │       for the first time
+                     └────────────┘
+```
 **Content:**
 **The strategic case for unstructured data in AI:**
 1. **Volume:** 80-90% of enterprise data is unstructured — ignoring it means ignoring most of your information
@@ -104,7 +208,33 @@
 ---
 
 ### Slide 6: How Traditional ML vs. LLMs Handle Unstructured Data
-**Visual:** Two-track diagram showing the different processing paths.
+**Visual:**
+```
+   TRADITIONAL ML vs. LLMs — Handling Unstructured Data
+
+   ┌──────────────────────────────┬──────────────────────────────┐
+   │    TRADITIONAL ML            │    LARGE LANGUAGE MODELS     │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ Raw text                     │ Raw text                     │
+   │      │                       │      │                       │
+   │      ▼                       │      ▼                       │
+   │ Manual feature engineering   │ Tokenization                 │
+   │ (bag of words, TF-IDF, etc)  │      │                       │
+   │      │                       │      ▼                       │
+   │      ▼                       │ Embedding (text → vectors)   │
+   │ Numeric feature matrix       │      │                       │
+   │      │                       │      ▼                       │
+   │      ▼                       │ Attention + Transformer      │
+   │ ML model (task-specific)     │      │                       │
+   │      │                       │      ▼                       │
+   │      ▼                       │ General-purpose output       │
+   │ One task only                │      │                       │
+   └──────────────────────────────┴──────────────────────────────┘
+
+   KEY INSIGHT: LLMs read raw text natively — no feature
+   engineering required. Same model can summarize, classify,
+   translate, and answer questions.
+```
 **Content:**
 
 **Traditional ML (tabular models):**
@@ -155,7 +285,28 @@
 ---
 
 ### Slide 8: Vector Embeddings — How Text Becomes Numbers
-**Visual:** Text "I love this product" → colorful vector representation [0.23, -0.15, 0.87, 0.42, ...] → space where similar meanings cluster together.
+**Visual:**
+```
+   VECTOR EMBEDDINGS — Text Becomes Numbers AI Can Process
+
+   Input text: "I love this product"
+        │
+        ▼ (embedding model)
+   Vector: [0.23, -0.15, 0.87, 0.42, -0.31, 0.09, ...]
+            ↑                            (768-4096 dimensions)
+
+   Similar text: "I'm delighted with this item"
+   Vector: [0.21, -0.18, 0.84, 0.39, -0.28, 0.11, ...]
+            ↑ Very similar numbers → SEMANTICALLY CLOSE
+
+   Different text: "Invoice number 1047 is overdue"
+   Vector: [-0.45, 0.62, -0.11, 0.33, 0.74, -0.52, ...]
+            ↑ Very different numbers → SEMANTICALLY FAR
+
+   ● Similar meanings → similar vectors (close in vector space)
+   ● This preserves semantic meaning mathematically
+   ● Enables AI to understand meaning, not just match words
+```
 **Content:**
 **The fundamental challenge:**
 - Computers process numbers, not words
@@ -174,7 +325,33 @@
 ---
 
 ### Slide 9: Why Vector Embeddings Matter — The Semantic Search Power
-**Visual:** Customer question "My package hasn't arrived" → embedding → vector database search → matches "shipping delay" and "order tracking" knowledge base articles (even though those words weren't in the question).
+**Visual:**
+```
+   VECTOR SEARCH — Finding MEANING, Not Just Keywords
+
+   TRADITIONAL KEYWORD SEARCH:
+   Query: "my package hasn't arrived"
+   Knowledge base article title: "Shipment Delivery Failure"
+   Result: NO MATCH (different words) → customer gets no help
+
+   ─────────────────────────────────────────────────────────────
+
+   VECTOR / SEMANTIC SEARCH:
+   Query: "my package hasn't arrived"
+        │
+        ▼ convert to vector
+   [0.34, 0.12, -0.56, ...]  ← query vector
+        │
+        ▼ find nearest vectors in knowledge base
+   "Shipment Delivery Failure" → [0.31, 0.15, -0.52, ...]
+   DISTANCE: 0.04 (very close!) → MATCH FOUND
+
+   Result: Correct article surfaced despite different words
+
+   ● Salesforce Agentforce uses this for knowledge retrieval
+   ● Einstein Search uses semantic understanding
+   ● Data Cloud stores vectors (Einstein Vector Store)
+```
 **Content:**
 **Traditional keyword search problem:**
 - Searches for exact words or synonyms explicitly programmed
@@ -195,7 +372,30 @@
 ---
 
 ### Slide 10: Vector Databases — Storing Embeddings for AI
-**Visual:** Traditional database (rows/columns) on left vs. vector database (cloud of points) on right. Arrow from vector database to AI model.
+**Visual:**
+```
+   VECTOR DATABASE vs. TRADITIONAL DATABASE
+
+   ┌──────────────────────────────┬──────────────────────────────┐
+   │  TRADITIONAL DATABASE        │  VECTOR DATABASE             │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │  ┌──────┬──────────────────┐ │  Stores embeddings:          │
+   │  │ ID   │ Text             │ │  ID: 1 → [0.23, -0.15, ...]  │
+   │  ├──────┼──────────────────┤ │  ID: 2 → [0.44, 0.31, ...]  │
+   │  │ 1    │ Shipment failure │ │  ID: 3 → [-0.21, 0.87, ...] │
+   │  │ 2    │ Billing issue    │ │                              │
+   │  │ 3    │ Product defect   │ │  Search: Find vectors        │
+   │  └──────┴──────────────────┘ │  closest to query vector     │
+   │                              │  (nearest-neighbor search)   │
+   │  Query: exact text match     │                              │
+   │  SQL: WHERE text = 'x'       │  Returns: semantically       │
+   │                              │  similar content             │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │  Powers: traditional search  │  Powers: RAG in Agentforce   │
+   │                              │  Salesforce: Einstein        │
+   │                              │  Vector Store in Data Cloud  │
+   └──────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 **Vector Database:**
 - A specialized database designed to store and search vector embeddings
@@ -216,7 +416,28 @@
 ---
 
 ### Slide 11: Structured vs. Unstructured — When to Use Which
-**Visual:** Decision matrix: Structured data for prediction models (Einstein scoring), Unstructured data for generative/LLM tasks (Agentforce responses, document processing).
+**Visual:**
+```
+   STRUCTURED vs. UNSTRUCTURED — USE CASE DECISION GUIDE
+
+   ┌─────────────────────────────┬─────────────────────────────┐
+   │  USE STRUCTURED DATA FOR:   │  USE UNSTRUCTURED DATA FOR: │
+   ├─────────────────────────────┼─────────────────────────────┤
+   │ ● Lead/Opp scoring          │ ● Case summarization        │
+   │   (Einstein Scoring)        │   (Agentforce / Copilot)    │
+   │ ● Revenue forecasting       │ ● Contract review           │
+   │ ● Customer segmentation     │   (Einstein for Documents)  │
+   │   (Data Cloud Segments)     │ ● Call sentiment analysis   │
+   │ ● Churn prediction          │   (Einstein Call Coaching)  │
+   │ ● Pipeline analytics        │ ● Email classification      │
+   │                             │ ● Knowledge retrieval (RAG) │
+   ├─────────────────────────────┼─────────────────────────────┤
+   │  BEST AI: Predictive        │  BEST AI: Generative / LLM  │
+   │  Einstein Lead Scoring,     │  Agentforce, Prompt Builder,│
+   │  Prediction Builder         │  Einstein Copilot           │
+   └─────────────────────────────┴─────────────────────────────┘
+   COMBINATION: Data Cloud unifies both for complete AI context
+```
 **Content:**
 
 | Use Case | Best Data Type | Salesforce Feature |
