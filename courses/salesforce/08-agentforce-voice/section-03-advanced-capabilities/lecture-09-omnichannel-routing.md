@@ -12,7 +12,42 @@
 ## Slides
 
 ### Slide 1: Omni-Channel and Voice — The Big Picture
-**Visual:** Architecture diagram showing multiple channels (Chat, Email, Voice, Social) all feeding into a central Omni-Channel routing engine, which distributes work to agent pools with skill tags
+**Visual:**
+```
+  Incoming Call
+       │
+       ▼
+  ┌────────────────────────────────────────┐
+  │          OMNI-CHANNEL ROUTING          │
+  │                                        │
+  │  1. Check: Is Agentforce Voice bot     │
+  │     available? ──Yes──▶ Bot handles    │
+  │          │                             │
+  │         No                             │
+  │          │                             │
+  │  2. Route to Queue                     │
+  │     (by skill, case type, language)    │
+  │          │                             │
+  │  3. Find available agent               │
+  │     (capacity model: voice=1 unit)     │
+  │          │                             │
+  │  4. Push to agent ──▶ Screen Pop fires │
+  └────────────────────────────────────────┘
+       │
+       ▼
+  Agent Status Machine:
+  Available ──▶ Busy (on call) ──▶ ACW ──▶ Available
+
+  UNIFIED CHANNEL ARCHITECTURE:
+  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
+  │   Chat   │  │   Email  │  │  Voice   │  │  Social  │
+  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘
+       └──────────────┴─────────────┴──────────────┘
+                            │
+                   Single routing engine
+                   Single capacity model
+                   Single agent state machine
+```
 
 **Content:**
 - Omni-Channel routes work items across all channels from a single engine
@@ -27,7 +62,27 @@
 ---
 
 ### Slide 2: Skill-Based Routing for Voice
-**Visual:** Table showing agents with skill tags — Agent A: English, Billing, Tier-2; Agent B: Spanish, Sales; Agent C: English, Technical, Tier-1 — with arrows showing which queue each agent services
+**Visual:**
+```
+  SKILL-BASED ROUTING ASSIGNMENTS
+  ┌──────────┬──────────────────────────────┬──────────────────────┐
+  │  Agent   │ Skills                       │ Queues Serviced      │
+  ├──────────┼──────────────────────────────┼──────────────────────┤
+  │  Agent A │ English, Billing, Tier-2     │ Billing-EN, Tier2    │
+  │  Agent B │ Spanish, Sales               │ Sales-ES             │
+  │  Agent C │ English, Technical, Tier-1   │ Tech-EN-T1           │
+  │  Agent D │ French, Billing              │ Billing-FR           │
+  └──────────┴──────────────────────────────┴──────────────────────┘
+
+  SKILL RELAXATION TIMELINE (example: Spanish Billing queue)
+  0s ──────────────────▶ 90s ──────────────▶ 150s ──────────────▶
+  Require:               Relax Billing:      Any available:
+  Spanish + Billing      Spanish only        route to next agent
+  (exact match)          (relax one skill)   (relax all skills)
+
+  Required skill:  call will NOT route to agent without this skill
+  Preferred skill: routing prefers agents with this skill; relaxes if no match
+```
 
 **Content:**
 - Routing Skills defined in Setup > Omni-Channel > Skills
@@ -43,7 +98,34 @@
 ---
 
 ### Slide 3: Queue Configuration for Voice
-**Visual:** Setup page mockup for a Service Cloud Voice queue — showing fields: Queue Name, Routing Configuration, Skills Required, Skills Preferred, Overflow Action, Expected Wait Time Calculation
+**Visual:**
+```
+  VOICE QUEUE CONFIGURATION
+  Setup > Queues > [Queue Name] > Routing Configuration
+  ┌──────────────────────────────────────────────────────────┐
+  │  Queue Name:        Billing Support Voice                │
+  │  Routing Config:    Skills-Based                         │
+  │  Skills Required:   [Billing]  [English]                 │
+  │  Skills Preferred:  [Tier-2]                             │
+  │  Overflow Action:                                        │
+  │    All agents busy? ──▶ ┌─────────────────────────────┐  │
+  │                         │ Option 1: Play wait message  │  │
+  │                         │ Option 2: Offer callback     │  │
+  │                         │ Option 3: Overflow to        │  │
+  │                         │          General Queue       │  │
+  │                         └─────────────────────────────┘  │
+  │  Expected Wait Time: calculated by Omni-Channel           │
+  │                      surfaced via Voice Flow Speak element│
+  └──────────────────────────────────────────────────────────┘
+
+  ROUTING TYPES:
+  ┌──────────────────┬──────────────────────────────────────┐
+  │  Most Available  │ Longest idle time → even distribution│
+  │  Least Active    │ Fewest work items → balanced load    │
+  │  Skills-Based    │ Best skill match → highest FCR ✓     │
+  └──────────────────┴──────────────────────────────────────┘
+  Recommended: Skills-Based with fallback to Most Available after relaxation
+```
 
 **Content:**
 - Queues created in Setup > Queues; Voice-enabled queues need a Routing Configuration
@@ -59,7 +141,30 @@
 ---
 
 ### Slide 4: Priority and Capacity Models
-**Visual:** Diagram showing three queues with different priority levels (1, 2, 3) feeding into an agent capacity model — each agent bubble showing current load as a pie chart (voice=50%, chat=30%, unused=20%)
+**Visual:**
+```
+  PRIORITY AND CAPACITY MODEL
+  ┌──────────────────────────────────────────────────────────┐
+  │  QUEUE PRIORITIES            AGENT CAPACITY MODEL        │
+  │                                                          │
+  │  Priority 1 (highest)        Voice = 10/10 units         │
+  │  ┌──────────────────────┐    ┌──────────────────────────┐│
+  │  │  VIP Voice Queue     │    │  Agent total: 10 units   ││
+  │  └──────────┬───────────┘    │  Voice call: 10 units    ││
+  │             │                │  → blocks all other work ││
+  │  Priority 2                  └──────────────────────────┘│
+  │  ┌──────────────────────┐                                │
+  │  │  Standard Voice      │    BLENDED CAPACITY (optional):│
+  │  └──────────┬───────────┘    ┌──────────────────────────┐│
+  │             │                │  Voice = 8 units         ││
+  │  Priority 3                  │  Chat  = 2 units (async) ││
+  │  ┌──────────────────────┐    │  Total: 10 units         ││
+  │  │  Email / Cases       │    └──────────────────────────┘│
+  │  └──────────────────────┘    ⚠ Pilot before deploying   │
+  │                                blended voice+async       │
+  │  Direct-to-agent routing: bypass queue for VIP / callback│
+  └──────────────────────────────────────────────────────────┘
+```
 
 **Content:**
 - **Priority:** numeric value on queue (lower = higher priority); voice typically set higher than async channels
@@ -74,7 +179,33 @@
 ---
 
 ### Slide 5: Agent State Management
-**Visual:** State machine diagram showing agent states: Offline → Available → Busy (on call) → After Call Work → Available; plus a side path to Custom Status (e.g., Break, Training)
+**Visual:**
+```
+  AGENT STATE MACHINE
+  ┌───────────┐
+  │  Offline  │◀──────────────────────────────────────────┐
+  └─────┬─────┘   sign out                                │
+        │ sign in                                          │
+        ▼                                                  │
+  ┌───────────┐    call arrives    ┌──────────────────┐    │
+  │ Available │───────────────────▶│  Busy (on call)  │    │
+  │           │◀──────────────────┐└──────────────────┘    │
+  └───────────┘  ACW expires /     │  call ends            │
+                 manual end ACW    ▼                        │
+                             ┌───────────────────────────┐  │
+                             │  After Call Work (ACW)    │  │
+                             │  • Update case record     │  │
+                             │  • Add call notes         │  │
+                             │  • Select disposition     │  │
+                             │  • Send follow-up email   │  │
+                             └───────────────────────────┘  │
+                                                            │
+  Custom Statuses (all show as unavailable for routing):    │
+  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
+  │  Break  │  │  Lunch   │  │ Training │  │ Meeting  │────┘
+  └─────────┘  └──────────┘  └──────────┘  └──────────┘
+  All state changes are tracked and reportable
+```
 
 **Content:**
 - **Offline:** agent not signed into Omni-Channel; no work routed
@@ -90,7 +221,30 @@
 ---
 
 ### Slide 6: After Call Work Configuration
-**Visual:** Setup page for ACW configuration — fields showing: ACW Time Limit (seconds), Auto-Accept Next Work After ACW, ACW Required/Optional toggle, Channels that use ACW
+**Visual:**
+```
+  ACW CONFIGURATION
+  Setup > Omni-Channel > Service Channels > Voice > ACW Settings
+  ┌──────────────────────────────────────────────────────────┐
+  │  ACW Time Limit:        60 seconds  (configurable)       │
+  │  ACW Type:              ● Fixed  ○ Manual                │
+  │  Auto-Route After ACW:  ● Yes    ○ No                    │
+  │  Channels Using ACW:    ☑ Voice   ☑ Chat   ☐ Email       │
+  └──────────────────────────────────────────────────────────┘
+
+  RECOMMENDED ACW DURATION BY CALL TYPE:
+  ┌────────────────────────────────┬────────────────────────┐
+  │  Call Type                     │ Recommended ACW        │
+  ├────────────────────────────────┼────────────────────────┤
+  │  Simple inquiry                │ 30-45 seconds          │
+  │  Standard support              │ 45-60 seconds          │
+  │  Complex / case creation       │ 90-120 seconds         │
+  │  Escalation documentation      │ 90-120 seconds         │
+  └────────────────────────────────┴────────────────────────┘
+  Baseline: start at 60 seconds
+  Measure: actual wrap-up time via call recording review and reporting
+  Adjust: quarterly based on median actual wrap-up time
+```
 
 **Content:**
 - Configure ACW duration in Setup > Omni-Channel > Service Channels > Voice
@@ -107,7 +261,35 @@
 ---
 
 ### Slide 7: Voice Escalation — Autonomous Agent to Human Agent
-**Visual:** Sequence diagram: Agentforce autonomous agent → escalation trigger → Transfer to Agent element in Voice Flow → Omni-Channel routing → agent screen pop with full conversation history
+**Visual:**
+```
+  VOICE ESCALATION: AUTONOMOUS AGENT → HUMAN AGENT
+  ┌──────────────────────────────────────────────────────────┐
+  │  Agentforce             VoiceCall Record   Human Agent   │
+  │  Autonomous Agent           (context)       Desktop      │
+  │       │                         │               │        │
+  │  Escalation trigger             │               │        │
+  │  • Caller: "speak to agent"     │               │        │
+  │  • Low confidence threshold     │               │        │
+  │  • Sentiment drop               │               │        │
+  │  • Specific intent (legal,      │               │        │
+  │    complaint, billing dispute)  │               │        │
+  │       │                         │               │        │
+  │       ├──write context─────────▶│               │        │
+  │       │  • Conversation         │               │        │
+  │       │    transcript           │               │        │
+  │       │  • Detected intent      │               │        │
+  │       │  • Escalation reason    │               │        │
+  │       │  • Collected data fields│               │        │
+  │       │                         │               │        │
+  │       ├──Transfer to Agent──▶ Omni-Channel ────▶│        │
+  │       │                      routing            │        │
+  │                                         Screen Pop fires │
+  │                                         Agent Assist ON  │
+  └──────────────────────────────────────────────────────────┘
+  Caller hears: "Connecting you to a specialist who has your history"
+  Agent sees: customer record + conversation summary + reason for escalation
+```
 
 **Content:**
 - Escalation triggers in autonomous agent: caller request ("speak to an agent"), low confidence, sentiment threshold, specific intent (complaints, legal, billing dispute)

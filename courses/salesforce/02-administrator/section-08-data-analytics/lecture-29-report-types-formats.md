@@ -10,7 +10,35 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Is a Report Type?
-**Visual:** Diagram showing "Report Type" as a template layer sitting between the database (objects/fields) and the final Report, with arrows showing data flow
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────┐
+  │           DATABASE (Objects & Fields)                    │
+  │  Accounts │ Contacts │ Opportunities │ Custom Objects   │
+  └──────────────────────────┬───────────────────────────────┘
+                             │
+                             ▼
+  ┌──────────────────────────────────────────────────────────┐
+  │           REPORT TYPE  (Template Layer)                  │
+  │  ─────────────────────────────────────────────────────   │
+  │  • Which objects (related records) can be included       │
+  │  • Which fields from those objects are available         │
+  │  • Object relationship requirements (with / without)     │
+  │                                                          │
+  │  Standard Report Types ──▶ provided by Salesforce        │
+  │  Custom Report Types   ──▶ created by admins             │
+  └──────────────────────────┬───────────────────────────────┘
+                             │
+                             ▼
+  ┌──────────────────────────────────────────────────────────┐
+  │                    REPORT                                │
+  │  Filters + Columns + Groupings                          │
+  │  = Final output visible to users                        │
+  │                                                          │
+  │  Every report is based on exactly ONE report type        │
+  │  You cannot add fields outside the chosen report type    │
+  └──────────────────────────────────────────────────────────┘
+```
 **Content:**
 - A **report type** is the template that determines:
   - Which **objects** (related records) can be included in a report
@@ -21,7 +49,34 @@
 **Speaker Notes:** Think of a report type as the schema for your report. It defines the menu of fields you can work with. Standard report types cover common use cases like Opportunities, Cases, and Contacts. When you need to combine objects or fields not covered by standard types, you build a custom report type.
 
 ### Slide 2: Standard Report Types
-**Visual:** List of common standard report types with their primary objects: Opportunities, Accounts, Contacts, Cases, Activities, Leads, etc.
+**Visual:**
+```
+  STANDARD REPORT TYPES (Salesforce-Provided)
+  ┌───────────────────────────┬──────────────────────────────────┐
+  │  CATEGORY                 │  EXAMPLE REPORT TYPES            │
+  ├───────────────────────────┼──────────────────────────────────┤
+  │  Opportunities            │  Opportunities                   │
+  │                           │  Opportunities with Products     │
+  │                           │  Opportunity History             │
+  │                           │  Opportunity Teams               │
+  ├───────────────────────────┼──────────────────────────────────┤
+  │  Accounts & Contacts      │  Accounts                        │
+  │                           │  Accounts with Contacts          │
+  │                           │  Contacts & Accounts             │
+  ├───────────────────────────┼──────────────────────────────────┤
+  │  Cases                    │  Cases                           │
+  │                           │  Cases with Contact Roles        │
+  │                           │  Cases with Solutions            │
+  ├───────────────────────────┼──────────────────────────────────┤
+  │  Activities               │  Activities with Accounts        │
+  │                           │  Activities with Contacts        │
+  ├───────────────────────────┼──────────────────────────────────┤
+  │  Leads                    │  Leads                           │
+  │                           │  Leads with Converted Lead Info  │
+  └───────────────────────────┴──────────────────────────────────┘
+  Cannot be edited or deleted  |  Cover most standard use cases
+  Visible in Report Builder "Select Report Type" screen
+```
 **Content:**
 - Salesforce provides standard report types for all standard objects
 - Examples:
@@ -35,7 +90,36 @@
 **Speaker Notes:** Standard report types cover the vast majority of everyday reporting needs. Salesforce pre-configures the object relationships and fields. When a user creates a new report, they first select a report type from a categorized list. Knowing which standard types exist helps you recommend the right one. If a standard type doesn't cover the exact fields or relationships needed, that's when admins build custom report types.
 
 ### Slide 3: Custom Report Types — Setup
-**Visual:** Setup flow: Setup → Report Types → New Custom Report Type → Select Primary Object → Add Related Objects (up to 3 additional) → Define Field Layout → Deploy
+**Visual:**
+```
+  Setup → Report Types → New Custom Report Type
+  
+  ┌──────────────┐   ┌──────────────────────┐   ┌──────────────────┐
+  │   STEP 1     │   │      STEP 2          │   │     STEP 3       │
+  │              │   │                      │   │                  │
+  │  Primary     │──▶│  Related Objects     │──▶│  Relationship    │
+  │  Object      │   │  (up to 3 more)      │   │  Requirement     │
+  │              │   │                      │   │                  │
+  │  e.g.        │   │  e.g.                │   │  "Must Have"     │
+  │  Accounts    │   │  + Opportunities     │   │      or          │
+  │              │   │  + Cases             │   │  "May or May     │
+  │              │   │  + Contacts          │   │   Not Have"      │
+  └──────────────┘   └──────────────────────┘   └────────┬─────────┘
+                                                          │
+              ┌───────────────────────────────────────────▼─────────┐
+              │  STEP 4: Field Layout                               │
+              │  Choose which fields appear in Report Builder       │
+              │  Organize by object section, rename if needed       │
+              └──────────────────────────────────────┬──────────────┘
+                                                     │
+                                   ┌─────────────────▼──────────────┐
+                                   │  STEP 5: Deployment Status     │
+                                   │  In Development ──▶ Deployed   │
+                                   │  (users cannot see it until    │
+                                   │   status = Deployed)           │
+                                   └────────────────────────────────┘
+  Total objects: up to 4  (1 primary + 3 related)
+```
 **Content:**
 - Created in **Setup > Report Types > New Custom Report Type**
 - Steps:
@@ -47,7 +131,29 @@
 **Speaker Notes:** The relationship requirement setting is a critical exam topic. If you set a related object to "must have related records," only parent records that HAVE at least one related child record will appear in the report. If you set it to "may or may not have," all parent records appear regardless of whether they have children. This controls your report's row inclusion logic.
 
 ### Slide 4: The "With/Without" Relationship in Custom Report Types
-**Visual:** Two report previews side by side: Left shows "Accounts with Opportunities (must have)" — only accounts that have at least 1 opportunity. Right shows "Accounts with or without Opportunities (may or may not have)" — all accounts, some with blank opportunity columns.
+**Visual:**
+```
+  ┌────────────────────────────────┬─────────────────────────────────┐
+  │  "MUST HAVE" (A with B)        │  "MAY OR MAY NOT HAVE"          │
+  │  Accounts WITH Opportunities   │  All Accounts (with or without) │
+  ├────────────────────────────────┼─────────────────────────────────┤
+  │  Account    │ Opp Name  │ Amt  │  Account    │ Opp Name  │ Amt   │
+  │  ─────────────────────────     │  ─────────────────────────────  │
+  │  Acme Corp  │ Q4 Deal   │ $50K │  Acme Corp  │ Q4 Deal   │ $50K  │
+  │  Beta Inc   │ Renewal   │ $25K │  Beta Inc   │ Renewal   │ $25K  │
+  │  Gamma Ltd  │ New Lic.  │ $80K │  Gamma Ltd  │ New Lic.  │ $80K  │
+  │             │           │      │  Delta Co   │           │       │
+  │  Delta Co   │  ← EXCLUDED      │  Echo Corp  │           │       │
+  │  (has 0 opps, not shown)│      │  (all accounts appear,  │       │
+  │             │           │      │   blank opp columns)    │       │
+  └────────────────────────────────┴─────────────────────────────────┘
+  
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  KEY EXAM POINT:                                               │
+  │  Use "May or may not have" to find accounts with NO children   │
+  │  Combine with a cross-filter: Accounts WITHOUT Opportunities   │
+  └─────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **"Must have" (A with B):** Only primary records WITH at least one related child record appear
   - Example: Accounts WITH Opportunities — accounts with zero opportunities are excluded
@@ -58,7 +164,30 @@
 **Speaker Notes:** This is one of the most commonly tested facts about custom report types. The exam will present scenarios like "Which report type setting shows ALL accounts, including those with no opportunities?" — the answer is "may or may not have." If a client wants to find accounts that have NEVER had an opportunity, they'd use a "may or may not have" report type combined with a cross-filter. Knowing this distinction is essential.
 
 ### Slide 5: Custom Report Type Field Layout
-**Visual:** Field Layout editor screenshot showing two columns: "Fields Available for Reports" (left pool) and "Fields displayed in reports" (right, with drag handles), organized by object section headers
+**Visual:**
+```
+  CUSTOM REPORT TYPE — Field Layout Editor
+  ┌───────────────────────────────┬─────────────────────────────────┐
+  │  FIELDS AVAILABLE             │  FIELDS IN REPORT BUILDER       │
+  │  (not yet added)              │  (visible to report creators)   │
+  ├───────────────────────────────┼─────────────────────────────────┤
+  │  ACCOUNT FIELDS:              │  ACCOUNT FIELDS SECTION:        │
+  │  • Billing City               │  ≡ Account Name                 │
+  │  • Phone                      │  ≡ Account Owner                │
+  │  • Created Date               │  ≡ Industry                     │
+  │  • ...                        │  ≡ Annual Revenue               │
+  │                               │                                 │
+  │  OPPORTUNITY FIELDS:          │  OPPORTUNITY FIELDS SECTION:    │
+  │  • Expected Revenue           │  ≡ Opportunity Name             │
+  │  • Competitor                 │  ≡ Stage                        │
+  │  • Next Step                  │  ≡ Amount                       │
+  │  • ...                        │  ≡ Close Date                   │
+  │                               │  ≡ Probability                  │
+  └───────────────────────────────┴─────────────────────────────────┘
+  ≡ = drag handle (reorder fields within sections)
+  Fields can be renamed — only affects the Report Builder label
+  Does NOT affect the actual field data or record page layout
+```
 **Content:**
 - After defining objects, configure which fields appear in the Report Builder
 - Fields are organized by object (Account fields section, Opportunity fields section, etc.)
@@ -71,7 +200,36 @@
 **Speaker Notes:** The field layout editor is how you customize the "menu" of fields that report creators see. If your users frequently need a specific formula field or custom field, add it to the report type's field layout. If you have sensitive fields you don't want in reports, remove them from the layout. Remember: this only affects report availability, not the field itself on the record page.
 
 ### Slide 6: Tabular vs. Summary vs. Matrix — When to Use Each
-**Visual:** Decision tree: "Do you need groupings?" No → Tabular. Yes → "Do you need column groupings too?" No → Summary. Yes → Matrix.
+**Visual:**
+```
+  CHOOSE A REPORT FORMAT — Decision Tree
+  
+  ┌──────────────────────────────────────────────────┐
+  │          Do you need groupings?                  │
+  └──────────────────────┬───────────────────────────┘
+                ┌────────┴────────┐
+                │ NO              │ YES
+                ▼                 ▼
+  ┌──────────────────┐  ┌──────────────────────────────────┐
+  │    TABULAR       │  │  Do you need column groupings?   │
+  │  Flat list only  │  └────────────────┬─────────────────┘
+  │  Export / lookup │          ┌────────┴────────┐
+  │  Dashboard:      │          │ NO              │ YES
+  │  table only      │          ▼                 ▼
+  └──────────────────┘ ┌─────────────────┐ ┌─────────────────┐
+                       │    SUMMARY      │ │     MATRIX      │
+                       │  Row groupings  │ │  Row + Column   │
+                       │  + subtotals    │ │  (pivot table)  │
+                       │  Dashboard:     │ │  Dashboard:     │
+                       │  full support   │ │  full support   │
+                       └─────────────────┘ └─────────────────┘
+  
+  Need to combine multiple report types side by side?
+  ┌──────────────────────────────────────────────────────┐
+  │    JOINED  (up to 5 blocks, own report type each)    │
+  │    Dashboard: limited (table components only)        │
+  └──────────────────────────────────────────────────────┘
+```
 **Content:**
 | Format | Groupings | Use Case | Dashboard Ready |
 |--------|-----------|----------|-----------------|
@@ -86,7 +244,35 @@
 **Speaker Notes:** Memorize this decision tree — it directly maps to exam questions. The most common mistake is using Tabular when a dashboard component is needed. Tabular reports cannot source chart-type dashboard components. If someone needs a bar chart showing cases by status, they need a Summary report. The format you choose after selecting the report type is changed via the report toolbar (the format is not locked by the report type).
 
 ### Slide 7: Changing Report Format and Format Limits
-**Visual:** Report Builder toolbar showing the "Report Format" dropdown or "Switch to Summary/Matrix/Joined" option
+**Visual:**
+```
+  REPORT BUILDER — Format Selection & Switching Rules
+  ┌──────────────────────────────────────────────────────────┐
+  │  Report Builder Toolbar                                  │
+  │  ┌───────────────────────────────────────────────────┐   │
+  │  │  Format: [ Tabular ▼ ]  ← change format here     │   │
+  │  │          ┌──────────────────┐                    │   │
+  │  │          │ ● Tabular        │                    │   │
+  │  │          │ ○ Summary        │                    │   │
+  │  │          │ ○ Matrix         │                    │   │
+  │  │          │ ○ Joined         │                    │   │
+  │  │          └──────────────────┘                    │   │
+  │  └───────────────────────────────────────────────────┘   │
+  ├──────────────────────────────────────────────────────────┤
+  │  FORMAT SWITCHING RULES:                                 │
+  │  Tabular  ↔  Summary:  Supported (add/remove grouping)  │
+  │  Summary  ↔  Matrix:   Supported (add column groupings) │
+  │  To / from Joined:     Requires rebuild (separate mode) │
+  ├──────────────────────────────────────────────────────────┤
+  │  FORMAT LIMITS:                                          │
+  │  ┌─────────────┬────────────────────────────────────┐   │
+  │  │  Summary    │  up to 3 row groupings             │   │
+  │  │  Matrix     │  up to 2 row + 2 column groupings  │   │
+  │  │  Joined     │  up to 5 blocks                    │   │
+  │  │  Row Limit  │  Tabular only, max 2,000 rows      │   │
+  │  └─────────────┴────────────────────────────────────┘   │
+  └──────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Report format can be changed within Report Builder via the toolbar
 - **Switching format rules:**
@@ -101,7 +287,38 @@
 **Speaker Notes:** The format limits are testable. Summary supports three row groupings — for example, Owner, Stage, and Close Month. Matrix supports two of each: two row groupings and two column groupings. These limits exist for performance reasons. The Joined report format is essentially a separate editor — once you switch to Joined, you rebuild the blocks rather than converting existing groupings.
 
 ### Slide 8: Choosing the Right Report Type — Summary
-**Visual:** Flowchart: "Scenario" → Decision boxes for "Custom objects?", "More than 2 objects?", "Specific field not in standard type?" → "Use Custom Report Type" or "Use Standard Report Type"
+**Visual:**
+```
+  CHOOSING: Standard vs. Custom Report Type
+  
+  ┌──────────────────────────────────────────────────────────┐
+  │                      SCENARIO                            │
+  └──────────────────────────┬───────────────────────────────┘
+                             ▼
+  ┌──────────────────────────────────────────────────────────┐
+  │  Reporting on a CUSTOM OBJECT?                           │
+  └──────────────────┬───────────────────────────────────────┘
+           │ YES     │                         │ NO
+           ▼         │                         ▼
+  ┌────────────────┐ │   ┌────────────────────────────────────┐
+  │  Must use      │ │   │  Does a standard report type       │
+  │  CUSTOM        │ │   │  already cover your fields?        │
+  │  Report Type   │ │   └──────────────┬─────────────────────┘
+  └────────────────┘ │          │ YES   │           │ NO
+                     │          ▼       │           ▼
+                     │  ┌──────────────┐│  ┌────────────────────┐
+                     │  │  Use STANDARD││  │  Build CUSTOM      │
+                     │  │  Report Type ││  │  Report Type       │
+                     │  └──────────────┘│  └────────────────────┘
+                     │
+                     │  Also use CUSTOM when:
+                     │  • Need specific "with/without" behavior
+                     │  • Need lookup relationships not in standard types
+                     │  • Need 3-4 objects in non-standard combinations
+  ───────────────────────────────────────────────────────────────
+  REMEMBER: Custom report types must be DEPLOYED (not "In Development")
+            before users can see them in the Report Builder
+```
 **Content:**
 - Use a **standard report type** when:
   - Working with standard objects covered by Salesforce defaults

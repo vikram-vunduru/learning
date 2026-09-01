@@ -246,7 +246,36 @@
 **Speaker Notes:** The entitlement-to-case connection is what activates the SLA clock. Once an agent links an entitlement to a case, the milestones appear in the related list with countdown timers visible. This gives agents real-time visibility into how much time they have to respond, update, and resolve.
 
 ### Slide 8: Key Entitlement Feature Interactions
-**Visual:** Summary flowchart: Entitlement → Entitlement Process → Milestones → Milestone Actions → Case Events
+**Visual:**
+```
+  ┌──────────────────┐
+  │   ENTITLEMENT    │──── Verifies customer ELIGIBILITY for support
+  └────────┬─────────┘     (linked to Account / Contact / Asset)
+           │  linked to Case → activates process
+           ▼
+  ┌──────────────────────────┐
+  │   ENTITLEMENT PROCESS    │──── Defines SLA TIMELINE
+  │   (Gold / Silver / Std)  │     Respects Business Hours
+  └────────┬─────────────────┘     Clocks pause after hours
+           │  contains checkpoints
+           ▼
+  ┌──────────────────┐
+  │    MILESTONES    │──── Specific SLA CHECKPOINTS
+  │  Required = ☑?  │     (First Response, Acknowledge, Resolution)
+  └────────┬─────────┘     Required milestone blocks case closure
+           │  trigger automated responses
+           ▼
+  ┌────────────────────────┐
+  │   MILESTONE ACTIONS    │──── Automated ENFORCEMENT
+  │  Warning│Violation     │     Email Alerts, Field Updates,
+  │  Success               │     Outbound Messages, Flows
+  └────────┬───────────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │   CASE EVENTS    │──── SLA Met / Violated → Compliance Reports
+  └──────────────────┘
+```
 **Content:**
 - Entitlements verify ELIGIBILITY; Entitlement Processes enforce TIMELINES
 - Business Hours: Processes can pause outside of configured business hours

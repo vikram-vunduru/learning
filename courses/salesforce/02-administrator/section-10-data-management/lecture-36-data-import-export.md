@@ -10,7 +10,27 @@
 ## 📊 SLIDES
 
 ### Slide 1: Salesforce Data Tools Overview
-**Visual:** Two-column comparison graphic: Data Import Wizard (wizard icon, browser-based) vs. Data Loader (desktop app icon, downloadable), with key differentiators highlighted
+**Visual:**
+```
+  ┌────────────────────────────────┬────────────────────────────────┐
+  │   DATA IMPORT WIZARD           │   DATA LOADER                  │
+  │   (Browser-based)              │   (Desktop app)                │
+  ├────────────────────────────────┼────────────────────────────────┤
+  │  No installation               │  Requires install (Win/Mac)    │
+  │  Supported objects only        │  ALL Salesforce objects        │
+  │  Max 50,000 records            │  Up to 5,000,000 records       │
+  │  Insert & Update only          │  Insert/Update/Upsert/Delete/  │
+  │                                │  Hard Delete/Export            │
+  │  Beginner-friendly             │  Intermediate level            │
+  └────────────────────────────────┴────────────────────────────────┘
+
+  FOR EXPORT:
+  ┌────────────────────────────────┬────────────────────────────────┐
+  │   DATA EXPORT (Setup)          │   REPORT EXPORT                │
+  │   Full org backup as CSV zip   │   Filtered subset of records   │
+  │   Manual or scheduled weekly   │   Excel or CSV format          │
+  └────────────────────────────────┴────────────────────────────────┘
+```
 **Content:**
 - Salesforce provides two primary tools for data import:
   - **Data Import Wizard:** Browser-based wizard, no installation required
@@ -23,7 +43,24 @@
 **Speaker Notes:** Choosing the right tool is a core admin skill and a frequently tested exam topic. The key decision factors are: which objects are supported, how many records you're importing, whether you need scheduling/automation, and whether you need advanced operations like upsert. Let's go through each tool in detail.
 
 ### Slide 2: Data Import Wizard — Capabilities and Limits
-**Visual:** Step-by-step wizard screenshot showing: Step 1 (Select Object), Step 2 (Upload CSV), Step 3 (Map Fields), Step 4 (Review & Import), Step 5 (Monitor in Processing Queue)
+**Visual:**
+```
+  Data Import Wizard — Step-by-Step
+
+  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
+  │ STEP 1   │──▶│ STEP 2   │──▶│ STEP 3   │──▶│ STEP 4   │──▶│ STEP 5   │
+  │ Select   │   │ Upload   │   │ Map      │   │ Review   │   │ Monitor  │
+  │ Object   │   │ CSV File │   │ Fields   │   │ & Start  │   │ in Queue │
+  │          │   │          │   │          │   │          │   │          │
+  │Accounts  │   │contacts  │   │CSV col   │   │Preview   │   │ Status:  │
+  │Contacts  │   │_data.csv │   │ ──▶ SF   │   │ mapping  │   │ Running/ │
+  │Leads     │   │(max 50K  │   │field     │   │ confirm  │   │ Complete │
+  │Custom    │   │ records) │   │          │   │          │   │          │
+  └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
+
+  Supported objects: Accounts, Contacts, Leads, Solutions,
+                     Campaign Members, Custom Objects ONLY
+```
 **Content:**
 - **Supported objects:** Accounts, Contacts, Leads, Solutions, Campaign Members, and **custom objects**
 - Does NOT support: Opportunities, Cases, Products, and most other standard objects
@@ -35,7 +72,29 @@
 **Speaker Notes:** The object support limitation is critical for the exam. Data Import Wizard ONLY supports Accounts, Contacts, Leads, Solutions, Campaign Members, and custom objects. If you need to import Opportunities, Cases, or other standard objects, you must use Data Loader. The 50,000 record limit is a hard cap — for larger imports, Data Loader is required. The wizard handles basic deduplication automatically when you specify matching criteria.
 
 ### Slide 3: Data Loader — Capabilities and Limits
-**Visual:** Data Loader application screenshot showing the operation buttons: Insert, Update, Upsert, Delete, Hard Delete, Export, Export All
+**Visual:**
+```
+  Data Loader — Operation Buttons
+
+  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────────┐
+  │  INSERT  │ │  UPDATE  │ │  UPSERT  │ │  DELETE  │ │ HARD DELETE │
+  │          │ │          │ │          │ │          │ │             │
+  │ Create   │ │ Update   │ │ Insert + │ │ Moves to │ │ Permanently │
+  │ new      │ │ existing │ │ Update   │ │ Recycle  │ │ deletes —   │
+  │ records  │ │ (needs   │ │ via      │ │ Bin      │ │ bypasses    │
+  │          │ │ SF ID)   │ │ Ext. ID  │ │          │ │ Recycle Bin │
+  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └─────────────┘
+
+  ┌──────────┐ ┌──────────────┐
+  │  EXPORT  │ │  EXPORT ALL  │
+  │          │ │              │
+  │ Active   │ │ Includes     │
+  │ records  │ │ Recycle Bin  │
+  │ only     │ │ records      │
+  └──────────┘ └──────────────┘
+
+  Supports ALL objects │ Up to 5,000,000 records │ Generates success/error CSV files
+```
 **Content:**
 - **All Salesforce objects** (standard and custom) — no exclusions
 - **Up to 5 million records** per operation (configurable batch size)
@@ -52,7 +111,30 @@
 **Speaker Notes:** Data Loader is the power tool. The upsert operation is the most exam-tested — it combines insert and update based on an External ID field. Hard Delete bypasses the Recycle Bin, permanently removing records — use with caution as this cannot be undone. The Export All operation also exports soft-deleted records from the Recycle Bin, unlike regular Export. Data Loader is essential for large migrations, integrations, and mass data maintenance.
 
 ### Slide 4: Upsert and External ID Fields
-**Visual:** Diagram showing a CSV with an "External_ID__c" column → Data Loader Upsert operation → Decision: Does a record with this External ID already exist? Yes → Update it. No → Insert new record.
+**Visual:**
+```
+  CSV file with External_ID__c column
+  ┌──────────────────┬─────────────┬───────────┐
+  │ External_ID__c   │ FirstName   │ LastName  │
+  ├──────────────────┼─────────────┼───────────┤
+  │ LEGACY-001       │ John        │ Smith     │
+  │ LEGACY-002       │ Jane        │ Doe       │
+  │ LEGACY-999       │ Bob         │ Jones     │
+  └──────────────────┴─────────────┴───────────┘
+                  │
+                  ▼  Data Loader UPSERT operation
+                  │
+          For each row, check:
+          Does a record with this External ID already exist?
+                  │
+          ┌───────┴────────┐
+          ▼                ▼
+     YES → UPDATE     NO → INSERT
+     that record      new record
+
+  External ID field setup: custom field → check "External ID" checkbox
+  Can be: Text, Number, or Email field type
+```
 **Content:**
 - **Upsert** = Update + Insert combined in one operation
   - Existing records are updated; new records (by ID match) are inserted
@@ -66,7 +148,28 @@
 **Speaker Notes:** The upsert operation with External ID is one of the most important concepts for data management. If you're migrating data from another CRM, your records have their own IDs in that system. By creating an External ID field in Salesforce and loading those source IDs, you can do upserts that intelligently insert new records and update existing ones — without needing to know Salesforce's internal record IDs. External IDs also allow cross-object relationships during import.
 
 ### Slide 5: Data Loader Batch Size Settings
-**Visual:** Data Loader Settings screen showing "Batch Size" field with a note: smaller = more reliable but slower; larger = faster but higher failure impact. Recommended range: 200 (errors) to 2,000 (normal).
+**Visual:**
+```
+  Data Loader Settings — Batch Size
+
+  ┌────────────────────────────────────────────────────────────┐
+  │  Batch Size: [ 200      ]  records per API call            │
+  └────────────────────────────────────────────────────────────┘
+
+  Smaller batch (e.g., 50)          Larger batch (e.g., 2,000)
+  ─────────────────────────         ──────────────────────────
+  ✓ Better error isolation          ✓ Fewer API calls
+    (failure affects 50 records)      (faster for large volumes)
+  ✓ Easier to identify bad rows     ✗ One bad batch = 2,000 failures
+  ✗ More API calls                  ✗ Counts more against API limits
+  ✗ Slower
+
+  Default: 200 │ Standard API max: 200 per call
+  Bulk API:    up to 10,000 per batch (asynchronous)
+
+  API limits: ~15,000 calls/day (most editions)
+  For millions of records: enable Bulk API in Data Loader settings
+```
 **Content:**
 - **Batch size:** Number of records per API call (configurable 1–200 for standard, up to 10,000 for Bulk API)
 - **Default batch size:** 200 records per batch
@@ -83,7 +186,33 @@
 **Speaker Notes:** Batch size is a balancing act between speed and error isolation. The default of 200 is a good starting point. For very large imports (hundreds of thousands of records), enable the Bulk API and increase batch size to 10,000. The Bulk API uses asynchronous processing — Data Loader submits the batch, Salesforce processes it in the background, and you check the results later. This is much more efficient for large volumes than synchronous REST API calls.
 
 ### Slide 6: Data Export — Scheduled and Manual
-**Visual:** Setup → Data Export screen showing "Export Now" and "Schedule Export" options, with a table showing export files available for download (zip containing CSV files per object)
+**Visual:**
+```
+  Setup → Data Management → Data Export
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │  [ Export Now ]           [ Schedule Export ]               │
+  │                                                             │
+  │  Generates immediately    Runs automatically:               │
+  │                           • Weekly (every 7 days)           │
+  │                           • Monthly                         │
+  │                           Email sent when ready             │
+  └──────────────────────┬──────────────────────────────────────┘
+                         │
+                         ▼
+  Exported zip file contains one CSV per object:
+  ┌─────────────────────────────────────────┐
+  │  WE_00000000_1.ZIP                      │
+  │  ├── Account.csv                        │
+  │  ├── Contact.csv                        │
+  │  ├── Opportunity.csv                    │
+  │  ├── Case.csv                           │
+  │  └── ... (all selected objects)         │
+  └─────────────────────────────────────────┘
+
+  ⚠ Download link expires after 48 hours
+  Requires "Weekly Data Export" permission
+```
 **Content:**
 - **Data Export** exports all data from your Salesforce org as a set of CSV files
 - **Manual Export (Export Now):**
@@ -99,7 +228,32 @@
 **Speaker Notes:** Data Export is your backup and compliance tool. Every Salesforce admin should have scheduled weekly exports configured to protect against accidental data loss. The exported zip file contains one CSV per object with all fields and all records. Note the 48-hour download window — if you miss it, you need to re-run the export. Data Export is for DATA backup only — it doesn't capture your org's configuration. For configuration backup, use change sets or version control with the Salesforce CLI.
 
 ### Slide 7: Reports for Data Export
-**Visual:** Report with an "Export" button showing options: Formatted Report (Excel/XLSX), Details Only (CSV), and an explanation of when each is best
+**Visual:**
+```
+  Salesforce Report → Export Options
+
+  ┌──────────────────────────────────────────────────────┐
+  │  My Opportunities Report                             │
+  │                              [ Export ▼ ]           │
+  └────────────────────────────────────┬─────────────────┘
+                                       │
+                      ┌────────────────┴────────────────┐
+                      ▼                                 ▼
+           Formatted Report (.xlsx)          Details Only (.csv)
+           ──────────────────────            ─────────────────────
+           ✓ Excel with groupings            ✓ Raw CSV, machine-
+             and subtotals                    readable
+           ✓ Best for stakeholders           ✓ Best for downstream
+             and offline review               processing / re-import
+           ✗ Not easily machine-            ✗ No formatting or
+             parseable                        groupings
+
+  Limitations:
+  • Limited to records visible to the running user (sharing applies)
+  • Max ~100,000 rows
+  • Only fields in report columns are exported
+  • Requires "Export Reports" permission
+```
 **Content:**
 - **Report Export:** Export the results of any Salesforce report
 - **Export formats:**
@@ -117,7 +271,31 @@
 **Speaker Notes:** Report export is ideal when you need a specific subset of data, not the full org export. The "Details Only" CSV format is machine-readable and works well for downstream processing. The "Formatted" Excel format is better for sharing with business stakeholders. Remember that report exports are limited by the running user's data access — they won't see records beyond their sharing permissions. Also, you need the "Export Reports" permission explicitly; it's not automatically included in all profiles.
 
 ### Slide 8: Tool Selection Guide — Exam Summary
-**Visual:** Decision tree / comparison table showing when to choose each tool
+**Visual:**
+```
+  Which tool should I use?
+
+  ┌─────────────────────┬───────────────────┬──────────────────────┐
+  │ Criteria            │ Data Import Wizard │ Data Loader          │
+  ├─────────────────────┼───────────────────┼──────────────────────┤
+  │ Objects             │ Accounts, Contacts │ ALL objects          │
+  │                     │ Leads, Custom only │                      │
+  ├─────────────────────┼───────────────────┼──────────────────────┤
+  │ Max Records         │ 50,000             │ 5,000,000            │
+  ├─────────────────────┼───────────────────┼──────────────────────┤
+  │ Upsert              │ No                 │ Yes                  │
+  ├─────────────────────┼───────────────────┼──────────────────────┤
+  │ Schedule/Automate   │ No                 │ Yes (CLI/batch)      │
+  ├─────────────────────┼───────────────────┼──────────────────────┤
+  │ Installation        │ None (browser)     │ Required             │
+  ├─────────────────────┼───────────────────┼──────────────────────┤
+  │ Hard Delete         │ No                 │ Yes                  │
+  ├─────────────────────┼───────────────────┼──────────────────────┤
+  │ Skill level         │ Beginner           │ Intermediate         │
+  └─────────────────────┴───────────────────┴──────────────────────┘
+
+  Export tools:  Data Export → full org backup │ Report → filtered subset
+```
 
 | Criteria | Data Import Wizard | Data Loader |
 |----------|-------------------|-------------|

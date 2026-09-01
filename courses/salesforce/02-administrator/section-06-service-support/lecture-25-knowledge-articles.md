@@ -8,7 +8,31 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Is Salesforce Knowledge?
-**Visual:** Knowledge base diagram showing agents, customers, and partners all accessing articles from a central repository
+**Visual:**
+```
+                 ┌────────────────────────────────────┐
+                 │          KNOWLEDGE BASE             │
+                 │  ┌──────────────────────────────┐  │
+                 │  │  FAQ Articles                │  │
+                 │  │  How-To Guides               │  │
+                 │  │  Troubleshooting Guides      │  │
+                 │  │  Known Issues                │  │
+                 │  │  Reference Documentation     │  │
+                 │  └──────────────────────────────┘  │
+                 └───────────────┬────────────────────┘
+                                 │
+          ┌──────────────────────┼──────────────────────┐
+          │                      │                      │
+          ▼                      ▼                      ▼
+  ┌────────────────┐   ┌───────────────────┐  ┌─────────────────────┐
+  │    AGENTS      │   │    CUSTOMERS      │  │     PARTNERS        │
+  │ (Internal App) │   │ (Self-Service     │  │ (Partner Community) │
+  │ Case records,  │   │  Community /      │  │ Portal access       │
+  │ article search │   │  Public Site)     │  │                     │
+  └────────────────┘   └───────────────────┘  └─────────────────────┘
+
+  One article → published to multiple channels simultaneously
+```
 **Content:**
 - Salesforce Knowledge is a built-in knowledge base for creating, managing, and sharing articles
 - Use cases: FAQ library, troubleshooting guides, product documentation, internal procedures
@@ -19,7 +43,29 @@
 **Speaker Notes:** Knowledge is one of the most impactful Service Cloud features. Instead of every agent re-solving the same problem from scratch, articles capture proven solutions and make them reusable. The Admin exam tests how to set up Knowledge, manage article visibility, and understand the article lifecycle.
 
 ### Slide 2: Lightning Knowledge vs Classic Knowledge
-**Visual:** Comparison table: Lightning Knowledge (one Article object, Record Types) vs Classic Knowledge (separate Article Type objects)
+**Visual:**
+```
+  ┌─────────────────────────────────┬─────────────────────────────────┐
+  │  LIGHTNING KNOWLEDGE            │  CLASSIC KNOWLEDGE              │
+  │  (Current / Recommended)        │  (Legacy)                       │
+  ├─────────────────────────────────┼─────────────────────────────────┤
+  │ One "Knowledge" object          │ Multiple Article Type objects   │
+  │ (single standard object)        │ (each type = separate object)   │
+  ├─────────────────────────────────┼─────────────────────────────────┤
+  │ Record Types differentiate      │ Article Types differentiate     │
+  │ article categories              │ article categories              │
+  │  → FAQ, How-To, Known Issue     │  → FAQ object, How-To object    │
+  ├─────────────────────────────────┼─────────────────────────────────┤
+  │ Standard object features:       │ Non-standard architecture;      │
+  │ layouts, related lists,         │ limited standard features;      │
+  │ CRM record linking              │ complex configuration           │
+  ├─────────────────────────────────┼─────────────────────────────────┤
+  │ New orgs: DEFAULT               │ Legacy orgs only                │
+  ├─────────────────────────────────┼─────────────────────────────────┤
+  │ ✓ Simpler    ✓ Modern           │ Migration tool available        │
+  │ ✓ Familiar admin model          │ Classic → Lightning migration   │
+  └─────────────────────────────────┴─────────────────────────────────┘
+```
 **Content:**
 - **Classic Knowledge:** Multiple Article Type objects (each type is a separate object); complex setup; legacy
 - **Lightning Knowledge:** Single "Knowledge" object with Record Types for different article categories; simpler and modern

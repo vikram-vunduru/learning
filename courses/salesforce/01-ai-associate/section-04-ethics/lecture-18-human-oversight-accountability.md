@@ -379,7 +379,23 @@ A contractually binding document that defines what Salesforce AI CANNOT be used 
 ---
 
 ### Slide 10: Section 4 Summary — Ethics Exam Cheat Sheet
-**Visual:** Summary table covering all four ethics lectures.
+**Visual:**
+```
+   HUMAN OVERSIGHT — EXAM REFERENCE TABLE
+
+   ┌──────────────────────┬────────────────────────────────────────┐
+   │  CONCEPT             │  KEY POINT                             │
+   ├──────────────────────┼────────────────────────────────────────┤
+   │ Human-in-the-loop    │ Humans review and approve AI decisions │
+   │ Accountability chain │ Developers → Salesforce → Admins →     │
+   │                      │ End Users — all share responsibility   │
+   │ Escalation           │ Clear triggers when AI hands to human  │
+   │ Audit trail          │ Einstein Trust Layer logs all AI acts  │
+   │ Override capability  │ Humans must always be able to correct  │
+   │ Monitoring           │ Track AI accuracy drift over time      │
+   │ Model review cadence │ Periodic bias audits required          │
+   └──────────────────────┴────────────────────────────────────────┘
+```
 **Content:**
 
 | Topic | Key Concept | Exam Trigger |
