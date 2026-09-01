@@ -18,7 +18,27 @@
 ## SLIDES
 
 ### Slide 1: Title Slide
-**Visual:** Two images side by side. Left: A sealed black box with inputs and outputs but no visibility inside — labeled "Black Box AI." Right: The same system but with a transparent window showing the gears and logic inside — labeled "Explainable AI."
+**Visual:**
+```
+   BLACK BOX vs. TRANSPARENT AI
+
+   ┌────────────────────────────┬────────────────────────────┐
+   │      BLACK BOX AI          │     TRANSPARENT AI         │
+   ├────────────────────────────┼────────────────────────────┤
+   │  Input → [???] → Output    │  Input → [Visible Logic]   │
+   │                            │         → Explained Output │
+   │  "Lead score: 23"          │  "Lead score: 23 because:  │
+   │  Why? Unknown.             │   - Small company (-15pts) │
+   │                            │   - No decision maker (-8) │
+   │                            │   - Low web engagement (-4)│
+   │                            │   Contributing factors     │
+   │                            │   shown"                   │
+   │                            │                            │
+   │ Trust: Low (can't verify)  │ Trust: High (verifiable)  │
+   │ Accountability: Hard       │ Accountability: Possible   │
+   │ Bias detection: Impossible │ Bias detection: Feasible   │
+   └────────────────────────────┴────────────────────────────┘
+```
 **Content:**
 - Transparency: The "why" behind AI decisions
 - Black box vs. explainable AI
@@ -30,7 +50,27 @@
 ---
 
 ### Slide 2: What Is AI Transparency?
-**Visual:** A circle with three sections: (1) Decision Transparency — what the AI decided, (2) Process Transparency — how it decided, (3) Purpose Transparency — why the system exists and what it was designed to do.
+**Visual:**
+```
+   THREE DIMENSIONS OF AI TRANSPARENCY
+
+              ┌─────────────────────────────┐
+              │                             │
+   ┌──────────┤   ALGORITHMIC               ├──────────┐
+   │          │   TRANSPARENCY              │          │
+   │ DATA     │                             │ DECISION │
+   │ TRANS.   │  How the model works:       │ TRANS.   │
+   │          │  ● Model type disclosed     │          │
+   │ Sources  │  ● Key features listed      │ Explain  │
+   │ disclosed│  ● Confidence scores shown  │ each     │
+   │          │  ● Limitations documented   │ specific │
+   │ Training │                             │ decision │
+   │ data     │                             │ made     │
+   │ described│                             │          │
+   └──────────┤                             ├──────────┘
+              │                             │
+              └─────────────────────────────┘
+```
 **Content:**
 **AI Transparency has three dimensions:**
 
@@ -54,7 +94,28 @@
 ---
 
 ### Slide 3: Black Box AI — The Problem
-**Visual:** A neural network visualization — complex interconnected nodes with no obvious human-readable logic. Input: "Customer data." Output: "Risk score: 73." No explanation visible.
+**Visual:**
+```
+   THE BLACK BOX PROBLEM IN DEEP LEARNING
+
+   Input Features              Neural Network            Output
+   ┌─────────────┐            ┌───────────────┐         ┌──────┐
+   │ Age: 34     │            │               │         │      │
+   │ Income: $8M │            │  ●──●──●──●   │         │ DENY │
+   │ ZIP: 94102  │──────────▶ │  ●──●──●──●   │────────▶│ LOAN │
+   │ Job: Tech   │            │  ●──●──●──●   │         │      │
+   │ History...  │            │  (768 neurons │         │      │
+   └─────────────┘            │   12 layers)  │         └──────┘
+                              └───────────────┘
+                                     ↑
+                               WHY? UNKNOWN
+                               No human-readable
+                               explanation of which
+                               inputs drove the denial
+
+   Problem: Person denied loan cannot understand or challenge
+   the decision. Regulators cannot audit for fairness.
+```
 **Content:**
 **Black box AI:**
 - The model makes decisions that humans cannot interpret or explain
@@ -75,7 +136,27 @@
 ---
 
 ### Slide 4: Explainable AI — The Solution
-**Visual:** A lead scoring result showing: Score 84%, followed by a table of driving factors: Job Title (VP+) → Strong positive. Company Revenue (>$50M) → Strong positive. Lead Source (Organic Web) → Moderate positive. No previous engagement → Moderate negative.
+**Visual:**
+```
+   EXPLAINABLE AI (XAI) — Making Decisions Interpretable
+
+   Prediction: Lead Score = 23 (Low Priority)
+
+   CONTRIBUTING FACTORS (SHAP / Feature Importance):
+
+   Annual Revenue < $1M     ████████████████████  -18 pts  (hurts)
+   No Decision Maker        ████████████          -12 pts  (hurts)
+   Low Web Engagement       ████████              -8 pts   (hurts)
+   Industry: Retail         ████                  -4 pts   (hurts)
+   Recent Email Open        ██                    +6 pts   (helps)
+   Company size match       ██                    +5 pts   (helps)
+   ─────────────────────────────────────────────────────────────
+   Net: 23 / 100
+
+   ✓ Rep can see why the score is low
+   ✓ Rep can decide whether factors are accurate
+   ✓ Bias auditor can check if factors are appropriate
+```
 **Content:**
 **Explainable AI (XAI):**
 - AI systems designed to provide human-understandable reasons for their decisions
@@ -98,7 +179,32 @@
 ---
 
 ### Slide 5: Model Cards — Documentation for AI Transparency
-**Visual:** A mockup of a Salesforce Model Card document with sections labeled: Purpose, Training Data, Intended Use, Limitations, Known Biases, Performance Metrics.
+**Visual:**
+```
+   MODEL CARD — AI Transparency Document
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │  MODEL: Einstein Lead Scoring — Acme Corp                   │
+   ├─────────────────────────────────────────────────────────────┤
+   │  INTENDED USE: Score B2B leads for sales prioritization     │
+   │  MODEL TYPE: Gradient Boosting Classifier                   │
+   │  TRAINING DATA: 18 months of Acme lead conversion history   │
+   │  TRAINING SIZE: 4,200 converted/non-converted leads         │
+   ├─────────────────────────────────────────────────────────────┤
+   │  PERFORMANCE                                                │
+   │  Overall accuracy: 84%   AUC-ROC: 0.91                     │
+   │  Precision: 79%          Recall: 88%                        │
+   ├─────────────────────────────────────────────────────────────┤
+   │  KNOWN LIMITATIONS                                          │
+   │  ● Limited data from APAC region — lower accuracy there     │
+   │  ● Performance degrades after 90 days without retraining    │
+   ├─────────────────────────────────────────────────────────────┤
+   │  FAIRNESS EVALUATION                                        │
+   │  No significant performance gap across Industry subgroups   │
+   ├─────────────────────────────────────────────────────────────┤
+   │  LAST UPDATED: Q1 2024   OWNER: Sales Ops Team              │
+   └─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 **What is a Model Card?**
 A standardized documentation artifact that ships WITH an AI model, describing:
@@ -198,7 +304,32 @@ A standardized documentation artifact that ships WITH an AI model, describing:
 ---
 
 ### Slide 9: Transparency vs. Explainability — The Distinction
-**Visual:** Venn diagram — "Transparency" circle (larger) overlaps with "Explainability" circle. In the exclusive Transparency area: disclosure, documentation, purpose. In the overlap: driving factors, confidence scores. In the exclusive Explainability area: model interpretability, feature importance.
+**Visual:**
+```
+   TRANSPARENCY vs. EXPLAINABILITY — Key Distinction
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │                                                             │
+   │   TRANSPARENCY              EXPLAINABILITY                  │
+   │   ┌─────────────────┐   ┌─────────────────┐                │
+   │   │                 │   │                 │                │
+   │   │ What model is   │   │ Why did this    │                │
+   │   │ used            │   │ specific        │                │
+   │   │ How it was      │ ∩ │ decision happen │                │
+   │   │ trained         │   │                 │                │
+   │   │ What data       │   │ Post-hoc        │                │
+   │   │ it used         │   │ reasoning for   │                │
+   │   │ Overall         │   │ individual      │                │
+   │   │ performance     │   │ predictions     │                │
+   │   └─────────────────┘   └─────────────────┘                │
+   │                                                             │
+   │   SHARED ZONE: Both serve the goal of trust and oversight   │
+   │                                                             │
+   │   Transparency = SYSTEM level   Explainability = DECISION  │
+   │                  (disclosed)                    level       │
+   │                                                 (explained) │
+   └─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 **Transparency** (broader concept):
 - Knowing THAT AI is being used and for what purpose

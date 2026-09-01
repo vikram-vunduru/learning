@@ -10,7 +10,28 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Is a Validation Rule?
-**Visual:** Diagram showing a user saving a record → Validation Rule evaluates → If TRUE → Error displayed (record NOT saved) → If FALSE → Record saved successfully
+**Visual:**
+```
+  User saves record
+        │
+        ▼
+  Salesforce evaluates ALL Validation Rules
+        │
+        ├── All rules PASS ──▶ Record saves ✓
+        │
+        └── Any rule FAILS ──▶ Error message shown
+                                Record NOT saved ✗
+
+  Rule structure:
+  ┌─────────────────────────────────────────────────────┐
+  │ IF (error condition formula is TRUE)                │
+  │   THEN show error message                           │
+  │                                                     │
+  │ Example: AND(ISPICKVAL(Stage,"Closed Won"),          │
+  │              ISBLANK(CloseDate))                    │
+  │ → "Close Date required for Closed Won"              │
+  └─────────────────────────────────────────────────────┘
+```
 **Content:**
 - A **validation rule** checks that data entered by users meets specific requirements before saving
 - Validation rules contain a **formula** that evaluates to TRUE or FALSE
@@ -21,7 +42,23 @@
 **Speaker Notes:** The most important thing to remember about validation rules — and the most common source of exam confusion — is that TRUE means error. This is counterintuitive. You're writing a formula that identifies BAD data, not good data. So if you want to require that the Phone field is filled in, you write "ISBLANK(Phone)" — this returns TRUE (error) when Phone is blank. When Phone has a value, the formula returns FALSE and the save proceeds.
 
 ### Slide 2: Common Validation Rule Functions
-**Visual:** Table showing function name, syntax, and example for each: ISBLANK, ISNULL, LEN, CONTAINS, ISPICKVAL, ISCHANGED, ISNEW, NOT, AND, OR
+**Visual:**
+```
+  ┌────────────────┬───────────────────────────────────┬──────────────────────────────────┐
+  │ Function       │ Syntax / Notes                     │ Example                          │
+  ├────────────────┼───────────────────────────────────┼──────────────────────────────────┤
+  │ ISBLANK        │ ISBLANK(field) — for text fields   │ ISBLANK(Phone)                   │
+  │ ISNULL         │ ISNULL(field) — number/date fields │ ISNULL(Amount)                   │
+  │ LEN            │ LEN(text) → character count        │ LEN(Description) < 10            │
+  │ CONTAINS       │ CONTAINS(text, "string")           │ CONTAINS(Name, "Test")           │
+  │ ISPICKVAL      │ ISPICKVAL(field, "value")          │ ISPICKVAL(Stage, "Closed Won")   │
+  │ ISCHANGED      │ TRUE if field changed this save    │ ISCHANGED(CloseDate)             │
+  │ ISNEW          │ TRUE only on record creation       │ ISNEW()                          │
+  │ NOT            │ NOT(condition) — reverses result   │ NOT(ISBLANK(Phone))              │
+  │ AND            │ AND(c1, c2) — both must be TRUE    │ AND(ISNEW(), ISBLANK(Phone))     │
+  │ OR             │ OR(c1, c2) — either must be TRUE   │ OR(ISBLANK(Phone), ISBLANK(Email))│
+  └────────────────┴───────────────────────────────────┴──────────────────────────────────┘
+```
 **Content:**
 - **ISBLANK(field):** TRUE if the field is blank (empty); works for text fields; replaces ISNULL for text
 - **ISNULL(field):** TRUE if the field is null; best for number/date fields (use ISBLANK for text)
@@ -36,7 +73,29 @@
 **Speaker Notes:** These functions are the building blocks of virtually all validation rule formulas. ISBLANK vs. ISNULL is a classic exam trap — use ISBLANK for text fields (it handles empty strings too), and ISNULL for number and date fields. ISPICKVAL is essential for picklist validation. ISCHANGED and ISNEW are powerful for conditional rules — you can write rules that only fire when a field changes, or only when a new record is created, not on edits.
 
 ### Slide 3: Writing Validation Rule Formulas — Examples
-**Visual:** Code editor style block showing three example formulas with comments explaining each
+**Visual:**
+```
+  ┌── Example 1: Require Phone when Type = Customer ──────────────────┐
+  │  AND(                                                              │
+  │    ISPICKVAL(Type, "Customer"),   ← checks picklist value         │
+  │    ISBLANK(Phone)                 ← TRUE when Phone is empty      │
+  │  )                                                                 │
+  │  → Error when BOTH conditions are TRUE                            │
+  └────────────────────────────────────────────────────────────────────┘
+
+  ┌── Example 2: Prevent Close Date in the past ──────────────────────┐
+  │  CloseDate < TODAY()                                               │
+  │  → Error when Close Date is before today's date                   │
+  └────────────────────────────────────────────────────────────────────┘
+
+  ┌── Example 3: Require Description when Stage = Closed Lost ────────┐
+  │  AND(                                                              │
+  │    ISPICKVAL(StageName, "Closed Lost"),  ← stage check            │
+  │    ISBLANK(Description)                  ← empty description?     │
+  │  )                                                                 │
+  │  → Error: requires loss reason when closing as lost               │
+  └────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Require Phone when Account Type = Customer:**
   ```
@@ -61,7 +120,21 @@
 **Speaker Notes:** Let's decode these examples. The first rule fires only when the Account Type is Customer AND the Phone is blank — if either condition is false, the whole AND is false and the save proceeds. The second rule is elegant — dates can be compared directly with TODAY(). The third rule requires a Description when Stage is Closed Lost — a common business requirement to capture loss reasons. Notice each formula returns TRUE only when there's a problem.
 
 ### Slide 4: Error Message and Error Location
-**Visual:** Two screenshots side by side: (1) Error at top of page banner "Error: Please enter a phone number for Customer accounts" with a general page-level red banner. (2) Error next to a specific field "Phone" with inline red error message below the field.
+**Visual:**
+```
+  Error Location: TOP OF PAGE              Error Location: SPECIFIC FIELD
+  ┌──────────────────────────────┐         ┌──────────────────────────────┐
+  │ ⚠ Error                      │         │ Account Name  [Acme Corp   ] │
+  │ Phone number is required     │         │                               │
+  │ for Customer accounts.       │         │ Phone         [           ]  │
+  └──────────────────────────────┘         │ ▲ Phone is required for      │
+  │ Account Name  [Acme Corp   ] │         │   Customer accounts.         │
+  │ Phone         [           ] │         │                               │
+  │ Type          [Customer    ] │         │ Type          [Customer    ] │
+  └──────────────────────────────┘         └──────────────────────────────┘
+    Use for: multi-field / complex errors    Use for: single-field errors
+                                             (best user experience)
+```
 **Content:**
 - **Error Message:** The text displayed to the user when the rule fires
   - Write clear, user-friendly messages: "Phone number is required for Customer accounts"
@@ -74,7 +147,38 @@
 **Speaker Notes:** The error message is what your users will see, so make it helpful and actionable. Instead of "Validation Rule 1 Failed," write "Please enter a phone number for accounts of type Customer." For error location, placing the error next to the specific field gives users better visual guidance. Use "Top of Page" for complex multi-field validations where it's not clear which specific field to highlight.
 
 ### Slide 5: Order of Execution & When Validation Rules Fire
-**Visual:** Numbered sequence: 1. System Validation (required fields, data type) → 2. Validation Rules → 3. Duplicate Rules → 4. Before-Save Triggers (if applicable) → 5. Record Saves → 6. After-Save Triggers
+**Visual:**
+```
+  Order of Execution (Save Operation)
+
+  1. ┌────────────────────────────────────┐
+     │ System Validation                  │
+     │ (data type checks, required fields │
+     │  via page layout)                  │
+     └────────────────┬───────────────────┘
+                      │
+  2.                  ▼
+     ┌────────────────────────────────────┐
+     │ Custom Validation Rules            │  ◀── fires here
+     └────────────────┬───────────────────┘
+                      │
+  3.                  ▼
+     ┌────────────────────────────────────┐
+     │ Duplicate Rules                    │
+     └────────────────┬───────────────────┘
+                      │
+  4.                  ▼
+     ┌────────────────────────────────────┐
+     │ Record Saved to Database  ✓        │
+     └────────────────┬───────────────────┘
+                      │
+  5.                  ▼
+     ┌────────────────────────────────────┐
+     │ After-Save Triggers / Workflows    │
+     └────────────────────────────────────┘
+
+  Fires on: UI save │ API calls │ Data Loader │ Flow DML
+```
 **Content:**
 - Validation rules fire during the **save operation** (DML)
 - **Order of execution in the admin context** (no Apex code):
@@ -91,9 +195,27 @@
 **Speaker Notes:** The order of execution is tested in the context of Apex development, but admins should understand the basics. Validation rules fire on any data save operation, including API and Data Loader — they're not just for UI saves. This means a Data Loader import will fail if imported records violate validation rules. To import data that doesn't yet meet validation requirements (e.g., loading historical data), you may need to temporarily deactivate rules or use a bypass pattern.
 
 ### Slide 6: ISCHANGED and ISNEW — Conditional Validation
-**Visual:** Two code examples highlighted:
-Left: "ISCHANGED(CloseDate) && CloseDate < TODAY()" labeled "Only fires when Close Date is changed to a past date"
-Right: "NOT(ISNEW()) && ISBLANK(Phone)" labeled "Fires only on edit (not new record creation) when Phone is blank"
+**Visual:**
+```
+  ┌── ISCHANGED: Only fires when a field is modified ─────────────────┐
+  │                                                                    │
+  │  AND(ISCHANGED(CloseDate), CloseDate < TODAY())                   │
+  │                                                                    │
+  │  ✓ Fires: user edits CloseDate to a past date                     │
+  │  ✗ Skips: record saves but CloseDate is unchanged                 │
+  │  ✗ Skips: CloseDate was already in past before this edit          │
+  └────────────────────────────────────────────────────────────────────┘
+
+  ┌── ISNEW / NOT(ISNEW): Control when rules apply ───────────────────┐
+  │                                                                    │
+  │  ISNEW()           → TRUE only on record creation (insert)        │
+  │  NOT(ISNEW())      → TRUE only on record edit (not create)        │
+  │                                                                    │
+  │  NOT(ISNEW()) && ISBLANK(Phone)                                   │
+  │  → Fires only on edits when Phone is blank                        │
+  │  → Does NOT fire when a brand-new record is created               │
+  └────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **ISCHANGED(field):** TRUE only if the field was modified in the current save
   - Useful to avoid blocking saves of records that already have the "bad" value (historical data)
@@ -106,7 +228,29 @@ Right: "NOT(ISNEW()) && ISBLANK(Phone)" labeled "Fires only on edit (not new rec
 **Speaker Notes:** ISCHANGED and ISNEW are powerful tools for controlling when validation fires. A classic use case: you have existing records where Phone is blank (legacy data). If you add a "Phone required" validation rule, ALL saves of those old records will fail. By adding ISNEW() to the rule, you only enforce it on new records. Or use AND(ISCHANGED(Phone), ISBLANK(Phone)) to only fire when someone explicitly clears the phone field.
 
 ### Slide 7: Profile-Based Bypass Patterns
-**Visual:** Validation rule formula showing: "AND( $Profile.Name != "System Administrator", ISBLANK(Phone) )" with the bypass condition highlighted
+**Visual:**
+```
+  ┌── Profile-Based Bypass ───────────────────────────────────────────┐
+  │                                                                    │
+  │  AND(                                                              │
+  │    $Profile.Name != "System Administrator",  ← bypass admins      │
+  │    ISBLANK(Phone)                                                  │
+  │  )                                                                 │
+  │                                                                    │
+  │  ⚠ Fragile: silently breaks if profile is renamed                 │
+  └────────────────────────────────────────────────────────────────────┘
+
+  ┌── Custom Permission Bypass (Best Practice) ───────────────────────┐
+  │                                                                    │
+  │  AND(                                                              │
+  │    NOT($Permission.Bypass_Validation_Rules),  ← permission check  │
+  │    ISBLANK(Phone)                                                  │
+  │  )                                                                 │
+  │                                                                    │
+  │  ✓ Assign permission to migration users or admin permission sets  │
+  │  ✓ Works across profiles; more flexible and maintainable          │
+  └────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Sometimes certain users (admins, data migration users) need to bypass validation rules
 - **Profile-based bypass:** Include a profile check in the formula
@@ -129,7 +273,26 @@ Right: "NOT(ISNEW()) && ISBLANK(Phone)" labeled "Fires only on edit (not new rec
 **Speaker Notes:** Profile-based bypasses are necessary for data migration, admin overrides, and integration user exceptions. The $Profile.Name approach works but is fragile — if someone renames the profile, the bypass silently breaks. The best practice is to create a Custom Permission (e.g., "Bypass_Validation_Rules"), then reference it in the formula using $Permission. Assign the custom permission to profiles or permission sets that need the bypass. This approach is more maintainable and flexible.
 
 ### Slide 8: Validation Rule Best Practices
-**Visual:** Checklist of best practices with icons: (1) Clear error messages, (2) Test before activating, (3) Check Data Loader impact, (4) Use Custom Permissions for bypasses, (5) Don't over-validate
+**Visual:**
+```
+  Validation Rule Best Practices Checklist
+
+  ┌────┬──────────────────────────────────────────────────────────────┐
+  │ ✓  │ Write clear error messages — tell users what to fix and why  │
+  ├────┼──────────────────────────────────────────────────────────────┤
+  │ ✓  │ Test all scenarios before activating                         │
+  ├────┼──────────────────────────────────────────────────────────────┤
+  │ ✓  │ Check impact on Data Loader and API integrations             │
+  ├────┼──────────────────────────────────────────────────────────────┤
+  │ ✓  │ Use Custom Permissions for bypasses (not $Profile.Name)      │
+  ├────┼──────────────────────────────────────────────────────────────┤
+  │ ✓  │ Use ISCHANGED/ISNEW to avoid blocking legacy data saves      │
+  ├────┼──────────────────────────────────────────────────────────────┤
+  │ ✓  │ Don't over-validate — too many rules slow saves              │
+  ├────┼──────────────────────────────────────────────────────────────┤
+  │ ✓  │ Document the business requirement in the Description field   │
+  └────┴──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Write clear error messages** — tell users exactly what to fix and why
 - **Test extensively** before activation — consider all record scenarios

@@ -31,7 +31,31 @@
 ---
 
 ### Slide 2: The Human-in-the-Loop Spectrum
-**Visual:** A horizontal spectrum with five positions: (1) Human decides, AI provides information. (2) Human decides, AI recommends. (3) AI decides, human can override. (4) AI decides, human notified. (5) AI decides, no human involvement. Each position has an example use case and a risk level indicator.
+**Visual:**
+```
+   HUMAN-AI COLLABORATION SPECTRUM
+
+   FULL HUMAN                                        FULL AI
+   CONTROL                                           AUTONOMY
+      │                                                  │
+      ▼                                                  ▼
+   ┌──────┬────────────┬────────────┬────────────┬──────┐
+   │ Human│ Human      │ Shared     │ AI decides;│  AI  │
+   │ does │ decides;   │ control:   │ human can  │ fully│
+   │ all  │ AI assists │ AI suggests│ veto/review│ auto │
+   │      │ with data  │ human      │            │      │
+   │      │            │ approves   │            │      │
+   └──────┴────────────┴────────────┴────────────┴──────┘
+      │         │            │            │          │
+      ▼         ▼            ▼            ▼          ▼
+   Low risk  Analytics   Einstein    Agentforce  Fully
+   manual    dashboards  Lead Score  with human  autonomous
+   tasks     reports     reps review escalation  (rare —
+                         all deals   available   high risk)
+
+   Salesforce principle: Keep humans in the loop
+   especially for high-stakes decisions
+```
 **Content:**
 **Position 1 — Human decides, AI informs:**
 - Example: Einstein prediction score on a lead; rep makes their own call
@@ -58,7 +82,29 @@
 ---
 
 ### Slide 3: When AI Should ALWAYS Defer to Humans
-**Visual:** Six hexagonal icons with labels: Medical Decisions, Legal Proceedings, Financial Life Events, Employment Decisions, Safety-Critical Scenarios, High-Stakes Irreversible Actions. All surrounded by a circle labeled "Human Required."
+**Visual:**
+```
+   SIX COMPONENTS OF HUMAN OVERSIGHT IN AI
+
+   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+   │  1. MONITORING   │  │  2. EXPLAINABILITY│  │  3. OVERRIDE     │
+   │                  │  │                  │  │  CAPABILITY      │
+   │  Track AI        │  │  Humans can      │  │                  │
+   │  decisions and   │  │  understand why  │  │  Humans can      │
+   │  outcomes over   │  │  AI made each    │  │  correct or      │
+   │  time for        │  │  decision        │  │  reverse any     │
+   │  accuracy drift  │  │  (feature import)│  │  AI decision     │
+   └──────────────────┘  └──────────────────┘  └──────────────────┘
+   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+   │  4. ESCALATION   │  │  5. AUDIT TRAIL  │  │  6. REGULAR      │
+   │  PATHS           │  │                  │  │  REVIEW          │
+   │                  │  │  Log all AI      │  │                  │
+   │  Clear triggers  │  │  interactions    │  │  Periodic model  │
+   │  for when AI     │  │  for compliance  │  │  audits and      │
+   │  must hand off   │  │  and             │  │  bias checks     │
+   │  to a human      │  │  accountability  │  │  scheduled       │
+   └──────────────────┘  └──────────────────┘  └──────────────────┘
+```
 **Content:**
 **Categories requiring mandatory human oversight:**
 
@@ -91,7 +137,40 @@
 ---
 
 ### Slide 4: Agentforce Escalation Design
-**Visual:** Flowchart showing the Agentforce escalation path: Customer message → Agent handles → Escalation trigger detected (one of several types) → Human agent notified → Full context transferred → Human agent continues conversation.
+**Visual:**
+```
+   AI ESCALATION FRAMEWORK — Decision Flow
+
+   AI handles interaction
+            │
+            ▼
+   Does situation meet escalation criteria?
+   ● High financial impact? (e.g., > $50K decision)
+   ● Sensitive personal situation?
+   ● Customer requests human?
+   ● AI confidence below threshold?
+   ● Legal/compliance implication?
+            │
+     ┌──────┴──────┐
+    YES             NO
+     │               │
+     ▼               ▼
+   ESCALATE        AI continues
+   to human        handles
+            │
+            ▼
+   ┌─────────────────────────────────────┐
+   │ AI HANDOFF PACKAGE:                 │
+   │ ● Full conversation transcript      │
+   │ ● Customer profile summary          │
+   │ ● Actions already taken             │
+   │ ● Reason for escalation             │
+   │ ● Recommended next steps            │
+   └─────────────────────────────────────┘
+            │
+            ▼
+   Human resolves — AI observes for learning
+```
 **Content:**
 **Agentforce's built-in escalation design:**
 
@@ -141,7 +220,43 @@ With proper context transfer:
 ---
 
 ### Slide 6: Accountability Frameworks — Who Is Responsible?
-**Visual:** Accountability chain diagram. AI System (no legal personhood) → Developer/Vendor (Salesforce) → Organization deploying AI → Admin configuring AI → Manager overseeing AI use → End user. Arrows showing responsibility flow.
+**Visual:**
+```
+   AI ACCOUNTABILITY CHAIN
+
+   ┌───────────────────────────────────────────────────────────┐
+   │                   AI SYSTEM OUTPUT                        │
+   │              (decision / recommendation)                  │
+   └──────────────────────────┬────────────────────────────────┘
+                              │
+                              ▼
+   ┌───────────────────────────────────────────────────────────┐
+   │               AI SYSTEM DEVELOPERS                        │
+   │    Accountable for: model design, bias testing,           │
+   │    safety features, documentation                         │
+   └──────────────────────────┬────────────────────────────────┘
+                              │
+                              ▼
+   ┌───────────────────────────────────────────────────────────┐
+   │            SALESFORCE (PLATFORM PROVIDER)                 │
+   │    Accountable for: Trust Layer, ZDR, audit trail,        │
+   │    Trusted AI Principles, compliance certifications        │
+   └──────────────────────────┬────────────────────────────────┘
+                              │
+                              ▼
+   ┌───────────────────────────────────────────────────────────┐
+   │              CUSTOMER (ADMIN/BUSINESS OWNER)              │
+   │    Accountable for: configuration choices, use case        │
+   │    appropriateness, monitoring outcomes, user training     │
+   └──────────────────────────┬────────────────────────────────┘
+                              │
+                              ▼
+   ┌───────────────────────────────────────────────────────────┐
+   │                    END USER (REP/AGENT)                   │
+   │    Accountable for: reviewing AI recommendations,         │
+   │    not blindly accepting outputs, escalating concerns      │
+   └───────────────────────────────────────────────────────────┘
+```
 **Content:**
 **The accountability gap in AI:**
 - AI systems cannot be held legally or morally responsible
@@ -214,7 +329,34 @@ A contractually binding document that defines what Salesforce AI CANNOT be used 
 ---
 
 ### Slide 9: Scenario Practice — Human Oversight Test Cases
-**Visual:** Four scenario cards, each with a question: "Should human oversight be required here? Which principle?" and an answer.
+**Visual:**
+```
+   HUMAN OVERSIGHT — FOUR SCENARIO ANALYSIS
+
+   ┌──────────────────────────┬──────────────────────────┐
+   │  SCENARIO A              │  SCENARIO B              │
+   │  Einstein Lead Score     │  Agentforce Auto-closes  │
+   │  shown to rep            │  service case            │
+   │                          │                          │
+   │  Rep reviews and         │  No human reviews        │
+   │  can override any        │  before case closed —    │
+   │  score before action     │  customer may not be     │
+   │                          │  satisfied               │
+   │  OVERSIGHT LEVEL: High   │  OVERSIGHT LEVEL: Low    │
+   │  RISK: Low               │  RISK: Higher            │
+   ├──────────────────────────┼──────────────────────────┤
+   │  SCENARIO C              │  SCENARIO D              │
+   │  AI recommends           │  AI summarizes case      │
+   │  loan approval           │  for rep before call     │
+   │                          │                          │
+   │  Loan officer must       │  Rep reads summary,      │
+   │  review and sign off     │  can correct errors,     │
+   │  — human in loop         │  then makes call         │
+   │  required by regulation  │                          │
+   │  OVERSIGHT LEVEL: High   │  OVERSIGHT LEVEL: Med    │
+   │  RISK: Low               │  RISK: Low               │
+   └──────────────────────────┴──────────────────────────┘
+```
 **Content:**
 **Scenario A:** Agentforce resolves a billing question for a $25 charge. Customer satisfied.
 - Human required? No — routine, low-stakes, reversible, within agent authority

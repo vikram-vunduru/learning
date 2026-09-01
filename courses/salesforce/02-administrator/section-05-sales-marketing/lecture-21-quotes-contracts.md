@@ -8,7 +8,30 @@
 ## 📊 SLIDES
 
 ### Slide 1: The Quotes Object
-**Visual:** Quote record showing fields: Quote Name, Opportunity Name, Status, Expiration Date, Grand Total, Billing/Shipping Address
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                      QUOTE RECORD                            │
+  ├────────────────────────┬─────────────────────────────────────┤
+  │ Quote Name             │ Acme Corp Q3 Proposal v2            │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Opportunity Name       │ Acme Corp – Platform License        │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Status                 │ Presented                           │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Expiration Date        │ 09/15/2025                          │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Billing Address        │ 123 Main St, San Francisco CA       │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Shipping Address       │ 456 Oak Ave, San Francisco CA       │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Discount               │ 10%                                 │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Grand Total            │ $67,500                             │
+  └────────────────────────┴─────────────────────────────────────┘
+  Quote is always associated with a parent Opportunity
+  Multiple quotes can exist per Opportunity; only one can sync
+```
 **Content:**
 - Quotes allow sales reps to present pricing proposals formally to customers
 - A Quote is always associated with a parent Opportunity
@@ -18,7 +41,26 @@
 **Speaker Notes:** Quotes are the formal pricing document within Salesforce. They sit under an Opportunity and can have their own line items, discounts, and expiration dates. Multiple quotes can exist under one Opportunity, but only one can be synced at a time.
 
 ### Slide 2: Quote Line Items
-**Visual:** Quote record showing Products related list with Product Name, Quantity, Unit Price, Discount (%), Total Price columns
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │                        QUOTE LINE ITEMS                              │
+  ├──────────────────────┬──────────┬────────────┬────────────┬──────────┤
+  │ Product Name         │ Quantity │ Unit Price │ Discount % │ Total    │
+  ├──────────────────────┼──────────┼────────────┼────────────┼──────────┤
+  │ Platform License     │    5     │ $10,000    │  10%       │ $45,000  │
+  ├──────────────────────┼──────────┼────────────┼────────────┼──────────┤
+  │ Implementation Svc   │    1     │ $15,000    │  10%       │ $13,500  │
+  ├──────────────────────┼──────────┼────────────┼────────────┼──────────┤
+  │ Training Package     │    2     │  $5,000    │  10%       │  $9,000  │
+  ├──────────────────────┼──────────┼────────────┼────────────┼──────────┤
+  │                      │          │            │ Grand Total│ $67,500  │
+  └──────────────────────┴──────────┴────────────┴────────────┴──────────┘
+
+  Pricing comes from the Price Book on the parent Opportunity
+  Can be modified independently from Opportunity Products (unless synced)
+  Created from Opportunity: Opp Products are copied to Quote Line Items
+```
 **Content:**
 - Quote Line Items are products added directly to the Quote record
 - When a Quote is created from an Opportunity, the Opportunity Products are copied to Quote Line Items
@@ -28,7 +70,29 @@
 **Speaker Notes:** Quote Line Items give reps flexibility to adjust pricing, quantities, or discounts on the formal proposal without immediately changing the Opportunity's values. This is especially useful during negotiation, where multiple pricing scenarios may be presented to a customer.
 
 ### Slide 3: Quote Syncing — The One-Sync Rule
-**Visual:** Diagram showing Opportunity with three quotes; one has a "Synced" badge and two-way arrows with the Opportunity
+**Visual:**
+```
+  ┌───────────────────────────────────────────────────────────────┐
+  │           OPPORTUNITY: Acme Corp – Platform License           │
+  └───────────────────────────────────────────────────────────────┘
+          │                     │                     │
+          ▼                     ▼                     ▼
+  ┌───────────────┐   ┌──────────────────┐   ┌───────────────┐
+  │   Quote A     │   │    Quote B       │   │   Quote C     │
+  │ (Scenario 1)  │   │  (Scenario 2)   │   │ (Scenario 3)  │
+  │ Status: Sent  │   │                  │   │ Status: Draft │
+  │               │   │ ◀══ SYNCED ══▶  │   │               │
+  │               │   │  [Stop Sync]    │   │               │
+  └───────────────┘   └──────────────────┘   └───────────────┘
+                             ↕ bidirectional
+                      Quote B changes → Opp Products update
+                      Opp Products change → Quote B updates
+
+  ─────────────────────────────────────────────────────────────
+  ⚠ Only ONE quote can be synced at a time — KEY EXAM RULE
+  To switch: [Stop Sync] on Quote B → [Start Sync] on Quote C
+  Stopping sync does NOT delete or invalidate Quote B
+```
 **Content:**
 - **Quote Sync:** Keeps one Quote and its parent Opportunity in sync (bidirectional updates)
 - Only ONE quote can be synced to an Opportunity at any time
@@ -39,7 +103,31 @@
 **Speaker Notes:** Quote Sync is a high-frequency exam topic. Remember that only one quote can be synced at a time. When synced, the quote and opportunity stay in lockstep. If a manager presents two different pricing scenarios, only one can be the "live" version synced to the opportunity pipeline.
 
 ### Slide 4: Quote PDFs & Quote Templates
-**Visual:** Quote PDF preview showing company logo, line items table, subtotal, discount, and grand total
+**Visual:**
+```
+  ┌─────────────────────────────────────────────────────────────┐
+  │  [COMPANY LOGO]                       Quote #: Q-00042      │
+  │  Your Company Name                    Date:  08/15/2025      │
+  │  123 Business Blvd                    Expires: 09/15/2025    │
+  ├─────────────────────────────────────────────────────────────┤
+  │  Prepared for: Acme Corporation                             │
+  │  Contact: Jane Doe, VP of Operations                        │
+  ├──────────────────────────┬──────────┬──────────┬────────────┤
+  │ Product                  │ Qty      │ Unit     │ Total      │
+  ├──────────────────────────┼──────────┼──────────┼────────────┤
+  │ Platform License         │ 5        │ $10,000  │ $50,000    │
+  │ Implementation Services  │ 1        │ $15,000  │ $15,000    │
+  │ Training Package         │ 2        │  $5,000  │ $10,000    │
+  ├──────────────────────────┴──────────┼──────────┼────────────┤
+  │                          Subtotal   │          │ $75,000    │
+  │                          Discount   │   10%    │  -$7,500   │
+  │                          TOTAL      │          │ $67,500    │
+  ├─────────────────────────────────────────────────────────────┤
+  │  Signature: _______________________  Date: _____________    │
+  └─────────────────────────────────────────────────────────────┘
+  Quote record → Generate PDF → Select Template → Save to Quote
+  Setup: Setup → Quote Templates (admins create/manage templates)
+```
 **Content:**
 - Quote PDF allows generating a polished document to send to customers
 - Quote Templates define the layout and content of the PDF (header, body, footer, line item columns)
@@ -50,7 +138,28 @@
 **Speaker Notes:** Quote Templates are the design layer for customer-facing proposals. Admins create and manage templates; sales reps select the template when generating a PDF. You can have multiple templates for different use cases — standard proposals, executive summaries, or partner quotes.
 
 ### Slide 5: The Contract Object
-**Visual:** Contract record showing fields: Account Name, Status, Contract Start Date, Contract Term (months), Contract End Date, Owner
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    CONTRACT RECORD                           │
+  ├────────────────────────┬─────────────────────────────────────┤
+  │ Account Name           │ Acme Corporation                    │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Status                 │ Activated                           │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Contract Start Date    │ 10/01/2025                          │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Contract Term (months) │ 24                                  │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Contract End Date      │ 09/30/2027  (auto-calculated)       │
+  │                        │  = Start Date + Term months         │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Contract Number        │ 00000042                            │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Owner                  │ Alice Johnson                       │
+  └────────────────────────┴─────────────────────────────────────┘
+  Contract is linked to an Account (not directly to an Opportunity)
+```
 **Content:**
 - Contracts are formal agreements between your company and a customer (Account)
 - Related to an Account (not directly to an Opportunity)
@@ -61,7 +170,29 @@
 **Speaker Notes:** The Contract object is simpler than it sounds. Admins need to know the status lifecycle and the rules around activation. A contract must be manually activated — it does not happen automatically. Once activated, the contract cannot be deleted.
 
 ### Slide 6: Contract Activation Rules
-**Visual:** Status flow: Draft → (Approval) → Activated; with a padlock icon at Activated showing "Cannot Delete"
+**Visual:**
+```
+  ┌──────────┐                            ┌──────────────────────────┐
+  │  DRAFT   │──── manual activation ────▶│       ACTIVATED          │
+  │          │    (or approval process)   │                          │
+  └──────────┘                            │  🔒 CANNOT BE DELETED    │
+       │                                  │  Orders can now be       │
+       ▼                                  │  created against it      │
+  [Can be deleted                         └──────────────────────────┘
+   in Draft status]
+  
+  With Approval Process:
+  ┌──────────┐    Submit      ┌──────────────────┐   Approved    ┌───────────┐
+  │  DRAFT   │──────────────▶│ IN APPROVAL      │─────────────▶ │ ACTIVATED │
+  │          │               │ PROCESS          │               │           │
+  └──────────┘               └──────────────────┘               └───────────┘
+                                      │ Rejected
+                                      ▼
+                                  Back to Draft
+
+  ⚠ Activated Contracts CANNOT be deleted (exam key fact)
+  Contract Owner CAN be changed even after activation
+```
 **Content:**
 - Contract Status must be changed to "Activated" manually or through an approval process
 - Once Activated: the contract cannot be deleted (only deactivated by changing status — but standard Salesforce doesn't allow reverting from Activated)
@@ -71,7 +202,33 @@
 **Speaker Notes:** The no-delete rule on Activated contracts is specifically tested on the exam. The logic is: an activated contract is a legally binding record — you don't delete legal agreements. Reps and admins must be trained accordingly.
 
 ### Slide 7: Orders
-**Visual:** Order record showing fields: Account, Contract (lookup), Status, Order Start Date, Order End Date, Price Book, Type (Reduction/Standard)
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                      ORDER RECORD                            │
+  ├────────────────────────┬─────────────────────────────────────┤
+  │ Account                │ Acme Corporation                    │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Contract               │ 00000042  [Lookup →]                │
+  │                        │ ⚠ Must be an ACTIVATED contract     │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Status                 │ Draft  ──▶  Activated               │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Order Start Date       │ 10/01/2025                          │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Order End Date         │ 09/30/2026                          │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Price Book             │ Enterprise Price Book               │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Type                   │ Standard  (or Reduction)            │
+  └────────────────────────┴─────────────────────────────────────┘
+
+  Standard Order  = new purchase agreement
+  Reduction Order = decrease or cancel units from a Standard Order
+  ─────────────────────────────────────────────────────────────────
+  Draft Orders:     CAN be deleted
+  Activated Orders: CANNOT be deleted  (same rule as Contracts)
+```
 **Content:**
 - Orders represent agreed-upon purchases or reductions related to a Contract
 - Order Types: **Standard Order** (a purchase), **Reduction Order** (a decrease/cancellation of a standard order)
@@ -82,7 +239,31 @@
 **Speaker Notes:** Orders are often paired with Contracts in CPQ (Configure, Price, Quote) workflows. The key exam facts: orders require an activated contract, reduction orders cancel or reduce standard orders, and activated orders cannot be deleted. Draft orders CAN be deleted.
 
 ### Slide 8: Admin Configuration for Quotes & Contracts
-**Visual:** Setup checklist showing steps to enable Quotes and configure Quote Templates
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────────┐
+  │          QUOTES & CONTRACTS ADMIN SETUP CHECKLIST               │
+  ├───┬──────────────────────────────────────────────────────────────┤
+  │ 1 │ Enable Quotes                                                │
+  │   │ Setup → Quote Settings → Enable Quotes                       │
+  ├───┼──────────────────────────────────────────────────────────────┤
+  │ 2 │ Add Quotes Related List to Opportunity Page Layout           │
+  │   │ Object Manager → Opportunity → Page Layouts → Add "Quotes"   │
+  │   │ ⚠ Reps won't see Quotes tab on Opps without this step       │
+  ├───┼──────────────────────────────────────────────────────────────┤
+  │ 3 │ Create Quote Templates                                       │
+  │   │ Setup → Quote Templates → New                                │
+  ├───┼──────────────────────────────────────────────────────────────┤
+  │ 4 │ Enable Orders                                                │
+  │   │ Setup → Order Settings → Enable Orders                       │
+  ├───┼──────────────────────────────────────────────────────────────┤
+  │ 5 │ Enable Reduction Orders (optional)                           │
+  │   │ Setup → Order Settings → Enable Reduction Orders             │
+  ├───┼──────────────────────────────────────────────────────────────┤
+  │ 6 │ Manage Contract & Order Fields                               │
+  │   │ Object Manager → Contract / Order → Fields & Relationships   │
+  └───┴──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Enable Quotes: Setup → Quotes Settings → Enable Quotes
 - Add Quotes related list to Opportunity page layout

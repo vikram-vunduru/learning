@@ -12,7 +12,25 @@
 ## Slides
 
 ### Slide 1: Why Voice Flows?
-**Visual:** Side-by-side comparison — a tangled legacy IVR decision tree on the left versus a clean Salesforce Flow canvas with data nodes on the right
+**Visual:**
+```
+  LEGACY IVR (12+ nodes, 4 levels)       VOICE FLOW (5 nodes, CRM-driven)
+  ┌─────────────────────────────┐         ┌──────────────────────────────┐
+  │  "Press 1 for Sales"        │         │  ANI → Record Lookup         │
+  │       │                     │         │       │                      │
+  │  ┌────┴─────────────┐       │         │  ┌────▼──────────────────┐   │
+  │  ▼         ▼        ▼       │         │  │  Decision (CRM data)  │   │
+  │ Sales   Support  Billing    │         │  └───┬──────┬────────┬───┘   │
+  │  │         │        │       │         │      │      │        │       │
+  │  ┌─┐ ┌─┐ ┌─┐ ┌─┐ ┌─┐ ┌─┐  │         │     VIP    Case   New       │
+  │  │ │ │ │ │ │ │ │ │ │ │ │  │         │  Caller  Exists  Caller      │
+  │  └─┘ └─┘ └─┘ └─┘ └─┘ └─┘  │         │      │      │        │       │
+  │  (4 more sub-levels...)     │         │   Skip   Status  Route      │
+  └─────────────────────────────┘         │   menus  update  general    │
+  No CRM context                          └──────────────────────────────┘
+  High abandonment                        CRM-driven, fewer menus
+  "Enter your account number..."          "We see your open case #12345"
+```
 
 **Content:**
 - Legacy IVR: static menus, no CRM context, high abandonment
@@ -26,7 +44,22 @@
 ---
 
 ### Slide 2: Flow Types — What Works and What Doesn't
-**Visual:** A table with three columns: Flow Type, Can Run in Voice Context, Why/Why Not
+**Visual:**
+```
+  ┌────────────────────────────┬────────────────────┬──────────────────────────────┐
+  │  Flow Type                 │ Voice Context?     │ Why / Why Not                │
+  ├────────────────────────────┼────────────────────┼──────────────────────────────┤
+  │  Screen Flow               │ NO                 │ Requires UI surface to render│
+  │  Autolaunched Flow         │ YES                │ Headless, no UI dependency   │
+  │  Scheduled Flow            │ NO                 │ Not triggered by real-time   │
+  │                            │                    │ events                       │
+  │  Record-Triggered Flow     │ LIMITED            │ Can react to VoiceCall       │
+  │                            │                    │ creation, not direct voice   │
+  │  Voice Call Flow (subtype) │ YES                │ Purpose-built for voice;     │
+  │                            │                    │ has Speak, Get Input,        │
+  │                            │                    │ Transfer to Agent elements   │
+  └────────────────────────────┴────────────────────┴──────────────────────────────┘
+```
 
 **Content:**
 - Screen Flows — NO — require a UI surface to render
@@ -40,7 +73,29 @@
 ---
 
 ### Slide 3: The Voice Call Flow — Key Elements
-**Visual:** Flow canvas screenshot annotated with callouts for each element type (Speak, Get Input, Transfer to Agent, Decision, Record Lookup)
+**Visual:**
+```
+  VOICE CALL FLOW ELEMENTS
+  ┌──────────────────────────────────────────────────────────┐
+  │  Element          │ Purpose                              │
+  ├───────────────────┼──────────────────────────────────────┤
+  │  Speak            │ TTS: play message to caller          │
+  │  Get Input        │ Capture DTMF or speech input         │
+  │  Transfer         │ Route to agent, queue, or number     │
+  │  Pause            │ Wait N seconds (hold music via tel.) │
+  │  Decision         │ Branch on variable value             │
+  │  Get Record       │ SOQL lookup (ANI → Account)          │
+  │  Update Record    │ DML on VoiceCall or related record   │
+  │  Subflow          │ Call another Flow                    │
+  └──────────────────────────────────────────────────────────┘
+
+  IVR REPLACEMENT PATTERN:
+  Caller speaks ──▶ Get Input (speech) ──▶ NLP intent
+        │
+        ├──▶ "billing"   ──▶ BillingTopic flow
+        ├──▶ "support"   ──▶ TechSupportTopic flow
+        └──▶ no match    ──▶ "Sorry, let me transfer you" ──▶ Transfer
+```
 
 **Content:**
 - **Speak:** Converts text to speech using Amazon Polly or Genesys TTS; supports SSML for pause/tone control
@@ -54,7 +109,24 @@
 ---
 
 ### Slide 4: DTMF Input Handling
-**Visual:** Diagram showing a phone keypad mapping to flow branches; each key (1-9, *, #) connects to a different outcome node
+**Visual:**
+```
+  DTMF INPUT HANDLING
+  ┌──────────────────────────────────────────────────────────┐
+  │     Phone Keypad              Flow Branches              │
+  │  ┌───┬───┬───┐                                          │
+  │  │ 1 │ 2 │ 3 │──── "1" ──▶ Billing queue               │
+  │  ├───┼───┼───┤                                          │
+  │  │ 4 │ 5 │ 6 │──── "2" ──▶ Tech Support queue          │
+  │  ├───┼───┼───┤                                          │
+  │  │ 7 │ 8 │ 9 │──── "3" ──▶ Sales queue                 │
+  │  ├───┼───┼───┤                                          │
+  │  │ * │ 0 │ # │──── no input / timeout ──▶ Retry (×3)   │
+  │  └───┴───┴───┘                      └──▶ Transfer Agent │
+  └──────────────────────────────────────────────────────────┘
+  Max Digits: configurable  │  Timeout between digits: configurable
+  Retry count: configurable │  PCI: pause recording during payment DTMF
+```
 
 **Content:**
 - DTMF = Dual-Tone Multi-Frequency (the tones when you press keys)
@@ -69,7 +141,33 @@
 ---
 
 ### Slide 5: Caller Data Branching — The Power of CRM Context
-**Visual:** Flow diagram showing an incoming call → Record Lookup on Phone field → Decision node with three branches: VIP Account, Open Case Exists, New Caller
+**Visual:**
+```
+  Incoming Call (ANI: +1-555-234-5678)
+          │
+          ▼
+  ┌───────────────────────────────────┐
+  │  Record Lookup (Phone → Account)  │
+  │  SOQL: SELECT Id, Name, Tier__c,  │
+  │  (SELECT Id FROM Cases WHERE      │
+  │   Status != 'Closed') FROM Account│
+  │  WHERE Phone = :ANI               │
+  └──────────────┬────────────────────┘
+                 │
+                 ▼
+  ┌──────────────────────────────────┐
+  │  Decision Node (CRM Context)     │
+  └──┬───────────────┬───────────────┘
+     │               │               │
+     ▼               ▼               ▼
+  VIP Account   Open Case Exists   New Caller
+  │              │                  │
+  ▼              ▼                  ▼
+  Skip menus    "We see open case  General routing /
+  Priority queue #12345. Press 1   account creation
+                for status or 2
+                to speak to agent"
+```
 
 **Content:**
 - ANI (Automatic Number Identification) = caller's phone number, available as `{!$Record.CallerId}`
@@ -84,7 +182,39 @@
 ---
 
 ### Slide 6: Flow vs. Agentforce Agent — Decision Guide
-**Visual:** Decision tree diagram: left branch labeled "Flow" for structured, predictable paths; right branch labeled "Agentforce Agent" for open-ended NLU-driven interactions
+**Visual:**
+```
+  VOICE AUTOMATION DECISION GUIDE
+
+  Is caller intent structured and predictable?
+                    │
+          ┌─────────┴─────────┐
+         YES                  NO
+          │                   │
+          ▼                   ▼
+       USE FLOW         USE AGENTFORCE AGENT
+       ─────────        ─────────────────────
+       Structured       Open-ended NLU
+       DTMF menus       Multi-turn dialogue
+       Known fields     Unpredictable intents
+       Deterministic    LLM reasoning
+       Low latency      Rich comprehension
+       Audit-friendly   Flexible responses
+       Lower cost       Higher capability
+
+            RECOMMENDED: HYBRID PATTERN
+  ┌──────────────────────────────────────────┐
+  │  Flow: greeting + ANI lookup             │
+  │             │                            │
+  │             ▼                            │
+  │  Agentforce Agent: intent resolution     │
+  │  + natural language conversation         │
+  │             │                            │
+  │             ▼                            │
+  │  Flow action: Transfer / Record Update   │
+  │  / Subflow for structured steps          │
+  └──────────────────────────────────────────┘
+```
 
 **Content:**
 - Use **Flow** when: interaction is structured (menu choices, data collection with known fields), compliance requires deterministic behavior, latency is critical
@@ -98,7 +228,36 @@
 ---
 
 ### Slide 7: Replacing a Legacy IVR — Migration Approach
-**Visual:** Before/after IVR tree: "Before" shows 4-level deep menu (12+ nodes); "After" shows 2-level flow with CRM-driven branching (5 nodes)
+**Visual:**
+```
+  BEFORE (Legacy IVR — 12 nodes, 4 levels deep)
+  ┌──────────────────────────────────────────────────────────┐
+  │  Main Menu: "Press 1 for Sales, 2 for Support, 3 for     │
+  │  Billing, 4 for Hours..."                                │
+  │       │              │              │              │     │
+  │  Sales Sub      Support Sub    Billing Sub    Hours Sub  │
+  │  "Press 1 New   "Press 1 Tech  "Press 1 Bal   (recorded) │
+  │   2 Renewal"     2 Existing"    2 Dispute"               │
+  │    │   │          │    │         │    │                  │
+  │   (enter ID)    (enter ID)     (enter ID)                │
+  └──────────────────────────────────────────────────────────┘
+  Avg menu depth: 3-4 presses │ Abandonment: HIGH
+
+  AFTER (Voice Flow — 5 nodes, CRM-driven branching)
+  ┌──────────────────────────────────────────────────────────┐
+  │  ANI Lookup ──▶ Account Found?                          │
+  │                      │                                  │
+  │           ┌──────────┴──────────┐                       │
+  │        VIP / Known           New Caller                  │
+  │           │                     │                        │
+  │    Open Case? ──Yes──▶ Self-serve status                 │
+  │           │                     │                        │
+  │          No               Agentforce Agent               │
+  │           │               handles intent                 │
+  │    Agentforce Agent ──▶ routes to right queue            │
+  └──────────────────────────────────────────────────────────┘
+  Avg menu depth: 0-1 press │ Containment lift: 20-40%
+```
 
 **Content:**
 - Step 1: Audit current IVR — map all menu paths and call volumes per path

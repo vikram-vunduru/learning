@@ -10,7 +10,23 @@
 ## 📊 SLIDES
 
 ### Slide 1: Workflow Rules — Overview and Status
-**Visual:** Timeline graphic showing: Workflow Rules (2003) → Process Builder (2015) → Flow (current) with a "Legacy" stamp over Workflow Rules, and a "Migrate to Flow" arrow
+**Visual:**
+```
+  Salesforce Automation Timeline
+
+  2003                  2015                    2021–present
+   │                     │                           │
+   ▼                     ▼                           ▼
+  ┌────────────┐    ┌─────────────────┐    ┌──────────────────────┐
+  │  Workflow  │    │ Process Builder │    │        Flow          │
+  │   Rules    │    │                 │    │  (Current Standard)  │
+  │  [LEGACY]  │    │   [LEGACY]      │    │                      │
+  └────────────┘    └─────────────────┘    └──────────────────────┘
+        │                   │                         ▲
+        └───────────────────┴── Migrate to Flow ──────┘
+
+  Workflow Rules: still on CRT-101 exam — learn for exam, use Flow for new builds
+```
 **Content:**
 - **Workflow Rules** are Salesforce's original point-and-click automation tool
 - They automate actions when record criteria are met
@@ -23,7 +39,27 @@
 **Speaker Notes:** Workflow rules are officially legacy, but Salesforce has kept them in the exam blueprint because they're still running in thousands of customer orgs. Admins need to understand them for maintenance and troubleshooting even if they're not building new ones. On your exam, you will see workflow rule questions. Learn the concepts thoroughly, and know that Flow is the recommended replacement for all new automation.
 
 ### Slide 2: Workflow Rule Trigger Criteria
-**Visual:** Three radio buttons: (1) "created" (2) "created, and any time it's edited to subsequently meet criteria" (3) "created, and every time it's edited" — with example use cases for each
+**Visual:**
+```
+  When should the rule evaluate?
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ ◉ created                                                           │
+  │   → Fires ONCE, only when record is first created                  │
+  │   → Use for: assign owner on creation, set default values          │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │ ◉ created, and any time it's edited to subsequently meet criteria   │
+  │   → Fires on creation AND when record transitions from             │
+  │     NOT meeting → meeting criteria                                  │
+  │   → Use for: alert when Stage changes TO Closed Won                │
+  │   → Does NOT re-fire if record already met criteria                │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │ ◉ created, and every time it's edited                               │
+  │   → Fires on every single save as long as criteria are met         │
+  │   → Use for: timestamp updates, running totals                     │
+  │   ⚠ Cannot use time-dependent actions with this option             │
+  └─────────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Evaluate the rule when a record is:**
   - **Created:** Only fires once, when the record is first created (never on edits)
@@ -36,7 +72,24 @@
 **Speaker Notes:** The trigger criteria is one of the most-tested aspects of workflow rules. "Created and any time edited to SUBSEQUENTLY meet criteria" is subtle — the rule only fires when the record transitions from NOT meeting the criteria TO meeting them. It won't re-fire if the record already met criteria and is saved again with no change. "Created and every time it's edited" fires unconditionally on every save (as long as criteria are met), which can cause unexpected behavior and trigger loops if field updates are involved.
 
 ### Slide 3: Workflow Rule Criteria
-**Visual:** Rule criteria editor showing two options: "criteria are met" (filter conditions with AND/OR logic) vs. "formula evaluates to true" (formula editor), with examples of each
+**Visual:**
+```
+  Rule Criteria Options
+
+  ┌──────────────────────────────────┬──────────────────────────────────┐
+  │   CRITERIA ARE MET               │   FORMULA EVALUATES TO TRUE      │
+  │   (Filter conditions)            │   (Full formula editor)          │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │  Field        Operator  Value    │  AND(                            │
+  │  Stage        equals    Closed   │    ISPICKVAL(Stage,"Closed Won"),│
+  │               Won               │    ISCHANGED(Stage),             │
+  │  Amount       >         10000   │    Amount > 10000                │
+  │                                  │  )                               │
+  ├──────────────────────────────────┼──────────────────────────────────┤
+  │  Use for: simple field           │  Use for: ISCHANGED, date math,  │
+  │  comparisons (AND logic only)    │  cross-object, complex logic     │
+  └──────────────────────────────────┴──────────────────────────────────┘
+```
 **Content:**
 - **Rule criteria determines when the rule fires:**
   - **Criteria are met:** Filter conditions (like list view filters) — field equals/contains/starts with value
@@ -48,7 +101,26 @@
 **Speaker Notes:** The choice between criteria filters and formulas gives you flexibility. Criteria filters are quick to set up for simple conditions. Formula evaluation unlocks the full power of Salesforce's formula language, including ISCHANGED and cross-object references. One important note: ISCHANGED() works in workflow rule criteria formulas — unlike some other contexts. This lets you detect field-level changes to trigger actions.
 
 ### Slide 4: Workflow Actions — Field Update
-**Visual:** Field update configuration screen showing: Object (Opportunity), Field to Update (Stage), New Field Value options: specific value, formula, blank the field, use existing value
+**Visual:**
+```
+  Field Update Configuration
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Object to Update:   [Opportunity               ▼]          │
+  │  Field to Update:    [Stage                     ▼]          │
+  │                                                              │
+  │  New Field Value:                                            │
+  │    ◉ A specific value:     [Closed Won          ▼]          │
+  │    ○ Use a formula:        [formula editor]                  │
+  │    ○ Blank the field                                         │
+  │    ○ Use the record's existing value                         │
+  │                                                              │
+  │  ☐ Re-evaluate Workflow Rules after Field Change             │
+  │    ⚠ Uncheck unless needed — risk of loops                  │
+  └──────────────────────────────────────────────────────────────┘
+
+  Can update: the triggering record  OR  a parent (lookup) object field
+```
 **Content:**
 - **Field Update:** Changes the value of a field on the record (or a related record)
 - Configuration:
@@ -61,10 +133,26 @@
 **Speaker Notes:** Field updates are the most commonly used workflow action. They can update the triggering record OR traverse a lookup to update a parent record field. For example, a workflow on Opportunity can update the related Account's "Last Opportunity Date" field. The "re-evaluate workflow rules" checkbox on field updates is important — if checked, saving the field update re-triggers all workflow rules, which can cause unintended loops or cascading updates.
 
 ### Slide 5: Workflow Actions — Email Alert, Task, Outbound Message
-**Visual:** Three card panels:
-1. Email Alert: envelope icon, "Select email template + recipients"
-2. Task: checkbox icon, "Assign task to user/role with due date and priority"
-3. Outbound Message: API connection icon, "Send SOAP message to external endpoint"
+**Visual:**
+```
+  ┌───────────────────────┬───────────────────────┬───────────────────────┐
+  │    EMAIL ALERT        │        TASK           │   OUTBOUND MESSAGE    │
+  ├───────────────────────┼───────────────────────┼───────────────────────┤
+  │  ✉ Uses email         │  ☑ Creates a Task     │  ⇄ Sends SOAP XML     │
+  │    template           │    record             │    to external URL    │
+  │                       │                       │                       │
+  │  Recipients:          │  Assign to:           │  Endpoint URL:        │
+  │  • Record owner       │  • Specific user      │  external system      │
+  │  • Role members       │  • Role members       │  must have SOAP       │
+  │  • Email field        │  • Record owner       │  listener             │
+  │  • Specific address   │                       │                       │
+  │                       │  Set: Subject,        │  Older integration    │
+  │  Can send to          │  Due Date (relative), │  pattern — modern     │
+  │  multiple recipients  │  Priority, Status     │  orgs use REST or     │
+  │                       │                       │  Platform Events      │
+  └───────────────────────┴───────────────────────┴───────────────────────┘
+  All three can be: Immediate (fires on save)  OR  Time-Dependent (delayed)
+```
 **Content:**
 - **Email Alert:**
   - Uses a pre-built **email template** (text, HTML, or custom HTML)
@@ -81,7 +169,24 @@
 **Speaker Notes:** Email alerts are extremely common in workflow automation — notify a manager when a deal closes, remind a service rep when a case is overdue. Tasks are useful for creating follow-up actions. Outbound messages are the oldest integration mechanism — they send a SOAP message to an external URL when conditions are met. While modern integrations have moved to REST and Platform Events, outbound messages still appear on older orgs and on the exam. All three can be either immediate actions or time-dependent (delayed).
 
 ### Slide 6: Time-Dependent Workflow Actions
-**Visual:** Timeline showing: Record saves (Day 0) → Rule Criteria Met → Time Trigger: "-3 days before Close Date" → Email sent → "0 days before Close Date" → Another action fires → "2 days after Close Date" → Final action
+**Visual:**
+```
+  Record saves and rule criteria are met  (Day 0)
+            │
+            ▼
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  Time-Based Workflow Queue                                      │
+  │                                                                 │
+  │  -7 days before Close Date ──▶ Email: "Deal closing soon"      │
+  │  -3 days before Close Date ──▶ Task: "Follow up with client"   │
+  │   0 days (on Close Date)   ──▶ Email: "Close Date arrived"     │
+  │  +2 days after Close Date  ──▶ Task: "Post-close review"       │
+  └─────────────────────────────────────────────────────────────────┘
+            │
+            ▼
+  ⚠ If record no longer meets criteria before time fires:
+     → Pending actions are automatically REMOVED from queue
+```
 **Content:**
 - **Time triggers** delay workflow actions by a relative time offset
 - Time trigger options:
@@ -95,7 +200,27 @@
 **Speaker Notes:** Time-dependent actions are great for follow-up reminders and escalations. A classic example: if an Opportunity has been in "Proposal" stage for 7 days without moving forward, automatically create a task for the owner to follow up. The time-based workflow queue is viewable in Setup → Time-Based Workflow, where admins can see and cancel pending actions. The automatic cancellation when criteria are no longer met is a safety feature — if the opportunity closes before the 7-day follow-up task fires, the task is cancelled.
 
 ### Slide 7: Workflow Rule Re-evaluation After Field Updates
-**Visual:** Flow diagram showing: Record Save → Workflow Rule A fires → Field Update Action runs → Salesforce asks "Re-evaluate rules?" → If Yes: Workflow Rule B checks new values → If No: Process ends
+**Visual:**
+```
+  Record Save
+       │
+       ▼
+  Workflow Rule A evaluates → criteria MET
+       │
+       ▼
+  Field Update action runs (e.g., sets Status = "Active")
+       │
+       ▼
+  "Re-evaluate Workflow Rules after Field Change" checked?
+       │
+       ├── YES ──▶ All workflow rules re-evaluate with new values
+       │               │
+       │               ├── Rule B criteria now met → fires
+       │               │
+       │               └── Rule A criteria still met? ──▶ ⚠ LOOP RISK
+       │
+       └── NO  ──▶ Process ends (recommended default)
+```
 **Content:**
 - When a **Field Update** action includes "Re-evaluate Workflow Rules after Field Change": checked
 - Salesforce runs all workflow rules again with the updated field values
@@ -107,7 +232,28 @@
 **Speaker Notes:** Re-evaluation is a double-edged feature. It enables sophisticated automation chains where one rule's field update triggers the next rule's criteria. But it's easy to accidentally create loops. Salesforce caps re-evaluations to prevent true infinite loops, but you can still cause many unintended actions. Always map out your workflow logic before enabling re-evaluation, and test thoroughly in a sandbox.
 
 ### Slide 8: Workflow Rules vs. Flow — Migration Considerations
-**Visual:** Comparison table: Workflow Rules vs. Record-Triggered Flow across dimensions: Status, Trigger options, Actions, Before-save capability, Multiple objects, Scheduled actions
+**Visual:**
+```
+  ┌─────────────────────┬─────────────────────┬──────────────────────────┐
+  │ Feature             │ Workflow Rules       │ Record-Triggered Flow    │
+  ├─────────────────────┼─────────────────────┼──────────────────────────┤
+  │ Status              │ Legacy (retiring)    │ Current standard         │
+  ├─────────────────────┼─────────────────────┼──────────────────────────┤
+  │ Trigger types       │ Created / Edited     │ Created / Updated /      │
+  │                     │                      │ Deleted                  │
+  ├─────────────────────┼─────────────────────┼──────────────────────────┤
+  │ Action types        │ 4 fixed types        │ Unlimited                │
+  ├─────────────────────┼─────────────────────┼──────────────────────────┤
+  │ Before-save         │ No                   │ Yes (optimized)          │
+  ├─────────────────────┼─────────────────────┼──────────────────────────┤
+  │ Cross-object        │ Parent only          │ Any related object       │
+  ├─────────────────────┼─────────────────────┼──────────────────────────┤
+  │ Time-based          │ Time Triggers        │ Scheduled Paths          │
+  ├─────────────────────┼─────────────────────┼──────────────────────────┤
+  │ Loop prevention     │ Limited              │ Better control           │
+  └─────────────────────┴─────────────────────┴──────────────────────────┘
+  Exam strategy: know workflow rules for recognition; know Flow for new builds
+```
 **Content:**
 | Feature | Workflow Rules | Record-Triggered Flow |
 |---------|---------------|----------------------|

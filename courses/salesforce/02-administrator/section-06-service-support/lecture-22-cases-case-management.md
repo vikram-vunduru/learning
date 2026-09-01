@@ -8,7 +8,32 @@
 ## 📊 SLIDES
 
 ### Slide 1: The Case Object
-**Visual:** Case record showing fields: Case Number (auto), Subject, Status, Priority, Case Origin, Account Name, Contact Name, Description, Assigned To
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                      CASE RECORD                             │
+  ├────────────────────────┬─────────────────────────────────────┤
+  │ Case Number            │ 00001042  (auto-generated, unique)  │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Subject                │ Login page not loading              │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Status                 │ Working                             │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Priority               │ High                                │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Case Origin            │ Web                                 │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Account Name           │ Acme Corporation                    │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Contact Name           │ Jane Doe                            │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Description            │ Cannot log in since 8am today       │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Assigned To            │ Tier 1 Support Queue                │
+  └────────────────────────┴─────────────────────────────────────┘
+  Status lifecycle: New ──▶ Working ──▶ Escalated ──▶ Closed
+  Priority: Low │ Medium │ High │ Critical
+```
 **Content:**
 - Case represents a customer issue, complaint, question, or service request
 - Case Number is auto-generated and cannot be changed
@@ -19,7 +44,26 @@
 **Speaker Notes:** The Case object is the foundation of Salesforce Service Cloud. Admins configure the Status and Priority picklists to match their organization's support process. Case Number is a system-generated auto-number field — it's unique, sequential, and cannot be edited.
 
 ### Slide 2: Case Origin Channels
-**Visual:** Icons for Web, Email, Phone, Chat, and Social media with arrows pointing into a single Case record
+**Visual:**
+```
+  Web Form ──────────────────────────────────┐
+                                             │
+  Email ─────────────────────────────────────┤
+                                             │
+  Phone (manual) ────────────────────────────┼──▶  ┌──────────────────────┐
+                                             │      │     CASE RECORD      │
+  Chat / Live Agent ─────────────────────────┤      │  Case Number: 00042  │
+                                             │      │  Case Origin: [value]│
+  Social Media ──────────────────────────────┘      │  Status: New         │
+                                                    └──────────────────────┘
+
+  Case Origin = picklist field (admins can add custom values)
+  ─────────────────────────────────────────────────────────────
+  Used in:
+  • Reports — analyze support volume by channel
+  • Assignment Rules — route cases based on origin
+  • Auto-Response Rules — send different templates per channel
+```
 **Content:**
 - **Web:** Customer submits via Web-to-Case form on your website
 - **Email:** Customer sends an email to a support address (Email-to-Case)
@@ -30,7 +74,38 @@
 **Speaker Notes:** Case Origin is purely informational — it tells your support team HOW the customer reached out. This field can be used in reports to analyze channel volume and in assignment rules to route cases based on how they arrived.
 
 ### Slide 3: Web-to-Case
-**Visual:** Diagram: Customer fills web form → Salesforce endpoint → Case record created with Status = New
+**Visual:**
+```
+  ┌──────────────────────────────┐
+  │       Company Website        │
+  │  ┌─────────────────────────┐ │
+  │  │     Support Form        │ │
+  │  │  Name:        ________  │ │
+  │  │  Email:       ________  │ │
+  │  │  Subject:     ________  │ │
+  │  │  Description: ________  │ │
+  │  │       [Submit]          │ │
+  │  └──────────────┬──────────┘ │
+  └─────────────────┼────────────┘
+                    │  HTTP POST
+                    ▼
+  ┌──────────────────────────────────┐
+  │    Salesforce Web-to-Case        │
+  │    Endpoint                      │
+  │    Limit: 5,000 cases/day        │
+  │    (10x higher than Web-to-Lead) │
+  └──────────────────┬───────────────┘
+                     │
+                     ▼
+  ┌──────────────────────────────────┐
+  │      Case Record Created         │
+  │      Status: New                 │
+  │      Origin: Web                 │
+  └──────────────────┬───────────────┘
+                     │
+                     ▼
+  Auto-Response Email ──▶ Customer (if Auto-Response Rule set up)
+```
 **Content:**
 - Web-to-Case generates an HTML form that creates cases directly from website submissions
 - Setup path: Setup → Web-to-Case
@@ -41,7 +116,29 @@
 **Speaker Notes:** Web-to-Case is similar to Web-to-Lead but for the support side. The 5,000 per day limit is significantly higher than Web-to-Lead's 500. Remember to configure an auto-response rule so customers get an immediate acknowledgment that their case was received.
 
 ### Slide 4: Email-to-Case
-**Visual:** Split diagram showing On-Demand Email-to-Case (Salesforce servers) vs Standard Email-to-Case (behind firewall)
+**Visual:**
+```
+  ┌──────────────────────────────┬──────────────────────────────────┐
+  │  ON-DEMAND EMAIL-TO-CASE     │  STANDARD EMAIL-TO-CASE          │
+  ├──────────────────────────────┼──────────────────────────────────┤
+  │  Customer Email              │  Customer Email                  │
+  │       │                      │       │                          │
+  │       ▼                      │       ▼                          │
+  │  Salesforce-Hosted           │  Company Mail Server             │
+  │  Email Service               │  (stays behind firewall)         │
+  │  (no install needed)         │       │                          │
+  │       │                      │  On-Premise Agent                │
+  │       ▼                      │  (installed locally)             │
+  │  Case Created                │       │                          │
+  │  in Salesforce               │       ▼                          │
+  │                              │  Case synced to Salesforce       │
+  ├──────────────────────────────┼──────────────────────────────────┤
+  │ ✓ Simple setup               │ ✓ Email stays on-premise         │
+  │ ✓ No agent installation      │ ✓ Meets strict compliance        │
+  │ ✗ Email routes through SF    │ ✗ Requires agent install         │
+  └──────────────────────────────┴──────────────────────────────────┘
+  Both: routing addresses → set queue, default priority, origin, status
+```
 **Content:**
 - **On-Demand Email-to-Case:** Salesforce hosts the email service; no software installation needed; email sent to a Salesforce-hosted address
 - **Standard Email-to-Case:** Agent installed behind your firewall; email stays on-premise before syncing to Salesforce; more secure for sensitive data
@@ -52,7 +149,26 @@
 **Speaker Notes:** The key distinction between On-Demand and Standard Email-to-Case is where the email processing happens. On-Demand is simpler to set up and sufficient for most orgs. Standard requires an agent installation but keeps email data within your firewall — used when compliance or security requires it.
 
 ### Slide 5: Case Teams
-**Visual:** Case record showing Case Team related list with Member Name, Role, and Case Access columns
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                       CASE TEAM                              │
+  ├────────────────────────┬───────────────────────┬─────────────┤
+  │ Member Name            │ Role                  │ Case Access │
+  ├────────────────────────┼───────────────────────┼─────────────┤
+  │ Alex Torres            │ Case Manager          │ Read/Write  │
+  ├────────────────────────┼───────────────────────┼─────────────┤
+  │ Priya Nair             │ Technical Specialist  │ Read/Write  │
+  ├────────────────────────┼───────────────────────┼─────────────┤
+  │ Sam Okafor             │ Tier 2 Support        │ Read Only   │
+  ├────────────────────────┼───────────────────────┼─────────────┤
+  │ Lauren Kim             │ Customer Success Mgr  │ Read Only   │
+  └────────────────────────┴───────────────────────┴─────────────┘
+
+  Setup: Setup → Case Team Roles (configure role values)
+  Predefined Case Teams can be saved and applied in one click
+  Similar concept to Opportunity Teams — same pattern, different object
+```
 **Content:**
 - Case Teams allow multiple agents to collaborate on a single case
 - Each member has a Role (e.g., Case Manager, Technical Specialist, Tier 2 Support)
@@ -63,7 +179,30 @@
 **Speaker Notes:** Case Teams are useful for complex support issues requiring multiple people. A major incident might need a front-line agent, a technical engineer, and a customer success manager all working together on the same Case record. Each person gets appropriate access through their team role.
 
 ### Slide 6: Case Auto-Response Rules
-**Visual:** Flowchart showing inbound case → Auto-Response Rule evaluates criteria → Matching email template sent to contact
+**Visual:**
+```
+  Inbound Case Created (Web-to-Case / Email-to-Case / Manual)
+                │
+                ▼
+  ┌──────────────────────────────────────────────────────┐
+  │          CASE AUTO-RESPONSE RULE (one active)        │
+  ├──────────────────────────────────────────────────────┤
+  │  Entry 1: Case Origin = Web                          │
+  │           ──▶ Send "Web Submission Received" template│
+  ├──────────────────────────────────────────────────────┤
+  │  Entry 2: Priority = High or Critical                │
+  │           ──▶ Send "Urgent Case Received" template   │
+  ├──────────────────────────────────────────────────────┤
+  │  Entry 3: (All Others)                               │
+  │           ──▶ Send "Case Received" template          │
+  └──────────────────────┬───────────────────────────────┘
+                         │  First matching entry wins
+                         ▼
+  Email Template ──▶ sent to Case Contact's email address
+
+  ⚠ No match → NO auto-response is sent (no default fallback)
+  Setup: Setup → Auto-Response Rules → Case Auto-Response Rules
+```
 **Content:**
 - Auto-Response Rules automatically send email replies when a Case is created
 - Useful for Web-to-Case and Email-to-Case to acknowledge receipt
@@ -74,7 +213,31 @@
 **Speaker Notes:** Auto-Response Rules are a courtesy mechanism — they let customers know their case was received and assigned. The rule structure mirrors Assignment Rules: one active rule with multiple entries evaluated top-to-bottom. Entries use criteria to match cases and specify which email template to send.
 
 ### Slide 7: Case Escalation Rules
-**Visual:** Timeline showing Case created at T=0; 4 hours elapse; escalation fires; case reassigned and email sent
+**Visual:**
+```
+  ──────────────────────────────────────────────────────────────▶ Time
+
+  T=0 hrs       T=4 hrs                        T=8 hrs
+  │             │                              │
+  ▼             ▼                              ▼
+  Case        Escalation                   Second
+  Created     Rule Fires                   Escalation
+  │           │                            (if configured)
+  │           ├── Actions:
+  │           │   • Reassign to Tier 2 Queue
+  │           │   • Email: Support Manager notified
+  │           │
+  ├── Status: New ──────────────────────────────────────────────
+  │
+  Clock PAUSES when Status = "Waiting on Customer"
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Setup → Escalation Rules → Rule Entries                     │
+  │  Criteria:  Priority = High                                  │
+  │  Age Over:  4 hours (from case created / last modified)      │
+  │  Actions:   Reassign to queue + Email notification           │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Escalation Rules automatically escalate cases that have not been resolved within a time threshold
 - Setup path: Setup → Escalation Rules
@@ -85,7 +248,28 @@
 **Speaker Notes:** Escalation Rules enforce your SLA commitments. The time threshold (Age Over) tells Salesforce when to escalate. Admins can configure the clock to pause when cases are in statuses like "Pending Customer Response," so your SLA timer doesn't count time waiting on the customer.
 
 ### Slide 8: Case Related Lists & Activity
-**Visual:** Case record showing related lists: Case Comments, Emails, Attachments, Case Team, Case History, Related Cases
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                  CASE RECORD — RELATED LISTS                 │
+  ├──────────────────────┬───────────────────────────────────────┤
+  │ Case Comments        │ Notes on the case; can be            │
+  │                      │ Public (customer portal visible) or  │
+  │                      │ Internal (agents only)               │
+  ├──────────────────────┼───────────────────────────────────────┤
+  │ Emails               │ Email thread from Email-to-Case or   │
+  │                      │ manually sent agent emails           │
+  ├──────────────────────┼───────────────────────────────────────┤
+  │ Attachments / Files  │ Documents related to the case        │
+  ├──────────────────────┼───────────────────────────────────────┤
+  │ Case History         │ Audit trail — field change log       │
+  ├──────────────────────┼───────────────────────────────────────┤
+  │ Related Cases        │ Parent-child case grouping           │
+  │                      │ (e.g., product defect → many cases)  │
+  ├──────────────────────┼───────────────────────────────────────┤
+  │ Case Team            │ Agents collaborating on this case    │
+  └──────────────────────┴───────────────────────────────────────┘
+```
 **Content:**
 - **Case Comments:** Internal notes and customer-facing comments on the case
 - **Emails:** Email messages sent/received related to the case (from Email-to-Case or manual emails)

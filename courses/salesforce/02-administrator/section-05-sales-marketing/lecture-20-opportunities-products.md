@@ -233,7 +233,31 @@
 **Speaker Notes:** Schedules are important for recurring revenue businesses. A single Opportunity for an annual contract might have 12 monthly revenue schedule entries so forecasting shows the right amount each month. This feature must be enabled on each product individually.
 
 ### Slide 8: Big Deal Alerts
-**Visual:** Email notification mockup showing "Big Deal Alert" subject line with Opportunity details
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │  From:    notifications@salesforce.com                       │
+  │  To:      ceo@company.com; cfo@company.com                   │
+  │  Subject: BIG DEAL ALERT — Opportunity Exceeds Threshold     │
+  ├──────────────────────────────────────────────────────────────┤
+  │                                                              │
+  │  A high-value opportunity has met your alert criteria:       │
+  │                                                              │
+  │  Opportunity Name:  Acme Corp – Platform License             │
+  │  Account:           Acme Corporation                         │
+  │  Amount:            $750,000   ──▶ exceeds $500,000 threshold│
+  │  Probability:       80%        ──▶ exceeds 70% threshold     │
+  │  Close Date:        09/30/2025                               │
+  │  Owner:             Alice Johnson                            │
+  │                                                              │
+  ├──────────────────────────────────────────────────────────────┤
+  │  BOTH thresholds must be met simultaneously for alert to fire│
+  │  ✓ Amount ($750K > $500K threshold)                          │
+  │  ✓ Probability (80% > 70% threshold)                         │
+  │  Amount met but Probability low? → NO alert fires            │
+  └──────────────────────────────────────────────────────────────┘
+  Setup → Big Deal Alert  (no Workflow or Process Builder needed)
+```
 **Content:**
 - Big Deal Alerts send automatic email notifications when an Opportunity exceeds a threshold
 - Configuration: Setup → Big Deal Alert
