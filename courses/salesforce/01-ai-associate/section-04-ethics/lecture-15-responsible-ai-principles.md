@@ -84,7 +84,36 @@ The fact that something is technically possible does not mean it should be built
 ---
 
 ### Slide 5: Salesforce's 5 Trusted AI Principles — Overview
-**Visual:** A pentagon diagram with each principle at one point, and "Trusted AI" in the center. Colors: each principle has a distinct color — Responsible (red), Accountable (orange), Transparent (yellow), Empowering (green), Inclusive (blue).
+**Visual:**
+```
+   SALESFORCE TRUSTED AI PRINCIPLES — R.A.T.E.I.
+
+                         R
+                  RESPONSIBLE
+                (do no harm;
+                  consider impacts)
+                       /\
+                      /  \
+                     /    \
+                    /      \
+          I ───────          ─────── A
+     INCLUSIVE                  ACCOUNTABLE
+   (fair for all             (humans take
+    groups and                responsibility
+    demographics)             for AI outcomes)
+                     \      /
+                      \    /
+                       \  /
+                        \/
+                    T ─────── E
+               TRANSPARENT   EMPOWERING
+              (explain how   (augment human
+               AI works +     capability,
+               decisions)     don't replace)
+
+   Mnemonic: R-A-T-E-I  (RATEI)
+   All 5 tested on the exam — know each definition
+```
 **Content:**
 **Salesforce's 5 Trusted AI Principles:**
 
@@ -101,7 +130,28 @@ The fact that something is technically possible does not mean it should be built
 ---
 
 ### Slide 6: Principle 1 — Responsible
-**Visual:** Shield icon. A scenario: An AI predicts medical diagnoses. Next to it: An ethical review board reviewing the model before deployment. Caption: "Safety must precede deployment."
+**Visual:**
+```
+   RESPONSIBLE AI — The Foundation
+
+   ┌─────────────────────────────────────────────────────────┐
+   │                                                         │
+   │              RESPONSIBLE AI SHIELD                      │
+   │                                                         │
+   │         ┌───────────────────────────┐                   │
+   │         │ ╱ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ╲ │                   │
+   │         │ │  Do not harm           │ │                   │
+   │         │ │  Consider impacts      │ │                   │
+   │         │ │  Ethical by design     │ │                   │
+   │         │ │  Privacy-preserving    │ │                   │
+   │         │ │  Bias-aware            │ │                   │
+   │         │ ╲ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ╱ │                   │
+   │         └───────────────────────────┘                   │
+   │                                                         │
+   │  "AI must be safe and beneficial for everyone it        │
+   │   touches — not just those who build or buy it"         │
+   └─────────────────────────────────────────────────────────┘
+```
 **Content:**
 **Responsible AI means:**
 - AI systems should be safe, beneficial, and avoid causing harm
@@ -204,7 +254,20 @@ The fact that something is technically possible does not mean it should be built
 ---
 
 ### Slide 11: The 5 Principles in Practice — Quick Reference Table
-**Visual:** Clean five-row table with principle name, one-sentence definition, and a real example.
+**Visual:**
+```
+   SALESFORCE TRUSTED AI PRINCIPLES — REFERENCE TABLE
+
+   ┌──────────────────┬──────────────────────────────────────────────┐
+   │  PRINCIPLE       │  DEFINITION                                  │
+   ├──────────────────┼──────────────────────────────────────────────┤
+   │ R — Responsible  │ AI should not harm; consider societal impact │
+   │ A — Accountable  │ Humans remain responsible for AI outcomes    │
+   │ T — Transparent  │ Explain how AI makes decisions               │
+   │ E — Empowering   │ Augment humans, not replace them             │
+   │ I — Inclusive    │ AI should work fairly for all people         │
+   └──────────────────┴──────────────────────────────────────────────┘
+```
 **Content:**
 
 | Principle | Core Meaning | Real Example |
@@ -222,7 +285,37 @@ The fact that something is technically possible does not mean it should be built
 ---
 
 ### Slide 12: Salesforce's Institutional Commitments
-**Visual:** Salesforce organizational structure showing: Office of Ethical and Humane Use → AI Acceptable Use Policy → Public commitments. Icons representing each.
+**Visual:**
+```
+   AI GOVERNANCE STRUCTURE — Who Is Responsible?
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │                  EXECUTIVE LEVEL                            │
+   │         Chief AI Officer / Chief Ethics Officer            │
+   │         Sets company-wide AI policy and standards          │
+   └──────────────────────────┬──────────────────────────────────┘
+                              │
+           ┌──────────────────┼──────────────────┐
+           │                  │                  │
+           ▼                  ▼                  ▼
+   ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+   │  AI ETHICS    │  │  LEGAL /      │  │  PRODUCT &    │
+   │  TEAM         │  │  COMPLIANCE   │  │  ENGINEERING  │
+   │               │  │               │  │               │
+   │ Reviews bias  │  │ Regulatory    │  │ Implements    │
+   │ Audits models │  │ requirements  │  │ guardrails    │
+   │ Impact assess.│  │ GDPR, CCPA    │  │ in product    │
+   └───────────────┘  └───────────────┘  └───────────────┘
+           │                  │                  │
+           └──────────────────┼──────────────────┘
+                              │
+                              ▼
+                   ┌───────────────────┐
+                   │  ALL AI USERS     │
+                   │  (Human in loop   │
+                   │   accountability) │
+                   └───────────────────┘
+```
 **Content:**
 **Salesforce's structural commitments:**
 

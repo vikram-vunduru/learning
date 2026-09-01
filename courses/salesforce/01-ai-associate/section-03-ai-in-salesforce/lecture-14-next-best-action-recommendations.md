@@ -51,7 +51,31 @@
 ---
 
 ### Slide 3: The Two Approaches — Rules vs. ML
-**Visual:** Left/right split. Left: "Rule-Based" with a flowchart icon. Right: "ML-Powered" with a brain icon. Then a combined "Einstein NBA" in the center showing both working together.
+**Visual:**
+```
+   NEXT BEST ACTION — Recommendations Engine
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │                 STRATEGY BUILDER                            │
+   │          (where you configure NBA logic)                    │
+   ├───────────────────────────┬─────────────────────────────────┤
+   │   BRANCH 1: RULES         │   BRANCH 2: ML MODEL            │
+   │   (always applied)        │   (Einstein-powered)            │
+   │                           │                                 │
+   │ IF account.tier = VIP     │ Predict which offer has         │
+   │ THEN show Renewal offer   │ highest probability of          │
+   │                           │ acceptance for THIS customer    │
+   │ IF case.open > 2          │ based on:                       │
+   │ THEN show Apology offer   │ ● Customer profile              │
+   │                           │ ● Similar customer behavior     │
+   │ Static, admin-defined     │ ● Historical acceptance rates   │
+   │ "business rules"          │ ● Contextual signals            │
+   └───────────────────────────┴─────────────────────────────────┘
+                               │
+                               ▼
+                     RANKED RECOMMENDATIONS
+                     shown to rep or customer
+```
 **Content:**
 **Approach 1: Rule-Based Recommendations**
 - Business logic expressed as explicit conditions
@@ -93,7 +117,38 @@
 ---
 
 ### Slide 5: Key Component #2 — The Recommendation Strategy
-**Visual:** A visual flow diagram in the Recommendation Strategy Builder (the OmniStudio-style strategy canvas), showing filter nodes, branch logic, and output nodes feeding into a ranked list of recommendations.
+**Visual:**
+```
+   NBA STRATEGY — COMPONENT FLOW
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │                       STRATEGY                              │
+   │              (container for all NBA logic)                  │
+   │                                                             │
+   │  ┌─────────────────────────────────────────────────────┐    │
+   │  │  LOAD RECOMMENDATIONS (candidate offers/actions)    │    │
+   │  │  Define the pool of possible recommendations        │    │
+   │  └─────────────────────────────────────────────────────┘    │
+   │                          │                                  │
+   │                          ▼                                  │
+   │  ┌─────────────────────────────────────────────────────┐    │
+   │  │  FILTER (eligibility rules)                         │    │
+   │  │  IF not eligible → remove from pool                 │    │
+   │  └─────────────────────────────────────────────────────┘    │
+   │                          │                                  │
+   │                          ▼                                  │
+   │  ┌─────────────────────────────────────────────────────┐    │
+   │  │  SCORE (ML model or rule-based ranking)             │    │
+   │  │  Assign propensity score to each recommendation     │    │
+   │  └─────────────────────────────────────────────────────┘    │
+   │                          │                                  │
+   │                          ▼                                  │
+   │  ┌─────────────────────────────────────────────────────┐    │
+   │  │  LIMIT (how many to show)                           │    │
+   │  │  Return top N recommendations                       │    │
+   │  └─────────────────────────────────────────────────────┘    │
+   └─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 **Recommendation Strategy:**
 - The logic engine that decides WHICH recommendations to show and in what ORDER
@@ -137,7 +192,37 @@
 ---
 
 ### Slide 7: Real Example — NBA in Action
-**Visual:** Step-by-step annotated walkthrough. Four frames: (1) Rep opens Account record for "Apex Industries." (2) NBA component loads and runs the Strategy. (3) Component displays: "Offer 20% Loyalty Discount" (reason: renewal due in 45 days, no activity in 30 days). (4) Rep clicks Accept → Task is created, discount offer email is drafted automatically.
+**Visual:**
+```
+   NEXT BEST ACTION — REAL-TIME FLOW
+
+   Step 1: Rep opens Account record or Customer starts chat
+                            │
+                            ▼
+   Step 2: NBA Strategy invoked (via Lightning component or Flow)
+                            │
+                            ▼
+   Step 3: Filter — remove ineligible offers
+           (already purchased, not in eligible region, etc.)
+                            │
+                            ▼
+   Step 4: Score — ML model ranks remaining offers by:
+           ● Propensity to accept
+           ● Lifetime value impact
+           ● Strategic priority
+                            │
+                            ▼
+   Step 5: Top recommendations displayed on screen
+           ┌──────────────────────────────────────┐
+           │ ★ Offer: Annual plan upgrade  89%    │
+           │ ★ Offer: Add user licenses    74%    │
+           │ ○ Offer: Support tier upgrade 42%    │
+           └──────────────────────────────────────┘
+                            │
+                            ▼
+   Step 6: Rep presents offer → Customer accepts/declines
+           → Outcome feeds back to ML model (improves over time)
+```
 **Content:**
 **Scenario:** A sales rep opens the Apex Industries account record.
 
@@ -162,7 +247,28 @@
 ---
 
 ### Slide 8: How Einstein ML Enhances NBA
-**Visual:** A/B comparison. Without ML: Same recommendation shown to all customers who meet Rule X. With ML: Recommendation A shown to customers similar to past acceptors; Recommendation B shown to customers similar to past decliners of A.
+**Visual:**
+```
+   WITH vs. WITHOUT ML IN NEXT BEST ACTION
+
+   ┌──────────────────────────────┬──────────────────────────────┐
+   │   WITHOUT ML (Rules Only)    │    WITH ML SCORING           │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ Same offers shown to all     │ Personalized offers per      │
+   │ eligible customers           │ individual customer          │
+   │                              │                              │
+   │ "Show Renewal offer to all   │ "Show Renewal to customers   │
+   │  accounts expiring this Q"   │  most likely to upgrade;     │
+   │                              │  show Downgrade save offer   │
+   │                              │  to at-risk customers"       │
+   │                              │                              │
+   │ Static ranking               │ Dynamic ranking by           │
+   │ (admin manually orders)      │ propensity score             │
+   │                              │                              │
+   │ Doesn't improve over time    │ Learns from outcomes,        │
+   │                              │ gets more accurate           │
+   └──────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 **Without Einstein ML:**
 - Rules define which recommendations to show
@@ -184,7 +290,32 @@
 ---
 
 ### Slide 9: NBA vs. Prediction Builder — Complementary, Not Competing
-**Visual:** Integration diagram showing Prediction Builder generating a score → that score being used as a filter condition in an NBA Strategy → NBA surfacing a recommendation based on the score.
+**Visual:**
+```
+   NEXT BEST ACTION — SALESFORCE INTEGRATION POINTS
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │                                                              │
+   │   DISPLAY CHANNELS              TRIGGER POINTS              │
+   │   (where NBA appears)           (when NBA fires)            │
+   │   ┌─────────────────┐           ┌─────────────────┐         │
+   │   │ Account page    │           │ Record open     │         │
+   │   │ Contact page    │           │ Flow automation │         │
+   │   │ Case page       │           │ Agent trigger   │         │
+   │   │ Opportunity page│           │ Scheduled batch │         │
+   │   │ Service Console │           └─────────────────┘         │
+   │   └─────────────────┘                   │                   │
+   │                                         │                   │
+   │   DATA SOURCES                  ◀───────┘                   │
+   │   (NBA context)                                              │
+   │   ┌─────────────────┐           ┌─────────────────┐         │
+   │   │ Salesforce CRM  │           │ STRATEGY BUILDER│         │
+   │   │ Data Cloud      │──────────▶│ (NBA Logic:     │         │
+   │   │ Calc. Insights  │           │  Filter+Score   │         │
+   │   └─────────────────┘           │  +Rank+Limit)   │         │
+   │                                 └─────────────────┘         │
+   └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 **How NBA and Prediction Builder work TOGETHER:**
 

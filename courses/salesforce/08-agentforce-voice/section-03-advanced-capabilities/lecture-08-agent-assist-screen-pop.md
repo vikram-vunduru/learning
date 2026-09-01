@@ -12,7 +12,31 @@
 ## Slides
 
 ### Slide 1: Two Modes of Agentforce Voice
-**Visual:** Split-screen diagram — left side shows "Autonomous Mode" with a phone icon connecting directly to an AI robot icon; right side shows "Agent Assist Mode" with a phone icon connecting to a human agent icon with a floating AI suggestion panel beside them
+**Visual:**
+```
+  ┌────────────────────────────────┐    ┌────────────────────────────────┐
+  │       AUTONOMOUS MODE          │    │      AGENT ASSIST MODE         │
+  ├────────────────────────────────┤    ├────────────────────────────────┤
+  │                                │    │                                │
+  │  Caller ──▶ [AI Agent]         │    │  Caller ──▶ [Human Agent]      │
+  │              │                 │    │                │               │
+  │              ▼                 │    │  [AI listens continuously]     │
+  │         Resolves or            │    │                │               │
+  │         Escalates              │    │                ▼               │
+  │                                │    │  ┌─────────────────────────┐   │
+  │  No human involved             │    │  │  Agent Assist Panel     │   │
+  │  Routine, automatable calls    │    │  │  • Knowledge articles   │   │
+  │                                │    │  │  • Next Best Actions    │   │
+  │  Use for: case status,         │    │  │  • Sentiment gauge      │   │
+  │  store hours, appt confirm     │    │  │  • Suggested responses  │   │
+  └────────────────────────────────┘    │  └─────────────────────────┘   │
+                                        │  Use for: complex, relationship │
+                                        │  sensitive conversations        │
+                                        └────────────────────────────────┘
+  Both modes share: Amazon Connect / Genesys / NICE CXone infrastructure
+  Both modes use: real-time transcription as foundation
+  Escalation path: Autonomous ──▶ Agent Assist with full context
+```
 
 **Content:**
 - **Autonomous Mode:** Agentforce agent handles the entire call without a human; caller speaks to AI
@@ -26,7 +50,26 @@
 ---
 
 ### Slide 2: How Agent Assist Works — The Technical Flow
-**Visual:** Sequence diagram: Caller speaks → Real-time transcription (Amazon Transcribe) → Einstein NLU analysis → Suggestion engine → Agent desktop panel updates within 1-2 seconds
+**Visual:**
+```
+  ┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐
+  │   Caller     │───▶│ Telephony Partner │───▶│  Service Cloud   │
+  │  (phone)     │    │ (audio stream)    │    │  Voice           │
+  └──────────────┘    └──────────────────┘    │  (transcript)    │
+                                              └────────┬─────────┘
+                                                       │ live transcript
+                                                       ▼
+  ┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐
+  │  Human       │◀───│  Agent Assist    │◀───│  Agentforce      │
+  │  Agent       │    │  Panel (UI)      │    │  Agent           │
+  │  (desktop)   │    │  - Suggestions   │    │  (background)    │
+  └──────────────┘    │  - Articles      │    └──────────────────┘
+                      │  - Next Steps    │
+                      └──────────────────┘
+
+  PIPELINE LATENCY: caller utterance → suggestion appears: 1-2 seconds
+  Agent accepts suggestion with one click → inserts into notes or reads aloud
+```
 
 **Content:**
 - Real-time transcription converts call audio to text as the conversation happens
@@ -41,7 +84,27 @@
 ---
 
 ### Slide 3: Einstein Conversation Mining
-**Visual:** Dashboard mockup showing topic clusters as bubble chart — bubble size proportional to call volume; clusters labeled "Billing Dispute," "Technical Support," "Account Cancellation," "New Service Request"
+**Visual:**
+```
+  EINSTEIN CONVERSATION MINING — TOPIC ANALYSIS
+  ┌──────────────────────────────────────────────────────────┐
+  │  Topic Clusters (bubble size = call volume)              │
+  │                                                          │
+  │    ●●●●●  Billing Dispute    (32%)  Resolution:  71%     │
+  │    ●●●    Tech Support       (24%)  Resolution:  58%     │
+  │    ●●     Account Cancel     (18%)  Escalation:  44%  ◀──┤ automation gap
+  │    ●      New Service Req    (15%)  Resolution:  89%     │
+  │    ·      Other              (11%)  Resolution:  65%     │
+  │                                                          │
+  │  90-Day Volume Trend (top 3 topics)                      │
+  │  Billing  │▄▄▄▄▄▄▃▃▃▃▂▂                                  │
+  │  Tech     │▄▄▄▃▃▃▃▄▄▄▄▄                                  │
+  │  Cancel   │▂▂▂▃▃▄▄▄▄▄▄▄  ◀── rising                      │
+  │           └────────────────────────▶ Time (90 days)     │
+  └──────────────────────────────────────────────────────────┘
+  Runs on schedule │ Re-trains as new transcripts accumulate
+  Use output to: train Knowledge articles, tune agent assist, find automation gaps
+```
 
 **Content:**
 - Analyzes historical call transcripts to identify recurring topics and intents
@@ -56,7 +119,27 @@
 ---
 
 ### Slide 4: Next Best Action in Voice
-**Visual:** Service Console screenshot with the NBA panel highlighted — showing three ranked recommendation cards with action buttons ("Send Email," "Offer Discount," "Escalate to Tier 2")
+**Visual:**
+```
+  SERVICE CONSOLE — NEXT BEST ACTION PANEL
+  ┌──────────────────────────────────────────────────────────┐
+  │  NEXT BEST ACTION                             [refresh]  │
+  │  ────────────────────────────────────────────────────    │
+  │  1. ★ Retention Offer          Confidence: 87%           │
+  │     Caller churn risk: HIGH  │  LTV: $4,200/yr           │
+  │     [ Accept — Apply $20/mo discount ]  [ Dismiss ]      │
+  │  ────────────────────────────────────────────────────    │
+  │  2.   Escalate to Tier 2       Confidence: 72%           │
+  │     Issue: third contact for same problem                 │
+  │     [ Accept — Route to Tier 2 ]        [ Dismiss ]      │
+  │  ────────────────────────────────────────────────────    │
+  │  3.   Offer Plan Upgrade       Confidence: 61%           │
+  │     Caller mentioned competitor twice                     │
+  │     [ Accept — Open Upgrade Flow ]      [ Snooze ]       │
+  └──────────────────────────────────────────────────────────┘
+  Powered by: Prediction Builder or Decision Tables
+  Actions trigger Flows (send email, create case, update field) with one click
+```
 
 **Content:**
 - Next Best Action uses Prediction Builder or Decision Tables to rank actions
@@ -71,7 +154,33 @@
 ---
 
 ### Slide 5: Screen Pop — What It Is and Why It Matters
-**Visual:** Animation-style diagram: incoming call → CTI event → Salesforce lookup → Service Console opens with Contact record, open Cases, and interaction history pre-loaded
+**Visual:**
+```
+  SCREEN POP FLOW
+  ┌──────────┐  CTI event   ┌──────────────┐   SOQL    ┌────────────────┐
+  │ Incoming │─────────────▶│  Open CTI    │──────────▶│  Salesforce    │
+  │   Call   │  (ANI passed)│  Adapter     │  lookup   │  Contact /     │
+  │          │              └──────────────┘           │  Account /     │
+  └──────────┘                                         │  Lead          │
+                                                       └───────┬────────┘
+                                                               │ match found
+                                                               ▼
+                                                    ┌──────────────────────┐
+                                                    │   SERVICE CONSOLE    │
+                                                    │  ┌──────────────────┐│
+                                                    │  │ Contact Record   ││
+                                                    │  │ Name: Jane Doe   ││
+                                                    │  │ Account: Acme    ││
+                                                    │  │ Open Cases:  2   ││
+                                                    │  │ Last Call:  3d   ││
+                                                    │  │ Account Tier: A  ││
+                                                    │  └──────────────────┘│
+                                                    │  Agent sees context  │
+                                                    │  before saying hello │
+                                                    └──────────────────────┘
+  No match ──▶ new interaction record + Create prompt
+  Multiple matches ──▶ disambiguation list for agent
+```
 
 **Content:**
 - Screen pop = automatic record display when a call arrives at the agent's desktop
@@ -86,7 +195,29 @@
 ---
 
 ### Slide 6: Configuring Screen Pop Rules
-**Visual:** Setup page screenshot for Call Center configuration with screen pop rules table — columns: Match Field, Lookup Object, Lookup Field, Screen Pop Target
+**Visual:**
+```
+  SCREEN POP RULES CONFIGURATION
+  Setup > Call Centers > [Call Center] > Screen Pop Settings
+  ┌──────────────────┬──────────────────┬───────────────┬─────────────────┐
+  │  Match Field     │ Lookup Object    │ Lookup Field  │ Screen Pop      │
+  │                  │                  │               │ Target          │
+  ├──────────────────┼──────────────────┼───────────────┼─────────────────┤
+  │  ANI (CallerId)  │ Contact          │ Phone /       │ Contact record  │
+  │  (primary)       │                  │ MobilePhone   │ detail page     │
+  ├──────────────────┼──────────────────┼───────────────┼─────────────────┤
+  │  ANI (fallback)  │ Account          │ Phone         │ Account record  │
+  │                  │                  │               │ detail page     │
+  ├──────────────────┼──────────────────┼───────────────┼─────────────────┤
+  │  IVR Account #   │ Account          │ AccountNumber │ Account record  │
+  │  (VoiceCall fld) │                  │               │ detail page     │
+  ├──────────────────┼──────────────────┼───────────────┼─────────────────┤
+  │  No match        │  —               │  —            │ New interaction │
+  │                  │                  │               │ record + Create │
+  └──────────────────┴──────────────────┴───────────────┴─────────────────┘
+  Requires: CTI Adapter (Open CTI) configured correctly
+  IVR data path: Voice Flow Get Input ──▶ store on VoiceCall ──▶ screen pop reads field
+```
 
 **Content:**
 - Configure in Setup > Call Centers > [Your Call Center] > Screen Pop Settings
@@ -102,7 +233,32 @@
 ---
 
 ### Slide 7: Real-Time Sentiment Analysis
-**Visual:** Service Console sidebar showing a live sentiment meter — a horizontal gauge shifting from green (positive) through yellow (neutral) to red (negative) — with a small transcript scroll below it
+**Visual:**
+```
+  REAL-TIME SENTIMENT GAUGE — SERVICE CONSOLE SIDEBAR
+  ┌──────────────────────────────────────────────────────────┐
+  │  CALL SENTIMENT                            Live ● 03:47  │
+  │                                                          │
+  │  Negative ◀──────────────────────────────▶ Positive     │
+  │           ████████████████░░░░░░░░░░░░░░               │
+  │                           ▲                              │
+  │                     Current: Neutral                     │
+  │                                                          │
+  │  ┌────────────────────────────────────────────────────┐  │
+  │  │ Live Transcript                                    │  │
+  │  │ Caller: "I've been trying to get this fixed for    │  │
+  │  │          two weeks now..."                         │  │
+  │  │ Agent:  "I understand, let me pull up your         │  │
+  │  │          account right now."                       │  │
+  │  │ Caller: "This is the third time I've called"       │  │
+  │  └────────────────────────────────────────────────────┘  │
+  └──────────────────────────────────────────────────────────┘
+  Color coding: green = positive/neutral  yellow = mild frustration
+                red = high frustration / churn risk
+  Supervisor view: all active calls simultaneously
+  Red threshold ──▶ Flow alert fires to supervisor (configurable)
+  Post-call: SentimentScore stored on VoiceCall record for analytics
+```
 
 **Content:**
 - Sentiment analysis runs on the live transcription stream using Amazon Comprehend or Einstein NLP

@@ -10,7 +10,28 @@
 ## 📊 SLIDES
 
 ### Slide 1: Process Builder — Legacy Status
-**Visual:** Process Builder UI screenshot with a large "LEGACY" watermark and an arrow pointing to Flow Builder labeled "Migrate Here"
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────┐
+  │           PROCESS BUILDER                            │
+  │                                                      │
+  │   ██████████████████████████████████████            │
+  │   █                                    █            │
+  │   █          L E G A C Y              █            │
+  │   █                                    █            │
+  │   ██████████████████████████████████████            │
+  │                                                      │
+  │   Salesforce no longer adding features here         │
+  └──────────────────────────────────────────────────────┘
+                        │
+                        │  Migrate Here
+                        ▼
+  ┌──────────────────────────────────────────────────────┐
+  │           FLOW BUILDER  ✓                           │
+  │   Record-Triggered Flows replace Process Builder    │
+  │   Migration tool available in Setup                 │
+  └──────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Process Builder** was Salesforce's primary automation tool (2015-2021)
 - It allowed point-and-click automation with multiple criteria branches and actions
@@ -24,7 +45,23 @@
 **Speaker Notes:** Similar to workflow rules, Process Builder is deprecated but still exam-relevant. The key difference between Process Builder and Workflow Rules: Process Builder supported complex multi-criteria branching, multiple action groups, and could do things like post to Chatter, create child records, and launch other processes. Flow supersedes all of this with even more capability. For the exam, know Process Builder's capabilities relative to workflow rules; for real-world work, build everything in Flow.
 
 ### Slide 2: Salesforce Flow — The Modern Automation Platform
-**Visual:** Central "Flow" icon with five flow type icons radiating outward: Screen Flow (person icon), Auto-launched (gear icon), Schedule-Triggered (calendar icon), Record-Triggered (database icon), Platform Event-Triggered (lightning bolt icon)
+**Visual:**
+```
+                         ┌───────────┐
+                         │   FLOW    │
+                         └─────┬─────┘
+           ┌─────────┬─────────┼──────────┬────────────┐
+           ▼         ▼         ▼          ▼            ▼
+  ┌──────────────┐ ┌──────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐
+  │ Screen Flow  │ │Auto- │ │Schedule- │ │ Record-  │ │Platform Event-   │
+  │              │ │launch│ │Triggered │ │Triggered │ │Triggered         │
+  │ Has UI       │ │ed    │ │          │ │          │ │                  │
+  │ User-facing  │ │No UI │ │Calendar/ │ │On Create/│ │Fires on Platform │
+  │ wizard-style │ │Called│ │schedule  │ │Update/   │ │Event message     │
+  │              │ │by    │ │batch     │ │Delete    │ │received          │
+  │              │ │others│ │          │ │          │ │                  │
+  └──────────────┘ └──────┘ └──────────┘ └──────────┘ └──────────────────┘
+```
 **Content:**
 - **Flow** is Salesforce's current, recommended automation and UI tool
 - Five Flow Types:
@@ -36,7 +73,32 @@
 **Speaker Notes:** Flows replaced both Workflow Rules and Process Builder. The five flow types cover every automation scenario. Screen Flows are like wizards that guide users through data entry. Record-Triggered Flows are the direct replacement for workflow rules and process builder. Schedule-Triggered Flows run in batch — perfect for time-based processing. Platform Event-Triggered Flows support event-driven architectures. Auto-launched Flows are utility flows called by other automation.
 
 ### Slide 3: Record-Triggered Flows — Core Concepts
-**Visual:** Decision tree: Start (Trigger) → Before Save OR After Save path → Before/After distinction explained with icons
+**Visual:**
+```
+  START (Trigger: Record Created / Updated / Deleted)
+        │
+        ▼
+  Entry Criteria met?
+        │
+        ├── NO  ──▶ Flow exits (does nothing)
+        │
+        └── YES ──▶ Which run mode?
+                          │
+              ┌───────────┴────────────┐
+              ▼                        ▼
+     BEFORE-SAVE                  AFTER-SAVE
+     ──────────────                ──────────────
+     Runs BEFORE DB write          Runs AFTER DB write
+                                   
+     ✓ Update triggering           ✓ Create/update other
+       record's own fields           records
+     ✓ No extra DML needed         ✓ Send emails
+     ✓ Faster performance          ✓ Call external services
+     ✗ Cannot create/update        ✗ Extra DML for same
+       other records                 record update
+     ✗ Cannot call external        
+       services                    
+```
 **Content:**
 - **Trigger:** Record Create, Update, Delete (choose which)
 - **Entry criteria:** Filter conditions; flow only runs when criteria are met (like workflow criteria)
@@ -52,7 +114,31 @@
 **Speaker Notes:** Before-save vs. after-save is a critical distinction that the exam tests. Before-save flows are like Apex before-triggers — they run before the database write, making them more efficient for updating the triggering record's own fields. No DML is required because the record hasn't been saved yet. After-save flows are more powerful but use an extra DML operation when updating the triggering record. Use before-save for field updates on the same record; use after-save for everything else.
 
 ### Slide 4: Flow Builder Interface — Key Elements
-**Visual:** Flow Builder canvas screenshot with labeled elements: Start element (top), Decision element (diamond), Assignment element (rectangle), Action element (hexagon), with connecting arrows showing flow paths
+**Visual:**
+```
+  ┌──────────────── FLOW BUILDER CANVAS ──────────────────────────┐
+  │                                                                │
+  │  ┌───────────┐                                                │
+  │  │   START   │  ← defines trigger type and entry criteria    │
+  │  └─────┬─────┘                                                │
+  │        │                                                      │
+  │        ▼                                                      │
+  │  ◇ DECISION   ← branches flow (IF condition THEN path A/B)   │
+  │   /        \                                                  │
+  │  ▼          ▼                                                 │
+  │ [ASSIGNMENT] [GET RECORDS]  ← set variables / query data      │
+  │      │            │                                           │
+  │      ▼            ▼                                           │
+  │ [UPDATE      [CREATE        ← data operations                 │
+  │  RECORDS]    RECORDS]                                         │
+  │      │                                                        │
+  │      ▼                                                        │
+  │  ↺ LOOP      ← iterate over a collection of records          │
+  │      │                                                        │
+  │      ▼                                                        │
+  │  [ACTION]    ← email alert / Apex / subflow invocation        │
+  └────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Start:** Defines the trigger type and entry criteria
 - **Decision:** Branches the flow based on conditions (like an IF-THEN-ELSE); multiple outcome paths
@@ -67,7 +153,23 @@
 **Speaker Notes:** The flow canvas uses visual elements connected by arrows. Decision elements create multiple paths based on conditions. Assignment elements set variables — think of them as the equivalent of variable assignment in code. The Data elements (Get/Create/Update/Delete Records) are how flows interact with Salesforce data. Loops enable iterating over collections — for example, processing all Opportunity line items in a list. Actions allow calling external services, sending emails, and triggering other automation.
 
 ### Slide 5: Screen Flows
-**Visual:** Multi-step wizard mockup showing Step 1 (form with fields), navigation buttons "Back" and "Next," Step 2 (confirmation screen), Step 3 (success message)
+**Visual:**
+```
+  Screen Flow — Multi-Step Wizard
+
+  ┌─────────────────────┐     ┌─────────────────────┐     ┌────────────────────┐
+  │  STEP 1             │     │  STEP 2             │     │  STEP 3            │
+  │  Enter Details      │     │  Confirm            │     │  Success!          │
+  │                     │     │                     │     │                    │
+  │  Name: [__________] │     │  Name: John Smith   │     │  ✓ Account,        │
+  │  Email:[__________] │     │  Email: j@co.com    │     │    Contact, and    │
+  │  Phone:[__________] │     │  Phone: 555-1234    │     │    Opportunity     │
+  │                     │     │                     │     │    created.        │
+  │  [    Next   ▶ ]    │     │  [◀ Back] [Submit▶] │     │  [  Done  ]        │
+  └─────────────────────┘     └─────────────────────┘     └────────────────────┘
+
+  Launch from: Quick Action │ Lightning Page Component │ Utility Bar │ Experience Cloud
+```
 **Content:**
 - Screen Flows display interactive screens to users during execution
 - **Screen elements:** Text, number, checkbox, lookup, picklist, and more input components
@@ -82,7 +184,27 @@
 **Speaker Notes:** Screen Flows are the UI-building part of Flow. Instead of building custom Apex+Visualforce pages for complex data entry, admins can build screen flows visually. They're launched from quick actions on page layouts, as Lightning page components, or embedded in Experience Cloud sites. The key is that screen flows interact with users in real time — they're not background processes.
 
 ### Slide 6: Schedule-Triggered Flows and Auto-launched Flows
-**Visual:** Two diagrams: Left shows a calendar with "Run daily at 9 AM" → flow processes batch of records. Right shows trigger chain: Apex code → calls Auto-launched Flow → executes actions
+**Visual:**
+```
+  SCHEDULE-TRIGGERED FLOW               AUTO-LAUNCHED FLOW
+  ─────────────────────────             ─────────────────────────
+  ┌──────────────────────┐              ┌─────────────────────────┐
+  │  🗓 Schedule:          │              │  Called by:             │
+  │  Daily at 9:00 AM     │              │  ┌──────────────────┐   │
+  └──────────┬───────────┘              │  │ Apex code        │   │
+             │                          │  │ REST API call    │   │
+             ▼                          │  │ Another Flow     │   │
+  Batch of records meeting              │  │  (Subflow)       │   │
+  criteria (up to 2,000)                │  │ Process Builder  │   │
+             │                          │  └────────┬─────────┘   │
+             ▼                          │           │             │
+  Flow logic processes                  │           ▼             │
+  each record                           │  Auto-launched Flow     │
+                                        │  executes actions       │
+  Use for: nightly cleanup,             └─────────────────────────┘
+  weekly digests, stale                 Use for: reusable utility
+  record updates                        logic, shared subroutines
+```
 **Content:**
 - **Schedule-Triggered Flows:**
   - Run on a defined schedule (hourly, daily, weekly, specific date/time)
@@ -98,7 +220,30 @@
 **Speaker Notes:** Schedule-triggered flows replaced the old "batch Apex" pattern for simple time-based operations. An admin can now build a flow that runs every Monday morning to find all Accounts with no Activity in 30 days and create a follow-up task — no Apex required. Auto-launched flows are the building blocks of reusable automation. Build common logic once as an auto-launched flow, then call it as a subflow from multiple record-triggered flows.
 
 ### Slide 7: Flow Debugging and Testing
-**Visual:** Flow Builder debug interface showing a "Debug" button, step-through execution with each element highlighted, variable values panel on the right, and an error message panel at the bottom
+**Visual:**
+```
+  Flow Builder Debug Interface
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  [Run]  [Debug ▼]  [Save]  [Activate]                       │
+  └──────────────────────────────────────────────────────────────┘
+  ┌──────────────────────────┐  ┌───────────────────────────────┐
+  │  FLOW CANVAS             │  │  DEBUG PANEL                  │
+  │                          │  │                               │
+  │  ▶ START          ✓      │  │  Variables at this step:      │
+  │    │                     │  │  recordId = 001xx0000001      │
+  │  ▶ DECISION       ✓      │  │  stageName = "Closed Won"     │
+  │    │ → Path: Closed Won  │  │  discountAmt = 15.0           │
+  │  ▶ UPDATE RECORDS ✓      │  │                               │
+  │    │                     │  │  Decision outcome:            │
+  │  ▶ ACTION         ✗      │  │  → "High Discount" path       │
+  │    │                     │  │                               │
+  │    └── FAULT PATH ──▶    │  │  ERROR at ACTION:             │
+  │        Log error &       │  │  Timeout calling REST service │
+  │        notify admin      │  └───────────────────────────────┘
+  └──────────────────────────┘
+  Always add Fault Paths to production flows — without one, errors crash the flow
+```
 **Content:**
 - **Flow Builder Debug Tool:** Built into Flow Builder (toolbar → Debug button)
   - Run the flow step by step; see which elements execute and which are skipped
@@ -114,7 +259,32 @@
 **Speaker Notes:** Debugging is a critical skill for Flow. The built-in debugger lets you step through your flow and inspect every variable value at each step — far more powerful than trying to debug by running the flow repeatedly in a sandbox. Fault paths are essential for production flows that update records or call external services. Without a fault path, any unhandled error shows a cryptic message to users or fails silently in background flows. Always add fault paths to critical flow elements.
 
 ### Slide 8: Flow Best Practices and Exam Summary
-**Visual:** Summary table comparing: Screen Flow, Record-Triggered Flow (Before/After), Schedule-Triggered, Auto-launched — with trigger, UI, and use case for each
+**Visual:**
+```
+  ┌──────────────────┬────────────────────┬────────────────────┐
+  │  Screen Flow     │  Autolaunched Flow  │  Schedule-Triggered│
+  ├──────────────────┼────────────────────┼────────────────────┤
+  │  Has UI screens  │  No UI             │  No UI             │
+  │  User-triggered  │  Code/Process-     │  Time-based        │
+  │  Quick Actions,  │  triggered         │  Runs on schedule  │
+  │  Lightning pages,│  Invocable from    │  Bulk processing   │
+  │  Experience Cloud│  Apex, Flow,       │  (2,000 rec/batch) │
+  │                  │  Agentforce        │                    │
+  └──────────────────┴────────────────────┴────────────────────┘
+
+  ┌──────────────────────────┬─────────────────────────────────┐
+  │  Record-Triggered        │  Platform Event-Triggered       │
+  │  (Before-Save)           ├─────────────────────────────────┤
+  │  Update triggering       │  Fires on Platform Event msg    │
+  │  record fields — no DML  │  Event-driven architecture      │
+  ├──────────────────────────┤                                 │
+  │  Record-Triggered        │                                 │
+  │  (After-Save)            │                                 │
+  │  Full capabilities:      │                                 │
+  │  related records, email, │                                 │
+  │  external services       │                                 │
+  └──────────────────────────┴─────────────────────────────────┘
+```
 **Content:**
 - **Use before-save for:** Updating fields on the triggering record (no DML needed, faster)
 - **Use after-save for:** Creating/updating related records, sending emails, calling external services

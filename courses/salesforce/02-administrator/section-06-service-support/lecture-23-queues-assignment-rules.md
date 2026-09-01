@@ -8,7 +8,32 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Are Queues?
-**Visual:** Diagram showing multiple cases/leads entering a queue and multiple agents pulling records from the queue
+**Visual:**
+```
+  Incoming Records (Cases / Leads)
+          │
+          ▼
+  ┌────────────────────────────────────────┐
+  │        TIER 1 SUPPORT QUEUE           │
+  │                                        │
+  │  Case-0042  Case-0043  Case-0044       │
+  │  Case-0045  Case-0046  Case-0047       │
+  │                                        │
+  │  Visible to ALL queue members          │
+  │  Owner = "Tier 1 Support Queue"        │
+  └────────────────────────────────────────┘
+          │
+          │  Queue members PULL records
+    ┌─────┼──────────────────────┐
+    │     │                      │
+    ▼     ▼                      ▼
+  Agent A  Agent B            Agent C
+  [Accept] [Accept]           [Accept]
+  Owns     Owns               Owns
+  Case-0042 Case-0043        Case-0045
+
+  Pull-based model: agents claim work when they're ready
+```
 **Content:**
 - A Queue is a shared workspace where records wait to be claimed by a team member
 - Records in a queue are visible to all queue members — no single owner
@@ -18,7 +43,29 @@
 **Speaker Notes:** Queues solve the problem of shared work. Instead of assigning a case to a specific person when it's unclear who's available, you route it to a team queue. Any team member can then "Accept" the case — taking ownership — when they're ready for it. Queues create a pull-based work model.
 
 ### Slide 2: Creating & Configuring Queues
-**Visual:** Setup → Queues → New Queue form showing Queue Name, Queue Email, Supported Objects, and Members sections
+**Visual:**
+```
+  Setup → Queues → New Queue
+  ┌──────────────────────────────────────────────────────────────┐
+  │                   QUEUE CONFIGURATION                        │
+  ├──────────────────────────┬───────────────────────────────────┤
+  │ Queue Label              │ Tier 1 Support Queue              │
+  ├──────────────────────────┼───────────────────────────────────┤
+  │ Queue Name (API)         │ Tier_1_Support_Queue              │
+  ├──────────────────────────┼───────────────────────────────────┤
+  │ Queue Email              │ tier1support@company.com          │
+  │                          │ (notified when record arrives)    │
+  ├──────────────────────────┼───────────────────────────────────┤
+  │ Supported Objects        │ ☑ Case    ☑ Lead                  │
+  ├──────────────────────────┼───────────────────────────────────┤
+  │ Queue Members            │ ┌──────────────────────────────┐  │
+  │                          │ │ Users:  Alex Torres          │  │
+  │                          │ │         Priya Nair           │  │
+  │                          │ │ Roles:  Tier 1 Support Agent │  │
+  │                          │ └──────────────────────────────┘  │
+  └──────────────────────────┴───────────────────────────────────┘
+  At least one member required; members can belong to multiple queues
+```
 **Content:**
 - Setup path: Setup → Queues → New
 - Queue Label and Name (API name) are required
@@ -29,7 +76,29 @@
 **Speaker Notes:** The Queue Email is key for team notification. When a new case arrives in the queue, Salesforce emails the queue address. Teams typically set this to a shared distribution list so the whole team is notified. Individual queue members can also opt in to personal notifications via their notification settings.
 
 ### Slide 3: Queue Membership
-**Visual:** Table showing different membership types: User, Role, Public Group, Role + Subordinates with icons
+**Visual:**
+```
+  ┌───────────────────────┬──────────────────────────────────────────┐
+  │ Membership Type       │ Description & Best Use                   │
+  ├───────────────────────┼──────────────────────────────────────────┤
+  │ Users                 │ Specific named individuals               │
+  │                       │ Best for: small, stable teams            │
+  │                       │ Maintenance: update manually per change  │
+  ├───────────────────────┼──────────────────────────────────────────┤
+  │ Roles                 │ All users currently in that role         │
+  │                       │ Best for: role-based team structure      │
+  │                       │ Maintenance: handled via role assignment │
+  ├───────────────────────┼──────────────────────────────────────────┤
+  │ Public Groups         │ Any users in the group (can be nested)   │
+  │                       │ Best for: cross-role or ad hoc teams     │
+  │                       │ Maintenance: update group membership     │
+  ├───────────────────────┼──────────────────────────────────────────┤
+  │ Role + Subordinates   │ That role AND all roles beneath it       │
+  │                       │ Best for: entire team including managers │
+  │                       │ Maintenance: role hierarchy handles it   │
+  └───────────────────────┴──────────────────────────────────────────┘
+  Best Practice: Use Roles or Public Groups (not individual users)
+```
 **Content:**
 - **Users:** Specific individuals added directly to the queue
 - **Roles:** All users currently assigned to that role
@@ -40,7 +109,26 @@
 **Speaker Notes:** Using Roles or Public Groups instead of individual users makes queue maintenance much easier. When someone joins or leaves a team, you update their Role or Group membership — not every queue they belong to. This is a best practice that admins should follow.
 
 ### Slide 4: Accepting Records from a Queue
-**Visual:** List view showing queued cases with "Accept" button column; arrow showing record owner changing to the logged-in user
+**Visual:**
+```
+  LIST VIEW: Cases In My Queues
+  ┌────────┬──────────────────────────────┬──────────┬────────────┐
+  │ Case # │ Subject                      │ Priority │            │
+  ├────────┼──────────────────────────────┼──────────┼────────────┤
+  │ 00042  │ Login page not loading       │ High     │ [Accept]   │
+  ├────────┼──────────────────────────────┼──────────┼────────────┤
+  │ 00043  │ Password reset not working   │ Medium   │ [Accept]   │
+  ├────────┼──────────────────────────────┼──────────┼────────────┤
+  │ 00044  │ Billing question             │ Low      │ [Accept]   │
+  └────────┴──────────────────────────────┴──────────┴────────────┘
+
+  Click [Accept] on Case 00042:
+
+  Owner:  Tier 1 Support Queue  ──────▶  Owner:  Alex Torres (You)
+
+  Case moves from "Cases In My Queues" list view to "My Cases"
+  Any queue member can also manually change the Owner field
+```
 **Content:**
 - To accept a record: open the record (or list view) → click "Accept" button
 - Accepting changes ownership from the Queue to the individual user
@@ -50,7 +138,26 @@
 **Speaker Notes:** The Accept workflow is the standard mechanism for pulling work from a queue. Agents typically check the "Cases In My Queues" list view to see what's waiting. Once accepted, the case moves to "My Cases." This self-service claiming model reduces management overhead but requires agents to actively monitor queues.
 
 ### Slide 5: Case Assignment Rules
-**Visual:** Assignment rule entries in order with criteria (Case Origin = Email, Priority = High) and assigned queue/user targets
+**Visual:**
+```
+  CASE ASSIGNMENT RULE: Route Cases by Origin and Priority
+  ┌───────┬─────────────────────────────────────┬──────────────────────┐
+  │ Order │ Criteria                            │ Assign To            │
+  ├───────┼─────────────────────────────────────┼──────────────────────┤
+  │  1    │ Case Origin = Email                 │ Email Support Queue  │
+  │       │ AND Priority = High                 │                      │
+  ├───────┼─────────────────────────────────────┼──────────────────────┤
+  │  2    │ Case Origin = Web                   │ Web Support Queue    │
+  │       │ AND Product Category = Billing      │                      │
+  ├───────┼─────────────────────────────────────┼──────────────────────┤
+  │  3    │ Priority = Critical                 │ Tier 2 Escalation Q  │
+  ├───────┼─────────────────────────────────────┼──────────────────────┤
+  │  4    │ (All Others — catch-all)            │ Tier 1 Support Queue │
+  └───────┴─────────────────────────────────────┴──────────────────────┘
+
+  Evaluation: Top ──▶ Bottom  │  First match wins  │  One active rule
+  No match → Default case owner set in Support Settings
+```
 **Content:**
 - Case Assignment Rules automatically route new or updated cases to users or queues
 - Only ONE rule can be active at a time
@@ -61,7 +168,30 @@
 **Speaker Notes:** The top-to-bottom evaluation with first-match-wins is critical for the exam. Design your rule entries from most specific to least specific — put narrow criteria at the top and broad catch-all entries at the bottom. If no entry matches, the case goes to the default case owner set in Support Settings.
 
 ### Slide 6: Case Assignment Rule Entries
-**Visual:** Rule Entry configuration showing: Order number, Criteria fields (Case Origin, Priority, Product), Assign To (User/Queue), Do not reassign owner checkbox
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │              ASSIGNMENT RULE ENTRY — Detail View             │
+  ├──────────────────────────────────────────────────────────────┤
+  │ Entry Order:  1                                              │
+  ├──────────────────────────────────────────────────────────────┤
+  │ CRITERIA                                                     │
+  │  Field          │ Operator  │ Value                          │
+  │  ─────────────────────────────────────────────────────────── │
+  │  Case Origin    │ equals    │ Email                          │
+  │  Priority       │ equals    │ High                           │
+  │  Product        │ contains  │ Platform                       │
+  │  (All criteria rows use AND logic by default)                │
+  ├──────────────────────────────────────────────────────────────┤
+  │ ASSIGN TO                                                    │
+  │  ◉ Queue:  Email Support Queue                               │
+  │  ○ User:   [select specific user]                            │
+  ├──────────────────────────────────────────────────────────────┤
+  │ Email Template:  "New Case Assignment Notification"          │
+  ├──────────────────────────────────────────────────────────────┤
+  │ ☐ Do not reassign owner (skip already-owned cases)           │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Each rule entry has: entry number (order), criteria (field/operator/value), and assignment target
 - Criteria can use AND/OR logic and can include formula-based conditions
@@ -72,7 +202,31 @@
 **Speaker Notes:** Rule entries are powerful but can become complex. Keep them simple and well-documented. The email template option lets you notify the assigned agent automatically when a case lands on their desk. The "Do not reassign owner" checkbox is useful when you want the rule to apply to new cases but not override manual reassignments.
 
 ### Slide 7: Lead Assignment Rules
-**Visual:** Side-by-side comparison of Case Assignment Rules and Lead Assignment Rules showing similarities and one key difference
+**Visual:**
+```
+  ┌──────────────────────────────┬──────────────────────────────┐
+  │    CASE ASSIGNMENT RULES     │    LEAD ASSIGNMENT RULES     │
+  ├──────────────────────────────┼──────────────────────────────┤
+  │ Object: Case                 │ Object: Lead                 │
+  ├──────────────────────────────┼──────────────────────────────┤
+  │ One active rule at a time ✓  │ One active rule at a time ✓  │
+  ├──────────────────────────────┼──────────────────────────────┤
+  │ Multiple rule entries ✓      │ Multiple rule entries ✓      │
+  ├──────────────────────────────┼──────────────────────────────┤
+  │ Top-to-bottom evaluation ✓   │ Top-to-bottom evaluation ✓   │
+  ├──────────────────────────────┼──────────────────────────────┤
+  │ First match wins ✓           │ First match wins ✓           │
+  ├──────────────────────────────┼──────────────────────────────┤
+  │ "Assign using rule" checkbox │ "Assign using rule" checkbox │
+  │ required for manual cases    │ required for manual leads    │
+  ├──────────────────────────────┼──────────────────────────────┤
+  │ Web-to-Case: auto-fires ✓    │ Web-to-Lead: auto-fires ✓   │
+  ├──────────────────────────────┼──────────────────────────────┤
+  │ Default owner:               │ Default owner:               │
+  │ Support Settings             │ Lead Settings                │
+  └──────────────────────────────┴──────────────────────────────┘
+  KEY POINT: Structurally identical — only the object differs
+```
 **Content:**
 - Lead Assignment Rules work identically to Case Assignment Rules
 - One active rule at a time, multiple entries, top-to-bottom evaluation
@@ -83,7 +237,31 @@
 **Speaker Notes:** The exam may try to trick you into thinking Lead and Case Assignment Rules are different. They aren't — same structure, same evaluation logic, same one-active-rule limitation. The only difference is the object they apply to. Remember: for Web-to-Lead, the active rule automatically fires without needing to check a checkbox.
 
 ### Slide 8: Assignment Rule Best Practices
-**Visual:** Ordered list of best practices with icons: specificity order, documentation, default owner, testing
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │             ASSIGNMENT RULE BEST PRACTICES                   │
+  ├───┬──────────────────────────────────────────────────────────┤
+  │ 1 │ ORDER FROM MOST SPECIFIC TO LEAST SPECIFIC               │
+  │   │ Narrow criteria at top → broad catch-alls at bottom      │
+  ├───┼──────────────────────────────────────────────────────────┤
+  │ 2 │ ALWAYS ADD A CATCH-ALL ENTRY AT THE BOTTOM               │
+  │   │ No criteria → Route All Others → Default Queue           │
+  │   │ Without it: unmatched records go to default owner only   │
+  ├───┼──────────────────────────────────────────────────────────┤
+  │ 3 │ USE QUEUES / GROUPS AS TARGETS (not individual users)    │
+  │   │ Staff turnover = update group, not every rule entry      │
+  ├───┼──────────────────────────────────────────────────────────┤
+  │ 4 │ SET A MEANINGFUL DEFAULT OWNER IN SETTINGS               │
+  │   │ Support Settings / Lead Settings → final fallback        │
+  ├───┼──────────────────────────────────────────────────────────┤
+  │ 5 │ TEST YOUR RULES AFTER CREATING THEM                      │
+  │   │ Create test records and verify routing outcomes          │
+  ├───┼──────────────────────────────────────────────────────────┤
+  │ 6 │ DOCUMENT EACH RULE ENTRY WITH A DESCRIPTION              │
+  │   │ Future admins will thank you                             │
+  └───┴──────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Order entries from most specific → least specific (narrow criteria first)
 - Always create a catch-all entry at the bottom (e.g., Route All Others → Default Queue)

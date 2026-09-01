@@ -16,7 +16,17 @@
 ## SLIDES
 
 ### Slide 1: Title Slide
-**Visual:** Clean dark background, white text. Icon of a funnel with clean data flowing in and a sparkle/AI icon on the output side.
+**Visual:**
+```
+╔══════════════════════════════════════════════════════════╗
+║     LECTURE 19: WHY DATA QUALITY MATTERS FOR AI         ║
+║                                                          ║
+║   Clean Data In ──▶ [AI Model] ──▶ ✓ Reliable Output   ║
+║   Dirty Data In ──▶ [AI Model] ──▶ ✗ Wrong Predictions ║
+║                                                          ║
+║   "AI is only as smart as the data you feed it"          ║
+╚══════════════════════════════════════════════════════════╝
+```
 **Content:**
 - Lecture 19: Why Data Quality Matters for AI
 - "AI is only as smart as the data you feed it"
@@ -27,7 +37,30 @@
 ---
 
 ### Slide 2: The Fundamental Problem — GIGO
-**Visual:** Classic "garbage in, garbage out" diagram: trash can on left → machine in center → trash can on right. Contrast side: clean data in → machine → gold bar out.
+**Visual:**
+```
+   GIGO — GARBAGE IN, GARBAGE OUT
+
+   ┌──────────────────────────────────────────────────────────┐
+   │  BAD SCENARIO:                                           │
+   │                                                          │
+   │  🗑 Dirty Data      →   [AI MODEL]   →   🗑 Bad Output  │
+   │  ● Placeholder $0s                       ● Random scores│
+   │  ● 34 spellings of                       ● Wrong priors │
+   │    "Technology"                          ● Useless AI   │
+   │  ● 22% duplicate                                         │
+   │    leads                                                 │
+   │                                                          │
+   │──────────────────────────────────────────────────────────│
+   │  GOOD SCENARIO:                                          │
+   │                                                          │
+   │  ✓ Clean Data       →   [AI MODEL]   →   ✓ Good Output  │
+   │  ● Accurate fields                       ● Reliable     │
+   │  ● Consistent                              scores       │
+   │    picklists                             ● Trustworthy  │
+   │  ● No duplicates                           predictions  │
+   └──────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **GIGO: Garbage In, Garbage Out**
 - AI models learn patterns from data
@@ -40,7 +73,41 @@
 ---
 
 ### Slide 3: What Does "Data Quality" Actually Mean?
-**Visual:** Hexagon diagram with 6 labeled sections, each a different color.
+**Visual:**
+```
+   THE 6 DIMENSIONS OF DATA QUALITY
+
+              ┌─────────────────┐
+              │   ACCURACY      │
+              │ Data is correct │
+              └────────┬────────┘
+                       │
+       ┌───────────────┼───────────────┐
+       │               │               │
+       ▼               ▼               ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ COMPLETENESS │ │ CONSISTENCY  │ │  TIMELINESS  │
+│              │ │              │ │              │
+│ No missing   │ │ Agrees across│ │ Data is      │
+│ values in    │ │ systems and  │ │ current and  │
+│ required     │ │ over time    │ │ up-to-date   │
+│ fields       │ │              │ │              │
+└──────────────┘ └──────────────┘ └──────────────┘
+       │               │               │
+       └───────────────┼───────────────┘
+                       │
+       ┌───────────────┴───────────────┐
+       │                               │
+       ▼                               ▼
+┌──────────────┐               ┌──────────────┐
+│   VALIDITY   │               │  UNIQUENESS  │
+│              │               │              │
+│ Conforms to  │               │ No duplicate │
+│ format rules │               │ records —    │
+│ and ranges   │               │ each entity  │
+│              │               │ appears once │
+└──────────────┘               └──────────────┘
+```
 **Content:**
 The 6 Dimensions of Data Quality:
 1. **Accuracy** — Is the data correct?
@@ -55,7 +122,28 @@ The 6 Dimensions of Data Quality:
 ---
 
 ### Slide 4: Dimension 1 — Accuracy
-**Visual:** Two columns — "Bad Data" vs "Good Data." Example: Lead.AnnualRevenue = $999,999,999 (likely a placeholder) vs. $4,500,000 (real value).
+**Visual:**
+```
+   ACCURACY — BAD DATA vs. GOOD DATA EXAMPLES
+
+   ┌──────────────────────────────┬──────────────────────────────┐
+   │        BAD DATA              │         GOOD DATA            │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ AnnualRevenue: $999,999,999  │ AnnualRevenue: $4,500,000    │
+   │ (placeholder, not real)      │ (from verified source)       │
+   │                              │                              │
+   │ Phone: 555-1234              │ Phone: 415-555-0182          │
+   │ (default/fake)               │ (verified, real number)      │
+   │                              │                              │
+   │ Email: test@test.com         │ Email: sarah@acmecorp.com    │
+   │ (used to pass validation)    │ (real business email)        │
+   │                              │                              │
+   │ Company: Gogle               │ Company: Google              │
+   │ (typo, manual entry error)   │ (correct spelling)           │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ AI learns WRONG patterns     │ AI learns CORRECT patterns   │
+   └──────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 - **Definition:** The data correctly represents the real-world entity or event
 - Common accuracy problems in Salesforce:
@@ -69,7 +157,26 @@ The 6 Dimensions of Data Quality:
 ---
 
 ### Slide 5: Dimension 2 — Completeness
-**Visual:** Bar chart showing percentage of filled fields for a sample Lead object. Some fields at 95%, some at 30%, some at 5%.
+**Visual:**
+```
+   COMPLETENESS — FIELD POPULATION RATE ANALYSIS
+
+   Lead Object — Field Population Rates:
+
+   Email           ████████████████████████████████████  98%
+   Last Name       ████████████████████████████████████  97%
+   Lead Source     ████████████████████████████          82%
+   Company         ████████████████████████              73%
+   Phone           ████████████████████                  61%
+   Industry        ████████████                          38%  ← PROBLEM
+   Annual Revenue  ████████                              24%  ← CRITICAL
+   # Employees     █████                                 15%  ← CRITICAL
+
+   ─────────────────────────────────────────────────────────────
+   ⚠ Fields below 70% population rate are unreliable AI inputs
+   Industry and Annual Revenue are key Einstein scoring inputs
+   → Einstein Lead Scoring will produce low-confidence scores
+```
 **Content:**
 - **Definition:** All required data is present — no missing values
 - Common completeness problems:
@@ -84,7 +191,33 @@ The 6 Dimensions of Data Quality:
 ---
 
 ### Slide 6: Dimension 3 — Consistency
-**Visual:** Three database icons labeled "Salesforce," "ERP," and "Marketing Automation." Arrow pointing to a customer record showing three different annual revenue values.
+**Visual:**
+```
+   CONSISTENCY — DATA DISAGREEMENT ACROSS SYSTEMS
+
+   Customer: "Acme Corporation"
+
+   ┌────────────────┐  ┌────────────────┐  ┌────────────────┐
+   │  SALESFORCE    │  │     ERP        │  │   MARKETING    │
+   │  CRM           │  │                │  │   PLATFORM     │
+   │                │  │                │  │                │
+   │ Revenue: $4.2M │  │ Revenue: $4.5M │  │ Revenue: $3.9M │
+   │ Industry: Tech │  │ Industry: IT   │  │ Industry: Soft.│
+   │ Employees: 120 │  │ Employees: 115 │  │ Employees: 130 │
+   └────────────────┘  └────────────────┘  └────────────────┘
+            │                  │                  │
+            └──────────────────┼──────────────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │  DATA CLOUD merges:  │
+                    │  Which revenue is    │
+                    │  correct? Which      │
+                    │  system to trust?    │
+                    │  Identity resolution │
+                    │  needed              │
+                    └──────────────────────┘
+```
 **Content:**
 - **Definition:** Data values are the same across systems, fields, and time
 - Common consistency problems:
@@ -98,7 +231,32 @@ The 6 Dimensions of Data Quality:
 ---
 
 ### Slide 7: Dimensions 4, 5, and 6
-**Visual:** Three-panel slide, one per dimension with icon.
+**Visual:**
+```
+   TIMELINESS, VALIDITY, AND UNIQUENESS
+
+   ┌──────────────────┬──────────────────┬──────────────────┐
+   │   TIMELINESS     │    VALIDITY      │   UNIQUENESS     │
+   ├──────────────────┼──────────────────┼──────────────────┤
+   │ Is data current? │ Does data conform│ Is each entity   │
+   │                  │ to rules/format? │ represented once?│
+   │                  │                  │                  │
+   │ BAD:             │ BAD:             │ BAD:             │
+   │ Job title from   │ Close date:      │ Same customer    │
+   │ 2019 still on    │ 01/01/1900       │ as 3 separate    │
+   │ contact record   │ Phone: ABC-DEFG  │ Lead records     │
+   │                  │ Email: no @ sign │                  │
+   │ GOOD:            │                  │ GOOD:            │
+   │ Updated via      │ GOOD:            │ Duplicate rules  │
+   │ auto-sync or     │ Validation rules │ or Data Cloud    │
+   │ recent activity  │ enforce correct  │ Identity Resol.  │
+   │ tracking         │ format at entry  │ merges them      │
+   ├──────────────────┼──────────────────┼──────────────────┤
+   │ Stale data →     │ Invalid data →   │ Duplicates →     │
+   │ outdated AI      │ distorted ML     │ conflicting AI   │
+   │ recommendations  │ numerical models │ signals at scale │
+   └──────────────────┴──────────────────┴──────────────────┘
+```
 **Content:**
 
 **Timeliness**
@@ -121,7 +279,26 @@ The 6 Dimensions of Data Quality:
 ---
 
 ### Slide 8: Real Example — How Bad Data Ruins Einstein Lead Scoring
-**Visual:** Split screen. Left: "Ideal Einstein Setup" with clean data flowing into good scores. Right: "Real World" with messy data and random scores.
+**Visual:**
+```
+   EINSTEIN LEAD SCORING — GOOD SETUP vs. BAD DATA SCENARIO
+
+   ┌──────────────────────────────┬──────────────────────────────┐
+   │    IDEAL SETUP               │    REAL-WORLD FAILURE        │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ ● 95% field population       │ ● Annual Revenue: 80% = $0   │
+   │ ● Consistent picklists       │ ● Industry: 34 spellings of  │
+   │ ● <5% duplicate rate         │   "Technology"               │
+   │ ● 500+ converted leads       │ ● Lead Source: "Other" 60%   │
+   │ ● Updated records            │ ● 22% duplicate leads        │
+   │                              │                              │
+   │ Clean Data → [Einstein]      │ Dirty Data → [Einstein]      │
+   │                              │                              │
+   │ Output: Reliable scores      │ Output: Random scores        │
+   │ that correlate with          │ Sales team stops trusting    │
+   │ actual conversions           │ AI in 2 weeks → abandoned    │
+   └──────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 **Scenario:** A B2B SaaS company enables Einstein Lead Scoring.
 
@@ -141,7 +318,37 @@ The 6 Dimensions of Data Quality:
 ---
 
 ### Slide 9: How to Assess Data Quality Before Enabling AI
-**Visual:** Checklist or 5-step process flow.
+**Visual:**
+```
+   PRE-AI DATA QUALITY ASSESSMENT — 6-STEP PROCESS
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │  Step 1: IDENTIFY AI INPUTS                                 │
+   │          Which fields does this Einstein feature use?       │
+   │          (Check Salesforce documentation for the feature)   │
+   │                          │                                  │
+   │                          ▼                                  │
+   │  Step 2: MEASURE FIELD POPULATION RATES                     │
+   │          What % of relevant records have values?            │
+   │          Target: >70% for key input fields                  │
+   │                          │                                  │
+   │                          ▼                                  │
+   │  Step 3: AUDIT VALUE DISTRIBUTION                           │
+   │          Are picklists standardized? Any junk values?       │
+   │                          │                                  │
+   │                          ▼                                  │
+   │  Step 4: CHECK FOR DUPLICATES                               │
+   │          Run duplicate rules or Duplicate Jobs              │
+   │                          │                                  │
+   │                          ▼                                  │
+   │  Step 5: ASSESS RECENCY                                     │
+   │          When were records last meaningfully updated?       │
+   │                          │                                  │
+   │                          ▼                                  │
+   │  Step 6: VERIFY MINIMUM DATA THRESHOLDS                     │
+   │          Does feature require X converted leads? Check.     │
+   └─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 **Pre-AI Data Quality Assessment Steps:**
 
@@ -157,7 +364,28 @@ The 6 Dimensions of Data Quality:
 ---
 
 ### Slide 10: Data Profiling in Salesforce
-**Visual:** Screenshot mockup of Salesforce Setup showing Data Assessment or Field History Tracking options.
+**Visual:**
+```
+   SALESFORCE DATA PROFILING TOOLS
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │  TOOL                  │  USE CASE                         │
+   ├────────────────────────┼───────────────────────────────────┤
+   │ Salesforce Optimizer   │ Free scan: flags low field        │
+   │                        │ adoption, data quality issues     │
+   │ Reports & Dashboards   │ Custom field population %,        │
+   │                        │ blank rate reports per object     │
+   │ Duplicate Rules        │ Real-time duplicate detection     │
+   │ Duplicate Jobs         │ Batch identify existing dupes     │
+   │ Data Cloud Data Expl.  │ Field completeness metrics        │
+   │                        │ for ingested data streams         │
+   │ Einstein Discovery     │ ML dataset readiness analysis     │
+   │ (Analytics Studio)     │ in Tableau CRM                    │
+   └────────────────────────┴───────────────────────────────────┘
+
+   Exam focus: Know Salesforce Optimizer and Reports/Dashboards
+   as the primary NATIVE tools for data quality assessment.
+```
 **Content:**
 **Tools for data profiling in Salesforce:**
 - **Salesforce Optimizer** — free app that flags field usage, data quality issues, and adoption gaps
@@ -172,7 +400,24 @@ The 6 Dimensions of Data Quality:
 ---
 
 ### Slide 11: The Business Case for Data Quality Investment
-**Visual:** ROI equation: Data Quality Investment → Better AI Outputs → Business Value.
+**Visual:**
+```
+   THE ROI OF DATA QUALITY INVESTMENT
+
+   ┌────────────────┐     ┌────────────────┐     ┌────────────────┐
+   │  DATA QUALITY  │     │  BETTER AI     │     │  BUSINESS      │
+   │  INVESTMENT    │────▶│  OUTPUTS       │────▶│  VALUE         │
+   │                │     │                │     │                │
+   │ ● Validation   │     │ ● Reliable     │     │ ● Higher close │
+   │   rules        │     │   Einstein     │     │   rates        │
+   │ ● Required     │     │   scores       │     │ ● Better CSAT  │
+   │   fields       │     │ ● Trusted by   │     │ ● AI feature   │
+   │ ● Dup mgmt     │     │   sales team   │     │   adoption     │
+   │ ● Quarterly    │     │ ● Accurate NBA │     │ ● Forecast     │
+   │   audits       │     │   recommendations│    │   accuracy     │
+   │ ● Data stewards│     │                │     │                │
+   └────────────────┘     └────────────────┘     └────────────────┘
+```
 **Content:**
 - Data quality is not a one-time cleanup — it's an ongoing discipline
 - Establish data governance policies BEFORE enabling AI

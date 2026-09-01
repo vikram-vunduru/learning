@@ -29,7 +29,26 @@
 ---
 
 ### Slide 2: What Is Einstein Prediction Builder?
-**Visual:** Before/after split. Before: Data scientist workflow (months, SQL, Python, model training, deployment). After: Prediction Builder workflow (admin, Setup, point-and-click, weeks).
+**Visual:**
+```
+   EINSTEIN PREDICTION BUILDER — Before vs. After
+
+   ┌──────────────────────────────┬──────────────────────────────┐
+   │   BEFORE PREDICTION BUILDER  │  WITH PREDICTION BUILDER     │
+   ├──────────────────────────────┼──────────────────────────────┤
+   │ Manual gut-feel decisions    │ Data-driven predictions on   │
+   │ based on rep experience      │ any Salesforce object        │
+   │                              │                              │
+   │ "I think this account will   │ Prediction: "This account    │
+   │  churn — seems quiet lately" │  has 74% churn probability   │
+   │                              │  based on 12 key factors"    │
+   │                              │                              │
+   │ No scale — each rep decides  │ Scalable — scores every      │
+   │ differently                  │ record automatically         │
+   │                              │                              │
+   │ No measurable accuracy       │ Accuracy tracked over time   │
+   └──────────────────────────────┴──────────────────────────────┘
+```
 **Content:**
 **Einstein Prediction Builder** is a no-code machine learning tool that lets Salesforce admins and business users create custom predictive AI models
 
@@ -71,7 +90,38 @@
 ---
 
 ### Slide 4: How Prediction Builder Works — The Machine Learning Process
-**Visual:** Circular flowchart: Historical Data → Feature Selection → Model Training → Validation → Predictions on New Records → Feedback Loop (outcomes recorded become new training data) → back to beginning.
+**Visual:**
+```
+   PREDICTION BUILDER — ML LIFECYCLE (Circular)
+
+                    ┌────────────────────┐
+                    │  1. DEFINE         │
+                    │  What to predict   │
+                    │  + outcome field   │
+                    └─────────┬──────────┘
+                              │
+              ┌───────────────┘
+              ▼
+   ┌────────────────────┐        ┌────────────────────┐
+   │  5. MONITOR        │        │  2. SELECT FIELDS   │
+   │  Track accuracy    │        │  Choose input       │
+   │  Retrain as needed │        │  features (columns) │
+   └────────────┬───────┘        └──────────┬──────────┘
+                │                           │
+                │     ┌─────────────────┐   │
+                └────▶│  ML LIFECYCLE   │◀──┘
+                      └────────┬────────┘
+                               │
+              ┌────────────────┘
+              │
+   ┌──────────▼─────────┐        ┌────────────────────┐
+   │  4. DEPLOY         │        │  3. TRAIN MODEL     │
+   │  Activate on       │◀───────│  Salesforce runs    │
+   │  Salesforce object │        │  ML algorithm on    │
+   │  Show score field  │        │  your historical    │
+   └────────────────────┘        │  data               │
+                                 └────────────────────┘
+```
 **Content:**
 **Step 1: Historical data**
 - The model needs records where the outcome ALREADY HAPPENED
@@ -162,7 +212,22 @@
 ---
 
 ### Slide 8: Prediction Builder vs. Einstein Lead Scoring — The Key Distinction
-**Visual:** Side-by-side comparison table with blue column for Lead Scoring and green column for Prediction Builder.
+**Visual:**
+```
+   EINSTEIN LEAD SCORING vs. PREDICTION BUILDER
+
+   ┌───────────────────────┬──────────────────────┬──────────────────────┐
+   │  FEATURE              │  LEAD SCORING        │  PREDICTION BUILDER  │
+   ├───────────────────────┼──────────────────────┼──────────────────────┤
+   │ Configuration         │ Mostly automatic     │ Admin configures all │
+   │ Setup effort          │ Low (turn on)        │ Medium (build model) │
+   │ Salesforce object     │ Leads only           │ Any standard/custom  │
+   │ What it predicts      │ Lead conversion      │ Any Yes/No or value  │
+   │ Field selection       │ Automatic            │ Admin selected       │
+   │ Requires ML expertise │ No                   │ No (low-code)        │
+   │ Custom outcomes       │ No                   │ Yes                  │
+   └───────────────────────┴──────────────────────┴──────────────────────┘
+```
 **Content:**
 
 | | Einstein Lead Scoring | Einstein Prediction Builder |
@@ -181,7 +246,20 @@
 ---
 
 ### Slide 9: Other Built-in Predictive Features vs. Prediction Builder
-**Visual:** Comparison matrix showing multiple Einstein predictive features and their scope.
+**Visual:**
+```
+   EINSTEIN PREDICTIVE FEATURES — FULL COMPARISON
+
+   ┌───────────────────┬──────────────────┬──────────────────┬──────────────────┐
+   │  PRODUCT          │  PREDICT WHAT?   │  OBJECT          │  ADMIN SETUP     │
+   ├───────────────────┼──────────────────┼──────────────────┼──────────────────┤
+   │ Lead Scoring      │ Conversion %     │ Lead             │ Low (auto-config)│
+   │ Opp Scoring       │ Win probability  │ Opportunity      │ Low (auto-config)│
+   │ Case Classification│ Category/priority│ Case            │ Low (auto-config)│
+   │ Prediction Builder│ Any outcome      │ Any SF object    │ Medium (custom)  │
+   │ Einstein Discovery│ Insights + Why   │ Any dataset      │ Medium-High      │
+   └───────────────────┴──────────────────┴──────────────────┴──────────────────┘
+```
 **Content:**
 
 | Feature | What It Predicts | Object | Built-in or Custom? |

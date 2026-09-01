@@ -8,7 +8,37 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Are Entitlements?
-**Visual:** Diagram: Customer Account → Service Contract → Entitlement → Case (with SLA timer active)
+**Visual:**
+```
+  ┌──────────────────────────────────┐
+  │        CUSTOMER ACCOUNT          │
+  │        Acme Corporation          │
+  └────────────────┬─────────────────┘
+                   │
+                   ▼
+  ┌──────────────────────────────────┐
+  │        SERVICE CONTRACT          │
+  │   Premium Support Agreement      │
+  │   Start: 01/01/2025              │
+  │   End:   12/31/2025              │
+  └────────────────┬─────────────────┘
+                   │
+                   ▼
+  ┌──────────────────────────────────┐
+  │          ENTITLEMENT             │
+  │  24/7 Phone Support – Tier 1     │
+  │  Status: Active                  │
+  │  SLA Process: Premium SLA        │
+  └────────────────┬─────────────────┘
+                   │  Agent links Entitlement to Case
+                   ▼
+  ┌──────────────────────────────────┐
+  │              CASE                │
+  │  Case #: 00001042                │
+  │  ⏱ SLA Timer: ACTIVE            │
+  │  Milestones: First Response due  │
+  └──────────────────────────────────┘
+```
 **Content:**
 - Entitlement = a customer's right to receive a specific level of support
 - Verifies: Is this customer eligible for support? At what service tier?
@@ -19,7 +49,32 @@
 **Speaker Notes:** Think of Entitlements as the "entitlement check" at a theme park — you verify whether the customer has a valid ticket before letting them in. When an agent creates a case, they look at whether the account has an active entitlement and which support tier applies. This prevents unauthorized support consumption.
 
 ### Slide 2: Entitlement Setup Steps
-**Visual:** Numbered checklist of setup steps with Setup navigation paths
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │              ENTITLEMENT SETUP SEQUENCE                      │
+  ├───┬──────────────────────────────────────────────────────────┤
+  │ 1 │ Enable Entitlements                                      │
+  │   │ Setup → Entitlement Settings → Enable Entitlements       │
+  ├───┼──────────────────────────────────────────────────────────┤
+  │ 2 │ Add Entitlements Related Lists to Page Layouts           │
+  │   │ Account, Contact, Asset, and Case page layouts           │
+  │   │ → Add "Entitlements" related list                        │
+  ├───┼──────────────────────────────────────────────────────────┤
+  │ 3 │ Create Entitlement Processes (SLA timelines)             │
+  │   │ Setup → Entitlement Processes → New                      │
+  ├───┼──────────────────────────────────────────────────────────┤
+  │ 4 │ Add Milestones to Each Entitlement Process               │
+  │   │ First Response, Acknowledge, Resolution, etc.            │
+  ├───┼──────────────────────────────────────────────────────────┤
+  │ 5 │ Configure Milestone Actions                              │
+  │   │ Warning Actions, Violation Actions, Success Actions      │
+  ├───┼──────────────────────────────────────────────────────────┤
+  │ 6 │ Link Entitlements to Cases                               │
+  │   │ Manually (via Entitlement lookup field) or via rules     │
+  └───┴──────────────────────────────────────────────────────────┘
+  Sequence matters: can't add milestones before creating a process
+```
 **Content:**
 - Step 1: Enable Entitlements — Setup → Entitlement Settings → Enable Entitlements
 - Step 2: Add Entitlements related list to Account, Contact, Asset, and Case page layouts
@@ -30,7 +85,25 @@
 **Speaker Notes:** The setup sequence matters for the exam. You can't add milestones without an entitlement process, and entitlement processes aren't useful without milestones. Most of the configuration work happens in Setup → Entitlements, so be familiar with that navigation path.
 
 ### Slide 3: Entitlement Processes
-**Visual:** Timeline bar showing an Entitlement Process with milestones at hours 2, 8, and 24 marked
+**Visual:**
+```
+  ENTITLEMENT PROCESS: Premium SLA  (24-hour full resolution)
+
+  T=0         T=2h              T=8h                    T=24h
+  │           │                 │                       │
+  ├───────────┼─────────────────┼───────────────────────┤
+  │           │                 │                       │
+  Case      MILESTONE:        MILESTONE:             MILESTONE:
+  Enters    First Response    Case                   Case
+  Process   Due (120 min)     Acknowledged           Resolution
+                               Due (480 min)          Due (1440 min)
+
+  ├────────── Business Hours respected ──────────────────────────┤
+  │  Timer PAUSES outside configured Business Hours              │
+  │  Multiple processes: Gold SLA │ Silver SLA │ Standard SLA    │
+  └──────────────────────────────────────────────────────────────┘
+  One process applied per Case; assigned through Entitlement record
+```
 **Content:**
 - An Entitlement Process defines the overall SLA timeline for a case
 - Cases on an entitlement process have a Process Start Time and Process End Time
@@ -41,7 +114,27 @@
 **Speaker Notes:** The Entitlement Process is the container that holds milestones and drives the SLA clock. For example, a "Premium SLA" process might require First Response within 1 hour and Case Resolution within 8 hours. Assigning the right process ensures the right milestones activate automatically.
 
 ### Slide 4: Milestones
-**Visual:** Milestone record showing: Milestone Name, Time Trigger (minutes), Start Time, Recurrence, Required checkbox
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    MILESTONE RECORD                          │
+  ├────────────────────────┬─────────────────────────────────────┤
+  │ Milestone Name         │ First Response                      │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Time Trigger (minutes) │ 120 minutes  (= 2 hours)            │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Start Time             │ When Case enters Entitlement Process │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Recurrence             │ None  (or set for repeating updates)│
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Required               │ ☑ Yes                               │
+  │                        │ Case CANNOT close without completion│
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Completion Status      │ Not Started ──▶ In Progress ──▶     │
+  │                        │ Completed  OR  Violated             │
+  └────────────────────────┴─────────────────────────────────────┘
+  Recurring milestones: useful for "update customer every 2 hours"
+```
 **Content:**
 - Milestones are required steps within an Entitlement Process
 - Example milestones: First Response (2 hours), Case Acknowledged (30 minutes), Case Resolution (8 hours)
@@ -52,7 +145,28 @@
 **Speaker Notes:** Milestones are the individual checkpoints within an SLA. If your support SLA says "First Response within 2 hours," that's a milestone. Each milestone has a time trigger and can be required for case closure. Recurring milestones enforce ongoing update obligations during long-running cases.
 
 ### Slide 5: Milestone Actions
-**Visual:** Milestone Actions panel showing three action types: Success Actions, Warning Actions, Violation Actions with time offsets
+**Visual:**
+```
+  MILESTONE: First Response  (Deadline: T + 120 minutes)
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  WARNING ACTIONS         fires BEFORE deadline               │
+  │  ─────────────────────────────────────────────────────────── │
+  │  • 30 min before: Email Alert ──▶ Assigned Agent             │
+  │  • 10 min before: Email Alert ──▶ Support Manager            │
+  ├──────────────────────────────────────────────────────────────┤
+  │  VIOLATION ACTIONS       fires AFTER deadline passes         │
+  │  ─────────────────────────────────────────────────────────── │
+  │  •  0 min after: Field Update ──▶ Priority = Critical        │
+  │  • 15 min after: Email Alert ──▶ Director of Support         │
+  │  • 30 min after: Outbound Message ──▶ External System        │
+  ├──────────────────────────────────────────────────────────────┤
+  │  SUCCESS ACTIONS         fires when milestone COMPLETED      │
+  │  ─────────────────────────────────────────────────────────── │
+  │  • On completion: Field Update ──▶ Log SLA-met timestamp     │
+  └──────────────────────────────────────────────────────────────┘
+  Action types: Email Alert │ Field Update │ Outbound Message │ Flow
+```
 **Content:**
 - Milestone Actions are automated responses when a milestone approaches or is violated
 - **Warning Actions:** Fire X minutes BEFORE the milestone deadline (e.g., notify agent 30 min before First Response due)
@@ -63,7 +177,31 @@
 **Speaker Notes:** Milestone Actions are where the SLA enforcement teeth are. A Warning Action might email the assigned agent and their manager 30 minutes before the first response deadline. A Violation Action might escalate the case to a senior queue and fire an executive notification. These actions run automatically without manual intervention.
 
 ### Slide 6: Service Contracts
-**Visual:** Service Contract record showing fields: Account, Contract Number, Status, Start Date, End Date, Price, Entitlements related list
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                  SERVICE CONTRACT RECORD                     │
+  ├────────────────────────┬─────────────────────────────────────┤
+  │ Account Name           │ Acme Corporation                    │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Contract Number        │ SC-00000015                         │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Status                 │ Active                              │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Start Date             │ 01/01/2025                          │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ End Date               │ 12/31/2025                          │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Total Price            │ $25,000/year                        │
+  ├────────────────────────┴─────────────────────────────────────┤
+  │  ENTITLEMENTS  (related list)                                │
+  │  ─────────────────────────────────────────────────────────── │
+  │  24/7 Phone Support – Product A     │ Status: Active         │
+  │  Business Hours Email – Product B   │ Status: Active         │
+  └──────────────────────────────────────────────────────────────┘
+  Hierarchy: Service Contract ──▶ Entitlements ──▶ Cases
+  Note: Service Contracts ≠ Sales Contracts (different objects)
+```
 **Content:**
 - Service Contract represents the formal agreement covering what support a customer is entitled to
 - A Service Contract can have multiple Entitlements (e.g., one contract covers 5 entitlements)
@@ -74,7 +212,30 @@
 **Speaker Notes:** Service Contracts sit above Entitlements in the hierarchy. One contract might cover multiple products or business units, each with their own entitlement. The Account gets the Service Contract, and then individual Entitlements are created under that contract specifying support terms for each covered asset or product.
 
 ### Slide 7: Entitlement Lookup on Cases
-**Visual:** Case record showing Entitlement field (lookup) and Entitlement Process Start Time / End Time fields
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │                      CASE RECORD                             │
+  ├────────────────────────┬─────────────────────────────────────┤
+  │ Subject                │ API Integration Error               │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Entitlement            │ 24/7 Phone Support  [Lookup →]      │
+  │                        │ ← Agent selects this field          │
+  │                        │   to activate the SLA clock         │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Entitlement Process    │ Premium SLA  (auto-applied)         │
+  │ Start Time             │ 08/15/2025 09:00 AM                 │
+  ├────────────────────────┼─────────────────────────────────────┤
+  │ Entitlement Process    │ 08/15/2025 09:00 PM  (auto-calc)    │
+  │ End Time               │                                     │
+  ├────────────────────────┴─────────────────────────────────────┤
+  │  MILESTONES  (related list — activated automatically)        │
+  │  ─────────────────────────────────────────────────────────── │
+  │  First Response  │ Due: 09:02 AM  │ Status: Completed ✓      │
+  │  Acknowledged    │ Due: 10:00 AM  │ Status: In Progress ⏱    │
+  │  Resolution      │ Due: 05:00 PM  │ Status: Not Started      │
+  └──────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - When an agent creates a Case, they can select the Entitlement in the Entitlement lookup field
 - Selecting the Entitlement attaches the corresponding Entitlement Process to the Case

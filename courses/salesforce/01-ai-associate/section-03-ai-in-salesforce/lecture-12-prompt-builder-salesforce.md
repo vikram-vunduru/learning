@@ -236,7 +236,26 @@
 ---
 
 ### Slide 9: The Trust Layer — How Data Is Protected
-**Visual:** Data flow diagram with security overlay. CRM Record (contains PII) → Merge fields resolve → Trust Layer (PII masking / data anonymization) → Anonymized prompt sent to LLM → LLM response → Trust Layer (re-inserts masked data) → Final output shown to user.
+**Visual:**
+```
+   PROMPT BUILDER + TRUST LAYER — SECURITY FLOW
+
+   Admin Template                Einstein Trust Layer              LLM
+   ┌─────────────┐               ┌─────────────────────────┐      ┌─────┐
+   │ You are a   │               │                         │      │     │
+   │ sales expert│──────────────▶│ 1. DATA MASKING         │─────▶│ LLM │
+   │             │               │    SSN, email → tokens  │      │     │
+   │ Account:    │               │                         │      │     │
+   │ {!Account   │               │ 2. GROUNDING            │◀─────│     │
+   │  .Name}     │               │    Adds Data Cloud ctx  │      └─────┘
+   │             │               │                         │
+   │ Write email │               │ 3. TOXICITY CHECK       │
+   └─────────────┘               │    Filters LLM output   │
+                                  │                         │
+   User sees clean,               │ 4. AUDIT TRAIL          │
+   safe, grounded                 │    Logs interaction     │
+   AI output ◀────────────────── └─────────────────────────┘
+```
 **Content:**
 **The Trust Layer's role in Prompt Builder:**
 1. **Masking:** Personal identifiable information (PII) is replaced with tokens before the LLM sees it
@@ -307,7 +326,30 @@ Write in a professional, concise tone suitable for a service agent picking up th
 ---
 
 ### Slide 12: Exam Summary — Prompt Builder Quick Reference
-**Visual:** Clean summary table.
+**Visual:**
+```
+   PROMPT BUILDER — EXAM REFERENCE
+
+   ┌──────────────────────────┬────────────────────────────────────┐
+   │  CONCEPT                 │  KEY POINT                         │
+   ├──────────────────────────┼────────────────────────────────────┤
+   │ What is it               │ Low-code tool to build AI prompts  │
+   │                          │ for Salesforce features            │
+   ├──────────────────────────┼────────────────────────────────────┤
+   │ Template Types           │ Field Generation, Flex, Record     │
+   │                          │ Summary, Sales Email               │
+   ├──────────────────────────┼────────────────────────────────────┤
+   │ Merge Fields             │ {!$Record.FieldName} pulls live    │
+   │                          │ CRM data into prompt at runtime    │
+   ├──────────────────────────┼────────────────────────────────────┤
+   │ Trust Layer              │ Always active — masking, ZDR,      │
+   │                          │ grounding, toxicity, audit         │
+   ├──────────────────────────┼────────────────────────────────────┤
+   │ Who creates templates    │ Admins (no code required)          │
+   ├──────────────────────────┼────────────────────────────────────┤
+   │ Where used               │ Any Salesforce cloud/product       │
+   └──────────────────────────┴────────────────────────────────────┘
+```
 **Content:**
 
 | Template Type | Use Case | Output Location | Exam Trigger Words |
