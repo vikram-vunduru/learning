@@ -291,6 +291,73 @@ export const TRACKS: Track[] = [
       // Exam Prep
       { id: "jsi-exam", title: "60-Question Practice Exam", file: "courses/salesforce/05-javascript-developer-i/exam-prep/practice-exam-60-questions.md", month: 5, course: "JavaScript Developer I", section: "Exam Preparation", type: "exam" },
       { id: "jsi-cheatsheet", title: "JSI Cheat Sheet", file: "courses/salesforce/05-javascript-developer-i/exam-prep/jsi-cheat-sheet.md", month: 5, course: "JavaScript Developer I", section: "Exam Preparation", type: "exam" },
+
+      // ── Course 6: Data Cloud Consultant ─────────────────────────────────────
+      { id: "dc-overview", title: "Course Overview: Data Cloud Consultant", file: "courses/salesforce/06-data-cloud-consultant/00-course-overview.md", month: 6, course: "Data Cloud Consultant", section: "Course Overview", type: "study" },
+
+      // Section 1: Fundamentals
+      { id: "dc-l01", title: "L01: Data Cloud Architecture", file: "courses/salesforce/06-data-cloud-consultant/section-01-fundamentals/lecture-01-data-cloud-architecture.md", month: 6, course: "Data Cloud Consultant", section: "Data Cloud Fundamentals", type: "lecture" },
+      { id: "dc-l02", title: "L02: Data Streams & Ingestion", file: "courses/salesforce/06-data-cloud-consultant/section-01-fundamentals/lecture-02-data-streams-ingestion.md", month: 6, course: "Data Cloud Consultant", section: "Data Cloud Fundamentals", type: "lecture" },
+      { id: "dc-l03", title: "L03: Data Model Objects", file: "courses/salesforce/06-data-cloud-consultant/section-01-fundamentals/lecture-03-data-model-objects.md", month: 6, course: "Data Cloud Consultant", section: "Data Cloud Fundamentals", type: "lecture" },
+      { id: "dc-l04", title: "L04: Identity Resolution", file: "courses/salesforce/06-data-cloud-consultant/section-01-fundamentals/lecture-04-identity-resolution.md", month: 6, course: "Data Cloud Consultant", section: "Data Cloud Fundamentals", type: "lecture" },
+
+      // Section 2: Segmentation
+      { id: "dc-l05", title: "L05: Segmentation Basics", file: "courses/salesforce/06-data-cloud-consultant/section-02-segmentation/lecture-05-segmentation-basics.md", month: 6, course: "Data Cloud Consultant", section: "Segmentation & Insights", type: "lecture" },
+      { id: "dc-l06", title: "L06: Calculated Insights", file: "courses/salesforce/06-data-cloud-consultant/section-02-segmentation/lecture-06-calculated-insights.md", month: 6, course: "Data Cloud Consultant", section: "Segmentation & Insights", type: "lecture" },
+      { id: "dc-l07", title: "L07: Activation Targets", file: "courses/salesforce/06-data-cloud-consultant/section-02-segmentation/lecture-07-activation-targets.md", month: 6, course: "Data Cloud Consultant", section: "Segmentation & Insights", type: "lecture" },
+
+      // Section 3: Governance
+      { id: "dc-l08", title: "L08: Consent & Privacy", file: "courses/salesforce/06-data-cloud-consultant/section-03-governance/lecture-08-consent-privacy.md", month: 6, course: "Data Cloud Consultant", section: "Administration & Governance", type: "lecture" },
+      { id: "dc-l09", title: "L09: Data Governance", file: "courses/salesforce/06-data-cloud-consultant/section-03-governance/lecture-09-data-governance.md", month: 6, course: "Data Cloud Consultant", section: "Administration & Governance", type: "lecture" },
+      { id: "dc-l10", title: "L10: Performance & Monitoring", file: "courses/salesforce/06-data-cloud-consultant/section-03-governance/lecture-10-performance-monitoring.md", month: 6, course: "Data Cloud Consultant", section: "Administration & Governance", type: "lecture" },
+
+      // Section 4: Use Cases
+      { id: "dc-l11", title: "L11: Analytics & Tableau", file: "courses/salesforce/06-data-cloud-consultant/section-04-use-cases/lecture-11-analytics-tableau.md", month: 6, course: "Data Cloud Consultant", section: "Use Cases & Business Value", type: "lecture" },
+      { id: "dc-l12", title: "L12: AI & Personalization", file: "courses/salesforce/06-data-cloud-consultant/section-04-use-cases/lecture-12-ai-personalization.md", month: 6, course: "Data Cloud Consultant", section: "Use Cases & Business Value", type: "lecture" },
+      { id: "dc-l13", title: "L13: Real-World Use Cases", file: "courses/salesforce/06-data-cloud-consultant/section-04-use-cases/lecture-13-real-world-use-cases.md", month: 6, course: "Data Cloud Consultant", section: "Use Cases & Business Value", type: "lecture" },
+
+      // Labs
+      { id: "dc-lab01", title: "Lab 01: Data Stream Setup", file: "courses/salesforce/06-data-cloud-consultant/labs/lab-01-data-stream-setup.md", month: 6, course: "Data Cloud Consultant", section: "Labs", type: "lab" },
+      { id: "dc-lab02", title: "Lab 02: Identity Resolution", file: "courses/salesforce/06-data-cloud-consultant/labs/lab-02-identity-resolution.md", month: 6, course: "Data Cloud Consultant", section: "Labs", type: "lab" },
+      { id: "dc-lab03", title: "Lab 03: Segment & Activation", file: "courses/salesforce/06-data-cloud-consultant/labs/lab-03-segment-activation.md", month: 6, course: "Data Cloud Consultant", section: "Labs", type: "lab" },
+
+      // Exam Prep
+      { id: "dc-exam", title: "60-Question Practice Exam", file: "courses/salesforce/06-data-cloud-consultant/exam-prep/practice-exam-60-questions.md", month: 6, course: "Data Cloud Consultant", section: "Exam Preparation", type: "exam" },
+      { id: "dc-cheatsheet", title: "Data Cloud Cheat Sheet", file: "courses/salesforce/06-data-cloud-consultant/exam-prep/data-cloud-cheat-sheet.md", month: 6, course: "Data Cloud Consultant", section: "Exam Preparation", type: "exam" },
+
+      // ── Course 7: Agentforce Specialist ─────────────────────────────────
+      { id: "agentforce-overview", title: "Course Overview", file: "courses/salesforce/07-agentforce-specialist/00-course-overview.md", month: 7, course: "Agentforce Specialist", section: "Introduction", type: "study" },
+
+      // Section 1: Agentforce Concepts
+      { id: "af-l01", title: "Lecture 1: Agentforce Overview", file: "courses/salesforce/07-agentforce-specialist/section-01-concepts/lecture-01-agentforce-overview.md", month: 7, course: "Agentforce Specialist", section: "Agentforce Concepts", type: "lecture" },
+      { id: "af-l02", title: "Lecture 2: Atlas Reasoning Engine", file: "courses/salesforce/07-agentforce-specialist/section-01-concepts/lecture-02-atlas-reasoning-engine.md", month: 7, course: "Agentforce Specialist", section: "Agentforce Concepts", type: "lecture" },
+      { id: "af-l03", title: "Lecture 3: Agent Types & Prebuilt Agents", file: "courses/salesforce/07-agentforce-specialist/section-01-concepts/lecture-03-agent-types-prebuilt.md", month: 7, course: "Agentforce Specialist", section: "Agentforce Concepts", type: "lecture" },
+
+      // Section 2: Building Agents
+      { id: "af-l04", title: "Lecture 4: Topics & Actions", file: "courses/salesforce/07-agentforce-specialist/section-02-building/lecture-04-topics-actions.md", month: 7, course: "Agentforce Specialist", section: "Building Agents", type: "lecture" },
+      { id: "af-l05", title: "Lecture 5: Agent Instructions & Scope", file: "courses/salesforce/07-agentforce-specialist/section-02-building/lecture-05-agent-instructions.md", month: 7, course: "Agentforce Specialist", section: "Building Agents", type: "lecture" },
+      { id: "af-l06", title: "Lecture 6: Flows & Apex Actions", file: "courses/salesforce/07-agentforce-specialist/section-02-building/lecture-06-flows-apex-actions.md", month: 7, course: "Agentforce Specialist", section: "Building Agents", type: "lecture" },
+      { id: "af-l07", title: "Lecture 7: Knowledge & Grounding", file: "courses/salesforce/07-agentforce-specialist/section-02-building/lecture-07-knowledge-grounding.md", month: 7, course: "Agentforce Specialist", section: "Building Agents", type: "lecture" },
+
+      // Section 3: Prompt Builder
+      { id: "af-l08", title: "Lecture 8: Prompt Templates", file: "courses/salesforce/07-agentforce-specialist/section-03-prompt-builder/lecture-08-prompt-templates.md", month: 7, course: "Agentforce Specialist", section: "Prompt Builder", type: "lecture" },
+      { id: "af-l09", title: "Lecture 9: Advanced Prompt Techniques", file: "courses/salesforce/07-agentforce-specialist/section-03-prompt-builder/lecture-09-advanced-prompts.md", month: 7, course: "Agentforce Specialist", section: "Prompt Builder", type: "lecture" },
+      { id: "af-l10", title: "Lecture 10: Prompt Actions in Agents", file: "courses/salesforce/07-agentforce-specialist/section-03-prompt-builder/lecture-10-prompt-actions.md", month: 7, course: "Agentforce Specialist", section: "Prompt Builder", type: "lecture" },
+
+      // Section 4: Testing & Deployment
+      { id: "af-l11", title: "Lecture 11: Testing Agents", file: "courses/salesforce/07-agentforce-specialist/section-04-testing-deployment/lecture-11-testing-agents.md", month: 7, course: "Agentforce Specialist", section: "Testing & Deployment", type: "lecture" },
+      { id: "af-l12", title: "Lecture 12: Deployment & Channels", file: "courses/salesforce/07-agentforce-specialist/section-04-testing-deployment/lecture-12-deployment-channels.md", month: 7, course: "Agentforce Specialist", section: "Testing & Deployment", type: "lecture" },
+      { id: "af-l13", title: "Lecture 13: Monitoring & Governance", file: "courses/salesforce/07-agentforce-specialist/section-04-testing-deployment/lecture-13-monitoring-governance.md", month: 7, course: "Agentforce Specialist", section: "Testing & Deployment", type: "lecture" },
+      { id: "af-l14", title: "Lecture 14: Real-World Use Cases", file: "courses/salesforce/07-agentforce-specialist/section-04-testing-deployment/lecture-14-use-cases.md", month: 7, course: "Agentforce Specialist", section: "Testing & Deployment", type: "lecture" },
+
+      // Labs
+      { id: "af-lab01", title: "Lab 1: Build a Service Agent", file: "courses/salesforce/07-agentforce-specialist/labs/lab-01-build-service-agent.md", month: 7, course: "Agentforce Specialist", section: "Labs", type: "lab" },
+      { id: "af-lab02", title: "Lab 2: Prompt Template Design", file: "courses/salesforce/07-agentforce-specialist/labs/lab-02-prompt-template.md", month: 7, course: "Agentforce Specialist", section: "Labs", type: "lab" },
+      { id: "af-lab03", title: "Lab 3: Test & Deploy an Agent", file: "courses/salesforce/07-agentforce-specialist/labs/lab-03-test-and-deploy.md", month: 7, course: "Agentforce Specialist", section: "Labs", type: "lab" },
+
+      // Exam Prep
+      { id: "af-exam", title: "60-Question Practice Exam", file: "courses/salesforce/07-agentforce-specialist/exam-prep/practice-exam-60-questions.md", month: 7, course: "Agentforce Specialist", section: "Exam Preparation", type: "exam" },
+      { id: "af-cheatsheet", title: "Agentforce Cheat Sheet", file: "courses/salesforce/07-agentforce-specialist/exam-prep/agentforce-cheat-sheet.md", month: 7, course: "Agentforce Specialist", section: "Exam Preparation", type: "exam" },
     ],
     certs: [
       { id: "ai-associate", name: "AI Associate", month: 1, cost: "$75", passScore: "65%", questions: 40 },
