@@ -17,7 +17,20 @@
 ## SLIDES
 
 ### Slide 1: Title Slide
-**Visual:** Salesforce Data Cloud logo with connecting nodes radiating outward to Einstein, Agentforce, Sales Cloud, Service Cloud.
+**Visual:**
+```
+╔══════════════════════════════════════════════════════════╗
+║        LECTURE 21: DATA CLOUD — FOUNDATION FOR AI       ║
+║                                                          ║
+║    CRM ──┐                     ┌── Einstein              ║
+║          ├──▶ [DATA CLOUD] ────┤                         ║
+║   Web ───┤   Unified Profile   ├── Agentforce            ║
+║          │                     │                         ║
+║ Mobile ──┘                     └── All AI Features       ║
+║                                                          ║
+║  "AI is only as smart as the customer context it has"    ║
+╚══════════════════════════════════════════════════════════╝
+```
 **Content:**
 - Lecture 21: Data Cloud — The Foundation for AI
 - "AI is only as smart as the customer context it has access to"

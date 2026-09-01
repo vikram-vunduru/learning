@@ -11,7 +11,29 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Is a Salesforce Dashboard?
-**Visual:** Example Lightning Experience dashboard with multiple components: a bar chart, a donut chart, a metric tile showing "$2.4M", and a table — all labeled with component types
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Q4 SALES DASHBOARD          Last Refreshed: Nov 15, 9:00AM │
+  ├──────────────────────┬──────────────────┬────────────────────┤
+  │  BAR CHART           │   METRIC         │   DONUT CHART      │
+  │  (component type)    │   (component)    │   (component type) │
+  │                      │                  │                    │
+  │  ██                  │  Total Pipeline  │    ┌──────┐        │
+  │  ██ ██               │                  │    │ /--\ │        │
+  │  ██ ██ ██            │    $ 2.4 M        │    │ \__/ │        │
+  │  ─────────           │  (single number) │    └──────┘        │
+  │  Q1  Q2  Q3          │                  │    By Stage        │
+  ├──────────────────────┴──────────────────┴────────────────────┤
+  │                         TABLE  (component type)             │
+  │  Rep Name    │  Open Opps  │  Amount     │  Close Date       │
+  │  Smith, J    │     12      │  $480,000   │  Q4 2024          │
+  │  Chen, S     │      8      │  $320,000   │  Q4 2024          │
+  │  Lee, M      │      5      │  $195,000   │  Q4 2024          │
+  └──────────────────────────────────────────────────────────────┘
+  Each component is sourced from a single underlying report
+  Up to 20 components per dashboard
+```
 **Content:**
 - A dashboard is a visual display of key metrics and trends from Salesforce reports
 - Dashboards consist of **components**, each sourced from a single report
@@ -22,7 +44,32 @@
 **Speaker Notes:** Dashboards are the visualization layer on top of reports. Every component on a dashboard is powered by a report — you cannot put data on a dashboard without a report. This is a key point: if the underlying report doesn't return data, the component will be empty. Dashboards update their data either manually when refreshed or via a scheduled refresh.
 
 ### Slide 2: Dashboard Component Types
-**Visual:** Grid showing 6 component type icons with labels and example use cases
+**Visual:**
+```
+  DASHBOARD COMPONENT TYPES
+  ┌──────────────────────┬─────────────────────────────────────────┐
+  │  Component Type      │  Description & Use Case                 │
+  ├──────────────────────┼─────────────────────────────────────────┤
+  │  Chart               │  Bar, column, line, pie, donut, funnel  │
+  │                      │  Requires Summary or Matrix report      │
+  │                      │  Cannot use Tabular as source           │
+  ├──────────────────────┼─────────────────────────────────────────┤
+  │  Gauge               │  Single value vs. a range               │
+  │  [  |====|      ]    │  Min / Target / Max, color-coded        │
+  │  red  yellow  green  │  Best for: quota attainment KPIs        │
+  ├──────────────────────┼─────────────────────────────────────────┤
+  │  Metric              │  One large summary number               │
+  │     $ 5.2 M          │  Best for: total pipeline, open cases   │
+  ├──────────────────────┼─────────────────────────────────────────┤
+  │  Table               │  Top/bottom N records list              │
+  │                      │  Can use Tabular or Summary source      │
+  │                      │  Supports conditional highlighting      │
+  ├──────────────────────┼─────────────────────────────────────────┤
+  │  Visualforce Page    │  Custom VF page embedded (legacy)       │
+  ├──────────────────────┼─────────────────────────────────────────┤
+  │  Lightning Component │  Custom LWC/Aura component (modern)     │
+  └──────────────────────┴─────────────────────────────────────────┘
+```
 **Content:**
 - **Chart:** Bar, column, line, pie, donut, funnel, scatter — visualizes grouped/aggregated report data
 - **Gauge:** Shows a single value against a range (min/target/max) — great for KPIs like quota attainment
@@ -33,7 +80,31 @@
 **Speaker Notes:** Charts require a Summary or Matrix report (must have groupings). Gauges and Metrics work well with summary reports that produce a single aggregate number. Tables can use tabular reports. On the exam, remember that tabular reports cannot source chart components — a common distractor. Visualforce and Lightning components give developers unlimited flexibility but require code.
 
 ### Slide 3: Static Running User vs. Dynamic Dashboard
-**Visual:** Split diagram — Left side: "Static Dashboard" with a single user icon labeled "Running User: Sarah (VP Sales)" with an arrow showing all viewers see Sarah's data. Right side: "Dynamic Dashboard" with multiple user icons, each seeing their own data.
+**Visual:**
+```
+  ┌──────────────────────────────┬─────────────────────────────────┐
+  │  STATIC RUNNING USER         │  DYNAMIC DASHBOARD              │
+  │  DASHBOARD                   │  ("Run as logged-in user")      │
+  ├──────────────────────────────┼─────────────────────────────────┤
+  │                              │                                 │
+  │  Running User:               │  Each user sees THEIR OWN data  │
+  │  [Sarah — VP Sales]          │                                 │
+  │          │                   │  [Rep A] ──▶ sees Rep A data    │
+  │          ▼                   │  [Rep B] ──▶ sees Rep B data    │
+  │  ┌───────────────────┐       │  [Mgr C] ──▶ sees Mgr C data   │
+  │  │   ALL VIEWERS     │       │                                 │
+  │  │   see Sarah's     │       │  Same dashboard — different     │
+  │  │   accessible      │       │  results per logged-in user     │
+  │  │   records         │       │                                 │
+  │  └───────────────────┘       │  Enforces record-level          │
+  │                              │  security automatically         │
+  ├──────────────────────────────┼─────────────────────────────────┤
+  │  Good for: org-wide views,   │  Good for: team dashboards,     │
+  │  exec-level visibility       │  personal KPI tracking          │
+  │  "show everyone the          │  "each person sees their own    │
+  │   company-wide numbers"      │   slice of the data"            │
+  └──────────────────────────────┴─────────────────────────────────┘
+```
 **Content:**
 - **Static Running User Dashboard:**
   - Dashboard runs as one specific user (the "running user")
@@ -48,7 +119,32 @@
 **Speaker Notes:** The running user concept is crucial for the exam. If a VP of Sales is set as the running user, every sales rep who views the dashboard sees all opportunities the VP can see — not just their own. Dynamic dashboards flip this: each user sees only their own data. This is the recommended approach for team dashboards where you want to respect data visibility settings. There's a limit on the number of dynamic dashboards per org (typically 5 for Professional, up to 10 for Enterprise/Unlimited).
 
 ### Slide 4: Dynamic Dashboard Limits and Setup
-**Visual:** Table showing Salesforce Edition → Max Dynamic Dashboards: Professional = 5, Enterprise = 10, Unlimited/Performance = 10 (per the current limits)
+**Visual:**
+```
+  DYNAMIC DASHBOARD LIMITS BY SALESFORCE EDITION
+  ┌──────────────────────────────────┬─────────────────────────┐
+  │  Salesforce Edition              │  Max Dynamic Dashboards │
+  ├──────────────────────────────────┼─────────────────────────┤
+  │  Professional Edition            │  5                      │
+  ├──────────────────────────────────┼─────────────────────────┤
+  │  Enterprise Edition              │  10                     │
+  ├──────────────────────────────────┼─────────────────────────┤
+  │  Unlimited / Performance Edition │  10                     │
+  └──────────────────────────────────┴─────────────────────────┘
+  
+  ┌────────────────────────────────────────────────────────────┐
+  │  IMPORTANT: The limit is on DEFINED dynamic dashboards,   │
+  │  NOT on the number of users who view them                 │
+  │                                                            │
+  │  50 sales reps ──▶ only 1 dynamic dashboard needed        │
+  │  (it renders differently for each user who views it)      │
+  └────────────────────────────────────────────────────────────┘
+  
+  Enable: Edit Dashboard → Settings → "Run as logged-in user"
+  
+  Limitation: Dynamic dashboard users cannot set "Run As" another user
+  Data is cached — users may see data from the last refresh
+```
 **Content:**
 - **Enabling Dynamic Dashboards:** Edit dashboard → Settings → "Run as logged-in user"
 - **Dynamic Dashboard Limits by Edition:**
@@ -61,7 +157,32 @@
 **Speaker Notes:** Dynamic dashboard limits are commonly tested. If a company has 50 sales reps and needs each to see their own pipeline dashboard, they need a dynamic dashboard — but only one dynamic dashboard is needed (not 50 separate ones). The same dashboard renders differently for each user. The org limit is on the number of dynamic dashboards defined, not the number of users viewing them.
 
 ### Slide 5: Dashboard Filters
-**Visual:** Screenshot of a dashboard with a "Filter" button at the top, dropdown showing filter options like "Region = West/East/All" applied to all components simultaneously
+**Visual:**
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Q4 Sales Dashboard                  [Filter ▼]  [Refresh]  │
+  │  ┌──────────────────────────────────────────────────────┐   │
+  │  │  DASHBOARD FILTER                                    │   │
+  │  │  Region:  [● All   ○ West   ○ East   ○ Central ]     │   │
+  │  └──────────────────────────────────────────────────────┘   │
+  │                           │                                  │
+  │         Applies to ALL components simultaneously             │
+  │                           ▼                                  │
+  ├───────────────────┬───────────────────┬──────────────────────┤
+  │  Component 1      │  Component 2      │  Component 3         │
+  │  (filtered by     │  (filtered by     │  (filtered by        │
+  │   Region=West)    │   Region=West)    │   Region=West)       │
+  └───────────────────┴───────────────────┴──────────────────────┘
+  
+  DASHBOARD FILTER RULES:
+  ┌────────────────────────────────────────────────────────────┐
+  │  • Maximum 3 dashboard filters per dashboard               │
+  │  • Filter options defined by the dashboard creator         │
+  │  • Applies on TOP of existing report filters               │
+  │  • Filters do NOT persist between sessions                 │
+  │  • Use case: share one dashboard across regions/teams      │
+  └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Dashboard Filters** allow viewers to slice dashboard data without editing the underlying reports
 - Up to **3 dashboard filters** per dashboard
@@ -73,7 +194,32 @@
 **Speaker Notes:** Dashboard filters are different from report filters — they're an additional layer of filtering applied at the dashboard level, on top of whatever filters are already in the underlying reports. The dashboard creator defines up to three filters and their possible values. Viewers can then use those filters to dynamically slice the data. This is excellent for sharing a single dashboard across teams or regions without building separate dashboards per region.
 
 ### Slide 6: Dashboard Refresh and Scheduling
-**Visual:** Timeline showing: Last Refreshed timestamp → Manual Refresh button → Scheduled Refresh (lightning bolt icon) → Email notification sent
+**Visual:**
+```
+  DASHBOARD REFRESH LIFECYCLE
+  
+  ┌─────────────────────┐   ┌──────────────────┐   ┌──────────────────┐
+  │  LAST REFRESHED     │   │  MANUAL REFRESH  │   │  SCHEDULED       │
+  │  Nov 14, 9:00 AM    │   │                  │   │  REFRESH         │
+  │                     │   │  User clicks     │   │                  │
+  │  Dashboard data     │   │  [Refresh]       │   │  Auto-runs at    │
+  │  may be up to       │   │  button on       │   │  set time        │
+  │  24 hours old       │   │  the dashboard   │   │  (daily/weekly)  │
+  │  (cached)           │   │                  │   │                  │
+  └──────────┬──────────┘   └────────┬─────────┘   └────────┬─────────┘
+             │                       │                       │
+             └──────────┬────────────┘                       │
+                        ▼                                    ▼
+             ┌──────────────────────┐          ┌─────────────────────┐
+             │  Current data loads  │          │  Email notification │
+             │  into all components │          │  (snapshot) sent    │
+             └──────────────────────┘          │  to subscribers     │
+                                               └─────────────────────┘
+  
+  Dashboard data is NOT real-time
+  Always check "Last Refreshed" timestamp for data currency
+  "Schedule Dashboards" permission required for scheduled refresh
+```
 **Content:**
 - **Dashboard data is NOT real-time** — it shows data from the last refresh
 - **Manual Refresh:** Click "Refresh" button on the dashboard — updates all components
@@ -87,7 +233,34 @@
 **Speaker Notes:** This is a common source of confusion: dashboards are NOT live. They display the data as of the last time the dashboard was refreshed. If a user refreshes manually, they get current data. If no one refreshes, the data can be up to 24 hours stale. For real-time decision-making, users should run the underlying reports directly. Dashboard subscriptions are great for morning briefings — the scheduled refresh runs and an email with the dashboard snapshot goes to subscribers.
 
 ### Slide 7: Dashboard Folder Permissions
-**Visual:** Dashboard Folder settings dialog showing sharing options: "Visible to all users," "Hidden from all users," "Shared with specific roles, groups, or profiles" with permission levels (Viewer, Editor, Manager)
+**Visual:**
+```
+  DASHBOARD FOLDER — Sharing & Permission Levels
+  
+  Sales Dashboards Folder — Sharing Settings:
+  ┌────────────────────────┬──────────────────────────────────────┐
+  │  Share With            │  Access Level                        │
+  ├────────────────────────┼──────────────────────────────────────┤
+  │  VP Sales Role         │  Manager   (full control, can share) │
+  │  Sales Team Group      │  Editor    (create / edit dashboards)│
+  │  All Internal Users    │  Viewer    (view and run only)       │
+  └────────────────────────┴──────────────────────────────────────┘
+  
+  ACCESS LEVEL DETAILS:
+  ┌─────────────┬──────────────────────────────────────────────┐
+  │  Viewer     │  See and run dashboards in the folder        │
+  ├─────────────┼──────────────────────────────────────────────┤
+  │  Editor     │  Create and edit dashboards in the folder    │
+  ├─────────────┼──────────────────────────────────────────────┤
+  │  Manager    │  Full control: share, rename, delete folder  │
+  └─────────────┴──────────────────────────────────────────────┘
+  
+  ┌────────────────────────────────────────────────────────────┐
+  │  Personal Folders:  private to owner, cannot be shared    │
+  │  "Run Reports" permission still required to view data     │
+  │  Dashboard folder access ≠ Report folder access           │
+  └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Dashboards are stored in **folders** (same concept as report folders)
 - **Access Levels per folder:**
@@ -101,7 +274,33 @@
 **Speaker Notes:** Dashboard and report folder permissions follow the same model but are managed separately. Just because someone has access to a report folder doesn't mean they have access to the dashboard folder that sources from those reports. Exam questions often test the three permission levels: Viewer (read-only), Editor (create/edit), and Manager (full control including sharing). Also remember that even if someone has dashboard folder access, they still need the "Run Reports" permission to actually view dashboard data.
 
 ### Slide 8: Adding Dashboards to Home Page & Lightning Pages
-**Visual:** Lightning App Builder screenshot showing a Dashboard component being dragged onto a Home Page layout, with a dashboard picker dialog open
+**Visual:**
+```
+  LIGHTNING APP BUILDER — Home Page Layout
+  ┌──────────────────────────────────────────────────────────────┐
+  │  COMPONENT PALETTE           │  HOME PAGE CANVAS             │
+  │  ─────────────────────       │  ──────────────────────────── │
+  │  Standard Components:        │  ┌────────────────────────┐   │
+  │  • Dashboard    ◀── drag ───▶│  │   Dashboard Component  │   │
+  │  • Recent Items              │  │                        │   │
+  │  • Tasks                     │  │  Dashboard:            │   │
+  │  • Activity Timeline         │  │  [ Q4 Sales Dash ▼ ]  │   │
+  │  • Rich Text Block           │  │                        │   │
+  │  • ...                       │  │  [preview renders here]│   │
+  │                              │  └────────────────────────┘   │
+  │                              │  ┌────────────────────────┐   │
+  │                              │  │   Recent Items         │   │
+  │                              │  └────────────────────────┘   │
+  └──────────────────────────────┴────────────────────────────────┘
+  
+  REQUIREMENTS & BEST PRACTICES:
+  ┌────────────────────────────────────────────────────────────┐
+  │  • User must have access to the dashboard folder          │
+  │  • Best practice: dynamic dashboard for personalized KPIs │
+  │  • Available on: Home pages, App pages, Record pages      │
+  │  • Salesforce mobile app: Dashboards tab available        │
+  └────────────────────────────────────────────────────────────┘
+```
 **Content:**
 - **Dashboard component in Lightning App Builder:**
   - Add a Dashboard component to any Lightning page (Home, App, Record)

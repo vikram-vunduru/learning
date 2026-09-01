@@ -11,7 +11,32 @@
 ## 📊 SLIDES
 
 ### Slide 1: What Are List Views?
-**Visual:** Screenshot of the Opportunities list view in Lightning Experience showing the list view selector (dropdown), the current view "My Opportunities," column headers, and individual record rows
+**Visual:**
+```
+  OPPORTUNITIES TAB — List View
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Opportunities                                [New] [Import] │
+  │  ┌──────────────────────────────────┐                        │
+  │  │  My Opportunities             ▼  │ ← List View Selector   │
+  │  └──────────────────────────────────┘                        │
+  │    Recently Viewed                                           │
+  │  ▶ My Opportunities         ← currently selected            │
+  │    All Opportunities                                         │
+  │    My Team's Opportunities                                   │
+  │    + New List View                                           │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Opp Name            │ Account     │ Stage       │ Amount    │
+  ├──────────────────────┼─────────────┼─────────────┼───────────┤
+  │  Acme Q4 Deal        │ Acme Corp   │ Proposal    │ $50,000   │
+  │  Beta Corp Renewal   │ Beta Inc    │ Negotiation │ $25,000   │
+  │  Gamma New License   │ Gamma Ltd   │ Prospecting │ $80,000   │
+  │  Delta Upgrade       │ Delta Co    │ Closed Won  │ $45,000   │
+  └──────────────────────┴─────────────┴─────────────┴───────────┘
+  
+  Standard views: All Accounts, My Accounts, Recently Viewed
+  Custom views: defined filters, specific columns, sharing options
+  Users can PIN a view as their default for that object tab
+```
 **Content:**
 - A **list view** is a filtered, sorted list of records for a specific object
 - Displayed on the object's main tab (Accounts, Contacts, Opportunities, etc.)
@@ -22,7 +47,32 @@
 **Speaker Notes:** List views are the primary way most users interact with records on a day-to-day basis. They're essentially a pre-filtered, pre-sorted window into your data. Every object tab has at least one standard list view. The real power comes from creating custom list views with specific filters and columns tailored to a user's workflow. Unlike reports, list views are interactive — you can click directly into records and edit them inline.
 
 ### Slide 2: Creating Custom List Views
-**Visual:** "New List View" dialog showing fields: List View Name, Unique Name (API), Sharing, Filter Criteria section, Column Selection
+**Visual:**
+```
+  NEW LIST VIEW
+  ┌──────────────────────────────────────────────────────────┐
+  │  List View Name:    [ My Open High-Priority Cases      ] │
+  │  API Name:          [ My_Open_High_Priority_Cases      ] │
+  ├──────────────────────────────────────────────────────────┤
+  │  WHO CAN SEE THIS LIST VIEW?                             │
+  │  ○ Only I can see this list view                         │
+  │  ● Share list view with groups of users                  │
+  │  ○ All users can see this list view                      │
+  ├──────────────────────────────────────────────────────────┤
+  │  FILTER CRITERIA (up to 15 filters)                      │
+  │  1.  Status    │ equals       │ Open                     │
+  │  2.  Priority  │ equals       │ High                     │
+  │  [+ Add Filter Condition]                                │
+  ├──────────────────────────────────────────────────────────┤
+  │  COLUMNS (select which fields to display)                │
+  │  [✓] Case Number   [✓] Subject      [✓] Status          │
+  │  [✓] Priority      [✓] Owner        [✓] Account         │
+  │  [✓] Created Date  [ ] Description  [ ] Resolution       │
+  │  Drag to reorder columns                                 │
+  ├──────────────────────────────────────────────────────────┤
+  │                          [Cancel]    [Save]              │
+  └──────────────────────────────────────────────────────────┘
+```
 **Content:**
 - Create from any object tab: click the List View selector → "New"
 - Configure:
@@ -37,7 +87,34 @@
 **Speaker Notes:** Creating a custom list view is straightforward and gives users tremendous control. The key settings are sharing (who sees it), filters (which records appear), and columns (what information is displayed). Remember that up to 15 filter criteria are supported per list view. Unlike reports, list views do not support aggregate calculations like SUM or AVG — they're designed for quick record access, not analytics.
 
 ### Slide 3: List View Sharing Options
-**Visual:** Three icons side by side: (1) Single person icon labeled "Only I can see this list view," (2) Group of people icon labeled "Share with groups/roles," (3) Everyone icon labeled "All users can see this list view"
+**Visual:**
+```
+  LIST VIEW SHARING OPTIONS
+  ┌──────────────────────────────────────────────────────────────┐
+  │                                                              │
+  │   ┌─────────────┐    ┌──────────────────────┐   ┌────────┐  │
+  │   │   [USER]    │    │  [USER] [USER]        │   │[USERS] │  │
+  │   │   (single)  │    │       [USER]          │   │EVERYONE│  │
+  │   └─────────────┘    └──────────────────────┘   └────────┘  │
+  │                                                              │
+  │   Only I can see     Share with groups          All users   │
+  │   this list view     or roles                   can see it  │
+  │                                                              │
+  ├──────────────────────┬───────────────────────┬──────────────┤
+  │  PRIVATE             │  SHARED (controlled)  │  PUBLIC      │
+  ├──────────────────────┼───────────────────────┼──────────────┤
+  │  Creator only        │  Public Groups or      │  Any user   │
+  │                      │  Roles with access     │  with object │
+  │  Best for:           │                        │  access      │
+  │  Personal working    │  Best for:             │              │
+  │  views — e.g.        │  Team-specific views   │  Best for:   │
+  │  "My Call List       │  e.g. "Support Team    │  Standard    │
+  │   This Week"         │   Open Cases"          │  team views  │
+  └──────────────────────┴───────────────────────┴──────────────┘
+  Sharing is set at creation but can be edited later
+  Admins can edit/delete ANY list view regardless of sharing setting
+  Role hierarchy does NOT override list view privacy
+```
 **Content:**
 - **Visible to all users:** Any user with access to the object can see this list view
   - Best for: Standard team views ("All Open Opportunities," "High Priority Cases")
@@ -50,7 +127,32 @@
 **Speaker Notes:** List view sharing is a commonly tested concept. The three options are: all users (public), selected groups/roles (shared), or only me (private). Note that "groups" here means Salesforce Public Groups — not Chatter groups. Admins have override access to all list views regardless of sharing setting, which is important for maintenance. When you share a list view with a role, users in that role AND any roles above it in the hierarchy can see it — this follows the standard role hierarchy visibility rules.
 
 ### Slide 4: Inline Editing in List Views
-**Visual:** List view with one cell highlighted in edit mode (yellow border) showing a dropdown or text input, with a checkmark to save, and a "Mass update" banner at the top showing "5 records selected"
+**Visual:**
+```
+  INLINE EDITING — Mass Update Example
+  ┌──────────────────────────────────────────────────────────────┐
+  │  ┌────────────────────────────────────────────────────────┐  │
+  │  │  MASS UPDATE: Apply to all 5 selected records?        │  │
+  │  │  Status: [ In Progress ▼ ]   [Apply to All 5] [Cancel]│  │
+  │  └────────────────────────────────────────────────────────┘  │
+  ├────┬──────────────────────┬──────────────────┬───────────────┤
+  │ ✓  │  Case Subject        │  Status          │  Priority     │
+  ├────┼──────────────────────┼──────────────────┼───────────────┤
+  │ ✓  │  Login issue         │ ┌──────────────┐ │  High         │
+  │    │                      │ │In Progress ▼ │ │               │
+  │    │                      │ └──────────────┘ │  [✓] save    │
+  ├────┼──────────────────────┼──────────────────┼───────────────┤
+  │ ✓  │  Password reset      │  (will update)   │  Medium       │
+  ├────┼──────────────────────┼──────────────────┼───────────────┤
+  │ ✓  │  Access request      │  (will update)   │  High         │
+  ├────┼──────────────────────┼──────────────────┼───────────────┤
+  │ ✓  │  Profile update      │  (will update)   │  Low          │
+  ├────┼──────────────────────┼──────────────────┼───────────────┤
+  │ ✓  │  VPN connectivity    │  (will update)   │  Medium       │
+  └────┴──────────────────────┴──────────────────┴───────────────┘
+  Requires "Edit" object permission  |  Changes are immediate
+  Multi-select picklists + encrypted fields: NOT inline editable
+```
 **Content:**
 - **Inline editing:** Edit individual field values directly in the list view without opening the record
 - Click any editable cell to enter edit mode; press Enter or click the checkmark to save
@@ -62,7 +164,33 @@
 **Speaker Notes:** Inline editing is a huge productivity feature. Instead of opening 20 records one by one to update the Stage field, a sales rep can select all 20 records in a list view and bulk-update the Stage in one action. The mass inline edit feature is powerful — just be careful, as changes are immediate and affect all selected records. Not all fields support inline editing; calculated formula fields are read-only by definition, and certain field types require the full record page.
 
 ### Slide 5: Kanban View
-**Visual:** Kanban board showing opportunity cards organized in columns by Stage: "Prospecting" | "Qualification" | "Proposal" | "Negotiation" — with drag-and-drop arrow showing a card being moved between columns
+**Visual:**
+```
+  KANBAN VIEW — Opportunities by Stage
+  ┌──────────────┬─────────────────┬──────────────┬──────────────┐
+  │ PROSPECTING  │  QUALIFICATION  │  PROPOSAL    │ NEGOTIATION  │
+  │  $150,000    │    $225,000     │  $375,000    │  $120,000    │
+  ├──────────────┼─────────────────┼──────────────┼──────────────┤
+  │ ┌──────────┐ │  ┌──────────┐   │ ┌──────────┐ │ ┌──────────┐ │
+  │ │Acme Deal │ │  │Beta Corp │   │ │Gamma Inc │ │ │Delta Co  │ │
+  │ │  $50K    │ │  │  $75K    │   │ │  $80K    │ │ │  $120K   │ │
+  │ └──────────┘ │  └──────────┘   │ └──────────┘ │ └──────────┘ │
+  │ ┌──────────┐ │  ┌──────────┐   │ ┌──────────┐ │              │
+  │ │Echo Corp │ │  │Foxtrot   │   │ │Hotel LLC │ │              │
+  │ │  $100K   │ │  │  $150K   │   │ │  $295K   │ │              │
+  │ └──────────┘ │  └──────────┘   │ └──────────┘ │              │
+  └──────────────┴─────────────────┴──────────────┴──────────────┘
+                         │ Drag card ──▶ updates Stage field
+                         ▼
+                [card moves to new column]
+  
+  Kanban Features:
+  • Drag-and-drop cards to update the grouping field value
+  • Column totals show aggregate (e.g., total Amount per Stage)
+  • Color-coded cards based on criteria
+  • Lightning Experience ONLY — not available in Classic
+  • Toggle with view selector icons (List / Kanban / Split)
+```
 **Content:**
 - **Kanban view** displays records as cards organized in columns by a grouping field (usually a picklist)
 - Available on most objects that have a relevant picklist field (Stage, Status, Priority, etc.)
@@ -76,7 +204,31 @@
 **Speaker Notes:** Kanban view is available in Lightning Experience only — not in Salesforce Classic. It's particularly popular with sales teams for pipeline management because dragging an opportunity from "Proposal" to "Negotiation" actually updates the Stage field on the record. The column summary (e.g., total Amount per column) gives a quick aggregate view. Admins can set which field is used for column groupings in the Kanban settings for that object.
 
 ### Slide 6: Split View
-**Visual:** Split-screen showing list view on the left (30% width) with a record highlighted, and the record detail on the right (70% width), updating as different list items are clicked
+**Visual:**
+```
+  SPLIT VIEW — Cases
+  ┌─────────────────────────┬──────────────────────────────────────┐
+  │  LIST (30%)             │  RECORD DETAIL (70%)                 │
+  │  ─────────────────      │  ──────────────────────────────────  │
+  │  ▶ Case #00123   ◀──────┼──▶ Case #00123                      │
+  │    Login issue   │      │    Subject:   Login issue            │
+  │    Open  High    │      │    Status:    Open                   │
+  │                  │      │    Priority:  High                   │
+  │  Case #00124     │      │    Account:   Acme Corp              │
+  │    Password      │      │    Contact:   Jane Doe               │
+  │    Open  Med     │      │    Opened:    Nov 14, 2024           │
+  │                  │      │                                      │
+  │  Case #00125     │      │    Description:                      │
+  │    Access req    │      │    User cannot log in since the      │
+  │    Open  Low     │      │    Nov 12 patch update...            │
+  │                  │      │                                      │
+  │  Click a row ───▶│──────│──▶ Detail updates instantly         │
+  │  to switch       │      │    No full page navigation needed    │
+  └─────────────────────────┴──────────────────────────────────────┘
+  
+  Like an email inbox layout  |  Lightning Experience ONLY
+  Best for: case triaging, outbound calling, sequential reviews
+```
 **Content:**
 - **Split view** shows the list on the left and the record detail on the right — simultaneously
 - Click any record in the list to see its details on the right without a full page navigation
@@ -88,7 +240,35 @@
 **Speaker Notes:** Split view is a workflow efficiency feature. Instead of clicking a record, going to the detail page, clicking back, clicking the next record — split view lets you quickly scan through records in the list and immediately see full details on the right. Think of it like an email client's inbox-preview layout. It's especially useful for high-volume workflows like outbound calling or case triaging.
 
 ### Slide 7: Pinning List Views & Related List Views
-**Visual:** List view selector with a pin icon highlighted next to "My Open Opportunities," and below that a "Related Lists" tab on an Account record showing related Opportunities as a list
+**Visual:**
+```
+  PINNING A LIST VIEW (Personal Default)
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Opportunities List View Selector                            │
+  │  ┌────────────────────────────────────────────────────────┐  │
+  │  │  [pin] My Open Opportunities    ← pinned = default    │  │
+  │  │  [ ] All Opportunities                                │  │
+  │  │  [ ] My Team's Opportunities                          │  │
+  │  │  [ ] Recently Viewed                                  │  │
+  │  └────────────────────────────────────────────────────────┘  │
+  │  Pushpin = sets as default for THIS user on THIS object tab  │
+  │  Personal setting — admin CANNOT force a pin for all users   │
+  └──────────────────────────────────────────────────────────────┘
+  
+  RELATED LIST VIEWS (on Record Pages)
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Account: Acme Corp                                          │
+  ├──────────────────────────────────────────────────────────────┤
+  │  [Details]   [Related]   [Activity]       ← record tabs     │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Opportunities (3)              [New]   [View All]           │
+  │  Opp Name        │ Stage       │ Close Date  │ Amount        │
+  │  Acme Q4 Deal    │ Proposal    │ 12/31/2024  │ $50,000       │
+  │  Acme Renewal    │ Closed Won  │ 10/15/2024  │ $25,000       │
+  │  ← Users can customize columns + filters for related lists  │
+  └──────────────────────────────────────────────────────────────┘
+  Recently Viewed: always available — shows last 10 records accessed
+```
 **Content:**
 - **Pinning a list view:** Sets it as the default view that loads when you visit the object tab
   - Click the pushpin icon next to the list view name
@@ -101,7 +281,38 @@
 **Speaker Notes:** Pinning is a personal productivity feature — each user sets their own pinned view. The admin cannot force a pinned view for all users. For related list views on record pages, users can customize their view of related records — for example, an account manager might filter the Opportunities related list to show only open opportunities. This personalization enhances the user experience without requiring admin configuration.
 
 ### Slide 8: Filter Logic — AND/OR/Custom
-**Visual:** Filter logic editor showing three filter conditions: (1) Stage = Prospecting, (2) Amount > 50000, (3) Close Date = This Quarter — with logic "1 AND (2 OR 3)" highlighted
+**Visual:**
+```
+  FILTER LOGIC — Custom Conditions
+  ┌──────────────────────────────────────────────────────────────┐
+  │  LIST VIEW / REPORT FILTER CONDITIONS                        │
+  ├──────────────────────────────────────────────────────────────┤
+  │  1.  Stage       │  equals        │  Prospecting            │
+  │  2.  Amount      │  greater than  │  50,000                 │
+  │  3.  Close Date  │  equals        │  This Quarter           │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Filter Logic:   1 AND (2 OR 3)                             │
+  └──────────────────────────┬───────────────────────────────────┘
+                             │
+            ┌────────────────▼───────────────────────┐
+            │  Record MUST match filter 1             │
+            │  AND (filter 2 OR filter 3)             │
+            │                                         │
+            │  = Stage is Prospecting                 │
+            │    AND (Amount > $50,000                │
+            │         OR Close Date = This Quarter)   │
+            └─────────────────────────────────────────┘
+  
+  LOGIC EXAMPLES:
+  ┌────────────────────────────────────────────────────────────┐
+  │  Default:   1 AND 2 AND 3   (record must match all)       │
+  │  OR logic:  1 OR 2          (record matches either)       │
+  │  Mixed:     1 AND (2 OR 3)  (match 1 plus either 2 or 3)  │
+  │  Complex:   (1 OR 2) AND 3  (parentheses control order)   │
+  └────────────────────────────────────────────────────────────┘
+  Numbers correspond to filter row numbers  |  Max 15 filters
+  Same filter logic syntax works in BOTH list views AND reports
+```
 **Content:**
 - **Default logic:** All filter conditions use AND (record must match ALL criteria)
 - **Custom filter logic:** Override the default AND behavior

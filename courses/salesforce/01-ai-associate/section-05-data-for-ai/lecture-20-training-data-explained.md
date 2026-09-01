@@ -158,7 +158,28 @@
 ---
 
 ### Slide 5: How Much Data Do You Need?
-**Visual:** Spectrum from "Not enough data" (weak/unreliable model) through "Sufficient data" (good model) to "Massive data" (state-of-the-art LLM).
+**Visual:**
+```
+   HOW MUCH DATA DO YOU NEED?
+
+   ├─────────────────────────────────────────────────────────────────┤
+   │                                                                 │
+   │  TOO LITTLE          MINIMUM          GOOD            MASSIVE   │
+   │  (unreliable)        VIABLE           STARTING        (LLMs)    │
+   │                                       POINT                     │
+   │       │                  │               │               │      │
+   │       ▼                  ▼               ▼               ▼      │
+   │  <500 examples      ~1,000 examples   10,000+      Billions of  │
+   │                     (simple,          examples     tokens       │
+   │  Poor model         clean data)                                  │
+   │  Low confidence                      Reliable     GPT-4, Claude │
+   │  May not activate   Basic model      Business ML  Foundation    │
+   │  Einstein features  possible         models       models        │
+   │                                                                 │
+   │  Einstein Lead Scoring minimum: several hundred converted leads │
+   │  More data → more accurate → up to point of diminishing returns │
+   └─────────────────────────────────────────────────────────────────┘
+```
 **Content:**
 **General thresholds (rules of thumb — not exact science):**
 - **Minimum viable:** ~1,000 labeled examples (for simple classification with clean data)
@@ -176,7 +197,28 @@
 ---
 
 ### Slide 6: The Three-Way Data Split — Overview
-**Visual:** Three boxes arranged left to right: Training Set (large, ~70%) → Validation Set (medium, ~15%) → Test Set (small, ~15%). Each box labeled with purpose.
+**Visual:**
+```
+   THREE-WAY DATA SPLIT
+
+   Full Dataset (100%)
+   ┌─────────────────────────────────────────────────────────────┐
+   │                                                             │
+   │  ┌──────────────────────────┐ ┌──────────┐  ┌──────────┐  │
+   │  │                          │ │          │  │          │  │
+   │  │     TRAINING SET         │ │VALIDATION│  │  TEST    │  │
+   │  │                          │ │  SET     │  │  SET     │  │
+   │  │        ~70%              │ │  ~15%    │  │  ~15%    │  │
+   │  │                          │ │          │  │          │  │
+   │  │ Model LEARNS from this   │ │TUNE &    │  │ FINAL    │  │
+   │  │                          │ │EVALUATE  │  │ HONEST   │  │
+   │  │ Patterns, weights,       │ │during    │  │ EVAL     │  │
+   │  │ correlations extracted   │ │training  │  │(untouched│  │
+   │  │                          │ │          │  │ until    │  │
+   │  │                          │ │          │  │ end)     │  │
+   │  └──────────────────────────┘ └──────────┘  └──────────┘  │
+   └─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 **Why split data into three sets?**
 - We need to train the model, tune it, AND evaluate it honestly
@@ -193,7 +235,31 @@
 ---
 
 ### Slide 7: The Textbook/Practice Exam/Final Exam Analogy
-**Visual:** Three icons: Textbook (Training), Practice Exam papers (Validation), Diploma/Final Exam (Test).
+**Visual:**
+```
+   STUDY ANALOGY → DATA SPLIT MAPPING
+
+   ┌────────────────┬──────────────────┬───────────────────────────┐
+   │  YOUR STUDYING │  DATA SPLIT      │  PURPOSE                  │
+   ├────────────────┼──────────────────┼───────────────────────────┤
+   │                │                  │                           │
+   │  📚 TEXTBOOK   │  TRAINING SET    │ Model/student LEARNS      │
+   │  Study the     │  (70%)           │ the material              │
+   │  material      │                  │                           │
+   ├────────────────┼──────────────────┼───────────────────────────┤
+   │                │                  │                           │
+   │  📝 PRACTICE   │  VALIDATION SET  │ Identify weak spots,      │
+   │  EXAM          │  (15%)           │ tune and adjust           │
+   │  Check progress│                  │ (hyperparameter tuning)   │
+   │                │                  │                           │
+   ├────────────────┼──────────────────┼───────────────────────────┤
+   │                │                  │                           │
+   │  🎓 FINAL EXAM │  TEST SET        │ HONEST unbiased measure   │
+   │  Real test —   │  (15%)           │ of true performance       │
+   │  never seen it │  NEVER TOUCHED   │ (never seen during train) │
+   │  before        │  during training │                           │
+   └────────────────┴──────────────────┴───────────────────────────┘
+```
 **Content:**
 
 | Data Split | Exam Analogy | Purpose |
@@ -211,7 +277,28 @@ If you practice on the final exam itself, your score looks great — but it does
 ---
 
 ### Slide 8: Overfitting — The Memorization Problem
-**Visual:** Two graphs side by side. Left: overfitted model — wiggly curve that perfectly fits training points. Right: well-fit model — smooth curve that generalizes.
+**Visual:**
+```
+   OVERFITTING — The Memorization Problem
+
+   OVERFITTED MODEL:              GOOD FIT MODEL:
+   Training data points ●         Training data points ●
+   Model curve ═══                Model curve ───
+
+         ●                              ●  ●
+        ●●●                            ●      ●
+       ●   ●●                         ●    ●   ●
+      ●     ●                        ●           ●
+     ●       ●●                     ●             ●
+             ═══ (wiggly, hits       ─────────────── (smooth,
+               every point)              captures trend)
+
+   Training Accuracy: 99%        Training Accuracy: 87%
+   Test Accuracy: 52%            Test Accuracy: 84%
+   → OVERFIT (big gap)           → GOOD (gap is small)
+
+   The overfit model memorized noise, not patterns.
+```
 **Content:**
 **Overfitting:**
 - Model performs **extremely well on training data** but **poorly on new data**
@@ -230,7 +317,28 @@ If you practice on the final exam itself, your score looks great — but it does
 ---
 
 ### Slide 9: Underfitting — The Generalization Failure
-**Visual:** Graph showing an underfit model — too-simple line that fails to capture the real pattern in the data.
+**Visual:**
+```
+   UNDERFITTING — The Too-Simple Model
+
+   Data points ●  and model line ─ ─ ─
+
+        ●  ●
+       ●    ●●
+   ─ ─ ─ ─ ─ ─ ─ ─ (flat line — model too simple)
+     ●         ●
+               ●● ●
+
+   The model used a straight line for curved data.
+   It missed the actual pattern entirely.
+
+   Training Accuracy: 61%        ← also poor
+   Test Accuracy: 59%            ← both are bad
+
+   Signs: LOW accuracy on BOTH training AND test data
+   Cause: Model too simple, too few features, too little data
+   Fix: More complex model, more features, train longer
+```
 **Content:**
 **Underfitting:**
 - Model performs **poorly on both training data AND new data**
@@ -251,7 +359,22 @@ If you practice on the final exam itself, your score looks great — but it does
 ---
 
 ### Slide 10: Visual — Overfitting vs. Underfitting vs. Good Fit
-**Visual:** Three curves fitting the same data points. Underfit (straight line, misses pattern), Overfit (wiggly line, hits every point), Good Fit (smooth curve, captures trend without noise).
+**Visual:**
+```
+   MODEL FIT SPECTRUM
+
+   UNDERFITTING          GOOD FIT              OVERFITTING
+   ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
+   │    ─ ─ ─     │      │    ╭────╮    │      │  ╭─╮ ╭─╮    │
+   │  ● ● ● ●     │      │  ●╱      ╲●  │      │ ●╱ ╲╱ ╲●    │
+   │              │      │           ●  │      │ ╱       ╲    │
+   │ Too simple   │      │ Captures      │      │●           ●│
+   │ line, misses │      │ trend well    │      │ Memorized   │
+   │ the pattern  │      │               │      │ every point │
+   └──────────────┘      └──────────────┘      └──────────────┘
+   Train: Poor           Train: Good           Train: Excellent
+   Test:  Poor           Test:  Good           Test:  Poor
+```
 **Content:**
 | | Training Performance | Test Performance |
 |---|---|---|
@@ -275,7 +398,35 @@ If you practice on the final exam itself, your score looks great — but it does
 ---
 
 ### Slide 11: How Salesforce Trains Einstein Models
-**Visual:** Data flow diagram: Salesforce Org Data → Model Training Pipeline (Salesforce infrastructure) → Einstein Model deployed to Org.
+**Visual:**
+```
+   HOW EINSTEIN TRAINS ON YOUR ORG DATA
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │                YOUR SALESFORCE ORG                          │
+   │                                                             │
+   │  Leads with IsConverted field   Opps with Stage Closed Won │
+   │  (historical labeled data)      (historical labeled data)  │
+   └────────────────────────┬────────────────────────────────────┘
+                            │
+                            ▼ (isolated training pipeline)
+   ┌─────────────────────────────────────────────────────────────┐
+   │              SALESFORCE TRAINING INFRASTRUCTURE             │
+   │                                                             │
+   │  Your data is used in ISOLATION — never commingled         │
+   │  with other customer orgs                                   │
+   │                                                             │
+   │  ML algorithm trains on your specific conversion patterns  │
+   └────────────────────────┬────────────────────────────────────┘
+                            │
+                            ▼
+   ┌─────────────────────────────────────────────────────────────┐
+   │           EINSTEIN MODEL DEPLOYED TO YOUR ORG               │
+   │                                                             │
+   │  Calibrated to YOUR business, YOUR customers, YOUR reps    │
+   │  Gets more accurate over time as more data accumulates     │
+   └─────────────────────────────────────────────────────────────┘
+```
 **Content:**
 **Two training approaches in Einstein:**
 
@@ -297,7 +448,37 @@ If you practice on the final exam itself, your score looks great — but it does
 ---
 
 ### Slide 12: Data Bias in Training Data
-**Visual:** Biased funnel: if input data skews one direction, model outputs skew the same direction.
+**Visual:**
+```
+   TRAINING DATA BIAS — THE AMPLIFICATION FUNNEL
+
+   HISTORICAL HUMAN DECISIONS
+   (may contain conscious or unconscious bias)
+            │
+            ▼
+   ┌────────────────────────────┐
+   │   COLLECTED AS             │
+   │   TRAINING DATA            │
+   │   (bias encoded as data)   │
+   └──────────────┬─────────────┘
+                  │
+                  ▼ (AI learns the pattern)
+   ┌────────────────────────────┐
+   │   MODEL TRAINED            │
+   │   (bias learned as         │
+   │   "signal")                │
+   └──────────────┬─────────────┘
+                  │
+                  ▼ (deployed at scale)
+   ┌────────────────────────────┐
+   │   BIASED DECISIONS         │
+   │   MADE AT SCALE            │
+   │   (millions per day)       │
+   └────────────────────────────┘
+
+   Human bias: affects 1 decision at a time
+   AI bias: amplifies it across every decision
+```
 **Content:**
 **Training data bias:**
 - If training data over-represents or under-represents certain groups, the model learns those biases
