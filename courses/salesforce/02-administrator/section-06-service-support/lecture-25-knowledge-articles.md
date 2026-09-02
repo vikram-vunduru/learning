@@ -1,351 +1,134 @@
-# L25: Knowledge Articles
+# Knowledge Articles
 
-## 🎯 Learning Objectives
-- Set up Salesforce Knowledge and understand article record types vs data categories
-- Describe the article lifecycle from Draft through Published to Archived
-- Explain Lightning Knowledge versus Classic Knowledge and article use in case management
+## Exam Domain
+Service & Support Apps — 11% of exam
 
-## 📊 SLIDES
+## Core Concepts
 
-### Slide 1: What Is Salesforce Knowledge?
-**Visual:**
+Salesforce Knowledge is the knowledge base component of Service Cloud — a repository of articles that agents use to resolve cases, and that customers can search in self-service portals.
+
+**Lightning Knowledge (current model):**
+- One Knowledge object (called "Knowledge" with article types as Record Types)
+- Simpler, unified model
+- Default since Lightning Experience
+
+**Classic Knowledge (legacy):**
+- Each Article Type was a separate custom object (e.g., FAQ__kav, How_To__kav)
+- More complex, multiple object types
+- Still referenced in older orgs and sometimes on the exam
+
+**The `__kav` suffix:** Knowledge Article Versions use the `__kav` API name suffix (vs regular custom objects = `__c`). This comes up on the exam.
+
+**Article Lifecycle:**
 ```
-                 ┌────────────────────────────────────┐
-                 │          KNOWLEDGE BASE             │
-                 │  ┌──────────────────────────────┐  │
-                 │  │  FAQ Articles                │  │
-                 │  │  How-To Guides               │  │
-                 │  │  Troubleshooting Guides      │  │
-                 │  │  Known Issues                │  │
-                 │  │  Reference Documentation     │  │
-                 │  └──────────────────────────────┘  │
-                 └───────────────┬────────────────────┘
-                                 │
-          ┌──────────────────────┼──────────────────────┐
-          │                      │                      │
-          ▼                      ▼                      ▼
-  ┌────────────────┐   ┌───────────────────┐  ┌─────────────────────┐
-  │    AGENTS      │   │    CUSTOMERS      │  │     PARTNERS        │
-  │ (Internal App) │   │ (Self-Service     │  │ (Partner Community) │
-  │ Case records,  │   │  Community /      │  │ Portal access       │
-  │ article search │   │  Public Site)     │  │                     │
-  └────────────────┘   └───────────────────┘  └─────────────────────┘
-
-  One article → published to multiple channels simultaneously
+Draft → In Review → Published → Archived
 ```
-**Content:**
-- Salesforce Knowledge is a built-in knowledge base for creating, managing, and sharing articles
-- Use cases: FAQ library, troubleshooting guides, product documentation, internal procedures
-- Articles are accessible to agents in Case records, in Self-Service portals, and via Lightning Experience
-- Requires Knowledge license/feature enabled in the org
-- Setup path: Setup → Knowledge Settings → Enable Salesforce Knowledge
-- Lightning Knowledge (current, recommended) vs Classic Knowledge (legacy)
-**Speaker Notes:** Knowledge is one of the most impactful Service Cloud features. Instead of every agent re-solving the same problem from scratch, articles capture proven solutions and make them reusable. The Admin exam tests how to set up Knowledge, manage article visibility, and understand the article lifecycle.
+- **Draft:** Being written, not visible to anyone except authors
+- **In Review:** Submitted for review/approval before publishing
+- **Published:** Visible to configured audiences
+- **Archived:** Removed from active use; still exists for records/history
 
-### Slide 2: Lightning Knowledge vs Classic Knowledge
-**Visual:**
+**Article Visibility (Channels):**
+- **Internal App:** Salesforce users only (agents)
+- **Customer:** Experience Cloud / Community customers
+- **Partner:** Partner Community users
+- **Public Knowledge Base:** Unauthenticated public website visitors
+
+**Data Categories:**
+Dual-purpose feature:
+1. **Organization:** Categorize articles so agents can find them by topic
+2. **Visibility control:** Control which articles are visible to which audiences (internal vs customer-facing vs partner)
+
+Data Category Groups → Data Categories within groups → Assigned to articles
+Users' visibility to articles is controlled by their profile's data category access
+
+## PTA / SA Relevance
+
+Knowledge is one of the highest ROI investments in Service Cloud — articles resolve cases faster and enable self-service deflection (customers find answers without opening a case). The key metric: case deflection rate.
+
+**Knowledge + Cases architecture:** The standard pattern is: agent opens a case → searches Knowledge from the case record → attaches the relevant article → closes the case. The article attachment creates an audit trail and enables reporting on which articles resolve which case types.
+
+**Data Categories for governance:** In regulated industries, Data Categories are the mechanism for controlling which knowledge is visible to which audience. Healthcare customers might have articles that are internal-only (clinical protocols), partner-visible (billing processes), and public (general FAQ). Data Categories enforce this segmentation without separate Knowledge objects.
+
+## Architecture / How It Works
+
 ```
-  ┌─────────────────────────────────┬─────────────────────────────────┐
-  │  LIGHTNING KNOWLEDGE            │  CLASSIC KNOWLEDGE              │
-  │  (Current / Recommended)        │  (Legacy)                       │
-  ├─────────────────────────────────┼─────────────────────────────────┤
-  │ One "Knowledge" object          │ Multiple Article Type objects   │
-  │ (single standard object)        │ (each type = separate object)   │
-  ├─────────────────────────────────┼─────────────────────────────────┤
-  │ Record Types differentiate      │ Article Types differentiate     │
-  │ article categories              │ article categories              │
-  │  → FAQ, How-To, Known Issue     │  → FAQ object, How-To object    │
-  ├─────────────────────────────────┼─────────────────────────────────┤
-  │ Standard object features:       │ Non-standard architecture;      │
-  │ layouts, related lists,         │ limited standard features;      │
-  │ CRM record linking              │ complex configuration           │
-  ├─────────────────────────────────┼─────────────────────────────────┤
-  │ New orgs: DEFAULT               │ Legacy orgs only                │
-  ├─────────────────────────────────┼─────────────────────────────────┤
-  │ ✓ Simpler    ✓ Modern           │ Migration tool available        │
-  │ ✓ Familiar admin model          │ Classic → Lightning migration   │
-  └─────────────────────────────────┴─────────────────────────────────┘
+Knowledge Article Architecture
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  LIGHTNING KNOWLEDGE (current)
+  ┌────────────────────────────────────────┐
+  │  Knowledge Object                      │
+  │  └── Record Types = Article Types      │
+  │       ├── FAQ                          │
+  │       ├── How-To                       │
+  │       └── Troubleshooting              │
+  └────────────────────────────────────────┘
+
+  Article Lifecycle:
+  [Draft] → [In Review] → [Published] → [Archived]
+     ↑                          │
+     └──────────────────────────┘ (un-publish back to draft)
+
+  Channels (who can see published articles):
+  ┌──────────────────────────────────────────┐
+  │  Internal App  → Support agents           │
+  │  Customer      → Experience Cloud users  │
+  │  Partner       → Partner portal users    │
+  │  Public        → Anyone (no login)       │
+  └──────────────────────────────────────────┘
+
+  Data Categories:
+  ┌──────────────────────────────────────────┐
+  │  Category Group: Products                │
+  │    ├── Category: Product A               │
+  │    └── Category: Product B               │
+  │                                          │
+  │  Category Group: Region                  │
+  │    ├── Category: North America           │
+  │    └── Category: EMEA                    │
+  │                                          │
+  │  Article assigned to categories          │
+  │  User's profile controls category access │
+  └──────────────────────────────────────────┘
 ```
-**Content:**
-- **Classic Knowledge:** Multiple Article Type objects (each type is a separate object); complex setup; legacy
-- **Lightning Knowledge:** Single "Knowledge" object with Record Types for different article categories; simpler and modern
-- Lightning Knowledge enables: multiple-column layouts, related lists, CRM record linking, standard object features
-- Migration: Classic to Lightning Knowledge migration tool available in Setup
-- New orgs default to Lightning Knowledge
-- Article fields are standard field types: Rich Text, Text, Checkbox, URL, etc.
-**Speaker Notes:** The exam may reference both but favors Lightning Knowledge concepts. The key difference: Classic Knowledge uses separate Article Type objects, making each type behave like a different object. Lightning Knowledge uses one Article object with Record Types — a model familiar to any Salesforce admin.
 
-### Slide 3: Article Record Types
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │             New Article — Select a Record Type               │
-  ├──────────────────────────────────────────────────────────────┤
-  │                                                              │
-  │  ◉  FAQ                                                      │
-  │     Fields: Question, Answer, Related Category               │
-  │                                                              │
-  │  ○  How-To Guide                                             │
-  │     Fields: Overview, Steps (rich text), Prerequisites       │
-  │                                                              │
-  │  ○  Known Issue / Solution                                   │
-  │     Fields: Issue Description, Workaround, Fix Date          │
-  │                                                              │
-  │  ○  Reference Guide                                          │
-  │     Fields: Summary, Detailed Content, Related Products      │
-  │                                                              │
-  │              [ Continue ]    [ Cancel ]                      │
-  └──────────────────────────────────────────────────────────────┘
-  Each Record Type → its own page layout, fields, validation rules
-  Setup: Object Manager → Knowledge → Record Types
-  Agents must have the Record Type assigned to their profile
-```
-**Content:**
-- Record Types in Lightning Knowledge differentiate article categories
-- Examples: FAQ (question/answer format), How-To (step-by-step), Known Issue (bug documentation), Reference (product specs)
-- Each Record Type can have its own page layout, fields, and validation rules
-- Record Types control what agents see when creating a new article
-- Agents must have the appropriate Record Type assigned to their profile to create that type
-- Setup: Object Manager → Knowledge → Record Types
-**Speaker Notes:** Record Types for Knowledge work exactly like Record Types on any other Salesforce object. They let you create different structures for different kinds of articles. A How-To article needs different fields than a Known Issue article. Using Record Types keeps your knowledge base organized and consistent.
+**Limitations:**
+- Articles must go through the full lifecycle (Draft → Published) before being visible in channels
+- Archiving an article makes it invisible but doesn't delete it
+- Data Category visibility requires configuration in profiles (Data Category Group Visibility)
+- Classic Knowledge article types use `__kav` suffix and cannot be directly migrated to Lightning Knowledge record types without a migration process
+- You cannot delete a Published article directly — must Archive it first
 
-### Slide 4: Data Categories for Visibility
-**Visual:**
-```
-  DATA CATEGORY GROUPS
+## Key Facts to Memorize
 
-  ┌───────────────────┐                  ┌───────────────────┐
-  │     PRODUCT       │                  │      REGION       │
-  │  Category Group   │                  │  Category Group   │
-  └─────────┬─────────┘                  └─────────┬─────────┘
-            │                                      │
-     ┌──────┴──────┐                    ┌──────────┴──────────┐
-     │             │                    │                     │
-     ▼             ▼                    ▼                     ▼
-┌──────────┐ ┌──────────┐         ┌──────────────┐  ┌──────────────┐
-│ Product A│ │ Product B│         │ North America │  │    Europe    │
-└────┬─────┘ └──────────┘         └──────┬───────┘  └──────┬───────┘
-     │                                   │                  │
-  ┌──┴──┐                         ┌──────┴────┐      ┌──────┴────┐
-  ▼     ▼                         ▼           ▼      ▼           ▼
- A.1   A.2                    US/Canada    LATAM    UK           DACH
+- Knowledge article API suffix = `__kav` (not `__c`)
+- Article lifecycle: Draft → In Review → Published → Archived
+- Published = visible to configured channels
+- 4 channels: Internal App, Customer, Partner, Public Knowledge Base
+- Data Categories: organize + control visibility (dual purpose)
+- Lightning Knowledge: one object + Record Types for article types
+- Classic Knowledge: separate object per article type (legacy)
+- Archived articles exist but are not visible in channels
 
-  Articles tagged with categories ──▶ Visibility set per profile
-  Dual purpose: Organization taxonomy AND access control
-```
-**Content:**
-- Data Categories control which articles are visible to which users and channels
-- Structure: Category Group → Categories → Subcategories (up to 5 levels)
-- Setup path: Setup → Data Categories
-- Articles are tagged with one or more Data Categories
-- Visibility rules: users see articles in categories they have visibility access to
-- Channels: Data Categories also determine article visibility by channel (App, Portals, Public Sites)
-**Speaker Notes:** Data Categories serve a dual purpose: they're an organizational taxonomy AND a visibility control mechanism. An agent in the North America region might only see articles tagged with the "North America" category. This lets you maintain one knowledge base while showing different content to different audiences.
+## Exam Traps
 
-### Slide 5: Article Lifecycle
-**Visual:**
-```
-  ┌──────────┐
-  │  DRAFT   │◀──────────────────────────────────────────┐
-  │(Writing) │                                           │
-  └────┬─────┘                                           │ Restore
-       │  Submit for Review                              │ (→ Draft)
-       ▼                                                 │
-  ┌──────────┐                                      ┌────┴──────┐
-  │   IN     │                                      │ ARCHIVED  │
-  │  REVIEW  │                                      │(Retained, │
-  └────┬─────┘                                      │ not live) │
-       │  Approve and Publish                        └───────────┘
-       ▼                                                  ▲
-  ┌──────────────────────────┐                            │ Archive
-  │       PUBLISHED          │────────────────────────────┘
-  │  (Live and visible)      │  (removes from search/portals)
-  └──────────┬───────────────┘
-             │  [Edit]
-             ▼
-     New DRAFT version created
-     Original Published version stays LIVE
-     until new draft is published
+- **"Knowledge articles use the `__c` suffix"** — FALSE. Articles use `__kav`.
+- **"Published articles are immediately visible to all users"** — FALSE. Visibility depends on channel settings — only users with access to the configured channels can see them.
+- **"Archiving an article deletes it"** — FALSE. Archiving removes it from active visibility but the article record remains.
+- **"Data Categories are only used for organizing articles"** — FALSE. Data Categories also control visibility — which users/communities can see which articles.
+- **"Classic Knowledge and Lightning Knowledge work the same way"** — FALSE. Classic uses separate objects per article type; Lightning uses one object with Record Types.
 
-  Only ONE version is Published at a time
-  Archived ≠ Deleted → can be restored to Draft
-```
-**Content:**
-- **Draft:** Article is being written; not visible to end users
-- **In Review / Review:** Article has been submitted for review; not yet published
-- **Published:** Article is live and visible to the configured audience
-- **Archived:** Article has been removed from publication; retained for historical reference
-- Authors submit drafts for review; reviewers/publishers approve and publish
-- Published articles can be "Edited" — this creates a new Draft version while the original stays published
-- Only one version of an article is Published at a time
-**Speaker Notes:** The lifecycle ensures content quality before publication. The important nuance for the exam: when you edit a published article, Salesforce creates a new DRAFT version. The original published version remains live until you publish the new draft. This prevents accidental removal of working content during editing.
+## Practice Questions
 
-### Slide 6: Article Actions & Management
-**Visual:**
-```
-  ARTICLE: "How to Reset Your Password"   Status: Published
+**Q:** An admin publishes a Knowledge article but agents report they can't find it. The article is set to the "Customer" channel only. What is the issue?
+**A:** The Internal App channel was not selected when publishing. Agents use the Internal App channel — to be visible to agents, the article must be published to the Internal App channel.
 
-  ┌──────────────────────────────────────────────────────────────┐
-  │  Actions ▼                                                   │
-  ├──────────────────────────────────────────────────────────────┤
-  │  Edit            ──▶  Creates new DRAFT version              │
-  │                       Original Published stays live          │
-  │                       during editing                         │
-  ├──────────────────────────────────────────────────────────────┤
-  │  Submit for      ──▶  Sends Draft to reviewer queue          │
-  │  Review                                                      │
-  ├──────────────────────────────────────────────────────────────┤
-  │  Publish         ──▶  Makes current Draft live               │
-  │                       (replaces old Published version)       │
-  ├──────────────────────────────────────────────────────────────┤
-  │  Archive         ──▶  Removes from search and portals        │
-  │                       Record is RETAINED (not deleted)       │
-  ├──────────────────────────────────────────────────────────────┤
-  │  Restore         ──▶  Moves Archived article back to Draft   │
-  ├──────────────────────────────────────────────────────────────┤
-  │  Delete          ──▶  Available for Draft or Archived only   │
-  │                       (Published articles cannot be deleted) │
-  └──────────────────────────────────────────────────────────────┘
-```
-**Content:**
-- **Promote to Knowledge Base:** Suggests articles from case solutions
-- **Promote Solution:** Converts a Case Solution to a Knowledge article (Classic-era feature)
-- **Archive:** Moves a Published article to Archived status (removes from searches/portals)
-- **Restore:** Moves an Archived article back to Draft status
-- **Delete:** Permanently removes the article (typically only available for Draft or Archived)
-- **Article Version history:** Previous published versions are retained for auditing
-- Article author, last modified, and Published Date are tracked
-**Speaker Notes:** Archiving is the clean way to remove an outdated article from active use without permanently deleting it. You archive first, which removes it from user-facing search, and the article can be restored to Draft if it needs to be updated and republished. Permanent deletion is typically reserved for junk or accidental drafts.
+**Q:** What are the two purposes of Data Categories in Salesforce Knowledge?
+**A:** (1) Organization — categorizing articles so users can browse/find by topic. (2) Visibility control — controlling which user groups (profiles, communities) can see which articles.
 
-### Slide 7: Knowledge in Case Management
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │                       CASE RECORD                            │
-  │  Case #: 00001042  │  Subject: Login page not loading        │
-  ├──────────────────────────────┬───────────────────────────────┤
-  │   CASE DETAILS               │   KNOWLEDGE SIDEBAR           │
-  │                              ├───────────────────────────────┤
-  │   Status:   Working          │  Suggested Articles           │
-  │   Priority: High             │  ─────────────────────────    │
-  │   Account:  Acme Corp        │  ► How to Clear Cache         │
-  │   Contact:  Jane Doe         │    (87% relevance match)      │
-  │   Description:               │                               │
-  │   Cannot log in              │  ► Login Troubleshooting      │
-  │   since 8am today...         │    Guide (82% match)          │
-  │                              │                               │
-  │                              │  ► Browser Compatibility      │
-  │                              │    Matrix (75% match)         │
-  │                              │                               │
-  │                              │  [Attach to Case]             │
-  │                              │  [View Full Article]          │
-  └──────────────────────────────┴───────────────────────────────┘
-  Suggested Articles: uses case Subject + Description for matching
-  Agents can also create new articles directly from case solutions
-```
-**Content:**
-- Agents can search the Knowledge base directly from a Case record
-- Articles can be attached to a Case (tracked in the Knowledge Articles related list)
-- Article attachment to a case helps track which articles were used to resolve issues
-- Suggested Articles: Salesforce uses the case subject/description to suggest relevant articles automatically
-- Agents can create new articles directly from cases ("Submit Article" action)
-- Customer Communities: Knowledge articles can be published to self-service portals
-**Speaker Notes:** The Case-Knowledge integration is the primary use case for agents. Instead of opening a separate tab and searching, agents get article suggestions right on the case. When an agent finds the right article, they can view it, attach it to the case for tracking, or even share the article URL with the customer via email.
+**Q:** A support manager wants to remove an outdated article from use without permanently deleting it. What should they do?
+**A:** Archive the article. This removes it from all channels (agents and customers can no longer find it) but the article record is retained for historical reference.
 
-### Slide 8: Knowledge Permissions & Channels
-**Visual:**
-```
-  ARTICLE: "Login Troubleshooting Guide" — Publication Channels:
-  ┌───────────────────────┬───────────────────────────┬──────────┐
-  │ Channel               │ Audience                  │ Visible? │
-  ├───────────────────────┼───────────────────────────┼──────────┤
-  │ Internal App          │ Agents (Salesforce org)   │ ☑ Yes    │
-  ├───────────────────────┼───────────────────────────┼──────────┤
-  │ Customer Community    │ Logged-in customers       │ ☑ Yes    │
-  ├───────────────────────┼───────────────────────────┼──────────┤
-  │ Partner Community     │ Partners (portal)         │ ☐ No     │
-  ├───────────────────────┼───────────────────────────┼──────────┤
-  │ Public Site           │ Anyone on the web         │ ☑ Yes    │
-  └───────────────────────┴───────────────────────────┴──────────┘
-
-  USER PERMISSIONS FOR KNOWLEDGE:
-  ┌─────────────────────────────────────────────────────────────┐
-  │  Knowledge User (checkbox)    ──▶ Can search & read articles│
-  │  Manage Articles (permission) ──▶ Can create, publish,      │
-  │                                   archive articles          │
-  └─────────────────────────────────────────────────────────────┘
-  Data Category Visibility: Setup → Data Category Visibility
-                            (set per profile)
-```
-**Content:**
-- Article Visibility is controlled per channel during publication
-- Channels: **Internal App** (agents in Salesforce), **Customer Community** (logged-in customers), **Partner Community** (partners), **Public Site** (anyone on the web)
-- User Permissions for Knowledge: Knowledge User (read/search), Article Manager (create/edit/publish/archive)
-- "Manage Articles" permission required to publish and archive articles
-- Data Category visibility set per profile/user in Setup → Data Category Visibility
-- Einstein Article Recommendations: AI-powered article suggestions on cases
-**Speaker Notes:** Channel visibility allows the same article to be shared across different audiences simultaneously. A troubleshooting guide can be visible internally to agents, to logged-in customers via Community, AND on a public FAQ site — all from one article record. Admins control which channels each article is published to when approving it.
-
-## 🎙️ RECORDING SCRIPT
-
-Welcome to Lecture 25 — Knowledge Articles. Salesforce Knowledge is the platform's built-in knowledge base, and it's a cornerstone of any mature service operation. Let's cover what you need to know for the Admin exam.
-
-Knowledge is all about capturing solutions and making them reusable. Instead of every agent spending 30 minutes figuring out how to solve the same product issue, you write it up once as a Knowledge article, and every agent can access it instantly. Articles can also be published to customer-facing portals so customers can self-serve.
-
-There are two versions of Knowledge: Classic Knowledge and Lightning Knowledge. New orgs use Lightning Knowledge, which is the modern approach. In Lightning Knowledge, all articles are stored in a single Knowledge object, and you use Record Types to differentiate article categories — just like you'd use Record Types on any other Salesforce object. Classic Knowledge used separate Article Type objects, which was more complex. For the exam, understand both but focus on Lightning Knowledge.
-
-Record Types in Lightning Knowledge let you create different article structures. A "How-To" article might have fields for numbered steps and screenshots. An "FAQ" article might have a Question field and an Answer field. A "Known Issue" article might have a Workaround field and a Fix Date. Each Record Type can have its own page layout and fields.
-
-Data Categories are both an organizational tool and a visibility mechanism. You create Category Groups — like "Product" or "Region" — and then create categories within them. Articles are tagged with relevant categories. Then you set Data Category Visibility rules by profile, so agents only see articles relevant to their role or geography.
-
-The article lifecycle is: Draft → Review → Published → Archived. An author writes the Draft. It goes to Review for quality checking. When approved, it's Published and becomes visible. When it's outdated, it gets Archived — which removes it from searches but doesn't delete it. Archived articles can be restored to Draft for updating and republishing.
-
-Here's an important nuance: if you need to edit a Published article, you don't edit it directly. Salesforce creates a new Draft version of the article. The original published version stays live while you work on the update. When the new draft is published, it replaces the old published version. This prevents disruption to agents using the article during your editing process.
-
-From a case management perspective, agents get Knowledge article suggestions directly on the Case record. Salesforce looks at the case subject and description and recommends relevant articles from the knowledge base. Agents can attach articles to cases for tracking, or share article links with customers. Agents can also create new articles directly from case solutions.
-
-Articles can be published across multiple channels simultaneously: Internal (agents), Customer Community (logged-in customers), Partner Community (partners), and Public Sites (anonymous web visitors). One article can serve all four audiences at once with appropriate visibility controls.
-
-For permissions: users need the Knowledge User checkbox on their profile or user record to search articles. Publishing, archiving, and managing articles requires the "Manage Articles" permission — typically given to knowledge managers and senior agents.
-
-That's Salesforce Knowledge covered. Next, we move to Activities, Tasks, and Events.
-
-## 🔔 EXAM TIPS
-- **Lightning Knowledge = one object + Record Types:** Classic Knowledge used multiple Article Type objects — they're fundamentally different architectures.
-- **Editing a Published article creates a new Draft:** The published version stays live during editing.
-- **Data Categories serve dual purpose:** Organization AND visibility control.
-- **Article lifecycle: Draft → Review → Published → Archived:** Archived articles are NOT deleted — they can be restored.
-- **Four channels for publishing:** Internal App, Customer Community, Partner Community, Public Site — one article can cover all four.
-- **Manage Articles permission required to publish:** The Knowledge User checkbox enables search/read; Manage Articles enables creating/publishing.
-
-## ✅ LECTURE SUMMARY
-- Salesforce Knowledge is a built-in knowledge base for articles accessible to agents, customers, and partners
-- Lightning Knowledge uses one Knowledge object with Record Types; Classic Knowledge used separate Article Type objects
-- Data Categories control article organization and visibility by profile and channel
-- Article lifecycle: Draft → In Review → Published → Archived; editing a published article creates a new Draft version
-- Articles are attached to Cases for tracking; Suggested Articles feature provides AI-powered recommendations on Case records
-- Four publication channels: Internal App, Customer Community, Partner Community, Public Site
-- Knowledge User permission enables article search; Manage Articles permission enables publishing and archiving
-
-## ❓ MINI QUIZ
-
-**Q1:** A support manager wants agents to see suggested Knowledge articles automatically when viewing a Case record without manually searching. Which feature provides this?
-- A) Data Categories assigned to the Case record type
-- B) Suggested Articles, which uses the case subject and description to recommend relevant articles
-- C) A Workflow Rule that populates the Knowledge lookup field based on case priority
-- D) Article Manager permission assigned to agents
-**Answer:** B — Suggested Articles is a built-in Knowledge feature that automatically recommends articles based on the case subject and description. Agents see these suggestions on the case record without any manual search, improving resolution speed.
-
-**Q2:** An administrator in a Lightning Knowledge org needs to create two article structures: one for FAQs (with Question and Answer fields) and one for Troubleshooting Guides (with Steps and Resolution fields). What is the correct approach?
-- A) Create two separate Knowledge objects using Object Manager
-- B) Create two Article Types in Classic Knowledge Settings
-- C) Create two Record Types on the Knowledge object, each with its own page layout
-- D) Use Data Category Groups to differentiate FAQ and Troubleshooting articles
-**Answer:** C — In Lightning Knowledge, Record Types on the single Knowledge object differentiate article structures. Each Record Type can have its own page layout with different fields. This is the standard Lightning Knowledge approach.
-
-**Q3:** A published Knowledge article contains outdated information. An administrator edits the article. What happens to the currently published version while the edit is in progress?
-- A) The article is immediately unpublished and shows "In Review" to all users during editing
-- B) The article is automatically archived when editing begins
-- C) Salesforce creates a new Draft version; the original published version remains visible and accessible until the new draft is published
-- D) The article is locked and cannot be viewed by agents until editing is complete
-**Answer:** C — Editing a Published Knowledge article creates a new Draft version of the article. The currently published version remains live and accessible to agents and customers throughout the editing process, ensuring continuity of service.
+**Q:** What is the difference between Lightning Knowledge and Classic Knowledge?
+**A:** Lightning Knowledge uses a single Knowledge object with Record Types to differentiate article types (API name: Knowledge). Classic Knowledge creates a separate object for each article type (API names end in `__kav`). Lightning Knowledge is the current standard; Classic is legacy.
