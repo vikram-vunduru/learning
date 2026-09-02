@@ -1,7 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, CheckCircle, Circle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import type { Module } from '@/lib/tracks';
 
 interface Props {
@@ -11,26 +10,7 @@ interface Props {
   trackId: string;
 }
 
-export function LessonFooter({ moduleId, prev, next, trackId }: Props) {
-  const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('certStudioCompleted') ?? '[]';
-      setDone(JSON.parse(raw).includes(moduleId));
-    } catch {}
-  }, [moduleId]);
-
-  const toggle = () => {
-    try {
-      const raw = localStorage.getItem('certStudioCompleted') ?? '[]';
-      const set = new Set<string>(JSON.parse(raw));
-      if (done) set.delete(moduleId); else set.add(moduleId);
-      localStorage.setItem('certStudioCompleted', JSON.stringify([...set]));
-      setDone(!done);
-    } catch {}
-  };
-
+export function LessonFooter({ prev, next, trackId }: Props) {
   return (
     <div
       style={{
@@ -41,11 +21,10 @@ export function LessonFooter({ moduleId, prev, next, trackId }: Props) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '12px 40px',
+        padding: 'clamp(12px, 4vw, 12px) clamp(12px, 5vw, 40px)',
         zIndex: 10,
       }}
     >
-      {/* Prev */}
       {prev ? (
         <Link
           href={`/tracks/${trackId}/${prev.id}`}
@@ -62,34 +41,12 @@ export function LessonFooter({ moduleId, prev, next, trackId }: Props) {
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
         >
           <ChevronLeft size={16} strokeWidth={1.75} />
-          <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ maxWidth: 'clamp(80px, 20vw, 200px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {prev.title}
           </span>
         </Link>
       ) : <div />}
 
-      {/* Mark complete */}
-      <button
-        onClick={toggle}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '8px 20px',
-          borderRadius: 'var(--radius-md)',
-          border: done ? '1px solid var(--success)' : 'none',
-          background: done ? 'transparent' : 'var(--accent)',
-          color: done ? 'var(--success)' : '#fff',
-          fontSize: '0.875rem', fontWeight: 500,
-          cursor: 'pointer',
-          transition: 'all 0.15s',
-        }}
-      >
-        {done
-          ? <><CheckCircle size={16} strokeWidth={1.75} /> Completed</>
-          : <><Circle size={16} strokeWidth={1.75} /> Mark complete</>
-        }
-      </button>
-
-      {/* Next */}
       {next ? (
         <Link
           href={`/tracks/${trackId}/${next.id}`}
@@ -97,13 +54,13 @@ export function LessonFooter({ moduleId, prev, next, trackId }: Props) {
             display: 'flex', alignItems: 'center', gap: 6,
             color: 'var(--accent)', textDecoration: 'none',
             fontSize: '0.875rem', fontWeight: 500,
-            padding: '6px 12px', borderRadius: 'var(--radius-md)',
+            padding: '6px 14px', borderRadius: 'var(--radius-md)',
             background: 'var(--accent-soft)',
             border: '1px solid transparent',
             transition: 'background 0.15s',
           }}
         >
-          <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ maxWidth: 'clamp(80px, 20vw, 200px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {next.title}
           </span>
           <ChevronRight size={16} strokeWidth={1.75} />

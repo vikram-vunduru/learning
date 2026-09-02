@@ -82,7 +82,7 @@ export default function Dashboard() {
       )}
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid gap-4 mb-8 stats-grid">
         {stats.map(({ label, value, sub, Icon }) => (
           <div
             key={label}
@@ -97,10 +97,10 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid gap-6 dashboard-grid">
         {/* 12-month timeline */}
         <div
-          className="col-span-2 rounded-xl p-6"
+          className="timeline-card rounded-xl p-6"
           style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
           <h2 style={{ fontSize: "1.0625rem", fontWeight: 600, color: "var(--text)", margin: 0, marginBottom: 16 }}>
