@@ -25,7 +25,7 @@
 
 **Content:**
 - Data Cloud is Salesforce's **real-time data platform** built natively on the Salesforce platform
-- Formerly called **Customer Data Platform (CDP)** — you may see both terms on the exam
+- Formerly called **Customer Data Platform (CDP)**, and before that **Customer 360 Audiences** — all three terms appear in documentation; the current product is Data Cloud and the current certification is **Salesforce Certified Data 360 Consultant**
 - Ingests data from any source, resolves identities, and creates a **Unified Customer Profile**
 - Powers real-time segmentation, activation, analytics, and AI/Agentforce grounding
 - Licensed separately from core Salesforce CRM; requires its own provisioning
@@ -44,7 +44,7 @@
                            │
                 ┌──────────┴──────────┐
                 │      DATA CLOUD     │
-                │  Customer 360 Hub   │
+                │  Data Platform      │
                 │  (bidirectional)    │
                 └──────────┬──────────┘
                            │
@@ -56,7 +56,7 @@
 ```
 
 **Content:**
-- Data Cloud sits at the **center of Customer 360** — it feeds data to other clouds
+- Data Cloud serves as the **data foundation** for the Salesforce platform — it feeds unified data to other clouds
 - **Salesforce Connector:** Natively pulls Sales/Service Cloud data into Data Cloud
 - Data Cloud pushes unified profiles back to CRM via **Data Actions** and **Activation Targets**
 - Marketing Cloud Connection: Enables sending Data Cloud segments to Marketing Cloud journeys
