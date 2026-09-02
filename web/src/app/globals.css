@@ -338,15 +338,16 @@ body {
 }
 
 /* ── Dashboard responsive grids ─────────────────────────── */
-.stats-grid { grid-template-columns: repeat(4, 1fr); }
-.dashboard-grid { grid-template-columns: 2fr 1fr; }
-.timeline-card { /* default, desktop 2-col */ }
+.dashboard-page { padding: clamp(16px, 5vw, 32px); }
+.stats-grid     { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.months-grid    { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 
 @media (max-width: 900px) {
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid     { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .dashboard-grid { grid-template-columns: 1fr; }
-  .timeline-card { /* full width on mobile */ }
+  .stats-grid  { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .months-grid { grid-template-columns: 1fr; }
 }

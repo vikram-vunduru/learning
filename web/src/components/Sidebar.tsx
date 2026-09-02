@@ -15,6 +15,7 @@ import {
   FileText,
   Check,
   GitFork,
+  X,
 } from "lucide-react";
 import { TRACKS } from "@/lib/tracks";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -440,7 +441,9 @@ function SectionRowButton({
 }
 
 // ── Main Sidebar ──────────────────────────────────────────────
-export default function Sidebar() {
+interface SidebarProps { onClose?: () => void; }
+
+export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const completed = useCompleted();
 
@@ -534,7 +537,27 @@ export default function Sidebar() {
             </div>
           </div>
         </Link>
-        <ThemeToggle />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <ThemeToggle />
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="sidebar-close-btn"
+              title="Close menu"
+              style={{
+                width: 32, height: 32,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+              }}
+            >
+              <X size={16} strokeWidth={1.75} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Nav ────────────────────────────────────────────── */}

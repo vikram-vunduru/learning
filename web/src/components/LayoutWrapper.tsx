@@ -43,7 +43,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
         />
       )}
       <div className={`sidebar-mobile${sidebarOpen ? ' sidebar-open' : ''}`}>
-        <Sidebar />
+        <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Mobile top bar (hamburger) */}

@@ -28,10 +28,10 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="p-8" style={{ minHeight: "100vh", background: "var(--bg)" }}>
+    <div className="dashboard-page" style={{ minHeight: "100vh", background: "var(--bg)" }}>
       {/* Header */}
-      <div className="mb-8">
-        <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "var(--text)", margin: 0, marginBottom: 4 }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 700, color: "var(--text)", margin: 0, marginBottom: 4 }}>
           Dashboard
         </h1>
         <p style={{ color: "var(--text-secondary)", margin: 0, fontSize: "0.9375rem" }}>
@@ -42,84 +42,79 @@ export default function Dashboard() {
       {/* Active track banner */}
       {activeTrack && (
         <div
-          className="rounded-xl p-6 mb-8 flex items-center justify-between gap-4"
+          className="rounded-xl mb-6"
           style={{
             background: "linear-gradient(135deg, #1d3a6e 0%, #0f2447 100%)",
             border: "1px solid var(--border-strong)",
+            padding: "clamp(16px, 4vw, 24px)",
           }}
         >
-          <div>
-            <div style={{ color: "var(--accent)", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 4 }}>
-              Active Track
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ color: "var(--accent)", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 4 }}>
+                Active Track
+              </div>
+              <h2 style={{ fontSize: "clamp(1.125rem, 3vw, 1.5rem)", fontWeight: 700, color: "var(--text)", margin: 0, marginBottom: 4, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <Cloud size={20} strokeWidth={1.75} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                {activeTrack.title} → CTA
+              </h2>
+              <p style={{ color: "var(--text-secondary)", margin: 0, fontSize: "0.875rem" }}>
+                {activeTrack.description}
+              </p>
             </div>
-            <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text)", margin: 0, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
-              <Cloud size={22} strokeWidth={1.75} style={{ color: "var(--accent)" }} />
-              {activeTrack.title} → CTA
-            </h2>
-            <p style={{ color: "var(--text-secondary)", margin: 0, fontSize: "0.875rem" }}>
-              {activeTrack.description}
-            </p>
+            <Link
+              href={`/tracks/${activeTrack.id}`}
+              style={{
+                background: "var(--accent)", color: "#fff", fontWeight: 600,
+                padding: "8px 16px", borderRadius: "var(--radius-md)",
+                textDecoration: "none", fontSize: "0.875rem",
+                flexShrink: 0, display: "flex", alignItems: "center", gap: 4,
+                whiteSpace: "nowrap",
+              }}
+            >
+              Continue <ChevronRight size={14} strokeWidth={2} />
+            </Link>
           </div>
-          <Link
-            href={`/tracks/${activeTrack.id}`}
-            style={{
-              background: "var(--accent)",
-              color: "#fff",
-              fontWeight: 600,
-              padding: "10px 20px",
-              borderRadius: "var(--radius-md)",
-              textDecoration: "none",
-              fontSize: "0.875rem",
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            Continue <ChevronRight size={15} strokeWidth={2} />
-          </Link>
         </div>
       )}
 
       {/* Stats row */}
-      <div className="grid gap-4 mb-8 stats-grid">
+      <div className="stats-grid" style={{ marginBottom: 24 }}>
         {stats.map(({ label, value, sub, Icon }) => (
           <div
             key={label}
-            className="rounded-xl p-5"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+            className="rounded-xl"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "clamp(12px, 3vw, 20px)" }}
           >
-            <Icon size={18} strokeWidth={1.75} style={{ color: "var(--accent)", marginBottom: 10 }} />
-            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "var(--text)", lineHeight: 1.1 }}>{value}</div>
-            <div style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text)", marginTop: 2 }}>{label}</div>
+            <Icon size={18} strokeWidth={1.75} style={{ color: "var(--accent)", marginBottom: 8 }} />
+            <div style={{ fontSize: "clamp(1.25rem, 4vw, 1.75rem)", fontWeight: 700, color: "var(--text)", lineHeight: 1.1 }}>{value}</div>
+            <div style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--text)", marginTop: 2 }}>{label}</div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>{sub}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid gap-6 dashboard-grid">
+      <div className="dashboard-grid">
         {/* 12-month timeline */}
         <div
-          className="timeline-card rounded-xl p-6"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+          className="rounded-xl"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "clamp(16px, 4vw, 24px)" }}
         >
-          <h2 style={{ fontSize: "1.0625rem", fontWeight: 600, color: "var(--text)", margin: 0, marginBottom: 16 }}>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, color: "var(--text)", margin: 0, marginBottom: 16 }}>
             12-Month CTA Sprint
           </h2>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="months-grid">
             {months.map((m) => (
               <div
                 key={m.num}
-                className="flex items-center gap-3 rounded-lg p-3"
-                style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
+                className="flex items-center gap-3 rounded-lg"
+                style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", padding: "10px 12px" }}
               >
                 <div
                   className="flex items-center justify-center flex-shrink-0"
                   style={{
-                    width: 32, height: 32,
-                    borderRadius: "50%",
-                    background: "var(--accent-soft)",
-                    border: "1px solid var(--accent)",
+                    width: 28, height: 28, borderRadius: "50%",
+                    background: "var(--accent-soft)", border: "1px solid var(--accent)",
                   }}
                 >
                   <span style={{ fontSize: "0.6875rem", fontWeight: 700, color: "var(--accent)" }}>{m.num}</span>
@@ -128,7 +123,7 @@ export default function Dashboard() {
                   <div style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {m.cert}
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Month {m.num}</div>
+                  <div style={{ fontSize: "0.6875rem", color: "var(--text-muted)" }}>Month {m.num}</div>
                 </div>
               </div>
             ))}
@@ -137,16 +132,16 @@ export default function Dashboard() {
             href="/tracks/salesforce/roadmap"
             style={{ display: "block", textAlign: "center", marginTop: 16, fontSize: "0.875rem", color: "var(--accent)", textDecoration: "none" }}
           >
-            View full roadmap with weekly breakdowns →
+            View full roadmap →
           </Link>
         </div>
 
         {/* All tracks */}
         <div
-          className="rounded-xl p-6"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+          className="rounded-xl"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "clamp(16px, 4vw, 24px)" }}
         >
-          <h2 style={{ fontSize: "1.0625rem", fontWeight: 600, color: "var(--text)", margin: 0, marginBottom: 16 }}>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, color: "var(--text)", margin: 0, marginBottom: 16 }}>
             All Tracks
           </h2>
           <div className="flex flex-col gap-3">
@@ -155,58 +150,27 @@ export default function Dashboard() {
                 {track.status === "active" ? (
                   <Link
                     href={`/tracks/${track.id}`}
-                    className="flex items-center gap-3 rounded-lg p-3"
-                    style={{
-                      background: "var(--accent-soft)",
-                      border: "1px solid var(--accent)",
-                      textDecoration: "none",
-                    }}
+                    className="flex items-center gap-3 rounded-lg"
+                    style={{ background: "var(--accent-soft)", border: "1px solid var(--accent)", textDecoration: "none", padding: "10px 12px" }}
                   >
-                    <Cloud size={18} strokeWidth={1.75} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                    <Cloud size={16} strokeWidth={1.75} style={{ color: "var(--accent)", flexShrink: 0 }} />
                     <div className="min-w-0 flex-1">
                       <div style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text)" }}>{track.title}</div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {track.description}
-                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.description}</div>
                     </div>
-                    <span
-                      style={{
-                        fontSize: "0.6875rem", fontWeight: 600,
-                        background: "var(--success)",
-                        color: "#fff",
-                        padding: "2px 8px",
-                        borderRadius: 99,
-                        flexShrink: 0,
-                      }}
-                    >
-                      Active
-                    </span>
+                    <span style={{ fontSize: "0.6875rem", fontWeight: 600, background: "var(--success)", color: "#fff", padding: "2px 7px", borderRadius: 99, flexShrink: 0 }}>Active</span>
                   </Link>
                 ) : (
                   <div
-                    className="flex items-center gap-3 rounded-lg p-3"
-                    style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", opacity: 0.6 }}
+                    className="flex items-center gap-3 rounded-lg"
+                    style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", opacity: 0.6, padding: "10px 12px" }}
                   >
-                    <Cloud size={18} strokeWidth={1.75} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                    <Cloud size={16} strokeWidth={1.75} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                     <div className="min-w-0 flex-1">
                       <div style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>{track.title}</div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {track.description}
-                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.description}</div>
                     </div>
-                    <span
-                      style={{
-                        fontSize: "0.6875rem", fontWeight: 600,
-                        background: "var(--surface)",
-                        color: "var(--text-muted)",
-                        border: "1px solid var(--border)",
-                        padding: "2px 8px",
-                        borderRadius: 99,
-                        flexShrink: 0,
-                      }}
-                    >
-                      Soon
-                    </span>
+                    <span style={{ fontSize: "0.6875rem", fontWeight: 600, background: "var(--surface)", color: "var(--text-muted)", border: "1px solid var(--border)", padding: "2px 7px", borderRadius: 99, flexShrink: 0 }}>Soon</span>
                   </div>
                 )}
               </div>
