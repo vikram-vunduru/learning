@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check } from "lucide-react";
 import type { Cert } from "@/lib/tracks";
 
 interface Props {
@@ -23,67 +24,92 @@ export default function CertTracker({ certs, trackId }: Props) {
     localStorage.setItem(`progress_${trackId}_certs`, JSON.stringify([...next]));
   };
 
-  const pct = Math.round((completed.size / certs.length) * 100);
+  const pct = certs.length > 0 ? Math.round((completed.size / certs.length) * 100) : 0;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <h2 style={{ fontSize: "1rem", fontWeight: 600, color: "var(--text)", margin: 0 }}>
           Certification Tracker
         </h2>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          {completed.size} / {certs.length} completed
+        <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+          {completed.size} / {certs.length}
         </span>
       </div>
 
       {/* Overall progress bar */}
-      <div className="mb-6">
-        <div className="flex justify-between text-xs text-gray-500 mb-1">
-          <span>Overall progress</span>
-          <span>{pct}%</span>
+      <div className="mb-5">
+        <div className="flex justify-between mb-1">
+          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Overall progress</span>
+          <span style={{ fontSize: "0.75rem", color: "var(--mastery)", fontWeight: 600 }}>{pct}%</span>
         </div>
-        <div className="h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div style={{ height: 6, background: "var(--mastery-soft)", borderRadius: 3, overflow: "hidden" }}>
           <div
-            className="h-full bg-blue-500 rounded-full transition-all duration-500"
-            style={{ width: `${pct}%` }}
+            style={{
+              width: `${pct}%`,
+              height: "100%",
+              background: "var(--mastery)",
+              borderRadius: 3,
+              transition: "width 400ms ease-out",
+            }}
           />
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         {certs.map((cert) => {
           const done = completed.has(cert.id);
           return (
             <div
               key={cert.id}
               onClick={() => toggle(cert.id)}
-              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                done
-                  ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
-                  : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300"
-              }`}
+              className="flex items-center gap-3 rounded-lg"
+              style={{
+                padding: "10px 12px",
+                background: done ? "rgba(61,190,122,0.08)" : "var(--surface-raised)",
+                border: `1px solid ${done ? "var(--success)" : "var(--border)"}`,
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
             >
               <div
-                className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors ${
-                  done
-                    ? "bg-green-500 border-green-500 text-white"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className="flex items-center justify-center flex-shrink-0"
+                style={{
+                  width: 20, height: 20,
+                  borderRadius: "var(--radius-sm)",
+                  border: `2px solid ${done ? "var(--success)" : "var(--border-strong)"}`,
+                  background: done ? "var(--success)" : "transparent",
+                  transition: "all 0.15s",
+                }}
               >
-                {done && <span className="text-xs">✓</span>}
+                {done && <Check size={12} strokeWidth={2.5} style={{ color: "#fff" }} />}
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className={`text-sm font-medium truncate ${done ? "line-through text-gray-400" : "text-gray-900 dark:text-white"}`}>
+                <div style={{
+                  fontSize: "0.8125rem",
+                  fontWeight: 500,
+                  color: done ? "var(--text-muted)" : "var(--text)",
+                  textDecoration: done ? "line-through" : "none",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
                   {cert.name}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div style={{ fontSize: "0.6875rem", color: "var(--text-muted)", marginTop: 1 }}>
                   Month {cert.month} · {cert.questions} Qs · {cert.passScore} pass · {cert.cost}
                 </div>
               </div>
 
               {cert.id === "cta" && (
-                <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-0.5 rounded-full font-medium">
+                <span style={{
+                  fontSize: "0.6875rem", fontWeight: 600,
+                  background: "var(--mastery-soft)",
+                  color: "var(--mastery)",
+                  border: "1px solid var(--mastery)",
+                  padding: "2px 7px",
+                  borderRadius: 99,
+                  flexShrink: 0,
+                }}>
                   Pinnacle
                 </span>
               )}

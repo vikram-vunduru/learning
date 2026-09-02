@@ -1,32 +1,82 @@
 @import "tailwindcss";
 
-/* ── Base theme backgrounds ───────────────────── */
-body {
-  background-color: #f8fafc; /* light default */
-}
-html.dark body {
-  background-color: #030712;
-}
+/* ── Hover utilities (for Server Components that can't use onMouseEnter) ─── */
+.hover-border:hover { border-color: var(--accent) !important; }
+.hover-surface:hover { background: var(--surface-raised) !important; }
+.hover-accent-soft:hover { background: var(--accent-soft) !important; }
 
+/* ── Fonts ─────────────────────────────────────────────── */
+/* Loaded via next/font — see layout.tsx for className injection */
+
+/* ── Design Tokens ─────────────────────────────────────── */
 :root {
-  --sidebar-width: 260px;
+  /* Dark theme (default) */
+  --bg:              #0F1420;
+  --surface:         #151B29;
+  --surface-raised:  #1C2335;
+  --border:          #28324A;
+  --border-strong:   #3A4664;
+  --text:            #E9EDF5;
+  --text-secondary:  #A3ADC2;
+  --text-muted:      #6B7691;
+  --accent:          #5B95F5;
+  --accent-soft:     #5B95F51F;
+  --mastery:         #F0B54A;
+  --mastery-soft:    #F0B54A1F;
+  --success:         #3DBE7A;
+  --danger:          #E5605E;
+  --code-bg:         #0B0F19;
 
-  /* Salesforce brand palette */
-  --sf-navy:        #032d60;
-  --sf-navy-light:  #0a3d7a;
+  /* Radius scale */
+  --radius-sm:  6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Sidebar */
+  --sidebar-width: 272px;
+  --header-height: 56px;
+
+  /* Salesforce brand (for slides) */
   --sf-blue:        #0176d3;
-  --sf-blue-bright: #1589ee;
   --sf-sky:         #00a1e0;
   --sf-teal:        #06b6d4;
-  --sf-einstein:    #ff784f;   /* Einstein orange */
+  --sf-einstein:    #ff784f;
   --sf-purple:      #9c59ff;
   --sf-green:       #3ba755;
-  --sf-gold:        #ffb75d;
-  --sf-text:        #e8f4ff;
-  --sf-muted:       #7eb3d8;
 }
 
-/* ── Slide animations ─────────────────────────── */
+[data-theme="light"] {
+  --bg:              #F4F5F7;
+  --surface:         #FFFFFF;
+  --surface-raised:  #FFFFFF;
+  --border:          #E1E4EA;
+  --border-strong:   #C9CED8;
+  --text:            #161B26;
+  --text-secondary:  #4C5566;
+  --text-muted:      #8A93A6;
+  --accent:          #2563EB;
+  --accent-soft:     #2563EB14;
+  --mastery:         #D18F0F;
+  --mastery-soft:    #D18F0F14;
+  --success:         #1E9A5A;
+  --danger:          #C93F3D;
+  --code-bg:         #F0F2F5;
+}
+
+/* ── Base ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { color-scheme: dark; }
+[data-theme="light"] { color-scheme: light; }
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Slide animations (keep from old file) ─────────────── */
 @keyframes slide-in-up {
   from { opacity: 0; transform: translateY(22px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -64,75 +114,118 @@ html.dark body {
   70%  { transform: scale(1.8); opacity: 0; }
   100% { transform: scale(1.8); opacity: 0; }
 }
-
-.anim-slide-up        { animation: slide-in-up   0.45s cubic-bezier(.22,.68,0,1.2) both; }
-.anim-slide-left      { animation: slide-in-left 0.4s  cubic-bezier(.22,.68,0,1.2) both; }
-.anim-float           { animation: float-slow    6s    ease-in-out infinite; }
-.anim-icon-pulse      { animation: icon-pulse    4s    ease-in-out infinite; }
-
-/* Slide presentation card */
-.sf-slide-card {
-  background: linear-gradient(135deg, var(--sf-navy) 0%, #04245a 60%, #061f4a 100%);
-  border: 1px solid rgba(1, 118, 211, 0.35);
-  box-shadow: 0 0 0 1px rgba(1, 118, 211, 0.1), 0 20px 60px rgba(3, 45, 96, 0.6), 0 0 80px rgba(0, 161, 224, 0.05);
+@keyframes progress-fill {
+  from { width: 0; }
 }
 
-.sf-slide-title-bar {
-  background: linear-gradient(90deg, var(--sf-blue) 0%, var(--sf-sky) 100%);
-  height: 3px;
+.anim-slide-up   { animation: slide-in-up   0.45s cubic-bezier(.22,.68,0,1.2) both; }
+.anim-slide-left { animation: slide-in-left 0.35s cubic-bezier(.22,.68,0,1.2) both; }
+.anim-float      { animation: float-slow    4s ease-in-out infinite; }
+.anim-orb        { animation: orb-drift     8s ease-in-out infinite; }
+.anim-glow       { animation: border-glow   2.5s ease-in-out infinite; }
+.anim-icon-pulse { animation: icon-pulse    3s   ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
-.sf-progress-bar {
-  background: linear-gradient(90deg, var(--sf-blue) 0%, var(--sf-sky) 70%, var(--sf-teal) 100%);
-}
+/* ── Route transition ───────────────────────────────────── */
+.page-content { animation: slide-in-up 150ms ease both; }
 
-/* Slide bullet dot */
-.sf-bullet-dot {
-  background: var(--sf-sky);
-  box-shadow: 0 0 6px rgba(0, 161, 224, 0.8);
-}
+/* ── Salesforce slide components ────────────────────────── */
+.sf-slide-title-bar { background: linear-gradient(90deg, var(--sf-blue) 0%, var(--sf-sky) 100%); height: 3px; }
+.sf-progress-bar    { background: linear-gradient(90deg, var(--sf-blue) 0%, var(--sf-sky) 70%, var(--sf-teal) 100%); }
+.sf-bullet-dot      { background: var(--sf-sky); box-shadow: 0 0 6px rgba(0,161,224,0.8); }
+.sf-notes-panel     { background: rgba(255,120,79,0.08); border: 1px solid rgba(255,120,79,0.25); }
 
-/* Speaker notes panel */
-.sf-notes-panel {
-  background: rgba(255, 120, 79, 0.08);
-  border: 1px solid rgba(255, 120, 79, 0.25);
-}
-
-/* Prose styles for markdown content */
+/* ── Reading pane prose ─────────────────────────────────── */
+/* Body text inside .prose uses Source Serif 4 (applied via className in layout) */
 .prose {
-  @apply text-gray-900 dark:text-gray-100 max-w-none;
+  color: var(--text);
+  max-width: 72ch;
+  font-size: 1.0625rem;
+  line-height: 1.7;
 }
-.prose h1 { @apply text-3xl font-bold mt-8 mb-4 text-gray-900 dark:text-white; }
-.prose h2 { @apply text-2xl font-semibold mt-8 mb-3 text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2; }
-.prose h3 { @apply text-xl font-semibold mt-6 mb-2 text-gray-800 dark:text-gray-100; }
-.prose h4 { @apply text-lg font-semibold mt-4 mb-2 text-gray-800 dark:text-gray-200; }
-.prose p { @apply my-3 leading-relaxed; }
-.prose ul { @apply list-disc list-inside my-3 space-y-1; }
-.prose ol { @apply list-decimal list-inside my-3 space-y-1; }
-.prose li { @apply leading-relaxed; }
-.prose a { @apply text-blue-600 dark:text-blue-400 hover:underline; }
-.prose strong { @apply font-semibold text-gray-900 dark:text-white; }
+.prose h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+.prose h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  /* No hairline rule */
+}
+.prose h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+.prose h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+.prose p         { margin: 0.75rem 0; }
+.prose ul, .prose ol { margin: 0.75rem 0; padding-left: 1.5rem; }
+.prose li        { margin: 0.35rem 0; }
+.prose a         { color: var(--accent); text-decoration: none; }
+.prose a:hover   { text-decoration: underline; }
+.prose strong    { font-weight: 600; color: var(--text); }
+.prose em        { font-style: italic; }
 .prose code:not(pre code) {
-  @apply bg-gray-100 dark:bg-gray-800 text-pink-600 dark:text-pink-400 px-1.5 py-0.5 rounded text-sm font-mono;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.875em;
+  background: var(--code-bg);
+  color: #e879a0;
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
 }
 .prose pre {
-  @apply bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-lg overflow-x-auto my-4 text-sm;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin: 1.25rem 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
 }
-.prose pre code { @apply bg-transparent text-inherit p-0; }
+.prose pre code {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  background: transparent;
+  color: var(--text);
+  padding: 0;
+  border: none;
+}
 .prose blockquote {
-  @apply border-l-4 border-blue-400 pl-4 my-4 text-gray-600 dark:text-gray-400 italic;
+  border-left: 3px solid var(--accent);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: var(--text-secondary);
+  font-style: italic;
 }
-.prose table { @apply w-full border-collapse my-4 text-sm; }
-.prose thead { @apply bg-gray-100 dark:bg-gray-800; }
-.prose th { @apply text-left px-3 py-2 font-semibold border border-gray-200 dark:border-gray-700; }
-.prose td { @apply px-3 py-2 border border-gray-200 dark:border-gray-700; }
-.prose tr:nth-child(even) { @apply bg-gray-50 dark:bg-gray-800/50; }
-.prose hr { @apply border-gray-200 dark:border-gray-700 my-8; }
+.prose table  { width: 100%; border-collapse: collapse; margin: 1.25rem 0; font-size: 0.9375rem; }
+.prose thead  { background: var(--surface); }
+.prose th     { text-align: left; padding: 0.6rem 0.75rem; font-weight: 600; border: 1px solid var(--border); color: var(--text); }
+.prose td     { padding: 0.6rem 0.75rem; border: 1px solid var(--border); color: var(--text-secondary); }
+.prose tr:nth-child(even) td { background: var(--surface); }
+.prose hr     { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
 
-/* URL code spans converted to links */
-.prose a.code-link code {
-  @apply text-blue-400 hover:text-blue-300 underline underline-offset-2 decoration-dotted;
-}
-.prose a.code-link:hover code {
-  @apply bg-blue-950/50;
-}
+/* Remove border-bottom from H2 (old style had it) */
+.prose h2 { border-bottom: none !important; }

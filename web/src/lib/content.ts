@@ -107,6 +107,9 @@ export interface ContentSections {
   quiz: string;
   objectives: string;
   isLecture: boolean;
+  examDomain: string;
+  examWeight: number;
+  tocItems: { level: 2 | 3; text: string; id: string }[];
 }
 
 function parseSlides(rawSection: string): ParsedSlide[] {
@@ -150,6 +153,9 @@ export async function getMarkdownSections(filePath: string): Promise<ContentSect
     quiz: "",
     objectives: "",
     isLecture: false,
+    examDomain: "",
+    examWeight: 0,
+    tocItems: [],
   };
 
   const fullPath = path.join(CONTENT_ROOT, filePath);
@@ -200,5 +206,32 @@ export async function getMarkdownSections(filePath: string): Promise<ContentSect
   const slidesData = slidesRaw ? parseSlides(slidesRaw) : [];
   const isLecture = slidesData.length > 0 || examTips.length > 0 || quiz.length > 0 || summary.length > 0;
 
-  return { title, fullHtml, slides, slidesData, script, examTips, summary, quiz, objectives, isLecture };
+  // Extract examDomain and examWeight from "## Exam Domain" section
+  let examDomain = "";
+  let examWeight = 0;
+  for (const sec of rawSections) {
+    const headerLine = sec.split("\n")[0] ?? "";
+    if (/^## Exam Domain/.test(headerLine)) {
+      // First non-empty line after the header contains: "Domain Name — X% of exam weight"
+      const lines = sec.split("\n").filter(l => l.trim()).slice(1);
+      const firstLine = lines[0] ?? "";
+      const weightMatch = firstLine.match(/(\d+)%/);
+      examWeight = weightMatch ? parseInt(weightMatch[1]) : 0;
+      examDomain = firstLine.replace(/\s*—\s*\d+%.*$/, "").trim();
+      break;
+    }
+  }
+
+  // Extract H2/H3 headings for TOC
+  const tocItems: { level: 2 | 3; text: string; id: string }[] = [];
+  const headingRegex = /^(#{2,3})\s+(.+)$/gm;
+  let match;
+  while ((match = headingRegex.exec(content)) !== null) {
+    const level = match[1].length as 2 | 3;
+    const text = match[2].trim();
+    const id = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    tocItems.push({ level, text, id });
+  }
+
+  return { title, fullHtml, slides, slidesData, script, examTips, summary, quiz, objectives, isLecture, examDomain, examWeight, tocItems };
 }

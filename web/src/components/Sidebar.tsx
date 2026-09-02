@@ -1,45 +1,448 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Cloud,
+  GraduationCap,
+  ChevronRight,
+  ChevronDown,
+  BookOpen,
+  FlaskConical,
+  ClipboardList,
+  FileText,
+  Check,
+  GitFork,
+} from "lucide-react";
 import { TRACKS } from "@/lib/tracks";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-// Returns a small badge indicating module type
+// ── Progress tracking via localStorage ───────────────────────
+function useCompleted() {
+  const [completed, setCompleted] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("certStudioCompleted") ?? "[]";
+      setCompleted(new Set(JSON.parse(raw)));
+    } catch {}
+  }, []);
+  return completed;
+}
+
+// ── Mini progress bar ─────────────────────────────────────────
+function MiniProgress({ done, total }: { done: number; total: number }) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+      <div
+        style={{
+          width: 40,
+          height: 4,
+          borderRadius: 2,
+          background: "var(--mastery-soft)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${pct}%`,
+            height: "100%",
+            background: "var(--mastery)",
+            borderRadius: 2,
+            transition: "width 300ms ease-out",
+          }}
+        />
+      </div>
+      <span
+        style={{
+          fontSize: "0.75rem",
+          color: "var(--text-muted)",
+          fontVariantNumeric: "tabular-nums",
+          flexShrink: 0,
+        }}
+      >
+        {done}/{total}
+      </span>
+    </div>
+  );
+}
+
+// ── Type badge chips (lab / exam / cheatsheet only) ───────────
 function TypeBadge({ type }: { type: string }) {
+  const base: React.CSSProperties = {
+    fontSize: "0.625rem",
+    fontWeight: 700,
+    padding: "1px 4px",
+    borderRadius: "var(--radius-sm)",
+    flexShrink: 0,
+    lineHeight: 1.4,
+    letterSpacing: "0.03em",
+  };
   if (type === "lab")
     return (
-      <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400 flex-shrink-0">
+      <span
+        style={{
+          ...base,
+          background: "rgba(61,190,122,0.15)",
+          color: "var(--success)",
+        }}
+      >
         LAB
       </span>
     );
   if (type === "exam")
     return (
-      <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-500 flex-shrink-0">
+      <span
+        style={{
+          ...base,
+          background: "var(--mastery-soft)",
+          color: "var(--mastery)",
+        }}
+      >
         EXAM
       </span>
     );
   if (type === "cheatsheet")
     return (
-      <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 flex-shrink-0">
+      <span
+        style={{
+          ...base,
+          background: "rgba(155,89,255,0.15)",
+          color: "#9B59FF",
+        }}
+      >
         CS
       </span>
     );
   return null;
 }
 
-// Returns active link color classes based on module type
-function activeModClasses(type: string): string {
-  if (type === "lab") return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-600/10 border-l-2 border-green-500";
-  if (type === "exam") return "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-600/10 border-l-2 border-amber-500";
-  if (type === "cheatsheet") return "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-600/10 border-l-2 border-purple-500";
-  // lecture / study / default
-  return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-600/15 border-l-2 border-blue-500";
+// ── Lesson type icon (for lecture / study / fallback) ─────────
+function LessonTypeIcon({ type }: { type: string }) {
+  const s: React.CSSProperties = { flexShrink: 0, color: "var(--text-muted)" };
+  if (type === "lab") return <FlaskConical size={16} strokeWidth={1.75} style={s} />;
+  if (type === "exam") return <ClipboardList size={16} strokeWidth={1.75} style={s} />;
+  if (type === "cheatsheet" || type === "study")
+    return <FileText size={16} strokeWidth={1.75} style={s} />;
+  return <BookOpen size={16} strokeWidth={1.75} style={s} />;
 }
 
+// ── Shared hover bg constants ─────────────────────────────────
+const HOVER_BG = "rgba(91,149,245,0.08)";
+const ACTIVE_BG = "var(--accent-soft)";
+
+// ── Dashboard / flat nav link ─────────────────────────────────
+function NavRowLink({
+  href,
+  active,
+  icon,
+  label,
+}: {
+  href: string;
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <Link
+      href={href}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "0 10px",
+        height: 36,
+        borderRadius: "var(--radius-sm)",
+        textDecoration: "none",
+        color: active ? "var(--accent)" : "var(--text)",
+        fontWeight: active ? 500 : 400,
+        background: active ? ACTIVE_BG : hovered ? HOVER_BG : "transparent",
+        borderLeft: active ? "2px solid var(--accent)" : "2px solid transparent",
+        transition: "background 150ms",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {icon}
+      <span
+        style={{
+          fontSize: "0.9375rem",
+          flex: 1,
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </span>
+    </Link>
+  );
+}
+
+// ── Track row ─────────────────────────────────────────────────
+function TrackRowLink({
+  href,
+  active,
+  label,
+}: {
+  href: string;
+  active: boolean;
+  label: string;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <Link
+      href={href}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "0 10px",
+        height: 36,
+        borderRadius: "var(--radius-sm)",
+        textDecoration: "none",
+        color: active ? "var(--accent)" : "var(--text)",
+        fontWeight: active ? 600 : 400,
+        background: !active && hovered ? HOVER_BG : "transparent",
+        transition: "background 150ms",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <Cloud size={16} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+      <span
+        style={{
+          fontSize: "0.9375rem",
+          flex: 1,
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </span>
+      {active && (
+        <div
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: "var(--accent)",
+            flexShrink: 0,
+          }}
+        />
+      )}
+    </Link>
+  );
+}
+
+// ── Lesson row link ───────────────────────────────────────────
+function LessonRowLink({
+  href,
+  type,
+  active,
+  done,
+  title,
+}: {
+  href: string;
+  type: string;
+  active: boolean;
+  done: boolean;
+  title: string;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <Link
+      href={href}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "0 8px",
+        height: 36,
+        borderRadius: "var(--radius-sm)",
+        textDecoration: "none",
+        color: active ? "var(--accent)" : "var(--text-secondary)",
+        fontWeight: active ? 500 : 400,
+        fontSize: "0.8125rem",
+        background: active ? ACTIVE_BG : hovered ? HOVER_BG : "transparent",
+        borderLeft: active
+          ? "2px solid var(--accent)"
+          : "2px solid transparent",
+        transition: "background 150ms",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* type badge for lab/exam/cheatsheet */}
+      <TypeBadge type={type} />
+      {/* completion / current indicator */}
+      {done ? (
+        <Check
+          size={13}
+          strokeWidth={2.25}
+          style={{ flexShrink: 0, color: "var(--success)" }}
+        />
+      ) : active ? (
+        <div
+          style={{
+            width: 5,
+            height: 5,
+            borderRadius: "50%",
+            background: "var(--accent)",
+            flexShrink: 0,
+          }}
+        />
+      ) : null}
+      <span
+        style={{
+          flex: 1,
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {title}
+      </span>
+    </Link>
+  );
+}
+
+// ── Cert (course) row button ──────────────────────────────────
+function CertRowButton({
+  label,
+  active,
+  open,
+  done,
+  total,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  open: boolean;
+  done: number;
+  total: number;
+  onClick: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "0 8px",
+        height: 36,
+        width: "100%",
+        borderRadius: "var(--radius-sm)",
+        border: "none",
+        cursor: "pointer",
+        color: active ? "var(--accent)" : "var(--text)",
+        fontWeight: active ? 600 : 500,
+        background: hovered ? HOVER_BG : "transparent",
+        transition: "background 150ms",
+        textAlign: "left",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {open ? (
+        <ChevronDown
+          size={14}
+          strokeWidth={1.75}
+          style={{ flexShrink: 0, color: "var(--text-muted)" }}
+        />
+      ) : (
+        <ChevronRight
+          size={14}
+          strokeWidth={1.75}
+          style={{ flexShrink: 0, color: "var(--text-muted)" }}
+        />
+      )}
+      <span
+        style={{
+          fontSize: "0.8125rem",
+          flex: 1,
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </span>
+      <MiniProgress done={done} total={total} />
+    </button>
+  );
+}
+
+// ── Section header row ────────────────────────────────────────
+function SectionRowButton({
+  label,
+  active,
+  open,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  open: boolean;
+  onClick: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "0 6px",
+        height: 30,
+        width: "100%",
+        borderRadius: "var(--radius-sm)",
+        border: "none",
+        cursor: "pointer",
+        color: active ? "var(--accent)" : "var(--text-secondary)",
+        fontWeight: 500,
+        fontSize: "0.8125rem",
+        background: hovered ? HOVER_BG : "transparent",
+        transition: "background 150ms",
+        textAlign: "left",
+        marginTop: 2,
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {open ? (
+        <ChevronDown size={13} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+      ) : (
+        <ChevronRight size={13} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+      )}
+      <span
+        style={{
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
+// ── Main Sidebar ──────────────────────────────────────────────
 export default function Sidebar() {
   const pathname = usePathname();
+  const completed = useCompleted();
 
   const activeTrackId =
     TRACKS.find((t) => pathname.startsWith(`/tracks/${t.id}`))?.id ?? null;
@@ -67,16 +470,66 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white flex flex-col z-40">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-        <Link href="/" className="flex items-center gap-2.5 min-w-0">
-          <span className="text-xl flex-shrink-0">🎓</span>
-          <div className="min-w-0">
-            <div className="font-bold text-sm text-gray-900 dark:text-white leading-tight">
+    <aside
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        height: "100vh",
+        width: "var(--sidebar-width)",
+        background: "var(--surface)",
+        borderRight: "1px solid var(--border)",
+        display: "flex",
+        flexDirection: "column",
+        zIndex: 40,
+        overflowX: "hidden",
+      }}
+    >
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div
+        style={{
+          height: "var(--header-height)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 16px",
+          borderBottom: "1px solid var(--border)",
+          flexShrink: 0,
+        }}
+      >
+        <Link
+          href="/"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            minWidth: 0,
+            textDecoration: "none",
+          }}
+        >
+          <GraduationCap
+            size={20}
+            strokeWidth={1.75}
+            style={{ flexShrink: 0, color: "var(--accent)" }}
+          />
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: "0.9375rem",
+                color: "var(--text)",
+                lineHeight: 1.2,
+              }}
+            >
               CertStudio
             </div>
-            <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
+            <div
+              style={{
+                fontSize: "0.6875rem",
+                color: "var(--text-muted)",
+                lineHeight: 1.2,
+              }}
+            >
               Learning Platform
             </div>
           </div>
@@ -84,47 +537,83 @@ export default function Sidebar() {
         <ThemeToggle />
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
+      {/* ── Nav ────────────────────────────────────────────── */}
+      <nav style={{ flex: 1, overflowY: "auto", padding: 8 }}>
         {/* Dashboard */}
-        <Link
+        <NavRowLink
           href="/"
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-            pathname === "/"
-              ? "bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-medium"
-              : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-          }`}
-        >
-          <span className="flex-shrink-0">🏠</span>
-          <span>Dashboard</span>
-        </Link>
+          active={pathname === "/"}
+          icon={
+            <LayoutDashboard size={16} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+          }
+          label="Dashboard"
+        />
 
-        {/* Tracks label */}
-        <div className="pt-3 pb-1 px-3">
-          <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+        {/* Tracks section label */}
+        <div style={{ paddingTop: 16, paddingBottom: 4, paddingLeft: 10 }}>
+          <span
+            style={{
+              fontSize: "0.6875rem",
+              fontWeight: 600,
+              color: "var(--text-muted)",
+              letterSpacing: "0.04em",
+            }}
+          >
             Tracks
           </span>
         </div>
 
         {TRACKS.map((track) => {
-          const isActive = pathname.startsWith(`/tracks/${track.id}`);
+          const isActive = track.id === activeTrackId;
           const isPlanned = track.status === "planned";
 
+          /* ── Planned track row (non-clickable) ─────────── */
           if (isPlanned) {
             return (
               <div
                 key={track.id}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed select-none"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "0 10px",
+                  height: 36,
+                  borderRadius: "var(--radius-sm)",
+                  color: "var(--text-muted)",
+                  cursor: "not-allowed",
+                  userSelect: "none",
+                }}
               >
-                <span className="flex-shrink-0">{track.icon}</span>
-                <span className="truncate">{track.title}</span>
-                <span className="ml-auto text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 px-1.5 py-0.5 rounded flex-shrink-0">
+                <Cloud size={16} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+                <span
+                  style={{
+                    fontSize: "0.9375rem",
+                    flex: 1,
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {track.title}
+                </span>
+                <span
+                  style={{
+                    fontSize: "0.6875rem",
+                    padding: "2px 6px",
+                    borderRadius: "var(--radius-sm)",
+                    background: "rgba(107,118,145,0.15)",
+                    color: "var(--text-muted)",
+                    flexShrink: 0,
+                  }}
+                >
                   Soon
                 </span>
               </div>
             );
           }
 
+          /* Separate flat modules (no course) from cert modules */
           const flatModules = track.modules.filter((m) => !m.course);
 
           const courseOrder: string[] = [];
@@ -135,46 +624,67 @@ export default function Sidebar() {
 
           return (
             <div key={track.id}>
-              {/* Track link */}
-              <Link
+              {/* ── Active / available track row ─────────── */}
+              <TrackRowLink
                 href={`/tracks/${track.id}`}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? "bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-medium"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
-              >
-                <span className="flex-shrink-0">{track.icon}</span>
-                <span className="truncate">{track.title}</span>
-                <span className="ml-auto text-[10px] bg-green-100 dark:bg-green-600/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded flex-shrink-0">
-                  Active
-                </span>
-              </Link>
+                active={isActive}
+                label={track.title}
+              />
 
+              {/* ── Expanded track content ─────────────── */}
               {isActive && (
-                <div className="ml-3 mt-1 space-y-0.5 border-l border-gray-200 dark:border-gray-700/60 pl-2">
-                  {/* Flat (study) modules */}
+                <div
+                  style={{
+                    marginLeft: 12,
+                    marginTop: 4,
+                    paddingLeft: 10,
+                    borderLeft: "1px solid var(--border)",
+                  }}
+                >
+                  {/* Flat study doc links */}
                   {flatModules.map((mod) => {
                     const modPath = `/tracks/${track.id}/${mod.id}`;
-                    const isModActive = pathname === modPath;
-                    const modType = (mod as { type?: string }).type ?? "study";
+                    const modType =
+                      (mod as { type?: string }).type ?? "study";
                     return (
-                      <Link
+                      <LessonRowLink
                         key={mod.id}
                         href={modPath}
-                        className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
-                          isModActive
-                            ? activeModClasses(modType)
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
-                        }`}
-                      >
-                        <TypeBadge type={modType} />
-                        <span className="truncate">{mod.title.split("(")[0].trim()}</span>
-                      </Link>
+                        type={modType}
+                        active={pathname === modPath}
+                        done={completed.has(mod.id)}
+                        title={mod.title.split("(")[0].trim()}
+                      />
                     );
                   })}
 
-                  {/* Course groups */}
+                  {/* Thin divider between flat links and cert groups */}
+                  {flatModules.length > 0 && courseOrder.length > 0 && (
+                    <div
+                      style={{
+                        height: 1,
+                        background: "var(--border)",
+                        margin: "6px 0",
+                      }}
+                    />
+                  )}
+
+                  {/* Certifications group header */}
+                  {courseOrder.length > 0 && (
+                    <div
+                      style={{
+                        fontSize: "0.6875rem",
+                        fontWeight: 600,
+                        color: "var(--text-secondary)",
+                        padding: "4px 4px 2px",
+                        letterSpacing: "0.02em",
+                      }}
+                    >
+                      Certifications
+                    </div>
+                  )}
+
+                  {/* ── Cert groups ────────────────────── */}
                   {courseOrder.map((courseName) => {
                     const courseKey = `${track.id}|course:${courseName}`;
                     const isCourseOpen = openKeys.has(courseKey);
@@ -184,7 +694,9 @@ export default function Sidebar() {
                     const courseHasActive = courseMods.some(
                       (m) => pathname === `/tracks/${track.id}/${m.id}`
                     );
-
+                    const completedCount = courseMods.filter((m) =>
+                      completed.has(m.id)
+                    ).length;
                     const totalMods = courseMods.length;
 
                     const overviewMods = courseMods.filter((m) => !m.section);
@@ -194,53 +706,47 @@ export default function Sidebar() {
                         sectionOrder.push(mod.section);
                     }
 
-                    // Prettify course name: title-case
-                    const prettyName = courseName
-                      .split(" ")
-                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-                      .join(" ");
+                    // Sentence-case: first letter uppercase, rest unchanged
+                    const prettyName =
+                      courseName.charAt(0).toUpperCase() +
+                      courseName.slice(1);
 
                     return (
-                      <div key={courseName} className="mt-1.5">
-                        {/* Course toggle */}
-                        <button
+                      <div key={courseName} style={{ marginTop: 2 }}>
+                        {/* Cert toggle row */}
+                        <CertRowButton
+                          label={prettyName}
+                          active={courseHasActive}
+                          open={isCourseOpen}
+                          done={completedCount}
+                          total={totalMods}
                           onClick={() => toggle(courseKey)}
-                          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                            courseHasActive
-                              ? "bg-indigo-50 dark:bg-indigo-600/15 text-indigo-700 dark:text-indigo-300"
-                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
-                          }`}
-                        >
-                          <span className="flex-shrink-0 text-[13px]">📚</span>
-                          <span className="truncate flex-1 text-left">{prettyName}</span>
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0 mr-1">
-                            {totalMods}
-                          </span>
-                          <span className="flex-shrink-0 text-gray-400 dark:text-gray-500 text-[10px]">
-                            {isCourseOpen ? "▾" : "▸"}
-                          </span>
-                        </button>
+                        />
 
+                        {/* ── Course lessons ─────────── */}
                         {isCourseOpen && (
-                          <div className="ml-2 mt-0.5 space-y-0.5 border-l border-gray-200 dark:border-gray-700/50 pl-2">
-                            {/* Overview links */}
+                          <div
+                            style={{
+                              marginLeft: 8,
+                              marginTop: 2,
+                              paddingLeft: 8,
+                              borderLeft: "1px solid var(--border)",
+                            }}
+                          >
+                            {/* Overview link(s) */}
                             {overviewMods.map((mod) => {
                               const modPath = `/tracks/${track.id}/${mod.id}`;
-                              const isModActive = pathname === modPath;
-                              const modType = (mod as { type?: string }).type ?? "lecture";
+                              const modType =
+                                (mod as { type?: string }).type ?? "lecture";
                               return (
-                                <Link
+                                <LessonRowLink
                                   key={mod.id}
                                   href={modPath}
-                                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
-                                    isModActive
-                                      ? activeModClasses(modType)
-                                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
-                                  }`}
-                                >
-                                  <span className="text-gray-400 dark:text-gray-500 flex-shrink-0 text-[10px]">📋</span>
-                                  <span className="truncate">{mod.title}</span>
-                                </Link>
+                                  type={modType}
+                                  active={pathname === modPath}
+                                  done={completed.has(mod.id)}
+                                  title={mod.title}
+                                />
                               );
                             })}
 
@@ -252,48 +758,44 @@ export default function Sidebar() {
                                 (m) => m.section === sectionName
                               );
                               const sectionHasActive = sectionMods.some(
-                                (m) => pathname === `/tracks/${track.id}/${m.id}`
+                                (m) =>
+                                  pathname === `/tracks/${track.id}/${m.id}`
                               );
 
                               return (
                                 <div key={sectionName}>
                                   {/* Section toggle */}
-                                  <button
+                                  <SectionRowButton
+                                    label={sectionName}
+                                    active={sectionHasActive}
+                                    open={isSectionOpen}
                                     onClick={() => toggle(sectionKey)}
-                                    className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-[10px] font-semibold uppercase tracking-wide transition-colors mt-0.5 ${
-                                      sectionHasActive
-                                        ? "text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-600/10"
-                                        : "text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                                    }`}
-                                  >
-                                    <span className="truncate">{sectionName}</span>
-                                    <span className="flex-shrink-0 ml-1 normal-case text-[10px]">
-                                      {isSectionOpen ? "▾" : "▸"}
-                                    </span>
-                                  </button>
+                                  />
 
+                                  {/* Lessons within section */}
                                   {isSectionOpen && (
-                                    <div className="ml-2 mt-0.5 space-y-0.5 border-l border-gray-200 dark:border-gray-700/40 pl-2">
+                                    <div
+                                      style={{
+                                        marginLeft: 6,
+                                        paddingLeft: 8,
+                                        borderLeft:
+                                          "1px solid var(--border)",
+                                      }}
+                                    >
                                       {sectionMods.map((mod) => {
                                         const modPath = `/tracks/${track.id}/${mod.id}`;
-                                        const isModActive = pathname === modPath;
                                         const modType =
-                                          (mod as { type?: string }).type ?? "lecture";
+                                          (mod as { type?: string }).type ??
+                                          "lecture";
                                         return (
-                                          <Link
+                                          <LessonRowLink
                                             key={mod.id}
                                             href={modPath}
-                                            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
-                                              isModActive
-                                                ? activeModClasses(modType)
-                                                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
-                                            }`}
-                                          >
-                                            <TypeBadge type={modType} />
-                                            <span className="truncate">
-                                              {mod.title}
-                                            </span>
-                                          </Link>
+                                            type={modType}
+                                            active={pathname === modPath}
+                                            done={completed.has(mod.id)}
+                                            title={mod.title}
+                                          />
                                         );
                                       })}
                                     </div>
@@ -313,17 +815,36 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="px-3 py-3 border-t border-gray-200 dark:border-gray-700">
+      {/* ── Footer ─────────────────────────────────────────── */}
+      <div
+        style={{
+          height: 56,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 12px",
+          borderTop: "1px solid var(--border)",
+          flexShrink: 0,
+        }}
+      >
         <a
           href="https://github.com/vikram-vunduru/learning"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            color: "var(--text-muted)",
+            textDecoration: "none",
+            fontSize: "0.8125rem",
+            whiteSpace: "nowrap",
+          }}
         >
-          <span>📂</span>
-          <span>View on GitHub</span>
+          <GitFork size={16} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+          <span>GitHub</span>
         </a>
+        <ThemeToggle />
       </div>
     </aside>
   );
