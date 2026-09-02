@@ -184,19 +184,21 @@ export async function getMarkdownSections(filePath: string): Promise<ContentSect
       slides = await processMarkdown(sec);
     } else if (/RECORDING SCRIPT|🎙️/.test(headerLine)) {
       script = await processMarkdown(sec);
-    } else if (/EXAM TIPS|🔔/.test(headerLine)) {
+    } else if (/EXAM TIPS|EXAM TRAPS|🔔/.test(headerLine)) {
       examTips = await processMarkdown(sec);
-    } else if (/LECTURE SUMMARY|✅/.test(headerLine)) {
+    } else if (/LECTURE SUMMARY|KEY FACTS|🗝️|✅/.test(headerLine)) {
       summary = await processMarkdown(sec);
-    } else if (/MINI QUIZ|❓/.test(headerLine)) {
+    } else if (/MINI QUIZ|PRACTICE QUESTIONS|❓/.test(headerLine)) {
       quiz = await processMarkdown(sec);
     } else if (/Learning Objectives|🎯/.test(headerLine)) {
       objectives = await processMarkdown(sec);
+    } else if (/PTA|SA RELEVANCE|RELEVANCE/.test(headerLine)) {
+      script = script || await processMarkdown(sec);
     }
   }
 
   const slidesData = slidesRaw ? parseSlides(slidesRaw) : [];
-  const isLecture = slidesData.length > 0 && script.length > 0;
+  const isLecture = slidesData.length > 0 || examTips.length > 0 || quiz.length > 0 || summary.length > 0;
 
   return { title, fullHtml, slides, slidesData, script, examTips, summary, quiz, objectives, isLecture };
 }

@@ -1,197 +1,245 @@
 # LWC Fundamentals
 
-## Learning Objectives
-- Identify the required and optional files in an LWC component bundle and explain each file's role
-- Use the @api, @track, and @wire decorators correctly in a component's JavaScript class
-- Apply template directives including lwc:if/elseif/else and for:each for conditional rendering and list iteration
-- Configure a component's deployment targets and visibility using the .js-meta.xml file
+## Exam Domain
+User Interface — 25% of exam weight
 
-## Slides
+## Core Concepts
 
-### Slide 1: What Is Lightning Web Components?
-**Visual:** LWC component file bundle icon showing the five files side by side: .html, .js, .css, .js-meta.xml, and an optional .svg file
-**Content:**
-- LWC is Salesforce's modern UI framework, based on Web Components standards
-- Runs client-side in the browser — more performant than server-rendered Visualforce
-- Each component is a bundle of files in a folder with the same name as the component
-- Built on open web standards: Custom Elements, Shadow DOM, ES6+ JavaScript
-- Introduced in Spring '19; now the preferred framework for new Salesforce UI development
-**Speaker Notes:** Lightning Web Components represents Salesforce's shift from proprietary frameworks to open web standards. Unlike Visualforce (server-rendered) and Aura (custom framework), LWC uses technologies that are becoming native to browsers. This means LWC code is more aligned with what JavaScript developers already know, and it performs better because rendering happens in the browser rather than requiring a server round-trip for every interaction.
-
-### Slide 2: Component Bundle Files
-**Visual:**
+### Component Bundle Structure
 ```
-  myComponent/
-  ├── myComponent.html         ← template (required; single <template> root)
-  ├── myComponent.js           ← JavaScript class (required; extends LightningElement)
-  ├── myComponent.css          ← component-scoped styles (optional)
-  ├── myComponent.js-meta.xml  ← deployment config (required)
-  └── myComponent.svg          ← custom App Builder icon (optional)
+myComponent/
+├── myComponent.html         ← template (required; single <template> root)
+├── myComponent.js           ← JS class (required; extends LightningElement)
+├── myComponent.css          ← scoped styles (optional)
+├── myComponent.js-meta.xml  ← deployment config (required)
+└── myComponent.svg          ← App Builder icon (optional)
 
-  All files must share the same name as the folder.
-  Folder name: kebab-case  →  JS class name: PascalCase
-  e.g.  my-account-tile   →  MyAccountTile
+All files MUST share the same name as the folder.
+Folder: kebab-case → JS class: PascalCase (e.g., my-account-tile → MyAccountTile)
 ```
-**Content:**
-- **myComponent.html** — the component template; must have a single `<template>` root element
-- **myComponent.js** — the JavaScript controller class; imports decorators and exports the component class
-- **myComponent.css** — component-scoped styles (optional); automatically applied only to this component
-- **myComponent.js-meta.xml** — deployment configuration; controls where the component can be placed
-- **myComponent.svg** — custom icon for App Builder (optional)
-**Speaker Notes:** The file names must match the folder name exactly — this is enforced by Salesforce. The .html file must use a `<template>` root tag, not `<html>` or `<div>`. The .js file exports a class that extends LightningElement. The js-meta.xml file is required — without it, the component cannot be deployed or placed in pages. The CSS file uses Shadow DOM scoping, meaning styles defined here cannot bleed out to other components.
 
-### Slide 3: The JavaScript Class — Decorators
-**Visual:** JS class code showing three decorated properties: @api publicProp, @track reactivePrivate (crossed out with note about Spring '20), and @wire(getRecord) wiredData
-**Content:**
-- `@api` — marks a property or method as publicly accessible from parent components
-- `@track` — was required for deep reactivity before Spring '20; now largely unnecessary (all properties are reactive by default)
-- `@wire` — declaratively connects a property to a wire adapter (Salesforce data or Apex method)
-- Properties without a decorator are private and reactive (re-renders on change) by default
-- `@api` properties define the component's public interface — they can be set by a parent
-**Speaker Notes:** The most important distinction for the exam is @api vs. private properties. @api makes a property part of the component's public interface — a parent can pass data into it. Private properties (no decorator) are reactive by default in all recent API versions, meaning changes trigger re-renders. @track is still valid but is now only needed for deep object/array mutation reactivity in specific edge cases. @wire is covered in detail in Lecture 19.
+### The JavaScript Class
+```javascript
+import { LightningElement, api, track, wire } from 'lwc';
 
-### Slide 4: Template Directives — Conditional Rendering
-**Visual:** Two code panels: left shows the old `if:true={property}` syntax with a deprecation note; right shows the modern `lwc:if`, `lwc:elseif`, and `lwc:else` directives
-**Content:**
-- **Old syntax** (deprecated but may appear on exams): `<template if:true={isVisible}>` / `<template if:false={isVisible}>`
-- **New syntax** (Spring '23+): `lwc:if={condition}`, `lwc:elseif={otherCondition}`, `lwc:else`
-- `lwc:if` replaces both `if:true` and `if:false` — use a negated expression for false conditions
-- Elements with lwc:if/lwc:else must be siblings at the same level in the DOM
-- The `<template>` tag with a directive renders no DOM element itself — just its children
-**Speaker Notes:** The exam may still reference the older if:true/if:false syntax since it has been available for longer. Know both. The new lwc:if/lwc:elseif/lwc:else syntax is the recommended approach going forward and allows true if/else-if/else chains without nesting. Negation for the equivalent of if:false is done with a getter in JavaScript that returns !this.originalProperty.
+export default class MyComponent extends LightningElement {
+    @api recordId;           // PUBLIC — parent can set this
+    title = 'Hello';         // private, reactive (re-renders on change)
 
-### Slide 5: Template Directives — List Rendering
-**Visual:** Code showing for:each={contacts} and iterator:contacts={contacts} template directives, with the key={contact.Id} attribute requirement highlighted
-**Content:**
-- `for:each={array}` — iterates over an array; current item available as `for:item="item"`, index as `for:index="i"`
-- `key={uniqueValue}` — required on the first child element inside for:each; must be a unique string/ID
-- `iterator:varName={array}` — advanced iteration; item has `.value`, `.first`, `.last` properties for conditional styling
-- The `<template>` wrapper with for:each renders no DOM element of its own
-- Both require the `key` attribute — omitting it causes a runtime warning
-**Speaker Notes:** The key attribute on for:each is critical for LWC's virtual DOM diffing algorithm — it uses the key to identify which items in the list changed, were added, or were removed. Without a unique key, LWC cannot efficiently update the DOM and may produce incorrect rendering. Best practice is to use a unique ID field (like the Salesforce record Id) as the key. Using the array index as a key is allowed but not recommended because it breaks diffing when items are reordered.
+    connectedCallback() {
+        // runs when component added to DOM
+    }
 
-### Slide 6: Shadow DOM and CSS Scoping
-**Visual:**
+    disconnectedCallback() {
+        // runs when component removed — cleanup here
+    }
+
+    renderedCallback() {
+        // runs after every render — avoid state changes here (infinite loop risk)
+    }
+}
 ```
-  ┌─────────────────────────────────────────┐
-  │  Parent Component                       │
-  │  .parent-class { color: red; }          │
-  │                                         │
-  │  ┌──────────────────────────────────┐   │
-  │  │  #shadow-root  ← boundary        │   │
-  │  │  ╔══════════════════════════╗    │   │
-  │  │  ║  Child Component         ║    │   │
-  │  │  ║  .child-class { ... }   ║    │   │
-  │  │  ║  (parent styles          ║    │   │
-  │  │  ║   cannot penetrate here) ║    │   │
-  │  │  ╚══════════════════════════╝    │   │
-  │  └──────────────────────────────────┘   │
-  └─────────────────────────────────────────┘
-  Parent .parent-class styles CANNOT reach inside child shadow root.
-  Use :host to style the component's root element from inside.
-  Use SLDS utility classes — available inside all shadow roots.
+
+### Decorators
+| Decorator | Purpose |
+|-----------|---------|
+| `@api` | Public property/method — parent can set or call |
+| `@track` | Deep reactivity for objects/arrays (rarely needed now — all props are reactive) |
+| `@wire` | Declarative data binding (covered in L19) |
+| No decorator | Private, reactive by default |
+
+### Conditional Rendering
+```html
+<!-- Modern (Spring '23+) — preferred -->
+<template lwc:if={isActive}>Active</template>
+<template lwc:elseif={isPending}>Pending</template>
+<template lwc:else>Inactive</template>
+
+<!-- Legacy (still on exam) -->
+<template if:true={isActive}>Active</template>
+<template if:false={isActive}>Inactive</template>
 ```
-**Content:**
-- LWC uses Shadow DOM to encapsulate component internals
-- CSS styles in a component's .css file apply only to elements in that component's template
-- Styles from parent components cannot reach inside a child component's shadow root
-- `:host` selector styles the component's root element from inside the component
-- Global styles in `staticresources` can be injected but should be used sparingly
-**Speaker Notes:** Shadow DOM encapsulation is one of the biggest behavioral differences between LWC and Visualforce. In VF, a CSS class defined on a parent page could style a child component. In LWC, the shadow boundary prevents this — each component manages its own styles. This is good for component isolation and reusability. When you need shared styling, use Lightning Design System (SLDS) utility classes which are available inside all shadow roots, or define styles in a shared CSS resource.
 
-### Slide 7: The js-meta.xml Configuration File
-**Visual:** XML file content showing apiVersion, isExposed, and targets tags with lightning__RecordPage, lightning__AppPage, and lightning__HomePage listed
-**Content:**
-- `<apiVersion>` — the Salesforce API version the component targets
-- `<isExposed>true</isExposed>` — makes the component available in Experience Builder and App Builder
-- `<targets>` — specifies where the component can be dragged in App Builder:
-  - `lightning__RecordPage` — record pages
-  - `lightning__AppPage` — app pages
-  - `lightning__HomePage` — home pages
-  - `lightning__FlowScreen` — Flow screens
-- `<targetConfigs>` — define editable properties in App Builder property panel
-**Speaker Notes:** The js-meta.xml file is the deployment manifest for an LWC component. If isExposed is false or missing, the component can still be used programmatically by other components but won't appear in App Builder or Experience Builder drag-and-drop interfaces. The targets list controls which types of pages the component can be added to. Adding targetConfigs with property elements allows admins to configure the component's @api properties through the App Builder UI without writing code.
+### List Rendering
+```html
+<!-- for:each — key required on FIRST CHILD ELEMENT (not on template) -->
+<template for:each={contacts} for:item="contact">
+    <p key={contact.Id}>{contact.Name}</p>
+</template>
 
-### Slide 8: Lifecycle Hooks
-**Visual:**
+<!-- iterator — access .first, .last flags -->
+<template iterator:it={contacts}>
+    <p key={it.value.Id}
+       class={it.first ? 'first-item' : ''}>{it.value.Name}</p>
+</template>
 ```
-  Component Created
-        │
-        ▼
-  constructor()        ← initialize, no DOM access
-        │
-        ▼
-  connectedCallback()  ← DOM ready, fetch data, subscribe
-        │
-        ▼
-  render() [auto]      ← framework renders template
-        │
-        ▼
-  renderedCallback()   ← post-render DOM work
-        │
-       ...  (re-renders on @api/@track changes)
-        │
-        ▼
-  disconnectedCallback() ← cleanup listeners, timers, subscriptions
+`key` attribute is required — must be unique string/ID. Omitting causes runtime warning.
+
+### Shadow DOM and CSS Scoping
+CSS in component's `.css` file applies ONLY to that component's template. Parent styles cannot penetrate child shadow boundaries. Use SLDS utility classes (available inside all shadow roots) for consistent styling.
+
+### js-meta.xml — Deployment Configuration
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <isExposed>true</isExposed>        <!-- false = component only usable programmatically -->
+    <targets>
+        <target>lightning__RecordPage</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightning__FlowScreen</target>
+    </targets>
+</LightningComponentBundle>
 ```
-**Content:**
-- `constructor()` — called when component instance is created; call super() first; cannot access DOM
-- `connectedCallback()` — called when component is inserted into the DOM; safe for initialization, event listeners
-- `renderedCallback()` — called after every render; use carefully to avoid infinite loops
-- `disconnectedCallback()` — called when component is removed from DOM; clean up event listeners
-- `errorCallback(error, stack)` — catches errors from child components
-**Speaker Notes:** Lifecycle hooks allow you to run code at specific points in a component's life. The most common is connectedCallback, used for initialization logic like loading data or registering event listeners. Avoid heavy logic in renderedCallback because it runs after every render — any state change inside it that triggers another render creates an infinite loop. The constructor cannot access the DOM or child components because they don't exist yet at construction time.
 
-## Recording Script
+### Lifecycle Hooks
+```
+constructor()        → no DOM access; call super() first
+connectedCallback()  → DOM ready; subscribe events, load data
+renderedCallback()   → after every render; be careful of loops
+disconnectedCallback()→ cleanup listeners, subscriptions, timers
+errorCallback()      → catch errors from child components
+```
 
-Welcome to Lecture 17 on LWC Fundamentals. Lightning Web Components is the current Salesforce UI framework and a growing presence on the PDI exam. Let's build your foundation.
+## PTA / SA Relevance
 
-An LWC component is a folder containing files that all share the same name as the folder. The four files you'll always have are: the HTML template file with a .html extension, the JavaScript class file with .js, the optional CSS stylesheet with .css, and the deployment configuration with .js-meta.xml. The HTML template must have a single root `<template>` tag. The JS file exports a class that extends LightningElement. The CSS file is automatically scoped to the component — styles here don't leak out to other components. The js-meta.xml file controls where the component can be placed.
+**In partner code reviews, watch for:**
+- `renderedCallback()` with state mutations — triggers re-render → infinite loop. Use a flag to guard.
+- Not unsubscribing from LMS or event listeners in `disconnectedCallback()` — memory leaks in complex apps
+- `@api` properties named with `on` prefix or named `class`/`slot` — compile error
+- Missing `key` on `for:each` items — silent rendering bugs with list reordering
 
-In the JavaScript class, you use decorators to annotate properties. @api makes a property public — parents can set it. Private properties with no decorator are reactive by default, meaning changing them triggers a re-render. @track is still valid but rarely needed now that all properties are reactive by default. @wire connects a property to a Salesforce data source — we cover that in detail in Lecture 19.
+**Enterprise-scale considerations:**
+- LWC component granularity matters. Enterprise apps often have too few or too many components. Aim for components that own one concern (a form, a data table, a header). Shared utility components go in a `c-lib-` namespace.
+- `isExposed: false` in js-meta.xml for base components used only programmatically — prevents accidental admin drag-drop to record pages where they need context to work.
+- Performance: LWC is client-side, so first render is fast; but `@wire` calls to Apex still count as SOQL. Design for pagination and limit the initial data load.
 
-For conditional rendering in the template, know both syntaxes. The older if:true={prop} and if:false={prop} may appear on the exam. The modern syntax is lwc:if={condition}, lwc:elseif={otherCondition}, and lwc:else. Use the modern syntax for new development.
+**For CTO conversations:**
+- "Should we use Aura or LWC for new development?" — Always LWC for new components. Aura is legacy; LWC is faster, standards-based, and the investment direction.
+- "Can LWC replace Visualforce?" — Yes for user-facing UI. Not for document generation (PDF output still needs VF). For email templates, VF is still used.
 
-For list rendering, for:each={array} iterates over an array. You must provide a key attribute on the first element inside the loop — use a unique ID. The iterator directive gives you access to first and last flags for conditional styling of the first and last items in a list.
+## Architecture / How It Works
 
-Shadow DOM means each component's CSS is encapsulated — styles from outside cannot penetrate the shadow boundary. Use Lightning Design System (SLDS) utility classes for consistent styling that works inside shadow roots.
+```
+LWC COMPONENT BUNDLE — FULL ANATOMY
 
-The js-meta.xml file must set isExposed to true and list the appropriate targets for the component to appear in App Builder. Targets include lightning__RecordPage, lightning__AppPage, lightning__HomePage, and lightning__FlowScreen.
+  myAccountTile/
+  │
+  ├── myAccountTile.html              (template)
+  │   <template>
+  │     <lightning-card title={title}>
+  │       <template lwc:if={account}>
+  │         <p>{account.Name}</p>
+  │       </template>
+  │     </lightning-card>
+  │   </template>
+  │
+  ├── myAccountTile.js                (controller)
+  │   import { LightningElement, api } from 'lwc';
+  │   export default class MyAccountTile extends LightningElement {
+  │       @api accountId;
+  │       account = null;
+  │       connectedCallback() { /* load data */ }
+  │   }
+  │
+  ├── myAccountTile.css               (scoped styles)
+  │   .card-header { font-weight: bold; }
+  │   /* only applies to elements in THIS component */
+  │
+  └── myAccountTile.js-meta.xml       (deployment config)
+      <isExposed>true</isExposed>
+      <targets><target>lightning__RecordPage</target></targets>
+```
 
-Lifecycle hooks — constructor, connectedCallback, renderedCallback, disconnectedCallback — let you run code at specific points in the component's life. Use connectedCallback for initialization. Be careful in renderedCallback to avoid infinite render loops.
+**Limitations:**
+- All files must have the SAME name as the folder — misnamed files cause deploy errors
+- Template must have a single `<template>` root element — no `<div>` or other root
+- `@api` properties are reactive but cannot be mutated inside the component — they are owned by the parent
 
-## Exam Tips
-- All four files must have the same name as their containing folder — the component name determines all file names
-- `@api` properties must not start with `on` (reserved for event handlers) and must not be `class` or `slot` (reserved words)
-- The `key` attribute is **required** on the first child element inside a `for:each` directive — omitting it produces a runtime error/warning
-- `isExposed: true` in js-meta.xml is required for a component to appear in App Builder; without it, the component can only be used programmatically by other components
-- Know both the old `if:true`/`if:false` and new `lwc:if`/`lwc:elseif`/`lwc:else` conditional directive syntaxes — the exam may reference either
+```
+LIFECYCLE HOOK EXECUTION ORDER
 
-## Lecture Summary
-An LWC component is a folder bundle containing a template (.html), JavaScript class (.js), optional stylesheet (.css), and deployment configuration (.js-meta.xml), all sharing the same name. JavaScript decorators control property access: @api for public interface, private reactive properties for internal state, and @wire for declarative data binding. Template directives provide conditional rendering with lwc:if/lwc:elseif/lwc:else and list iteration with for:each (requiring a unique key attribute). Shadow DOM encapsulates component styles, preventing style bleed between components, and the js-meta.xml targets configuration determines where the component can be placed in App Builder.
+  Component created:
+  ┌────────────────────────────────────────────────────┐
+  │  constructor()                                     │
+  │  → call super() first; no DOM access here          │
+  │                                                    │
+  │  connectedCallback()                               │
+  │  → safe to access DOM; subscribe events here       │
+  │                                                    │
+  │  render() [automatic]                              │
+  │  → framework renders the template                  │
+  │                                                    │
+  │  renderedCallback()                                │
+  │  → DOM is painted; use for post-render DOM work    │
+  │  → DANGER: state changes here trigger re-render!   │
+  └────────────────────────────────────────────────────┘
 
-## Mini Quiz
+  Component removed:
+  ┌────────────────────────────────────────────────────┐
+  │  disconnectedCallback()                            │
+  │  → cleanup: unsubscribe LMS, remove event listeners│
+  └────────────────────────────────────────────────────┘
+```
 
-**Q1:** A developer needs a property in an LWC component to be settable by its parent component. Which decorator is required?
-A) `@track`
-B) `@wire`
-C) `@api`
-D) No decorator — all properties are accessible from parent by default
+**Limitations:**
+- `constructor()` cannot access DOM or child component elements
+- `renderedCallback()` can cause infinite loops if it changes state — use a guard flag
+- `@api` properties received from parent cannot be directly mutated in the child
 
-**Answer:** C — `@api` marks a property as part of the component's public interface. Only `@api` properties can be set by a parent component. Properties without a decorator are private to the component. `@track` is for enhanced deep reactivity (rarely needed). `@wire` connects to data sources.
+```
+CSS SHADOW DOM ENCAPSULATION
 
-**Q2:** Which template directive correctly iterates over a list called `accountList` and requires a unique key on each item?
-A) `<template for:each={accountList} for:item="acc" key={acc.Id}>`
-B) `<template for:each={accountList} for:item="acc">` with `key={acc.Id}` on the first child element
-C) `<template iterator:acc={accountList}>`
-D) `<template lwc:for={accountList}>`
+  parent-component.css:
+    .title { color: red; }       ← applies to parent ONLY
 
-**Answer:** B — The `key` attribute in a `for:each` directive goes on the **first child element inside the loop**, not on the `<template>` tag itself. The `for:item` attribute names the loop variable. Option A incorrectly places the key on the template tag. Option C is the iterator directive syntax (also valid but different). Option D is not valid LWC syntax.
+  child-component (shadow boundary):
+    ╔══════════════════════════════════════════╗
+    ║  .title { color: blue; }                 ║
+    ║  ← parent's .title CANNOT reach here    ║
+    ╚══════════════════════════════════════════╝
 
-**Q3:** A component should appear in the App Builder when editing a Lightning Record Page. Which js-meta.xml configuration is required?
-A) `<isExposed>false</isExposed>` with `<targets><target>lightning__RecordPage</target></targets>`
-B) `<isExposed>true</isExposed>` with `<targets><target>lightning__RecordPage</target></targets>`
-C) `<isExposed>true</isExposed>` with no targets element
-D) Only the `<apiVersion>` element is needed — targets are optional
+  Cross-boundary styling options:
+  - SLDS utility classes (slds-text-heading_small, etc.)
+  - CSS custom properties (--my-color: red) can cross boundaries
+  - :host pseudo-class styles the component root from inside
+```
 
-**Answer:** B — Both `isExposed` set to `true` AND `lightning__RecordPage` listed in `<targets>` are required. `isExposed` makes the component visible in App Builder at all; the target specifies which page types it can be added to. `isExposed: true` with no targets means the component is exposed but has nowhere to be placed.
+**Limitations:**
+- Cannot use parent CSS classes to style child component internals
+- SLDS utility classes work across shadow boundaries — use them for consistent design
+- Global stylesheet injection into shadow DOM is not recommended and may break in future
+
+## Key Facts to Memorize
+- Component bundle: all files must have **same name as folder**
+- Template root: single `<template>` tag (not `<div>`)
+- `@api` = public; no decorator = private, reactive
+- `for:each` key goes on **first child element** (not on `<template>` tag)
+- `key` attribute is **required** in for:each — must be unique
+- `isExposed: true` required for App Builder visibility
+- `connectedCallback()` = safe initialization point
+- `renderedCallback()` = post-render; avoid state mutations
+- `disconnectedCallback()` = cleanup
+
+## Customer Advisory Tips
+- **Component standards:** Define naming conventions (`c-lib-` for shared utilities, `c-feature-` for feature-specific). Establish `isExposed` standards — most components should be `false` until designed for admin drag-drop.
+- **LWC vs Aura migration:** For ISV partners, new managed package features should be LWC only. For enterprise customers, prioritize LWC migration for components on high-traffic pages.
+
+## Exam Traps
+- `key` attribute goes on the **first child inside for:each**, NOT on the `<template>` tag
+- `isExposed: false` means the component CAN still be used programmatically by other components — just not in App Builder
+- `@api` property mutation inside the child component is an anti-pattern — `@api` properties are owned by the parent
+- Folder name and all file names must be **identical** — case matters
+- `renderedCallback` runs after EVERY render — not just the first — state changes inside = infinite loop
+
+## Practice Questions
+
+**Q:** A for:each list renders Account cards. After reordering accounts, cards display in the wrong order. What's likely wrong?
+**A:** The `key` attribute is probably using array index instead of a unique ID (`key={account.Id}`). Using index breaks virtual DOM diffing when order changes. Use a unique, stable key (record Id).
+
+**Q:** A component should appear in App Builder for Lightning Home Pages. What must be in js-meta.xml?
+**A:** `<isExposed>true</isExposed>` AND `<target>lightning__HomePage</target>` inside the `<targets>` block.
+
+**Q:** Which lifecycle hook is the correct place to subscribe to a Lightning Message Service channel?
+**A:** `connectedCallback()` — this is when the component is added to the DOM and ready to participate in communication. Always pair with `disconnectedCallback()` to unsubscribe.

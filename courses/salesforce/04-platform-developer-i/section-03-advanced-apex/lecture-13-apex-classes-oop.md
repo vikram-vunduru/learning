@@ -1,141 +1,228 @@
-# Apex Classes and Object-Oriented Programming
+# Apex Classes & Object-Oriented Programming
 
-## Learning Objectives
-- Apply inheritance using virtual, override, and abstract keywords in Apex
-- Implement standard interfaces such as Comparable and Iterable in custom classes
-- Use inner classes appropriately and explain the sharing model keywords
-- Annotate methods with @AuraEnabled to expose Apex to LWC and Aura components
+## Exam Domain
+Developer Fundamentals — 23% of exam weight
 
-## Slides
+## Core Concepts
 
-### Slide 1: OOP Foundations in Apex
-**Visual:** Class hierarchy diagram showing a base class with arrows pointing to two subclasses, with a method override callout on one subclass
-**Content:**
-- Apex is an object-oriented language modeled closely on Java
-- Key OOP concepts: encapsulation, inheritance, polymorphism, abstraction
-- Every Apex class implicitly extends `Object` (the root of all classes)
-- Classes are `public` or `private` by default in most contexts
-- Access modifiers: `global`, `public`, `protected`, `private`
-**Speaker Notes:** Most Salesforce developers learn OOP concepts on the job through Apex rather than in a formal CS curriculum. The PDI exam tests practical application — you need to know which keyword to use in a given scenario and what the keyword does to a method or class. Let's build up from the fundamentals.
+### Classes Are NOT Inheritable by Default
+Unlike Java, Apex classes are effectively `final` unless marked `virtual` or `abstract`. This is a critical difference and a common exam trap.
+- `virtual` — class/method can be extended/overridden; still instantiable
+- `abstract` — cannot be instantiated; subclasses MUST implement abstract methods
+- `override` — required keyword when a subclass overrides a virtual method
 
-### Slide 2: Inheritance — virtual, override, abstract
-**Visual:** Code snippet showing a virtual base class with a virtual method, a subclass using extends and override, and a second subclass that provides a different override
-**Content:**
-- `virtual` keyword: marks a class or method as extendable/overridable
-- `override` keyword: required on a subclass method that overrides a virtual method
-- `abstract` class: cannot be instantiated; subclasses must implement abstract methods
-- `abstract` method: declared without a body; forces subclasses to provide an implementation
-- Without `virtual`, a class is effectively `final` — cannot be extended
-**Speaker Notes:** In Apex, unlike Java, a class is NOT inheritable by default — you must explicitly mark it virtual or abstract to allow subclassing. This is a key difference from Java and a frequent exam question. If you see a class without either keyword, a subclass using extends will cause a compile error. Abstract methods must be implemented by every concrete subclass; virtual methods have a default implementation that subclasses may optionally override.
+```apex
+public virtual class Animal {
+    public virtual String speak() { return 'generic sound'; }
+}
 
-### Slide 3: Interfaces — Comparable and Iterable
-**Visual:** Diagram showing a custom Apex class implementing Comparable with a compareTo() method, and a sortable list using List.sort() leveraging that implementation
-**Content:**
-- Interfaces declare a contract — implementing class must provide all method bodies
-- `Comparable` interface: implement `compareTo(Object compareTo)` to enable `List.sort()`
-- `Iterable<T>` interface: implement `iterator()` returning an `Iterator<T>` for custom iteration
-- `Iterator<T>` interface: requires `hasNext()` and `next()` methods
-- Custom interfaces use `interface` keyword; implementing class uses `implements`
-**Speaker Notes:** The Comparable interface is the most commonly tested interface on the PDI exam. When you call List.sort() on a list of objects that implement Comparable, Apex uses the compareTo() method to determine order. The method returns a negative integer, zero, or positive integer — negative means "this object should come before the comparison target." The Iterable interface allows custom classes to be used in for-each loops and as the return type of Batch start() methods.
+public class Dog extends Animal {
+    public override String speak() { return 'woof'; }
+}
 
-### Slide 4: Inner Classes
-**Visual:** Code block showing a top-level Apex class containing an inner class declaration, with an instance of the inner class being created by the outer class
-**Content:**
-- Inner classes are declared inside another class using a nested class block
-- Used to logically group closely related classes (e.g., request/response wrappers for JSON)
-- Inner classes can be `static` — accessible without an instance of the outer class
-- Non-static inner classes have access to instance members of the outer class
-- Common use: wrapper class for `@AuraEnabled` return types, test data builders
-**Speaker Notes:** Inner classes are frequently used in integration code to define typed representations of JSON request and response bodies. You declare a class with the exact property names that match the JSON fields, then use JSON.deserialize() to map the JSON string to instances of those classes. This is cleaner than working with untyped Maps. Inner classes are also used extensively in test classes as private data builders.
+public abstract class Shape {
+    public abstract Decimal area();  // no body — subclasses must implement
+}
+```
 
-### Slide 5: @AuraEnabled Annotation
-**Visual:** Apex method with @AuraEnabled(cacheable=true) annotation and a Lightning Web Component JavaScript file calling getAccountList via @wire
-**Content:**
-- `@AuraEnabled` exposes an Apex method to LWC and Aura components
-- `@AuraEnabled(cacheable=true)` — required for `@wire` adapter calls from LWC
-- Methods without `cacheable=true` must be called imperatively (not via @wire)
-- `@AuraEnabled` methods must be `static` and `public` or `global`
-- DML operations (insert/update/delete) must NOT be cacheable — use imperative calls
-**Speaker Notes:** The cacheable=true distinction is critical for the exam and for practical LWC development. A method marked cacheable=true tells Salesforce it's safe to cache the result in the client-side cache — this means it must not perform DML. If you try to put DML in a cacheable=true method, Salesforce throws a runtime error. Use cacheable=true for read-only data fetching via @wire, and leave it off for any method that writes data, which must be called imperatively.
+### Interfaces — Contracts Without Implementation
+```apex
+public interface Printable {
+    void print();
+    String getLabel();
+}
 
-### Slide 6: Sharing Rules — with sharing, without sharing, inherited sharing
-**Visual:** Three boxes labeled with the three keywords, each showing which records an Apex class running in that mode can see, with arrows indicating the org-wide defaults and sharing rules applied or bypassed
-**Content:**
-- `with sharing`: enforces record-level sharing rules of the running user
-- `without sharing`: bypasses sharing rules — class sees all records regardless of user
-- `inherited sharing`: adopts the sharing context of the calling class
-- Default when no keyword is specified: unspecified sharing (similar to without sharing in most contexts)
-- Best practice: always explicitly declare sharing; `inherited sharing` for utility classes
-**Speaker Notes:** The sharing keyword is about record visibility — it does not affect field-level security or object-level security, which are always enforced. without sharing is sometimes necessary for system-level operations (like a managed package performing maintenance), but should be used sparingly and with intention. The inherited sharing keyword was introduced to make service classes that can be called from both with-sharing and without-sharing callers behave correctly based on the calling context.
+public class Invoice implements Printable {
+    public void print() { /* implementation */ }
+    public String getLabel() { return 'Invoice #' + number; }
+}
+```
+- Multiple interfaces allowed: `implements Interface1, Interface2`
+- `Comparable` — implement `compareTo(Object o)` to enable `List.sort()` on custom objects
+- `Iterable<T>` + `Iterator<T>` — custom iteration (used in advanced Batch Apex start())
+- Platform interfaces: `Database.Batchable`, `System.Queueable`, `System.Schedulable`, `HttpCalloutMock`
 
-### Slide 7: Access Modifiers and Class Design
-**Visual:** Visibility matrix showing which modifier — global, public, protected, private — is visible from different scopes: same class, subclass, same namespace, different namespace
-**Content:**
-- `global`: visible to all Apex code in all namespaces (use for managed package APIs)
-- `public`: visible within the same namespace and Apex code in the org
-- `protected`: visible to the class and any subclasses (used with virtual/abstract)
-- `private`: visible only within the declaring class (default for inner classes)
-- Variables: best practice is `private` with `public` getter/setter properties
-**Speaker Notes:** The distinction between `public` and `global` matters most in managed packages. For custom development in a standard org, `public` is almost always the right choice for methods you intend to expose. Protected is specifically designed for OOP inheritance scenarios — a method or property marked protected in a virtual class is visible to subclasses but not to external callers.
+### Inner Classes
+```apex
+public class OrderService {
+    // Inner class for typed JSON wrapper
+    public class OrderResponse {
+        public String status;
+        public String orderId;
+    }
 
-### Slide 8: Practical OOP Patterns
-**Visual:** Service Layer pattern diagram: Controller class calls a Service class marked with sharing keyword, which calls a Repository/Selector class for SOQL
-**Content:**
-- **Service Layer pattern**: separate business logic from trigger handlers and controllers
-- Triggers should be thin — delegate to trigger handler class
-- Use interfaces for testability: swap real implementation for test mock
-- Use abstract base class when multiple subclasses share common logic
-- Inner wrapper classes for complex return types from @AuraEnabled methods
-**Speaker Notes:** The most important practical OOP pattern in Salesforce development is the service layer: your trigger calls a trigger handler class, which calls a service class for business logic, which calls a selector/repository class for SOQL. This separation makes code testable, readable, and maintainable. On the exam, questions about class design often test whether you know which OOP feature — virtual, abstract, interface — best fits a described scenario.
+    // Static inner class — accessible without outer instance
+    public static class OrderException extends Exception {}
+}
+// Access: OrderService.OrderResponse resp = new OrderService.OrderResponse();
+```
+Common uses: JSON request/response wrappers, test data builders, custom exceptions, data containers.
 
-## Recording Script
+### @AuraEnabled — Expose Apex to LWC/Aura
+```apex
+public class AccountController {
+    @AuraEnabled(cacheable=true)
+    public static List<Account> getAccounts() {
+        return [SELECT Id, Name FROM Account LIMIT 50];
+    }
 
-Welcome to Lecture 13 on Apex Classes and Object-Oriented Programming. Whether you're new to OOP concepts or coming from another language, this lecture covers the Apex-specific nuances that show up on the PDI exam.
+    @AuraEnabled  // no cacheable — performs DML
+    public static void updateAccount(Id accountId, String name) {
+        update new Account(Id = accountId, Name = name);
+    }
+}
+```
+- `cacheable=true` — required for `@wire` in LWC; method MUST be read-only (no DML)
+- Without `cacheable=true` — must call imperatively from JavaScript
+- All @AuraEnabled methods must be `static` and `public` or `global`
 
-Let's start with inheritance. In Apex — unlike Java — a class is not inheritable by default. To allow a class to be extended, you must explicitly mark it as virtual or abstract. Virtual classes can be extended and their methods can be overridden. Abstract classes must be extended; they cannot be instantiated directly, and abstract methods must be implemented by every subclass. When a subclass overrides a virtual method, it must use the override keyword — omitting it causes a compile error.
+### Sharing Keywords — Record Visibility Control
+```apex
+public with sharing class AccountController { }     // respects user's sharing rules
+public without sharing class DataMigration { }      // bypasses sharing — sees everything
+public inherited sharing class AccountService { }   // adopts caller's sharing context
+```
+- `with sharing` — enforces record-level sharing rules of the running user
+- `without sharing` — bypasses sharing; class sees all records
+- `inherited sharing` — adopts the caller's sharing context (right choice for utility/service classes)
+- Default (no keyword) — Apex runs in system context without sharing (similar to without sharing)
+- Sharing keywords do NOT affect FLS or object-level permissions — only record visibility
 
-Interfaces define a contract without providing any implementation. The two standard interfaces you'll encounter most are Comparable and Iterable. Comparable lets you implement a compareTo() method so that List.sort() can sort instances of your class. Iterable lets you implement a custom iterator so your class can be used in for-each loops or as the return type of a Batch Apex start() method.
+### Access Modifiers — Quick Reference
+| Modifier | Visible To |
+|----------|-----------|
+| `private` | Declaring class only |
+| `protected` | Class + subclasses |
+| `public` | Same org/namespace |
+| `global` | All namespaces (managed packages, web services) |
 
-Inner classes are classes declared inside another class. They're useful for grouping closely related types — the most common use case is defining typed wrapper classes for JSON serialization and deserialization in integration code. They're also used in test classes for helper and builder patterns.
+## PTA / SA Relevance
 
-The @AuraEnabled annotation is what exposes an Apex method to Lightning Web Components and Aura components. For a method to be used with the @wire decorator in an LWC, it must be marked @AuraEnabled(cacheable=true). This tells Salesforce the method is read-only and safe to cache. Any method that performs DML must not have cacheable=true — it must be called imperatively from JavaScript. All @AuraEnabled methods must be static and public or global.
+**In partner code reviews, watch for:**
+- No sharing keyword on Apex classes — runs without sharing by default, potentially exposing data the user shouldn't see
+- `@AuraEnabled(cacheable=true)` on methods that include DML — runtime error when called from @wire; hard to debug
+- `global` methods in non-managed-package orgs — no namespace benefit; locks API surface unnecessarily
+- No explicit `override` on a method that shadows a virtual method — compiles in some contexts but is a logic bug
 
-Sharing keywords control whether an Apex class respects the running user's record-level sharing rules. With sharing enforces those rules — the class sees only the records the user has access to. Without sharing bypasses them. Inherited sharing adopts the context of whatever called it. Always declare sharing explicitly; never leave it unspecified.
+**Enterprise-scale considerations:**
+- The service layer pattern (Trigger → Handler → Service → Selector) with correct sharing keywords at each layer is the standard enterprise Apex architecture. Controllers and triggers run `with sharing`; service layer runs `inherited sharing`; data migration utilities run `without sharing`.
+- Abstract base class + interface is the combination for truly extensible frameworks. Abstract handles common logic, interface defines the contract. Both are used in Apex Enterprise Patterns (Callable, Service Layer, Selector).
+- For ISV packages, `global` is an API contract — once released, you cannot remove `global` methods or change their signatures without a major version bump. Minimize global surface area.
 
-Finally, access modifiers: global is for managed package APIs visible across namespaces, public is the standard visibility modifier, protected is for members that should be accessible in subclasses but not externally, and private is for internal class members.
+**For CTO conversations:**
+- "How do we ensure developers write secure Apex?" — Code review checklist that includes: explicit sharing keyword on every class, @AuraEnabled(cacheable=true) only on read-only methods, no `global` without justification.
+- "Our LWC components are slow" — Check if `@AuraEnabled` methods are called imperatively when they should be via `@wire` (cacheable=true), and vice versa.
 
-## Exam Tips
-- In Apex, classes are NOT inheritable by default — you must explicitly mark them as `virtual` or `abstract` to allow subclassing; this is unlike Java
-- `@AuraEnabled(cacheable=true)` is required for methods called via `@wire` in LWC; methods with `cacheable=true` must not perform DML
-- `with sharing` enforces the running user's record-level sharing rules; it does NOT affect field-level security or object-level permissions
-- The `Comparable` interface requires implementing `compareTo(Object compareTo)` which returns a negative integer (less than), zero (equal), or positive integer (greater than)
-- `inherited sharing` makes a class adopt the sharing context of its caller — use it for utility/service classes that can be called from both with-sharing and without-sharing contexts
+## Architecture / How It Works
 
-## Lecture Summary
-Apex OOP builds on Java-like concepts but with Salesforce-specific rules: classes must be explicitly marked virtual or abstract to allow inheritance, and subclass method overrides require the override keyword. Interfaces such as Comparable and Iterable define contracts that enable framework features like List.sort() and for-each iteration. The @AuraEnabled annotation exposes Apex methods to Lightning components, with the cacheable=true variant required for @wire usage in LWC but prohibited for methods performing DML. Sharing keywords — with sharing, without sharing, and inherited sharing — control whether a class respects or bypasses the running user's record-level security, and should always be explicitly declared.
+```
+INHERITANCE HIERARCHY IN APEX
 
-## Mini Quiz
+  Object (implicit root of all classes)
+       │
+       ├── Animal (virtual class)
+       │       │
+       │       ├── Dog (extends Animal, overrides speak())
+       │       └── Cat (extends Animal, overrides speak())
+       │
+       ├── Shape (abstract class)
+       │       │
+       │       ├── Circle (concrete, implements area())
+       │       └── Rectangle (concrete, implements area())
+       │
+       └── MyException (extends Exception)
+               ← name MUST end in Exception
 
-**Q1:** A developer wants to create an Apex class that can be extended by subclasses but cannot itself be instantiated. Which declaration is correct?
-A) `public class BaseProcessor { }`
-B) `public virtual class BaseProcessor { }`
-C) `public abstract class BaseProcessor { }`
-D) `public interface BaseProcessor { }`
+  Rules:
+  - Cannot extend a non-virtual, non-abstract class
+  - Must use override keyword when overriding virtual methods
+  - All abstract methods must be implemented by concrete subclass
+  - Single inheritance only (one extends); multiple implements allowed
+```
 
-**Answer:** C — An abstract class cannot be instantiated but can be extended. A virtual class CAN be instantiated and extended. An interface is not a class. A class with no keyword can be instantiated but NOT extended — it's final by default in Apex.
+**Limitations:**
+- Apex only supports single class inheritance — `extends` can only reference one class
+- Interfaces: multiple `implements` are allowed; `interface extends interface` is allowed
+- `abstract` class cannot be instantiated — `new Shape()` → compile error
 
-**Q2:** An LWC needs to display a list of Accounts fetched from Apex using the @wire decorator. What annotation must the Apex method have?
-A) `@AuraEnabled`
-B) `@AuraEnabled(cacheable=true)`
-C) `@AuraEnabled(callout=true)`
-D) `@RemoteAction`
+```
+@AuraEnabled USAGE GUIDE
 
-**Answer:** B — The `@wire` decorator in LWC requires the Apex method to be annotated with `@AuraEnabled(cacheable=true)`. Without `cacheable=true`, the wire adapter will not work. `@RemoteAction` is for Visualforce Remote Objects, not LWC.
+  Read-only (list/fetch data):
+  ┌────────────────────────────────────────────────────────┐
+  │  @AuraEnabled(cacheable=true)                          │
+  │  public static List<Account> getAccounts() {           │
+  │      return [SELECT Id, Name FROM Account LIMIT 50];   │
+  │  }                                                     │
+  │                                                        │
+  │  LWC: @wire(getAccounts)  ← wire works with cacheable  │
+  └────────────────────────────────────────────────────────┘
 
-**Q3:** A utility class makes SOQL queries that should return different results depending on whether the calling class uses `with sharing` or `without sharing`. Which keyword should the utility class use?
-A) `with sharing`
-B) `without sharing`
-C) `inherited sharing`
-D) No keyword — leave it unspecified
+  Write/DML:
+  ┌────────────────────────────────────────────────────────┐
+  │  @AuraEnabled   ← no cacheable!                        │
+  │  public static void saveAccount(Account a) {           │
+  │      update a;                                         │
+  │  }                                                     │
+  │                                                        │
+  │  LWC: import saveAccount from '@salesforce/apex/...'   │
+  │  Call imperatively: await saveAccount({a: account});   │
+  └────────────────────────────────────────────────────────┘
+```
 
-**Answer:** C — `inherited sharing` causes the class to adopt the sharing context of its caller. If the caller uses with sharing, the utility class also runs with sharing. If the caller uses without sharing, the utility class follows suit. This is the correct pattern for reusable service and utility classes.
+**Limitations:**
+- `@AuraEnabled(cacheable=true)` with DML → runtime error: "System.AuraHandledException: Read access to sObject not permitted"
+- `@wire` only works with `cacheable=true` — trying to wire a non-cacheable method doesn't work
+
+```
+SHARING KEYWORD SCOPE
+
+  ╔═══════════════════════════════════════════════════════════╗
+  ║  ALL RECORDS (system mode)                                ║
+  ║  without sharing — sees everything regardless of user     ║
+  ║  ┌─────────────────────────────────────────────────────┐  ║
+  ║  │  USER'S RECORDS ONLY (sharing mode)                 │  ║
+  ║  │  with sharing — respects OWD + sharing rules        │  ║
+  ║  └─────────────────────────────────────────────────────┘  ║
+  ║  inherited sharing — delegates decision to caller         ║
+  ╚═══════════════════════════════════════════════════════════╝
+  Note: All three modes always enforce CRUD + FLS.
+  Sharing only controls RECORD visibility, not field/object access.
+```
+
+**Limitations:**
+- `with sharing` does NOT automatically enforce FLS — you still need `WITH USER_MODE` in SOQL or `Security.stripInaccessible()`
+- `inherited sharing` on a class called from an unspecified-sharing caller runs without sharing (inherits system context)
+
+## Key Facts to Memorize
+- Apex classes NOT inheritable by default — must be `virtual` or `abstract`
+- `abstract` class cannot be instantiated
+- `override` keyword required when overriding a virtual method
+- `@AuraEnabled(cacheable=true)` required for `@wire`; NO DML allowed
+- `@AuraEnabled` without cacheable: DML methods, called imperatively from JS
+- `with sharing` enforces record-level rules only (not FLS, not object permissions)
+- `inherited sharing` — right choice for service/utility classes
+- `Comparable.compareTo()` returns negative/zero/positive for List.sort()
+
+## Customer Advisory Tips
+- **Sharing enforcement audit:** In security reviews, check every Apex class for explicit sharing keyword. Any class with implicit `without sharing` in user-facing operations is a data exposure risk.
+- **LWC + Apex pattern:** `@AuraEnabled(cacheable=true)` for all read operations wired with `@wire`; `@AuraEnabled` (no cacheable) for all write operations called imperatively. This distinction is the foundation of proper LWC+Apex architecture.
+
+## Exam Traps
+- Apex classes default to NOT inheritable — adding `extends` to a non-virtual class = **compile error**
+- `@AuraEnabled(cacheable=true)` with DML = **runtime error** (not compile error)
+- `with sharing` does NOT enforce FLS — use `WITH USER_MODE` in SOQL for FLS
+- `override` keyword is required — missing it on a method shadowing a virtual method = compile error
+- Abstract class: cannot use `new AbstractClassName()` — compile error
+- `Comparable.compareTo()` returns int: negative = this comes before, positive = this comes after
+
+## Practice Questions
+
+**Q:** A developer declares `public class Shape { public Decimal area() { return 0; } }`. Another developer tries `public class Circle extends Shape { }`. What happens?
+**A:** Compile error — `Shape` is not marked `virtual` or `abstract`, so it cannot be extended. Add `virtual` to `Shape` to allow extension.
+
+**Q:** An LWC needs to use `@wire` to call an Apex method. What annotation is required?
+**A:** `@AuraEnabled(cacheable=true)` — the `cacheable=true` parameter is mandatory for `@wire` usage. The method must not perform any DML.
+
+**Q:** A service class should run with the same sharing context as its caller. Which keyword?
+**A:** `inherited sharing` — the class adopts the sharing mode of whatever called it. This is the correct pattern for reusable service classes that can be called from both with-sharing and without-sharing callers.

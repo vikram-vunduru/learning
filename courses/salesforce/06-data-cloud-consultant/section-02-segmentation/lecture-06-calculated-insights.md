@@ -1,357 +1,186 @@
-# Lecture 06: Calculated Insights
+# Calculated Insights
 
-## Learning Objectives
-- Explain what Calculated Insights are and how they differ from standard DMO attributes
-- Write ANSI SQL for a Calculated Insight using aggregation functions (COUNT, SUM, AVG, MAX, MIN)
-- Distinguish between CI dimensions and CI measures and how each is used in segments
-- Describe the CI refresh process and the dependency on underlying DMO data
+## Exam Domain
+Segmentation & Insights — 13% of exam weight
+
+## Core Concepts
+
+### What Calculated Insights Are
+Calculated Insights (CIs) are pre-computed aggregate metrics derived from DMO data using ANSI SQL. They transform record-level DMO data (individual Sales Order rows) into summary-level metrics per customer (TotalSpend90d, TotalOrders, AvgOrderValue). CIs are computed on a schedule and cached — they do NOT run live at segment query time. This makes them fast to query and consistent across segmentation and analytics.
+
+### Structure: Dimensions and Measures
+Every CI has dimensions (the GROUP BY fields — usually IndividualId — that define what each row represents) and measures (the aggregate function outputs: COUNT, SUM, AVG, MAX, MIN). When you use a CI in segment criteria, you filter on measure values. The IndividualId dimension is what links each CI row back to the correct Unified Individual.
+
+### The Refresh Dependency Chain
+This is the most exam-tested CI operational concept. The correct order is: Data Stream refresh updates DMO data → CI refresh computes from updated DMO data → Segment refresh uses updated CI values. If CI refresh runs before the Data Stream completes, the CI computes against yesterday's data even if today's ingestion ran. Always schedule CI refresh AFTER the Data Stream refresh completes. Use Job Scheduler job chaining to enforce this.
 
 ---
 
-## Slides
+## PTA / SA Relevance
 
-### Slide 1: What Are Calculated Insights?
-**Visual:**
+### When This Comes Up in Engagements
+CIs are the primary way Data Cloud surfaces derived intelligence to both marketing (segment criteria) and analytics (Tableau/CRM Analytics). In a CDO/CMO conversation: "Your marketing team can filter on 'customers with total spend over $1,000 in the last 90 days' directly in the segment builder — no SQL, no BI team involvement." For an architecture review: the CI layer is the equivalent of a pre-aggregated materialized view in a traditional data warehouse.
+
+### Common Partner Mistakes
+- Scheduling CI refresh before the dependent Data Stream completes — the most common root cause of "segments aren't reflecting recent data" tickets
+- Creating dozens of nearly identical CIs (TotalSpend30d, TotalSpend60d, TotalSpend90d, TotalSpend180d as separate CIs) — consolidate into a single CI with multiple measures or parameterized logic
+- Referencing DLO data in CI SQL — CIs can only query DMO-layer data (objects with __dlm suffix that represent modeled data, not raw DLO tables)
+- Not previewing before publishing — a SQL error in production CI causes no data for dependent segments
+
+### Enterprise Scale Considerations
+At scale, poorly written CIs can be slow. Optimization patterns: use WHERE clauses to limit data processed (filter to the time window you care about, not all historical data); minimize multi-table JOINs; use pre-filtered or indexed DMO fields in WHERE conditions. For the largest implementations, understand that CI refresh competes with Data Stream refresh for compute resources — stagger schedules and monitor Job Scheduler for queuing.
+
+### Customer Advisory: Business Case
+CIs eliminate the need for a separate data warehouse or ETL pipeline just to get customer-level summary metrics into a marketing tool. A retail client previously required a 3-day data engineering cycle to produce a "top spending customers" list; with Data Cloud CIs, marketing can build the same list in minutes and refresh it daily. This is a compelling ROI story for the business case.
+
+---
+
+## Architecture
+
+### What CIs Do: Raw Data to Summary
+
 ```
-  RAW DATA (Sales Order DMO)         CALCULATED INSIGHT OUTPUT
-  ─────────────────────────          ─────────────────────────────────
-  OrderId  │ IndivId │ Amount        Customer_Purchase_Stats CI
-  ─────────┼─────────┼───────        ──────────────────────────────────
-  SO-001   │ 00U-001 │ $120          IndividualId │ TotalOrders │ TotalRevenue │ LastPurchDate
-  SO-002   │ 00U-001 │ $340  ──SQL──▶ 00U-001     │     14      │   $3,240.00  │ 2024-09-15
-  SO-003   │ 00U-001 │ $85   GROUP   ──────────────────────────────────
-  SO-004   │ 00U-001 │ $210   BY     One row per customer
-  ...      │         │
-  SO-101   │ 00U-002 │ $500  ──SQL──▶ 00U-002     │      3      │   $1,100.00  │ 2024-08-30
+  SALES ORDER DMO (record level)           CI OUTPUT (summary per customer)
+  ═══════════════════════════              ════════════════════════════════════
+  OrderId  │ IndivId │ Amount              Customer_Purchase_Stats CI
+  ─────────┼─────────┼───────              ──────────────────────────────────────
+  SO-001   │ 00U-001 │ $120                IndividualId │ TotalOrders │ TotalRev
+  SO-002   │ 00U-001 │ $340   ──SQL──▶     00U-001      │     14      │ $3,240
+  SO-003   │ 00U-001 │ $85    GROUP BY     ──────────────────────────────────────
+  SO-004   │ 00U-001 │ $210                One row per customer
+  ...
+  SO-101   │ 00U-002 │ $500   ──SQL──▶     00U-002      │      3      │ $1,100
   SO-102   │ 00U-002 │ $300
   SO-103   │ 00U-002 │ $300
 
-  Many rows per customer             One summary row per customer
+  Many rows per customer                   One summary row per customer
+  Cannot filter in Segment Builder         Can filter: TotalRev >= 1000
 ```
 
-**Content:**
-- **Calculated Insights (CI)** are pre-computed aggregate metrics derived from DMO data using SQL
-- Summarize behavioral data into analytics-ready metrics
-- Examples: total spend in last 90 days, number of email opens, average order value, days since last purchase
-- Stored as a separate "Calculated Insight" object — not a standard DMO
-- Can be used in **segment criteria** as filter conditions
-- Can be used in **activation payloads** to enrich the data sent to activation targets
-
-**Speaker Notes:** Calculated Insights solve the problem that raw DMO data is record-level, not summary-level. You have individual Sales Order records — but your segment criteria wants to filter on "total spend over $1,000 in the last 90 days." That requires aggregating multiple order records into a single number per customer. That's exactly what a Calculated Insight does. The SQL-based approach means CIs are highly flexible — any aggregation you can express in standard SQL, you can compute as a CI. The exam tests both conceptual knowledge (what is a CI, when to use it) and practical SQL syntax (what does the query look like).
+**Limitations:**
+- CIs are NOT real-time — they're as fresh as the last scheduled refresh
+- CIs can only reference DMO data (objects with __dlm suffix) — not raw DLO tables
+- GROUP BY is required — missing it produces a single aggregate for all customers, useless for per-customer segmentation
+- A limit exists on active CIs per Data Cloud instance (check current Salesforce limits documentation)
 
 ---
 
-### Slide 2: The Calculated Insight Editor
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────┐
-  │  CI Name:        Customer_Purchase_Stats                 │
-  │  Description:    90-day purchase metrics per customer    │
-  │  Refresh Sched:  [ Daily at 4 AM  ▼ ]                   │
-  │  ──────────────────────────────────────────────────────  │
-  │  SQL EDITOR:                                             │
-  │                                                          │
-  │  SELECT                                                  │
-  │      i.Id AS IndividualId,          ← DIMENSION         │
-  │      COUNT(so.Id) AS TotalOrders,   ← MEASURE           │
-  │      SUM(so.TotalAmount) AS TotalRevenue,   ← MEASURE   │
-  │      MAX(so.OrderDate) AS LastOrderDate     ← MEASURE   │
-  │  FROM Individual__dlm AS i                              │
-  │  JOIN SalesOrder__dlm AS so                             │
-  │      ON so.IndividualId__c = i.Id                       │
-  │  WHERE so.OrderDate >= DATEADD(day, -90, CURRENT_DATE)  │
-  │  GROUP BY i.Id                      ← REQUIRED          │
-  │                                                          │
-  │  [ Preview Results ]  [ Save & Publish ]                │
-  └──────────────────────────────────────────────────────────┘
-  Note: DMO API names end in __dlm
-  Note: CIs are pre-computed — NOT run at segment query time
-```
-
-**Content:**
-- Accessed from Data Cloud Setup → Calculated Insights → New
-- Uses **ANSI-standard SQL** — standard SELECT, FROM, WHERE, GROUP BY syntax
-- Must reference DMO objects by their API name
-- Must have a **GROUP BY clause** with the dimension field (usually the Individual ID)
-- Must produce output columns that become CI **measures** (numeric aggregates) and **dimensions** (grouping fields)
-- **Preview** runs the query against a sample of data before saving
-- All CIs are pre-computed and stored — they do NOT run at segment query time
-
-**Speaker Notes:** The SQL editor is the core tool for CIs. The ANSI SQL requirement is important — Data Cloud's CI editor is not proprietary, it's standard SQL. This means you can write joins, WHERE clauses, GROUP BY, HAVING, and subqueries. The most important structural requirement is the GROUP BY clause — it defines the dimension (typically the Individual ID) that each row of CI output corresponds to. Without a GROUP BY, the CI would produce a single aggregate for all customers, which isn't useful for per-customer segmentation. The "pre-computed" nature is important for performance — the CI calculates once on a schedule and stores results, so segment queries run against the cached CI results rather than re-computing in real-time.
-
----
-
-### Slide 3: Aggregation Functions
-**Visual:**
-```
-  ┌────────────────────┬───────────────────────────────┬──────────────────────────┐
-  │ Function           │ Example SQL                   │ Use Case                 │
-  ├────────────────────┼───────────────────────────────┼──────────────────────────┤
-  │ COUNT(field)       │ COUNT(so.Id) AS TotalOrders   │ Number of orders/sessions│
-  │ COUNT(DISTINCT f)  │ COUNT(DISTINCT ProductId)     │ Unique products purchased │
-  │ SUM(field)         │ SUM(so.TotalAmount) AS Total  │ Total spend, quantity    │
-  │ AVG(field)         │ AVG(so.TotalAmount) AS AvgAmt │ Average order value      │
-  │ MAX(field)         │ MAX(so.OrderDate) AS LastDate │ Most recent purchase date│
-  │ MIN(field)         │ MIN(so.OrderDate) AS FirstDt  │ First purchase date      │
-  └────────────────────┴───────────────────────────────┴──────────────────────────┘
-  All functions IGNORE NULL values (standard SQL behavior)
-
-  Business question → Function:
-  "How many purchases?" → COUNT
-  "What is total spend?" → SUM
-  "What is average basket size?" → AVG
-  "When did they last buy?" → MAX on date field
-  "When did they first buy?" → MIN on date field
-```
-
-**Content:**
-- **COUNT(field)** — Count of non-null values; use for number of orders, number of sessions
-- **COUNT(DISTINCT field)** — Count of unique values; use for unique products purchased
-- **SUM(field)** — Sum of all values; use for total spend, total quantity
-- **AVG(field)** — Average value; use for average order value, average session duration
-- **MAX(field)** — Maximum value; use for most recent purchase date, highest order amount
-- **MIN(field)** — Minimum value; use for first purchase date, earliest contact date
-- All functions ignore NULL values (standard SQL behavior)
-
-**Speaker Notes:** The aggregation functions are directly exam-testable. You should be able to look at a business requirement and identify which function to use. "How many purchases has this customer made?" → COUNT. "What is their total spend?" → SUM. "What is their average basket size?" → AVG. "When did they last make a purchase?" → MAX on the date field. "When did they first become a customer?" → MIN on the date field. COUNT(DISTINCT) is useful for "how many different product categories has this customer bought from?" — it counts unique values rather than total records. Note that all functions ignore NULLs, which means missing data doesn't affect the aggregate incorrectly.
-
----
-
-### Slide 4: CI Structure — Dimensions vs. Measures
-**Visual:**
-```
-  SELECT
-      i.Id AS IndividualId,          ← DIMENSION (GROUP BY key)
-      so.ProductCategory AS Category,← DIMENSION (additional grouping)
-      COUNT(so.Id) AS TotalOrders,   ← MEASURE (aggregate output)
-      SUM(so.TotalAmount) AS Revenue,← MEASURE (aggregate output)
-      MAX(so.OrderDate) AS LastDate  ← MEASURE (aggregate output)
-  FROM Individual__dlm AS i
-  JOIN SalesOrder__dlm AS so ON so.IndividualId__c = i.Id
-  WHERE so.OrderDate >= DATEADD(day, -90, CURRENT_DATE)
-  GROUP BY i.Id, so.ProductCategory  ← DIMENSIONS listed here
-
-  ────────────────────────────────────────────────────
-  DIMENSIONS = GROUP BY columns → define row granularity
-  MEASURES   = Aggregate function outputs → filterable values
-  In segments: filter on MEASURE values (e.g., Revenue >= 1000)
-```
-
-**Content:**
-- **Dimensions:** The grouping fields that define who/what each CI row represents
-  - Always includes the **Individual ID** or **Unified Individual ID** for customer-level CIs
-  - Can include additional categorical fields (e.g., product category, channel)
-- **Measures:** The computed aggregate values
-  - Numeric output of aggregation functions (COUNT, SUM, AVG, MAX, MIN)
-  - Each measure becomes a filterable attribute in segment criteria
-- A CI must have at least one dimension and at least one measure
-- Measures with date/datetime types can also be used (e.g., MAX(OrderDate) for last purchase date)
-
-**Speaker Notes:** The dimension vs. measure distinction is fundamental to understanding how CIs work. The dimension fields tell you "this row of CI data belongs to this customer." The measure fields tell you "and here's the aggregated value for that customer." When you use a CI in segment criteria, you filter on the measure values. For example, "TotalSpend90d >= 1000" where TotalSpend90d is a measure. Dimensions are usually not used as filter criteria on their own (you'd use attribute filters for that), but they define the scope of the calculation. Including the Individual ID as a dimension is what makes the CI usable at the customer level for segmentation.
-
----
-
-### Slide 5: Writing a Calculated Insight — Example
-**Visual:** A complete CI SQL example shown in a formatted code block:
+### CI SQL Structure
 
 ```sql
 SELECT
-    i.Id AS IndividualId,
-    COUNT(so.Id) AS TotalOrders,
-    SUM(so.TotalAmount) AS TotalRevenue,
-    AVG(so.TotalAmount) AS AvgOrderValue,
-    MAX(so.OrderDate) AS LastOrderDate
-FROM Individual__dlm AS i
+    i.Id AS IndividualId,          -- DIMENSION (GROUP BY key)
+    COUNT(so.Id) AS TotalOrders,   -- MEASURE
+    SUM(so.TotalAmount) AS TotalRevenue,  -- MEASURE
+    AVG(so.TotalAmount) AS AvgOrderValue, -- MEASURE
+    MAX(so.OrderDate) AS LastOrderDate    -- MEASURE (date type)
+FROM Individual__dlm AS i           -- ★ Note: __dlm suffix required
 JOIN SalesOrder__dlm AS so
     ON so.IndividualId__c = i.Id
 WHERE so.OrderDate >= DATEADD(day, -90, CURRENT_DATE)
-GROUP BY i.Id
+GROUP BY i.Id                       -- ★ Required — defines dimension
 ```
 
-**Content:**
-- `Individual__dlm` and `SalesOrder__dlm` are the DMO API names (note `__dlm` suffix)
-- `WHERE` clause filters to last 90 days using `DATEADD` function
-- `GROUP BY i.Id` groups results by Individual — one CI row per customer
-- Measures: `TotalOrders`, `TotalRevenue`, `AvgOrderValue`, `LastOrderDate`
-- Dimension: `IndividualId`
-- This CI can then be used in segments: filter on `TotalRevenue >= 1000`
+**Key syntax rules:**
+- DMO API names end in **`__dlm`** — always
+- Standard ANSI SQL: SELECT, FROM, WHERE, GROUP BY, HAVING, JOINs all work
+- DATEADD and CURRENT_DATE are supported for date arithmetic
+- Preview the query in the CI editor before publishing to validate
 
-**Speaker Notes:** This example query is close to what you'd write in a real implementation. Note the `__dlm` suffix on DMO names — this is important syntax for Data Cloud. DMO API names in CI SQL always end in `__dlm`. Also notice the DATEADD function for date arithmetic — this is standard SQL and works in Data Cloud's CI editor. The JOIN connects the Individual DMO to the Sales Order DMO — the relationship that enables traversal. The exam may present a business requirement and ask you to identify the correct SQL structure. Key things they test: correct GROUP BY, appropriate aggregation function, proper DMO naming with __dlm suffix, and date filtering syntax.
+**Limitations:**
+- No real-time computation — runs on schedule only
+- Complex multi-DMO JOINs can be slow to process for large datasets
+- HAVING clause is supported but the GROUP BY result set must still be grouped by IndividualId for use in segmentation
 
 ---
 
-### Slide 6: CI Refresh Schedule
-**Visual:**
+### Aggregation Functions Reference
+
 ```
-  REFRESH DEPENDENCY CHAIN (must run in this order)
-  ──────────────────────────────────────────────────────────
+  ┌────────────────────┬───────────────────────────────┬───────────────────────────┐
+  │ Function           │ Example                       │ Use For                   │
+  ├────────────────────┼───────────────────────────────┼───────────────────────────┤
+  │ COUNT(field)       │ COUNT(so.Id) AS Orders        │ # of orders, sessions     │
+  │ COUNT(DISTINCT f)  │ COUNT(DISTINCT ProductCat)    │ Unique product categories │
+  │ SUM(field)         │ SUM(TotalAmount) AS Revenue   │ Total spend, quantity     │
+  │ AVG(field)         │ AVG(TotalAmount) AS AvgOrder  │ Average order value       │
+  │ MAX(field)         │ MAX(OrderDate) AS LastPurchase│ Most recent purchase date │
+  │ MIN(field)         │ MIN(OrderDate) AS FirstPurchas│ First purchase date       │
+  └────────────────────┴───────────────────────────────┴───────────────────────────┘
+  All functions IGNORE NULL values (standard SQL behavior)
 
-  2:00 AM ── Data Stream refresh ──▶ DMO data updated
-                                          │
-  4:00 AM ────────────────────────────────▼
-           CI refresh ──▶ Processes updated DMO data ──▶ CI values fresh
-                                          │
-  6:00 AM ────────────────────────────────▼
-           Segment refresh ──▶ Uses fresh CI values ──▶ Membership updated
-
-  If CI refresh runs BEFORE Data Stream completes:
-  CI processes yesterday's DMO data → stale CI values → wrong segment
-
-  SOLUTION: Use Job Scheduler job chaining to enforce correct order
+  Business need → Function mapping:
+  "How many purchases?" → COUNT
+  "Total spent?" → SUM
+  "Average basket size?" → AVG
+  "When did they last buy?" → MAX on date field
+  "When did they first buy?" → MIN on date field
+  "How many different categories?" → COUNT(DISTINCT)
 ```
-
-**Content:**
-- CIs are pre-computed on a **schedule** — they do not run in real-time
-- CI refresh options are configured independently of Data Stream and Segment refresh
-- CI refresh dependency: underlying DMO data must be current before CI refresh runs
-- **Order of operations:** Data Stream refresh → DMO data updated → CI refresh → Segment refresh
-- If CI refresh runs before underlying DMOs are updated, CI values will be stale
-- Data Cloud's job scheduler can be configured to chain these jobs in the correct order
-
-**Speaker Notes:** The CI refresh dependency chain is a favorite exam topic. The operations must happen in sequence: data ingestion updates the DMO data, THEN the CI refresh processes that updated DMO data to produce new aggregate values, THEN the segment refresh uses those new CI values to recalculate segment membership. If you schedule CI refresh before the data ingestion job completes, your CI will be based on yesterday's data even though today's ingestion ran. Exam questions often describe a scenario where "the segment using a CI isn't showing recent transactions" and ask what the consultant should check. The answer: verify the CI refresh schedule runs AFTER the Data Stream refresh completes.
 
 ---
 
-### Slide 7: Using CIs in Segments
-**Visual:**
+### CI Refresh Dependency Chain
+
 ```
-  SEGMENT BUILDER — Using a Calculated Insight as criteria
-  ──────────────────────────────────────────────────────────
-  Criteria Source: [ Calculated Insight ▼ ]
+  CORRECT ORDER (must run in this sequence):
+  ════════════════════════════════════════════════════════
+  2:00 AM ── Data Stream refresh ──▶ DLO + DMO updated
+                     │
+                     │ (job chaining — waits for completion)
+                     ▼
+  4:00 AM ── CI refresh ───────────▶ CI values computed from
+                     │               fresh DMO data
+                     │ (job chaining)
+                     ▼
+  6:00 AM ── Segment refresh ──────▶ Segment membership updated
+                     │               using fresh CI values
+                     │ (job chaining)
+                     ▼
+  7:00 AM ── Activation publish ───▶ Destinations updated
 
-  ┌────────────────────────┬──────────────┬──────────────────┐
-  │ Customer_Purchase_Stats│ TotalRevenue │ >= 1000          │
-  └────────────────────────┴──────────────┴──────────────────┘
-  AND (attribute filter)
-  ┌──────────────┬──────────────┬──────────────────────────┐
-  │ Individual   │ LoyaltyTier  │ equals "Gold"            │
-  └──────────────┴──────────────┴──────────────────────────┘
-  AND (related attribute filter)
-  ┌──────────────────────────────────────────────────────────┐
-  │ Has SalesOrder WHERE OrderDate in last 30 days           │
-  └──────────────────────────────────────────────────────────┘
-
-  Combined segment: "Gold tier customers with TotalRevenue >= $1000
-                     who also made a purchase in the last 30 days"
+  WITHOUT chaining: CI runs at 1 AM before Data Stream finishes
+  → CI computes yesterday's data
+  → Segments reflect stale metrics
+  → Marketing activates wrong audience
 ```
 
-**Content:**
-- In Segment Builder, select **Calculated Insight** as the criteria source
-- Choose the CI name, then select the specific measure field
-- Apply a comparison operator and value
-- CIs can be combined with attribute filters and related attribute filters
-- Example combined criteria: "Gold tier customers (attribute) AND TotalRevenue90d >= 1000 (CI) AND has an order in last 30 days (related attribute)"
-- CI dimension fields can also be used as criteria (e.g., filter by a product category dimension)
-
-**Speaker Notes:** Using a CI in segment criteria is straightforward once the CI is created and published. The exam tests the end-to-end scenario: given a business requirement for an aggregate metric, can you identify that a CI is needed, write the SQL, and then describe how it's used in a segment? Many exam questions won't ask you to write full SQL — they'll ask conceptual questions like "which feature would you use to filter on a customer's total spend over 90 days?" The answer is a Calculated Insight. The distinction is important: individual transaction data is a related attribute filter; an aggregate like total spend requires a CI.
+**Limitations:**
+- No dependency enforcement by default — you must configure job chaining in the Job Scheduler manually
+- If a Data Stream fails, downstream CI and Segment jobs may run against incomplete DMO data
+- CI refresh cannot be triggered by a Data Stream completion event (no event-driven chaining) — only time-based scheduling
 
 ---
 
-### Slide 8: CI Limitations & Best Practices
-**Visual:**
-```
-  ┌──────────────────────────────────┐  ┌──────────────────────────────────┐
-  │         LIMITATIONS              │  │        BEST PRACTICES            │
-  │  (red — watch out for these)     │  │  (green — follow these)          │
-  ├──────────────────────────────────┤  ├──────────────────────────────────┤
-  │ Not real-time — as fresh as      │  │ Name with metric + time window:  │
-  │ last scheduled refresh           │  │ TotalSpend_90d, Orders_30d       │
-  ├──────────────────────────────────┤  ├──────────────────────────────────┤
-  │ Complex multi-DMO JOINs can      │  │ Schedule CI refresh AFTER the    │
-  │ be slow to process               │  │ dependent Data Stream completes  │
-  ├──────────────────────────────────┤  ├──────────────────────────────────┤
-  │ CIs can only reference DMO data  │  │ Use WHERE clauses to limit data  │
-  │ — NOT DLO data                   │  │ processed (filter by date range) │
-  ├──────────────────────────────────┤  ├──────────────────────────────────┤
-  │ There is a limit on active CIs   │  │ Preview before publishing to     │
-  │ per Data Cloud instance          │  │ validate SQL logic               │
-  └──────────────────────────────────┘  └──────────────────────────────────┘
-```
+## Key Facts to Memorize
 
-**Content:**
-- **Limitations:**
-  - CIs are not real-time — they're as fresh as their last scheduled refresh
-  - Complex JOINs across many DMOs can be slow to process
-  - CIs can only reference DMO data, not DLO data
-  - There is a limit on the number of active CIs per Data Cloud instance
-- **Best Practices:**
-  - Name CIs clearly: include the metric and time window (e.g., TotalSpend_90d)
-  - Schedule CI refresh AFTER the dependent Data Stream refresh completes
-  - Use WHERE clauses to limit data processed (filter by date range)
-  - Test with Preview before publishing to validate SQL logic
-
-**Speaker Notes:** The limitations section contains exam-relevant facts. The most important: CIs reference DMO data, not DLO data. If someone asks whether a CI can be written against raw DLO fields, the answer is no. Also important: the maximum number of active CIs is a real constraint in production implementations — you shouldn't create dozens of nearly identical CIs. Instead, use one CI with multiple measures. The best practice of naming with time windows (TotalSpend_90d vs TotalSpend_30d) is a real implementation practice that the exam may reference in a scenario about "a consultant is reviewing a client's Data Cloud instance and sees 15 different CIs for similar metrics" — the recommendation would be to consolidate.
-
----
-
-## Recording Script
-
-Welcome to Lecture 06. In this lecture, we're tackling Calculated Insights — one of the most technically interesting and exam-relevant features in Data Cloud.
-
-Here's the problem CIs solve. You've ingested a customer's sales orders. Each order is an individual record with an order date, a total amount, and a line item. But your marketing team doesn't want to filter on individual orders — they want to target customers whose total spend over the last 90 days exceeds $1,000. That's an aggregate calculation across multiple records. Standard DMO filters can't do that. Calculated Insights can.
-
-A Calculated Insight is a pre-computed metric stored as its own object. You write it in ANSI standard SQL, and Data Cloud runs that SQL on a schedule, storing the results. When your segment queries the CI, it's reading cached results — not running live aggregations.
-
-The SQL structure is standard: SELECT the individual ID as your dimension, and your aggregate functions as your measures. You JOIN the Individual DMO to the Sales Order DMO using the relationship field. You filter with a WHERE clause for your time window. You GROUP BY the Individual ID. The result is one row per customer with their computed metrics.
-
-The naming convention for DMOs in CI SQL is important: DMO API names end in `__dlm`. So the Individual DMO is `Individual__dlm` in your FROM clause.
-
-Dimensions and measures: dimensions are your GROUP BY fields — they define what each row represents. Measures are your aggregate outputs — COUNT, SUM, AVG, MAX, MIN. When you use a CI in segment criteria, you filter on measure values.
-
-The critical operational concept is the refresh dependency chain. Data must flow in this order: Data Stream refresh updates the DMO data. THEN the CI refresh runs against updated DMO data. THEN the segment refresh uses updated CI values. If these schedules aren't coordinated, your segment membership will be based on stale calculations. Always schedule CI refresh after the Data Stream jobs it depends on.
-
-In Lecture 07, we complete the section with Activation Targets — how to get your segments out to the systems that actually communicate with customers. See you there.
-
----
-
-## Exam Tips
-
-- CIs use **ANSI standard SQL** — standard SELECT/FROM/WHERE/GROUP BY syntax applies
-- DMO API names in CI SQL end in **`__dlm`** (e.g., `Individual__dlm`, `SalesOrder__dlm`)
+- CIs use **ANSI standard SQL** — standard SELECT/FROM/WHERE/GROUP BY syntax
+- DMO API names in CI SQL always end in **`__dlm`** (e.g., `Individual__dlm`, `SalesOrder__dlm`)
 - CIs can only reference **DMO data** — not DLO data
-- The refresh order matters: **Data Stream → DMO → CI → Segment** — schedule in this sequence
-- To filter on an **aggregate metric** (total spend, count of orders) in a segment, you need a **Calculated Insight** — not a related attribute filter
+- **GROUP BY is required** — it defines the dimension (usually IndividualId)
+- Correct refresh order: **Data Stream → DMO → CI → Segment**
+- Use a CI (not a related attribute filter) when you need an **aggregate** (total spend, count of orders, average value)
+- CIs serve **dual purpose**: segment criteria AND analytics source (Tableau, CRM Analytics) — one definition, used consistently
 
 ---
 
-## Lecture Summary
+## Exam Traps
 
-Calculated Insights are pre-computed aggregate metrics written in ANSI SQL that allow Data Cloud to compute summary-level data (total spend, purchase counts, average order values) from record-level DMO data. CIs are structured with dimensions (GROUP BY fields, typically including Individual ID) and measures (aggregate function outputs). They are scheduled to refresh separately from Data Streams and segments, and the refresh must run in the correct sequence: Data Stream refresh → DMO update → CI refresh → Segment refresh. CIs are used in segment criteria to filter on aggregate metrics and in activation payloads to enrich customer data. They reference DMO data (not DLO data) and are stored as pre-computed results rather than running at segment query time.
-
----
-
-## Mini Quiz
-
-**Question 1:** A marketing team wants to segment customers by their average order value over the last 12 months. Which Data Cloud feature should the consultant use to create this metric?
-
-A) A related attribute filter on the Sales Order DMO  
-B) A formula field on the Individual DMO  
-C) A Calculated Insight using the AVG() aggregation function  
-D) A custom DMO with a pre-computed AverageOrderValue field  
-
-**Answer: C**
-An average order value requires aggregating (averaging) multiple Sales Order records per customer. This is exactly the use case for a Calculated Insight with an AVG() measure. Related attribute filters can check whether orders exist meeting certain conditions but cannot compute averages across orders. Formula fields on DMOs cannot aggregate related records.
+- "A related attribute filter can compute a customer's total spend across all orders" — wrong; that requires a CI (aggregation across multiple records)
+- "CIs run in real time at segment query time" — wrong; CIs are pre-computed and cached
+- "CIs can reference DLO data directly" — wrong; CIs only query DMO-layer data
+- "If the CI refresh runs before the Data Stream, the CI will wait for it" — wrong; without job chaining, CI runs against whatever DMO data exists at that moment
+- "GROUP BY is optional in CI SQL if you only want one measure" — wrong; GROUP BY is always required
 
 ---
 
-**Question 2:** A consultant writes a Calculated Insight but after publishing, the segment using this CI is not reflecting recent transactions. The Data Stream refresh runs at 2 AM and completes by 3 AM. What is the most likely configuration issue?
+## Practice Questions
 
-A) The CI is referencing DLO data instead of DMO data  
-B) The CI refresh is scheduled to run at 1 AM, before the Data Stream refresh completes  
-C) The segment refresh schedule is shorter than the CI refresh schedule  
-D) The SQL query is missing a HAVING clause  
+**Q:** A marketing team wants to segment customers by their average order value over the last 12 months. Which feature creates this metric?
+**A:** A Calculated Insight using the AVG() aggregation function. Average order value requires aggregating (averaging) multiple Sales Order records per customer — this is exactly what CIs are for. Related attribute filters can check whether orders exist but cannot compute averages across orders.
 
-**Answer: B**
-The CI refresh must run AFTER the Data Stream refresh updates the underlying DMO data. If the CI is scheduled to run at 1 AM and the Data Stream runs at 2 AM, the CI will be processing yesterday's DMO data. The fix is to schedule the CI refresh after 3 AM (after the Data Stream completes).
+**Q:** A consultant writes a CI but after publishing, the segment using it isn't reflecting yesterday's purchases. The Data Stream refresh runs at 2 AM and finishes by 3 AM. What is the most likely issue?
+**A:** The CI refresh is scheduled to run at 1 AM — before the Data Stream completes. The CI is computing against yesterday's DMO data. The fix is to schedule the CI refresh after 3 AM (after the Data Stream finishes) and use job chaining in the Job Scheduler.
 
----
-
-**Question 3:** In a Calculated Insight SQL query that computes per-customer purchase metrics, which SQL clause determines which DMO field creates the "dimension" output?
-
-A) SELECT  
-B) WHERE  
-C) GROUP BY  
-D) HAVING  
-
-**Answer: C**
-The GROUP BY clause defines the dimension fields — the fields that determine the granularity of each output row (typically the Individual ID for per-customer CIs). The SELECT clause specifies all output columns (both dimensions and measures), but it's the GROUP BY that identifies which columns are dimensions (grouping keys) versus measures (aggregates).
+**Q:** In a CI SQL query, which clause determines what makes each output row a "dimension" rather than a "measure"?
+**A:** The GROUP BY clause. Fields in the GROUP BY clause are dimensions — they determine the granularity of each output row (typically IndividualId for per-customer CIs). Fields in the SELECT clause that use aggregation functions (COUNT, SUM, AVG) are measures.

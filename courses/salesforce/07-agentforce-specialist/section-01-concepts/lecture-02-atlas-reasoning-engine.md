@@ -1,343 +1,256 @@
-# Lecture 02: Atlas Reasoning Engine
+# Atlas Reasoning Engine
 
-## Learning Objectives
-- Describe the Atlas Reasoning Engine's Observe → Reason → Act → Observe planning loop in detail
-- Explain how Atlas selects which Topic and Action to invoke for a given user input
-- Describe the role of guardrails and the Einstein Trust Layer in the Atlas reasoning process
-- Explain what happens when Atlas cannot match a Topic or when an Action fails
-- Identify the factors that affect Atlas's reasoning quality: instruction clarity, action description specificity, and grounding quality
+## Exam Domain
+Agentforce Concepts & Architecture — ~20% of exam weight
 
-## Slides
+## Core Concepts
 
-### Slide 1: Atlas Reasoning Engine Overview
-**Visual:**
+### What Atlas Is
+Atlas is Agentforce's built-in reasoning engine. It reads the conversation context, decides what to do next (which Topic, which Action), calls the Action, reads the result, and decides if it's done or if it needs to do more. This is called the **ReAct loop**: Reason → Act → Observe (repeat).
+
+Atlas is not a search engine. It does not match keywords. It performs **semantic understanding** — it reads descriptions of Topics and Actions and determines which one best matches the user's intent. This is why description quality is the single most important configuration lever.
+
+### The ReAct Loop — Step by Step
+
+**Step 1 — OBSERVE (context assembly)**
+Before Atlas can reason, it reads everything in its context window:
+- The current user message
+- The conversation history
+- Agent Instructions (global system prompt)
+- All Topic descriptions
+- All Action descriptions within each matching Topic
+- Results from any Actions invoked earlier in this same turn
+
+**Step 2 — REASON (planning)**
+Atlas asks itself three questions in sequence:
+1. Which Topic does this message belong to? (semantic match against Topic descriptions)
+2. Within that Topic, which Action should I call? (semantic match against Action descriptions)
+3. Do I have all required input parameters? If no → generate a clarifying question. If yes → proceed to ACT.
+
+If no Topic matches → out-of-scope response or escalate per Instructions.
+If multiple Topics could match → Atlas picks the best match; ambiguous descriptions cause routing mistakes.
+
+**Step 3 — ACT (execution)**
+Atlas invokes the selected Action and passes it the required inputs (extracted from conversation or gathered through clarifying questions).
+Action types Atlas can invoke:
+- Flow Action (calls an Autolaunched Flow)
+- Apex Action (calls an @InvocableMethod)
+- Prompt Template Action (invokes a Flex template LLM call)
+- Knowledge Search Action (retrieves Knowledge articles)
+
+**Step 4 — OBSERVE AGAIN (result reading)**
+Atlas reads the Action result and adds it to the context window. It then asks: "Is the user's goal complete?" If yes → synthesize a response. If no → loop back to REASON.
+
+**Guardrail layers protecting each loop:**
+1. **Trust Layer:** Data masking and toxicity checks on every LLM call
+2. **Instructions:** Persona, behavioral rules, escalation triggers, exclusions apply globally
+3. **Topic scope:** Atlas cannot invoke Actions that don't belong to the matched Topic
+4. **Max iterations:** If Atlas loops more than the configured maximum, it stops and responds with what it has
+
+### Atlas Failure Modes
+| Failure | Cause | Fix |
+|---------|-------|-----|
+| Wrong Topic selected | Overlapping Topic descriptions | Tighten description scope, add exclusion phrasing |
+| Wrong Action selected | Vague or duplicate Action descriptions | Rewrite descriptions with specific scenarios and when NOT to use |
+| Missing parameter — stuck asking | Atlas can't extract param from conversation | Check Action description lists required inputs clearly |
+| Max iterations hit | Multi-step workflow too deep | Break workflow into simpler steps, use Flow to handle sub-steps |
+| Hallucination | Action succeeded but Atlas fabricated details in summary | Ground with Knowledge Search, verify response against source data |
+| Out-of-scope response | No Topic matches, or Instructions have exclusion | Expected behavior if properly scoped; add Topics if needed |
+
+### What Goes Into the Context Window
+This is tested directly. The context window for each Atlas reasoning step contains:
+- All text in Agent Instructions (why they must stay concise)
+- All Topic descriptions
+- All Action descriptions in Topics being considered
+- The full conversation history to that point
+- Prior Action results in the current turn
+
+Token budget is finite. Long Instructions + many Actions = context pressure. Evaluate periodically.
+
+## PTA / SA Relevance
+
+### Designing for Atlas Routing Quality
+The most common post-deployment complaint is "the agent is doing the wrong thing." This is almost always a routing issue, not a model issue. Atlas routing quality is 100% determined by description quality.
+
+**Three-part description template for Topics:**
 ```
-                    ┌─────────────────────────────────────┐
-                    │       ATLAS REASONING ENGINE        │
-                    └─────────────────────────────────────┘
-                                     │
-              ┌──────────────────────▼──────────────────────┐
-              │                  OBSERVE                     │
-              │  (message + history + Instructions + Context)│
-              └──────────────────────┬──────────────────────┘
-                                     │
-              ┌──────────────────────▼──────────────────────┐
-              │                   REASON                     │
-              │  Which Topic matches? Which Action to invoke?│
-              └──────────────────────┬──────────────────────┘
-                                     │
-              ┌──────────────────────▼──────────────────────┐
-              │                    ACT                       │
-              │    Invoke Action (Flow / Apex / Prompt /     │
-              │                  Knowledge)                  │
-              └──────────────────────┬──────────────────────┘
-                                     │
-              ┌──────────────────────▼──────────────────────┐
-              │                  OBSERVE                     │
-              │         (read action result, update context) │
-              └──────────────────────┬──────────────────────┘
-                                     │
-                    ┌────────────────┴─────────────────┐
-                    │         Done?                    │
-                    ├─── No ───▶ Loop back to REASON   │
-                    └─── Yes ──▶ Respond to user       │
-                                └──────────────────────┘
-
-  Stop conditions: goal achieved · escalation needed · max iterations reached
+[Topic description format]
+This topic handles: [what it does]
+Activate when: [user situations / phrasings]
+Do NOT activate for: [explicit exclusions]
 ```
-**Content:**
-- Atlas is a **Large Language Model (LLM) based planning engine** built into Salesforce's AI infrastructure
-- It does not execute code directly — it reasons about what tool to call, calls it, observes the result, and decides what to do next
-- The **planning loop** runs for each agent turn and can cycle multiple times within a single user message if multiple actions are needed
-- Atlas has access to: the full conversation history, the agent's Identity and Instructions, all Topic descriptions, all Action descriptions, and any data returned from previous actions in the same turn
-- The loop terminates when: the agent sends a response to the user, the agent escalates to a human, or a configured maximum number of reasoning steps is reached
-**Speaker Notes:** Think of Atlas as a thoughtful colleague who has been given a job description (Instructions), a list of things they can help with (Topics), and a set of tools they can use (Actions). When a customer message arrives, Atlas reads everything it knows, reasons about what the customer needs, picks the right tool, uses it, sees what happens, and then decides whether to answer or do something else. The loop is key — in a single customer message, Atlas might invoke three actions: first look up the customer's account, then retrieve their open cases, then summarize the relevant case. The customer sees one smooth reply but Atlas did three reasoning cycles to produce it.
 
-### Slide 2: The Observation Step
-**Visual:**
+**Three-part description template for Actions:**
 ```
-  ┌──────────────────────────────────────────────────────────────────┐
-  │                    ATLAS CONTEXT WINDOW                          │
-  │                                                                  │
-  │  ┌─────────────────────────┐  ┌──────────────────────────────┐  │
-  │  │  ◀ User Message         │  │  Conversation History        │  │
-  │  │  (current input,        │  │  (prior turns in session)    │  │
-  │  │   highlighted priority) │  │                              │  │
-  │  └─────────────────────────┘  └──────────────────────────────┘  │
-  │                                                                  │
-  │  ┌─────────────────────────┐  ┌──────────────────────────────┐  │
-  │  │  Agent Instructions     │  │  Topic Descriptions          │  │
-  │  │  (system prompt,        │  │  (one per Topic — Atlas      │  │
-  │  │   every turn)           │  │   reads all to match intent) │  │
-  │  └─────────────────────────┘  └──────────────────────────────┘  │
-  │                                                                  │
-  │  ┌─────────────────────────┐  ┌──────────────────────────────┐  │
-  │  │  Action Descriptions    │  │  Prior Action Results        │  │
-  │  │  (one per Action —      │  │  (from earlier steps in      │  │
-  │  │   Atlas reads all)      │  │   this same turn)            │  │
-  │  └─────────────────────────┘  └──────────────────────────────┘  │
-  └──────────────────────────────────────────────────────────────────┘
-       "All of this fits in the LLM's context window —
-        clarity and conciseness matter"
+[Action description format]
+Use this action to: [what it does]
+Call this when: [specific user scenarios]
+Required inputs: [what Atlas needs to extract from conversation]
 ```
-**Content:**
-- **User message** — the current input from the user or customer
-- **Conversation history** — prior turns in this session; Atlas maintains context across multiple exchanges
-- **Agent Instructions** — the system prompt defining the agent's persona, behavior rules, and constraints
-- **Topic descriptions** — natural language descriptions of every Topic the agent has; Atlas reads these to understand scope
-- **Action descriptions** — natural language descriptions of every Action within every Topic; Atlas reads these to understand what each tool does
-- **Previous action results** — outputs from Actions invoked earlier in this same reasoning loop
-- All of the above feeds into the LLM's context window — there is a finite limit; long instructions and many actions consume more tokens
-**Speaker Notes:** The observation step is why clear, concise instructions and descriptions matter so much. Every Topic description, every Action description, every line of Instructions is sent to the LLM on every reasoning cycle. Vague descriptions ("does stuff with orders") force Atlas to guess. Specific descriptions ("retrieves the status of an order given an order number; returns estimated delivery date and current fulfillment status") let Atlas route accurately. This is the key insight for the building section of the course: you are essentially writing prompts when you write descriptions.
 
-### Slide 3: The Reasoning Step — Topic and Action Selection
-**Visual:**
+### Atlas vs Hard-Coded Routing (for customer discussions)
+Atlas is fundamentally different from traditional IVR, rule-based chatbot routing, or Flow decision nodes. The routing decisions are made by an LLM reading natural language descriptions. This means:
+- **Advantage:** Much more flexible than keyword matching — handles paraphrases, slang, incomplete sentences
+- **Risk:** Depends on well-written descriptions; poorly written descriptions produce non-deterministic behavior
+- **Implication for partners:** Description quality is a professional services skill, not a technical configuration skill. Time spent writing and iterating on descriptions is time well spent.
+
+### Multi-Step Workflows and Atlas Loop Limits
+Customers sometimes try to solve complex 8–10 step processes with a single Atlas reasoning loop. This creates risk of hitting the max iteration limit mid-task. Better pattern:
+- Use a single Autolaunched Flow to handle multi-step data operations (the Flow can have 10+ steps internally)
+- Let Atlas call the Flow once with the required inputs
+- The Flow handles the complexity and returns a result
+- Atlas observes one clean result rather than reasoning through each sub-step
+
+This is the "Flow as orchestrator" pattern: simpler for Atlas, more reliable for the customer.
+
+### When Atlas Is Not the Right Tool
+- Fully deterministic processes with no natural language input: use Flow alone
+- Sub-second latency requirements: Atlas + LLM adds latency; pure Flow is faster
+- Processes requiring parallel execution: Atlas invokes Actions sequentially
+- Processes that must be 100% auditable step-by-step: conversation logs exist, but Atlas reasoning trace is internal
+
+## Architecture
+
+### Atlas ReAct Loop (Full Detail)
 ```
-                    User message received
-                            │
-             ┌──────────────▼───────────────┐
-             │  Does any Topic description  │
-             │     match the intent?        │
-             └──────────────┬───────────────┘
-                      │             │
-                     Yes             No
-                      │             │
-                      ▼             ▼
-           Which Topic best    Out-of-scope response
-             fits intent?      or Escalate to human
-                      │
-                      ▼
-           Within that Topic,
-           which Action best
-              fits intent?
-                      │
-             ┌────────▼────────────────────┐
-             │  Are all required inputs    │
-             │  available in context?      │
-             └────────┬──────────┬─────────┘
-                     Yes          No
-                      │           │
-                      ▼           ▼
-               Invoke Action   Ask clarifying
-                               question → await
-                               user response → retry
+┌─────────────────────────────────────────────────────┐
+│                  CONTEXT WINDOW                     │
+│  Instructions + Topics + Actions + History          │
+│  + Prior Action results in this turn               │
+└────────────────────────┬────────────────────────────┘
+                         │
+                         ▼
+                    ┌─────────┐
+          ┌────────▶│ OBSERVE │◀────── Action Result
+          │         └────┬────┘
+          │              │
+          │              ▼
+          │         ┌─────────┐
+          │         │ REASON  │
+          │         └────┬────┘
+          │              │
+          │    ┌─────────┼─────────────┐
+          │    │         │             │
+          │    ▼         ▼             ▼
+          │  No Topic  Missing      Topic +
+          │  match     params       Action
+          │    │         │          matched
+          │    │         ▼             │
+          │  OOS      Clarify          ▼
+          │  resp.    question      ┌──────┐
+          │                        │  ACT │
+          │                        └──┬───┘
+          │                           │
+          │                     ┌─────┴──────┐
+          │                     │            │
+          │                     ▼            ▼
+          │                  More          Done
+          │                  steps          │
+          └──────────────────┘            Respond
 ```
-**Content:**
-- Atlas first identifies the **best-matching Topic** by comparing user intent to Topic descriptions using semantic similarity
-- Within the matched Topic, Atlas identifies the **best-matching Action** by comparing the intent to Action descriptions
-- Atlas then checks whether all **required input parameters** for that Action are available from the conversation context
-- If inputs are missing, Atlas generates a clarifying question to collect them — this is a built-in capability, not custom code
-- If no Topic matches the user's intent, the agent responds with an out-of-scope message (configured in Instructions) or escalates to a human
-- Atlas can match multiple Topics in sequence within a single conversation turn if the user's message addresses multiple needs
-**Speaker Notes:** The key exam concept here is that Topic and Action selection is semantic, not keyword-based. Atlas does not look for the word "order" — it understands the meaning of "I need to know where my package is" and maps that to the Order Status topic because the description says "handles customer inquiries about shipment status and delivery timing." This semantic matching means your descriptions should focus on what the action DOES and WHEN to use it, written in natural language, not technical jargon or system names. Poor description: "Invokes SF_ORDER_LOOKUP_API_V2." Good description: "Retrieves the current status and estimated delivery date for a customer's order given an order number."
 
-### Slide 4: The Act Step — Invoking Actions
-**Visual:**
+**Limitations:**
+- Max iterations per turn: prevents infinite loops but caps complex multi-step execution; exact limit is configurable in agent settings
+- Single-threaded: Atlas invokes one Action per iteration, not parallel Actions
+- Context window pressure: every new Action result appended to context — very long conversations may push older context out, affecting reasoning quality
+- Semantic matching accuracy depends on description quality — LLM-based, not rule-based; test every routing path
+- Atlas cannot create new Topics or Actions at runtime — scope is fixed at agent build time
+
+### Topic and Action Two-Stage Routing
 ```
-  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
-  │   FLOW ACTION    │ │   APEX ACTION    │ │ PROMPT TEMPLATE  │ │ KNOWLEDGE ACTION │
-  │                  │ │                  │ │     ACTION       │ │                  │
-  │ Atlas extracts   │ │ Atlas extracts   │ │ Atlas populates  │ │ Atlas passes     │
-  │ params from      │ │ params from      │ │ template merge   │ │ search query     │
-  │ conversation     │ │ conversation     │ │ fields           │ │                  │
-  │        │         │ │        │         │ │        │         │ │        │         │
-  │        ▼         │ │        ▼         │ │        ▼         │ │        ▼         │
-  │ Autolaunched     │ │ @InvocableMethod │ │ Prompt Builder   │ │ Einstein         │
-  │   Flow runs      │ │   Apex runs      │ │ template + LLM   │ │ semantic search  │
-  │        │         │ │        │         │ │        │         │ │        │         │
-  │        ▼         │ │        ▼         │ │        ▼         │ │        ▼         │
-  │ Output variables │ │ Result object    │ │ Generated text   │ │ Top-N article    │
-  │ returned to Atlas│ │ returned to Atlas│ │ returned to Atlas│ │ content to Atlas │
-  └──────────────────┘ └──────────────────┘ └──────────────────┘ └──────────────────┘
+User Message
+    │
+    ▼
+Stage 1: Topic Routing
+    Atlas reads ALL Topic descriptions
+    ─────────────────────────────────
+    Topic A: "Handles billing questions..."    ← weak match
+    Topic B: "Handles order status..."         ← strong match  ◀── selected
+    Topic C: "Handles product returns..."      ← weak match
+    │
+    ▼
+Stage 2: Action Routing (within selected Topic)
+    Atlas reads all Actions in selected Topic
+    ─────────────────────────────────────────
+    Action 1: "Gets order tracking number"     ← weak match
+    Action 2: "Gets order status and ETA"      ← strong match  ◀── selected
+    Action 3: "Gets order line items"          ← weak match
+    │
+    ▼
+Parameter Check
+    Required: orderNumber
+    Source: conversation? ("my order is #12345") → extract
+           conversation? (no number given) → clarify
+    │
+    ▼
+ACT: invoke Action 2 with orderNumber="12345"
 ```
-**Content:**
-- **Flow Action** — invokes an Autolaunched Flow; Atlas maps conversation context to Flow input variables; Flow handles the Salesforce logic; output variables return to Atlas
-- **Apex Action** — invokes a method annotated with `@InvocableMethod`; same parameter passing mechanism as Flow
-- **Prompt Template Action** — calls a Prompt Builder template; Atlas populates template merge fields; the template's LLM call produces generated text
-- **Knowledge / Search Action** — performs a semantic search over Einstein Knowledge articles or other configured sources; returns ranked article content
-- **External API Action** — calls an external HTTP endpoint (configured via Named Credentials); enables integration with non-Salesforce systems
-- Atlas passes extracted **parameter values** to actions — it reads the conversation to extract values like order numbers, names, and dates
-**Speaker Notes:** For the exam, know the four primary action types and when to use each. Flow actions are the most common — they leverage existing automation and require no new code for most Salesforce orgs. Apex actions are used when you need logic that Flow cannot handle — complex calculations, callouts, or operations that require procedural code. Prompt Template actions are used when you need AI-generated content as part of the workflow — generating a case summary, drafting an email, producing a recommendation. Knowledge actions are used for FAQ and deflection scenarios where the answer lives in an article. You will be given a business requirement and asked which action type is most appropriate.
 
-### Slide 5: The Second Observation — Processing Results
-**Visual:**
+**Limitations:**
+- If two Topic descriptions are semantically similar, Atlas picks one non-deterministically — you may see routing inconsistency in testing
+- Action routing within a Topic assumes all Actions are equally candidates; the more Actions per Topic, the harder it is for Atlas to differentiate
+- Parameter extraction relies on Atlas reading the conversation — if the parameter was mentioned many turns ago, it may be lost if context window is full
+
+### Trust Layer Integration with Atlas Loop
 ```
-  BEFORE (Action just invoked)          AFTER (Result received)
-  ─────────────────────────────         ──────────────────────────────────────
-  Atlas invoked:                        Action returned:
-  Get_Order_Status Flow                   {
-    input: orderId = "ORD-5678"             orderStatus:      "Shipped"
-                                            estimatedDelivery: "Dec 15"
-                                            carrier:          "FedEx"
-                                            trackingNumber:   "123456"
-                                          }
-                                                    │
-                                                    ▼
-                                          Atlas adds to context,
-                                          reasons again:
+Each Atlas LLM call:
 
-                                          "I have: status (Shipped),
-                                           delivery date (Dec 15),
-                                           carrier (FedEx), tracking
-                                           (123456). I can compose
-                                           a complete response."
-                                                    │
-                                                    ▼
-                                          "Your order has shipped and
-                                           is expected Dec 15 via FedEx.
-                                           Track it at: 123456"
+[Assembled Prompt]
+       │
+       ▼ ── Data Masking ───────────── PII/PCI/PHI replaced with tokens
+       │
+       ▼ ── LLM API call ────────────── Prompt sent to model
+       │       (Zero Data Retention)
+       │
+       ▼ ── Response received
+       │
+       ▼ ── Toxicity filter ─────────── Check output for harmful content
+       │
+       ▼ ── Audit log entry ─────────── Record: timestamp, masked prompt, outcome
+       │
+Atlas uses the filtered response to update context
+and decide next step
 ```
-**Content:**
-- After an Action executes, its **output variables are added to Atlas's context**
-- Atlas then reasons again: "Do I have enough information to respond? Do I need to invoke another Action?"
-- If multiple Actions are needed, Atlas will invoke them sequentially — each result builds the context for the next reasoning step
-- The final response is composed by Atlas from all collected information — it is not simply returned raw from the action
-- Atlas can **synthesize data from multiple actions** into a single coherent response
-- This multi-step reasoning is what distinguishes agents from simple automation: the agent adapts its path based on what it discovers
-**Speaker Notes:** The second observation step is where the agent's intelligence really shows. A simple Flow would just format the order status data and return it. Atlas receives the data, thinks about what the user actually asked, considers whether there is anything else they might need, and crafts a natural-language response that addresses the complete need. This is also where things can go wrong — if an action returns an error or unexpected format, Atlas observes that and must decide what to do: retry, ask the user for different information, escalate. We will look at error handling more in the Testing lecture.
 
-### Slide 6: Guardrails and Trust Layer Integration
-**Visual:**
-```
-  ╔═══════════════════════════════════════════════════════════════════╗
-  ║            EINSTEIN TRUST LAYER  (outermost layer)               ║
-  ║  Data Masking · Zero Data Retention · Toxicity · Audit Log       ║
-  ║  ┌───────────────────────────────────────────────────────────┐   ║
-  ║  │        AGENT INSTRUCTIONS GUARDRAILS                      │   ║
-  ║  │  "Never discuss competitors" · Escalation rules           │   ║
-  ║  │  Behavioral constraints · Exclusion list                  │   ║
-  ║  │  ┌─────────────────────────────────────────────────────┐  │   ║
-  ║  │  │              TOPIC SCOPE                            │  │   ║
-  ║  │  │  Only configured Topics engaged;                    │  │   ║
-  ║  │  │  Atlas does not improvise new Topics                │  │   ║
-  ║  │  │  ┌───────────────────────────────────────────────┐  │  │   ║
-  ║  │  │  │          ATLAS REASONING ENGINE               │  │  │   ║
-  ║  │  │  │  Max iterations · Action-level confirmation   │  │  │   ║
-  ║  │  │  └───────────────────────────────────────────────┘  │  │   ║
-  ║  │  └─────────────────────────────────────────────────────┘  │   ║
-  ║  └───────────────────────────────────────────────────────────┘   ║
-  ╚═══════════════════════════════════════════════════════════════════╝
-  All LLM input/output passes through all three layers
-```
-**Content:**
-- **Einstein Trust Layer** — operates at the infrastructure level; applies before prompts leave Salesforce and after responses arrive; handles data masking, toxicity filtering, audit logging, and zero data retention
-- **Agent Instructions guardrails** — natural language rules in the Instructions block: "Never discuss competitor products," "Always escalate billing disputes over $500," "Only assist with topics listed below"
-- **Topic scope guardrails** — the agent only engages with Topics it has been given; Atlas will not improvise a new Topic
-- **Max reasoning steps** — configurable limit on the number of Act cycles per turn; prevents infinite loops
-- **Action-level confirmation** — assisted actions require human confirmation; this is a guardrail against high-risk autonomous execution
-**Speaker Notes:** Guardrails work at multiple levels and this is tested on the exam. If someone asks about an agent safety question, identify which layer applies. A data privacy concern (SSNs going to an LLM) → Einstein Trust Layer. A policy concern (agent discussing competitor prices) → Agent Instructions. A capability concern (agent can't book flights because we didn't configure that Topic) → Topic scope. The exam will describe a scenario and ask which configuration change would address the concern — map it to the correct guardrail layer.
+**Limitations:**
+- Every Atlas reasoning step is a full Trust Layer pipeline pass — adds latency vs. direct LLM call
+- Data masking is bidirectional (masks input going out, unmasks tokens in response) — imperfect on unusual PII formats
+- Audit logs stored in org — subject to your org's storage limits and data retention configuration
 
-### Slide 7: When Atlas Gets Stuck — Failure Modes
-**Visual:**
-```
-  ┌──────────────────────────┐  ┌──────────────────────────┐
-  │  ⚠  NO TOPIC MATCH       │  │  ⚠  MISSING PARAMETERS   │
-  │                          │  │                          │
-  │  User asks out of scope  │  │  Required input not in   │
-  │  → agent returns scoped  │  │  context → Atlas auto-   │
-  │  response or escalates   │  │  generates clarifying    │
-  │  to a human agent        │  │  question; no code needed│
-  └──────────────────────────┘  └──────────────────────────┘
+## Key Facts to Memorize
+- Atlas uses **ReAct** pattern: Reason → Act → Observe (loops)
+- **Semantic matching** of natural language descriptions — NOT keyword matching
+- Context window contains: Instructions + Topic descriptions + Action descriptions + history + prior Action results
+- **Two-stage routing:** Topic first, then Action within that Topic
+- Atlas stops if no Topic matches → out-of-scope response
+- Atlas asks clarifying question if required Action input not in conversation
+- **Max iterations** prevents infinite loops — set appropriately for your workflow depth
+- Failure modes to know: hallucination, wrong action invoked, stuck in loop, out-of-scope response
+- Every Atlas LLM reasoning call passes through the Trust Layer
 
-  ┌──────────────────────────┐  ┌──────────────────────────┐
-  │  ✗  ACTION ERROR         │  │  ⏱  MAX ITERATIONS       │
-  │                          │  │                          │
-  │  Flow/Apex throws        │  │  Reasoning loop hits     │
-  │  exception → Atlas       │  │  configured limit →      │
-  │  observes error, may     │  │  agent returns partial   │
-  │  retry, ask user for     │  │  answer or escalates     │
-  │  new info, or escalate   │  │  to human                │
-  └──────────────────────────┘  └──────────────────────────┘
+## Customer Advisory Tips
+- **Description writing is the highest-leverage work** in an Agentforce implementation. Budget 30–40% of build time for writing, testing, and refining Topic and Action descriptions.
+- **Build a routing test matrix:** For each Topic, write 10–15 test user phrases (including slang, incomplete sentences, typos). Run them in the simulator and verify routing. This matrix becomes your regression test suite.
+- **Monitor wrong-action invocations:** In the conversation logs, identify cases where Atlas invoked the wrong Action. Almost always a description problem. Fix description, retest.
+- **Context window budgeting:** Count approximate tokens in Instructions + all descriptions. A dense 500-token Instructions block + 10 Topics with 5 Actions each can consume significant context budget. Trim liberally.
+- **Escalation triggers must be explicit:** Without explicit escalation conditions in Instructions or Topics, Atlas may attempt to handle requests it shouldn't. Define "escalate to human when: [X, Y, Z]" explicitly.
 
-  Hallucination risk: Atlas may generate plausible-but-wrong
-  responses → mitigated by grounding with verified sources
-```
-**Content:**
-- **No Topic Match** — if no Topic description semantically matches the input, Atlas responds with the "out of scope" message from Instructions, or escalates to a human if configured
-- **Missing required parameters** — Atlas generates a natural-language clarifying question; this loop continues until parameters are available or the user abandons
-- **Action execution error** — if a Flow or Apex action throws an exception, Atlas observes the error and applies reasoning: retry? ask user for different info? escalate?
-- **Max iterations reached** — the maximum reasoning step count (configurable, default varies) prevents runaway loops; agent escalates or provides a partial answer
-- **Hallucination risk** — Atlas can generate plausible-sounding but incorrect responses; mitigated by grounding with verified knowledge sources and constrained Instructions
-**Speaker Notes:** Understanding failure modes is important for both the exam and for building reliable agents. The most dangerous failure mode from a business perspective is hallucination — the agent confidently providing wrong information. The mitigation is grounding: instead of asking Atlas to answer from its parametric knowledge, you provide verified Knowledge articles or Data Cloud records that Atlas uses as the source of truth. We will cover grounding strategies in detail in Lecture 07. For the exam, know that hallucination is addressed with grounding, and that missing parameters trigger clarifying questions automatically — you do not need to write custom code for that behavior.
+## Exam Traps
+- Thinking Atlas routes by keywords or regex — it uses semantic (LLM-based) matching of descriptions
+- Confusing the ReAct loop with a simple "if-then" decision tree — Atlas may loop multiple times per turn
+- Thinking Atlas can improvise Actions not configured — it can only invoke Actions explicitly added to Topics
+- Thinking the context window is unlimited — everything (Instructions, descriptions, history) must fit; long Instructions cause problems at scale
+- Confusing "max iterations" with "max conversations" — max iterations is the loop limit within a single turn
 
-### Slide 8: Optimizing Atlas Reasoning Quality
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────────┐
-  │                    ATLAS QUALITY TUNING                          │
-  ├──────────────────────┬───────────────────────────────────────────┤
-  │  Instruction         │  Vague ◀─────────────────▶ Specific       │
-  │  Clarity             │  ░░░░░░░░░░░░░████████████████████        │
-  ├──────────────────────┼───────────────────────────────────────────┤
-  │  Action Description  │  Jargon ◀────────────────▶ Natural Lang.  │
-  │  Quality             │  ░░░░░░░░░░░░░████████████████████        │
-  │  (highest impact)    │                                           │
-  ├──────────────────────┼───────────────────────────────────────────┤
-  │  Grounding           │  None ◀──────────────────▶ Knowledge+Cloud│
-  │  Coverage            │  ░░░░░░░░░░░████████████████████          │
-  ├──────────────────────┼───────────────────────────────────────────┤
-  │  Topic Scope         │  Broad catch-all ◀────────▶ Tightly scoped│
-  │  Discipline          │  ░░░░░░░░░░░░░████████████████████        │
-  ├──────────────────────┼───────────────────────────────────────────┤
-  │  AGENT               │  Unreliable ◀───────────────▶ Reliable    │
-  │  RELIABILITY         │  ░░░░░░░░░░░████████████████████████████  │
-  └──────────────────────┴───────────────────────────────────────────┘
-  Use Agent Testing simulator to inspect Atlas reasoning trace
-  and identify where wrong routing decisions occur
-```
-**Content:**
-- **Instruction quality** — clear, specific Instructions reduce ambiguity; vague Instructions lead to inconsistent behavior
-- **Action description quality** — the most impactful tuning factor; Atlas uses descriptions for routing; write them like a colleague explaining what a function does and when to call it
-- **Grounding coverage** — more verified, accurate knowledge sources reduce hallucination risk and improve answer accuracy
-- **Topic scope discipline** — narrowly scoped Topics reduce false positive matches; better to have five precise Topics than one broad "General" Topic
-- **Test and iterate** — use the Agent Testing simulator to observe Atlas's reasoning trace and identify where it makes wrong routing decisions
-- There is no single configuration setting for "Atlas quality" — it is a function of all the inputs you provide to the reasoning engine
-**Speaker Notes:** The practical takeaway for exam and real-world building: writing good descriptions is the highest-leverage skill in Agentforce. You can have perfect Flows and flawless Apex, but if your Action descriptions are vague, Atlas will mis-route and the agent will seem broken. Treat every Topic description and Action description as a mini-prompt — write it as if you are explaining to a smart colleague, who has never heard of your system, exactly what this option is for and when they should use it. Include the key trigger conditions, the expected inputs, and what the tool returns. This is the difference between a frustrating agent and a reliable one.
+## Practice Questions
+**Q:** A developer writes one-sentence Action descriptions. During testing, Atlas frequently invokes the wrong Action. What is the most likely cause?
+**A:** Vague or ambiguous Action descriptions. Atlas uses semantic matching against descriptions to choose Actions. One-sentence descriptions don't give enough signal to differentiate between similar Actions.
 
-## Recording Script
-In this lecture we go deep on the Atlas Reasoning Engine — the system that makes Agentforce agents actually autonomous. If you understand Atlas, you understand why agents behave the way they do and how to make them better.
+**Q:** A user sends a message. Atlas invokes Action A, reads the result, then invokes Action B, then responds. How many full ReAct loops occurred?
+**A:** Two. Each Act → Observe → Reason → Act cycle is one ReAct loop iteration. The initial Observe bringing in the user message is the setup; two actions = two full iterations.
 
-Atlas operates in a four-step loop: Observe, Reason, Act, Observe again. When a customer message arrives, Atlas first observes everything available to it — the message, the conversation history, the agent's instructions, every Topic description, every Action description, and any results from actions it has already taken in this turn. It then reasons about that full context: what does this user need? Which Topic applies? Which Action should I invoke? It acts by invoking the selected Action, then observes the result and decides whether to respond or do another reasoning cycle.
+**Q:** What happens in Agentforce when the user asks a question that matches no configured Topic?
+**A:** Atlas returns an out-of-scope response (or escalates per Instructions). It cannot improvise — if no Topic matches, it has no Actions to invoke and must decline or escalate.
 
-The observation step is where the quality of your configurations pays off. Atlas reads your Topic and Action descriptions as part of its reasoning input. If your Action description says "invokes the order API" — Atlas has very little signal. If it says "retrieves the current shipment status and estimated delivery date for a customer's order given an order number" — Atlas has clear, specific signal for when to call this action. Writing these descriptions is not just documentation; it is prompt engineering.
-
-The reasoning step uses semantic matching — not keywords. Atlas understands meaning. A customer message saying "my package hasn't shown up" will match an Order Status Topic even if it never uses the word "order." This is powerful, but it means you need to test with realistic, varied user inputs rather than assuming the customer will phrase things perfectly.
-
-The Act step invokes the selected Action — Flow, Apex, Prompt Template, or Knowledge Search — passing parameters it has extracted from the conversation. If required parameters are missing, Atlas automatically asks a clarifying question; you don't write code for that.
-
-Guardrails operate at multiple levels: the Einstein Trust Layer handles data privacy, Agent Instructions define behavioral rules, and Topic scope controls what subjects the agent engages with. When Atlas cannot find a matching Topic, it responds with an out-of-scope message rather than hallucinating an answer.
-
-In the next lecture we will look at the pre-built agent templates and how to customize them.
-
-## Exam Tips
-- The Atlas loop is Observe → Reason → Act → Observe — the loop can run multiple times within a single user message if the agent needs to invoke multiple actions
-- Atlas uses natural language descriptions (Topic descriptions, Action descriptions) for routing — not keywords, not configuration tables — semantic matching based on meaning
-- When required Action parameters are missing from the conversation, Atlas automatically generates a clarifying question — no custom code required
-- Hallucination is mitigated by grounding (Knowledge articles, Data Cloud records) — not by Instructions alone; grounding provides verified source material Atlas uses as truth
-- Guardrails operate at three levels: Einstein Trust Layer (data/privacy), Agent Instructions (behavioral rules), Topic scope (subject boundaries) — know which layer addresses which type of concern
-
-## Lecture Summary
-The Atlas Reasoning Engine is Salesforce's LLM-based planning system that runs all Agentforce agents. It operates in an Observe → Reason → Act → Observe loop: Atlas reads the full context (user message, conversation history, Instructions, Topic descriptions, Action descriptions, and prior action results), reasons about which Action to invoke, invokes it, observes the result, and cycles again until the goal is achieved or a stop condition is met. Topic and Action selection uses semantic matching — Atlas reads natural language descriptions to determine fit, making description quality the most critical configuration factor. When required parameters are missing, Atlas automatically asks clarifying questions. Guardrails apply at three levels: the Einstein Trust Layer (data masking, zero retention, audit logs), Agent Instructions (behavioral rules), and Topic scope boundaries. Hallucination risk is reduced through grounding with verified knowledge sources.
-
-## Mini Quiz
-
-**Q1:** A developer notices that their Agentforce agent sometimes invokes the wrong Action for certain customer messages. The agent has five Actions with similar purposes. What is the most likely root cause and best fix?
-A) The Einstein Trust Layer is blocking some action invocations
-B) The Action descriptions are too similar or too vague, causing Atlas to misroute; rewrite descriptions to be more specific and distinct
-C) The agent's Instructions are too long, causing Atlas to ignore them
-D) The Flow actions have errors in their input parameter mapping
-**Answer:** B — Action routing in Atlas is based on semantic matching of Action descriptions. If descriptions are vague or too similar to each other, Atlas cannot reliably distinguish between them and will misroute. The fix is to rewrite descriptions to be specific, distinct, and clear about the trigger conditions and expected inputs for each action. Trust Layer blocking would prevent execution, not cause wrong routing. Instruction length has minimal impact on action routing.
-
-**Q2:** In the Atlas Reasoning Engine loop, what happens if a customer message requires information from two different Actions — for example, the current account balance AND the last payment date?
-A) The agent returns an error because only one Action can be invoked per turn
-B) Atlas invokes both Actions simultaneously in parallel
-C) Atlas invokes the first Action, observes the result, then invokes the second Action, and composes a unified response
-D) The agent asks the customer two separate questions before invoking any Actions
-**Answer:** C — Atlas can invoke multiple Actions sequentially within a single reasoning loop. It invokes the first Action, observes the result (which becomes part of its context), then reasons again and invokes the second Action if needed. It then composes a unified response from all collected information. Parallel action invocation is not the default behavior. There is no error for multi-action turns.
-
-**Q3:** Which Atlas Reasoning Engine behavior handles the situation where a user's message does not match any of the agent's configured Topics?
-A) Atlas generates a best-effort response using its general knowledge, regardless of Topic configuration
-B) Atlas returns an error to the Salesforce platform
-C) Atlas responds using the out-of-scope message defined in Agent Instructions, or escalates to a human
-D) Atlas waits for the user to rephrase the message
-**Answer:** C — When no Topic matches the user's input, Atlas responds with the out-of-scope message configured in the Agent Instructions, or escalates to a human agent if escalation is configured. Atlas does not respond from general knowledge outside of configured scope — this is a key safety behavior that prevents the agent from answering questions it has not been configured and tested to handle.
+**Q:** An enterprise customer wants Agentforce to handle a 15-step sequential data processing workflow. What is the recommended architecture?
+**A:** Package all 15 steps inside a single Autolaunched Flow. Add the Flow as one Action. Atlas calls the Flow once, the Flow handles the complexity internally, and Atlas observes a single result. This avoids multi-iteration risk and keeps the Atlas loop simple.

@@ -1,356 +1,230 @@
-# Lecture 08: Agent Assist & Screen Pop
+# Agent Assist & Screen Pop
 
-## Learning Objectives
-- Differentiate between Autonomous mode and Agent Assist mode in Agentforce Voice
-- Explain how Agent Assist surfaces real-time recommendations to human agents during live calls
-- Understand how Einstein Conversation Mining and Next Best Action enhance agent assist suggestions
-- Configure screen pop rules using ANI, DNIS, and IVR-collected data to trigger automatic record display
-- Describe how real-time sentiment analysis is displayed in the Service Console during a voice interaction
+## Exam Domain
+Agent Configuration / Use Cases & Business Value — Agentforce Specialist (CRT-271)
 
----
+## Core Concepts
 
-## Slides
+### Two Operating Modes in Service Cloud Voice
 
-### Slide 1: Two Modes of Agentforce Voice
-**Visual:**
 ```
-  ┌────────────────────────────────┐    ┌────────────────────────────────┐
-  │       AUTONOMOUS MODE          │    │      AGENT ASSIST MODE         │
-  ├────────────────────────────────┤    ├────────────────────────────────┤
-  │                                │    │                                │
-  │  Caller ──▶ [AI Agent]         │    │  Caller ──▶ [Human Agent]      │
-  │              │                 │    │                │               │
-  │              ▼                 │    │  [AI listens continuously]     │
-  │         Resolves or            │    │                │               │
-  │         Escalates              │    │                ▼               │
-  │                                │    │  ┌─────────────────────────┐   │
-  │  No human involved             │    │  │  Agent Assist Panel     │   │
-  │  Routine, automatable calls    │    │  │  • Knowledge articles   │   │
-  │                                │    │  │  • Next Best Actions    │   │
-  │  Use for: case status,         │    │  │  • Sentiment gauge      │   │
-  │  store hours, appt confirm     │    │  │  • Suggested responses  │   │
-  └────────────────────────────────┘    │  └─────────────────────────┘   │
-                                        │  Use for: complex, relationship │
-                                        │  sensitive conversations        │
-                                        └────────────────────────────────┘
-  Both modes share: Amazon Connect / Genesys / NICE CXone infrastructure
-  Both modes use: real-time transcription as foundation
-  Escalation path: Autonomous ──▶ Agent Assist with full context
+┌─────────────────────────────────────┬─────────────────────────────────────┐
+│  AUTONOMOUS VOICE BOT               │  AGENT ASSIST MODE                  │
+├─────────────────────────────────────┼─────────────────────────────────────┤
+│  No human agent in the loop         │  Human agent handles the call       │
+│  Agentforce agent IS the contact    │  Agentforce assists from the side   │
+│                                     │                                     │
+│  Call flow:                         │  Call flow:                         │
+│  Customer → Agentforce → (escalate  │  Customer → Human Agent             │
+│            if needed) → Human       │             ↑ AI Suggestions        │
+│                                     │             ↑ Real-time transcript  │
+│  Best for: high volume, predictable │             ↑ Knowledge articles    │
+│  intent, self-service use cases     │                                     │
+│                                     │  Best for: complex calls, empathy   │
+│                                     │  required, judgment calls           │
+└─────────────────────────────────────┴─────────────────────────────────────┘
 ```
 
-**Content:**
-- **Autonomous Mode:** Agentforce agent handles the entire call without a human; caller speaks to AI
-- **Agent Assist Mode:** Human agent handles the call; AI listens and surfaces real-time help
-- Both modes use the same voice infrastructure (Amazon Connect, Genesys, NICE CXone)
-- Both leverage real-time transcription as the foundation
-- Modes can be mixed: start autonomous, escalate to human with agent assist active
+**The exam tests the boundary.** Autonomous mode = the AI handles the call end-to-end. Agent Assist = a human is on the call and the AI provides real-time help to that human. These are separate capabilities, separately licensed, and separately configured.
 
-**Speaker Notes:** The two modes represent fundamentally different use cases. Autonomous mode replaces the human for routine, automatable calls — case status, store hours, appointment confirmation. Agent Assist mode augments the human for complex calls where empathy, judgment, or account knowledge matters. The escalation path from autonomous to agent assist with full context is one of the most powerful patterns in the entire Agentforce Voice architecture.
+**Limitations:**
+- Autonomous mode and Agent Assist mode are not mutually exclusive on a single call — a call can start as autonomous and escalate to a human agent who then receives Agent Assist suggestions
+- Agent Assist requires the Agentforce for Service license, in addition to the Service Cloud Voice license
+- Agent Assist suggestions are surfaced via Einstein Conversation Insights, not a separate app
 
----
+### Agent Assist Components
 
-### Slide 2: How Agent Assist Works — The Technical Flow
-**Visual:**
 ```
-  ┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐
-  │   Caller     │───▶│ Telephony Partner │───▶│  Service Cloud   │
-  │  (phone)     │    │ (audio stream)    │    │  Voice           │
-  └──────────────┘    └──────────────────┘    │  (transcript)    │
-                                              └────────┬─────────┘
-                                                       │ live transcript
-                                                       ▼
-  ┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐
-  │  Human       │◀───│  Agent Assist    │◀───│  Agentforce      │
-  │  Agent       │    │  Panel (UI)      │    │  Agent           │
-  │  (desktop)   │    │  - Suggestions   │    │  (background)    │
-  └──────────────┘    │  - Articles      │    └──────────────────┘
-                      │  - Next Steps    │
-                      └──────────────────┘
+WHAT AGENT ASSIST SHOWS A HUMAN AGENT (Service Console)
 
-  PIPELINE LATENCY: caller utterance → suggestion appears: 1-2 seconds
-  Agent accepts suggestion with one click → inserts into notes or reads aloud
-```
-
-**Content:**
-- Real-time transcription converts call audio to text as the conversation happens
-- Einstein NLU analyzes transcription stream for intent, entities, and sentiment
-- Suggestion engine matches analysis against Knowledge articles, macros, and Next Best Actions
-- Agent assist panel in Service Console updates continuously — no page refresh
-- Suggested responses displayed with confidence score and source article link
-- Agent can accept a suggestion with one click, inserting it into chat or reading it aloud
-
-**Speaker Notes:** The latency of the suggestion pipeline is something architects need to understand. From the moment a caller finishes a sentence to the moment a suggestion appears on the agent's screen, the typical latency is one to two seconds. That is fast enough to be useful in a live conversation without being so fast that suggestions distract the agent. The one-click acceptance is a significant adoption driver — agents who have to retype a suggestion tend to ignore it.
-
----
-
-### Slide 3: Einstein Conversation Mining
-**Visual:**
-```
-  EINSTEIN CONVERSATION MINING — TOPIC ANALYSIS
-  ┌──────────────────────────────────────────────────────────┐
-  │  Topic Clusters (bubble size = call volume)              │
-  │                                                          │
-  │    ●●●●●  Billing Dispute    (32%)  Resolution:  71%     │
-  │    ●●●    Tech Support       (24%)  Resolution:  58%     │
-  │    ●●     Account Cancel     (18%)  Escalation:  44%  ◀──┤ automation gap
-  │    ●      New Service Req    (15%)  Resolution:  89%     │
-  │    ·      Other              (11%)  Resolution:  65%     │
-  │                                                          │
-  │  90-Day Volume Trend (top 3 topics)                      │
-  │  Billing  │▄▄▄▄▄▄▃▃▃▃▂▂                                  │
-  │  Tech     │▄▄▄▃▃▃▃▄▄▄▄▄                                  │
-  │  Cancel   │▂▂▂▃▃▄▄▄▄▄▄▄  ◀── rising                      │
-  │           └────────────────────────▶ Time (90 days)     │
-  └──────────────────────────────────────────────────────────┘
-  Runs on schedule │ Re-trains as new transcripts accumulate
-  Use output to: train Knowledge articles, tune agent assist, find automation gaps
+┌─────────────────────────────────────────────────────────────┐
+│  SERVICE CONSOLE — VOICE CALL PAGE                          │
+├──────────────────────────────┬──────────────────────────────┤
+│  REAL-TIME TRANSCRIPT        │  AI SUGGESTIONS PANEL        │
+│  ─────────────────────       │  ──────────────────────────  │
+│  Customer: "I've been        │  Detected Intent:            │
+│  charged twice this month"   │  Billing Dispute             │
+│                              │                              │
+│  Agent: "I can see that,     │  Suggested Response:         │
+│  let me check your account"  │  "I can see the duplicate    │
+│                              │   charge on 08/15..."        │
+│  Customer: "Also my plan     │                              │
+│  was supposed to renew       │  Knowledge Article:          │
+│  automatically"              │  "Duplicate Charge Process"  │
+│                              │                              │
+│  (scrolls in real-time       │  Next Best Action:           │
+│   while on the call)         │  Issue Refund (Flow action)  │
+└──────────────────────────────┴──────────────────────────────┘
 ```
 
-**Content:**
-- Analyzes historical call transcripts to identify recurring topics and intents
-- Groups similar conversations into clusters automatically using NLP
-- Surfaces: most common topics, resolution rates per topic, escalation rates per topic
-- Used to: train Knowledge articles, tune agent assist suggestions, identify automation candidates
-- Input to Flow and Agentforce agent design — tells you what callers actually ask
-- Run on a schedule; re-runs as new calls accumulate
+**What Agent Assist surfaces:**
+1. Real-time transcript (scrolling, speaker-labeled)
+2. Detected intent / topic classification
+3. Suggested responses (based on agent instructions + knowledge)
+4. Knowledge article recommendations
+5. Next best actions (e.g., run a Flow, update a record)
+6. Post-call summary (AI-generated — agent can edit before saving)
 
-**Speaker Notes:** Conversation Mining is the feedback loop that makes Agentforce Voice get smarter over time. After your first month of live calls, run Conversation Mining to discover what topics you missed in your initial design. You will almost always find two or three high-volume intent clusters that were not in the original IVR and that you can now automate or build better Knowledge articles for. This is how voice operations matures from a launch to a continuously improving system.
+**Limitations:**
+- Agent Assist suggestions are advisory — agents can ignore them
+- Suggestion latency is typically 1–3 seconds behind the live conversation (NLP processing delay)
+- Post-call summary generation requires transcription to be enabled for the duration of the call
+- Agent Assist is available AFTER the call escalation point — it is not available during autonomous bot interaction
 
----
+### Screen Pop — How It Works
 
-### Slide 4: Next Best Action in Voice
-**Visual:**
 ```
-  SERVICE CONSOLE — NEXT BEST ACTION PANEL
-  ┌──────────────────────────────────────────────────────────┐
-  │  NEXT BEST ACTION                             [refresh]  │
-  │  ────────────────────────────────────────────────────    │
-  │  1. ★ Retention Offer          Confidence: 87%           │
-  │     Caller churn risk: HIGH  │  LTV: $4,200/yr           │
-  │     [ Accept — Apply $20/mo discount ]  [ Dismiss ]      │
-  │  ────────────────────────────────────────────────────    │
-  │  2.   Escalate to Tier 2       Confidence: 72%           │
-  │     Issue: third contact for same problem                 │
-  │     [ Accept — Route to Tier 2 ]        [ Dismiss ]      │
-  │  ────────────────────────────────────────────────────    │
-  │  3.   Offer Plan Upgrade       Confidence: 61%           │
-  │     Caller mentioned competitor twice                     │
-  │     [ Accept — Open Upgrade Flow ]      [ Snooze ]       │
-  └──────────────────────────────────────────────────────────┘
-  Powered by: Prediction Builder or Decision Tables
-  Actions trigger Flows (send email, create case, update field) with one click
-```
-
-**Content:**
-- Next Best Action uses Prediction Builder or Decision Tables to rank actions
-- Triggered in real time based on call context + CRM record data
-- Examples: offer retention discount when churn risk score is high, suggest upsell when caller mentions competitor
-- NBA recommendations appear in agent assist panel alongside Knowledge suggestions
-- Agents can dismiss, accept, or snooze recommendations
-- NBA actions can trigger Flows (send email, create case, update field) with one click
-
-**Speaker Notes:** Next Best Action in voice is where CRM data and call context combine to drive business outcomes, not just case resolution. An agent seeing a retention discount offer on screen when a customer says "I am thinking about canceling" can act on that opportunity in the moment. The key design principle is that NBA recommendations should be actionable with one click — if an agent has to navigate to a different screen to act on a recommendation, they will not use it.
-
----
-
-### Slide 5: Screen Pop — What It Is and Why It Matters
-**Visual:**
-```
-  SCREEN POP FLOW
-  ┌──────────┐  CTI event   ┌──────────────┐   SOQL    ┌────────────────┐
-  │ Incoming │─────────────▶│  Open CTI    │──────────▶│  Salesforce    │
-  │   Call   │  (ANI passed)│  Adapter     │  lookup   │  Contact /     │
-  │          │              └──────────────┘           │  Account /     │
-  └──────────┘                                         │  Lead          │
-                                                       └───────┬────────┘
-                                                               │ match found
-                                                               ▼
-                                                    ┌──────────────────────┐
-                                                    │   SERVICE CONSOLE    │
-                                                    │  ┌──────────────────┐│
-                                                    │  │ Contact Record   ││
-                                                    │  │ Name: Jane Doe   ││
-                                                    │  │ Account: Acme    ││
-                                                    │  │ Open Cases:  2   ││
-                                                    │  │ Last Call:  3d   ││
-                                                    │  │ Account Tier: A  ││
-                                                    │  └──────────────────┘│
-                                                    │  Agent sees context  │
-                                                    │  before saying hello │
-                                                    └──────────────────────┘
-  No match ──▶ new interaction record + Create prompt
-  Multiple matches ──▶ disambiguation list for agent
+Inbound Call Arrives
+    ↓
+ANI (Caller's Phone Number) captured by telephony provider
+    ↓
+Service Cloud Voice passes ANI to Salesforce
+    ↓
+Salesforce queries for ANI match:
+    Priority order:
+    1. Contact.Phone
+    2. Contact.MobilePhone
+    3. Account.Phone
+    ↓
+         Found? → YES → Open Contact / Account record (screen pop)
+                          Case sub-tab if open case exists
+         Found? → NO  → New Case / Contact creation prompt
+                          (configurable: auto-create or manual)
+    ↓
+Human agent's Service Console opens the matched record
+    ↓
+Human agent sees full CRM context before speaking a word
 ```
 
-**Content:**
-- Screen pop = automatic record display when a call arrives at the agent's desktop
-- Eliminates manual searching — agent sees customer context before saying hello
-- Triggered by: ANI (caller phone number), DNIS (number dialed), IVR-collected account number
-- Lookup order: Contact → Account → Lead → Case (configurable)
-- No match: opens a new interaction record with a "Create" prompt
-- Multiple matches: presents a disambiguation list for agent to choose
+**Limitations:**
+- Screen pop matches on phone number format — ANI arrives in E.164 (+1XXXXXXXXXX), Salesforce Contact.Phone field may store in national format (XXXXXXXXXX). Format mismatch = no pop.
+- If multiple Contacts share the same phone number, screen pop shows a disambiguation list
+- Screen pop only fires for inbound calls; outbound calls can use click-to-dial (which also opens the record)
+- Screen pop does NOT create a new Contact automatically unless configured — default is to show "no match" to the agent
 
-**Speaker Notes:** Screen pop sounds simple but has a massive impact on handle time and customer experience. When an agent picks up a call already knowing who the caller is, their case history, and their account tier, they skip the first sixty to ninety seconds of every call — the "let me pull up your account" phase. At scale across hundreds of agents, that time reduction translates directly to cost savings and higher customer satisfaction scores.
+### Screen Pop — Configuration
 
----
-
-### Slide 6: Configuring Screen Pop Rules
-**Visual:**
 ```
-  SCREEN POP RULES CONFIGURATION
-  Setup > Call Centers > [Call Center] > Screen Pop Settings
-  ┌──────────────────┬──────────────────┬───────────────┬─────────────────┐
-  │  Match Field     │ Lookup Object    │ Lookup Field  │ Screen Pop      │
-  │                  │                  │               │ Target          │
-  ├──────────────────┼──────────────────┼───────────────┼─────────────────┤
-  │  ANI (CallerId)  │ Contact          │ Phone /       │ Contact record  │
-  │  (primary)       │                  │ MobilePhone   │ detail page     │
-  ├──────────────────┼──────────────────┼───────────────┼─────────────────┤
-  │  ANI (fallback)  │ Account          │ Phone         │ Account record  │
-  │                  │                  │               │ detail page     │
-  ├──────────────────┼──────────────────┼───────────────┼─────────────────┤
-  │  IVR Account #   │ Account          │ AccountNumber │ Account record  │
-  │  (VoiceCall fld) │                  │               │ detail page     │
-  ├──────────────────┼──────────────────┼───────────────┼─────────────────┤
-  │  No match        │  —               │  —            │ New interaction │
-  │                  │                  │               │ record + Create │
-  └──────────────────┴──────────────────┴───────────────┴─────────────────┘
-  Requires: CTI Adapter (Open CTI) configured correctly
-  IVR data path: Voice Flow Get Input ──▶ store on VoiceCall ──▶ screen pop reads field
+Setup → Voice Call Centers → [Call Center] → Screen Pop Settings
+┌─────────────────────────────────────────────────────┐
+│  Match Priority:    Contact > Account > Lead         │
+│  On No Match:       [ Show New Contact Form  ▼ ]     │
+│  On Multiple Match: [ Show Match List        ▼ ]     │
+│  Default Screen Pop: Contact Record                  │
+│  Open Sub-Tab: Open Cases                            │
+│                                                      │
+│  Additionally:                                       │
+│  Record Page: configure which Lightning page         │
+│  layout opens — design Agent Voice Call page         │
+│  layout with Transcript + AI Suggestions components  │
+└─────────────────────────────────────────────────────┘
 ```
 
-**Content:**
-- Configure in Setup > Call Centers > [Your Call Center] > Screen Pop Settings
-- **Primary match:** ANI matched against Contact.Phone or Contact.MobilePhone
-- **Secondary match:** Account matched by Account.Phone when no Contact found
-- **IVR input match:** Account number collected in Voice Flow passed as a URL parameter to the pop target
-- Pop target options: Visualforce page, Lightning page, record detail page, custom URL
-- Passing IVR data: Voice Flow stores collected input in a VoiceCall record field; screen pop reads that field
-- Configuration requires CTI Adapter (Open CTI) to be set up correctly
+**Limitations:**
+- Screen pop configuration is at the Call Center level, not per-queue — all calls through that Call Center use the same pop behavior
+- Custom screen pop logic (e.g., look up by custom field) requires a Salesforce Flow triggered on VoiceCall creation
 
-**Speaker Notes:** The screen pop rules configuration is where Voice Flows and Agent Assist connect. When your Voice Flow collects an account number via Get Input before transferring to an agent, that account number can be stored on the VoiceCall record and then used as a match key for the screen pop. The agent receives not just the caller's phone-based lookup but the precise account the caller identified themselves as — which matters when callers are calling from a number that doesn't match their account.
+### Einstein Conversation Insights for Agent Assist
 
----
-
-### Slide 7: Real-Time Sentiment Analysis
-**Visual:**
 ```
-  REAL-TIME SENTIMENT GAUGE — SERVICE CONSOLE SIDEBAR
-  ┌──────────────────────────────────────────────────────────┐
-  │  CALL SENTIMENT                            Live ● 03:47  │
-  │                                                          │
-  │  Negative ◀──────────────────────────────▶ Positive     │
-  │           ████████████████░░░░░░░░░░░░░░               │
-  │                           ▲                              │
-  │                     Current: Neutral                     │
-  │                                                          │
-  │  ┌────────────────────────────────────────────────────┐  │
-  │  │ Live Transcript                                    │  │
-  │  │ Caller: "I've been trying to get this fixed for    │  │
-  │  │          two weeks now..."                         │  │
-  │  │ Agent:  "I understand, let me pull up your         │  │
-  │  │          account right now."                       │  │
-  │  │ Caller: "This is the third time I've called"       │  │
-  │  └────────────────────────────────────────────────────┘  │
-  └──────────────────────────────────────────────────────────┘
-  Color coding: green = positive/neutral  yellow = mild frustration
-                red = high frustration / churn risk
-  Supervisor view: all active calls simultaneously
-  Red threshold ──▶ Flow alert fires to supervisor (configurable)
-  Post-call: SentimentScore stored on VoiceCall record for analytics
+REAL-TIME                          POST-CALL
+──────────────────────────         ──────────────────────────────────
+  Intent detection                   Conversation summary
+  Keyword alerts (product mentions,  Topic classification
+  escalation language, competitor    Sentiment trend (whole call)
+  names)                             Coaching flags (missed steps,
+  Suggested responses                non-compliance phrases)
+  Knowledge article links            Talk ratio (agent vs. customer)
+  Next best action prompts
+
+SUPERVISOR VIEW (real-time monitoring):
+  Listen (silent monitor) + Barge (join) + Whisper (coach agent only)
 ```
 
-**Content:**
-- Sentiment analysis runs on the live transcription stream using Amazon Comprehend or Einstein NLP
-- Displayed as a real-time gauge in the agent's console sidebar
-- Color coding: green = positive/neutral, yellow = mild frustration, red = high frustration/churn risk
-- Supervisor view: see sentiment across all active calls simultaneously in a monitoring dashboard
-- Triggers: when sentiment crosses a threshold, can fire a Flow alert to supervisor
-- Post-call: sentiment score stored on VoiceCall record for analytics
+**Limitations:**
+- Einstein Conversation Insights (ECI) is a separate license feature — not included with base Service Cloud Voice
+- Real-time keyword alerting requires pre-configuring tracked keywords/phrases in ECI settings
+- Supervisor listen/barge/whisper requires Amazon Connect's supervisor monitoring capabilities to be enabled
+- Post-call summary accuracy depends on transcription quality — low-quality transcripts produce poor summaries
 
-**Speaker Notes:** Real-time sentiment is most valuable for supervisors, not agents. An agent who is deep in a conversation may not notice the sentiment gauge at all — but a supervisor monitoring thirty calls simultaneously can instantly spot the one call where sentiment has turned red and intervene by whispering a coaching note to the agent or barge-monitoring the call. Configure your sentiment threshold alerts carefully — too sensitive and supervisors will be overwhelmed; too lenient and you will miss calls that need intervention.
+### Agent Assist vs. Autonomous — Feature Comparison
 
----
+```
+┌──────────────────────────────────┬────────────────────┬────────────────────┐
+│ Feature                          │ Autonomous Mode    │ Agent Assist Mode  │
+├──────────────────────────────────┼────────────────────┼────────────────────┤
+│ Handles call without human       │ YES                │ NO                 │
+│ Real-time transcript visible     │ N/A (no human)     │ YES                │
+│ AI suggested responses           │ N/A                │ YES                │
+│ Knowledge article suggestions    │ N/A                │ YES                │
+│ Post-call summary                │ YES (for records)  │ YES (for agent)    │
+│ Escalate to human with context   │ YES                │ N/A (already human)│
+│ Works with Screen Flow           │ NO                 │ YES (screen pop    │
+│                                  │                    │ is screen, not bot)│
+└──────────────────────────────────┴────────────────────┴────────────────────┘
+```
 
-## Recording Script
+**Key distinction:** Screen Flows are incompatible with autonomous voice bots (no screen on a phone call), but Screen Flows ARE usable in Agent Assist workflows where the human agent has a screen. The screen pop IS a screen pop — it opens a Lightning page, not a Screen Flow interaction for the caller.
 
-In this lecture, we are going to explore the two modes of Agentforce Voice — Autonomous and Agent Assist — and then dive deep into how Agent Assist works in practice, including screen pop configuration and real-time AI suggestions.
+**Limitations:**
+- Blending both modes on the same call (bot starts, human takes over, AI assists) requires both Autonomous and Agent Assist licenses
+- A post-call summary generated during autonomous mode still requires a human agent to review/save it to the case record
 
-Let me start with the fundamental distinction. Autonomous mode means the Agentforce AI agent handles the call from start to finish without a human. The caller speaks, the AI understands, responds, and resolves — or escalates. Agent Assist mode means a human agent is on the call, doing the talking, but Agentforce is listening to every word and surfacing help in real time on the agent's screen. These are not competing approaches — they are complementary. Most mature voice deployments use both: autonomous for simple, high-volume calls and agent assist for complex, relationship-sensitive conversations.
+## PTA / SA Relevance
 
-Now let us look at how Agent Assist actually works under the hood, because understanding the technical flow helps you design it correctly.
+**Agent Assist is the highest-ROI Agentforce Voice capability for complex contact centers where full automation isn't viable.** For regulated industries (healthcare, financial services, legal) where a human must be in the loop, Agent Assist is the right starting point — it delivers AI value without removing human judgment.
 
-The moment a call connects to an agent in Agent Assist mode, real-time transcription begins. Depending on your telephony provider, this is Amazon Transcribe for Amazon Connect deployments, or an equivalent service for Genesys and NICE CXone. The transcription stream — text appearing as the caller and agent speak — feeds into Einstein's NLU engine. Einstein analyzes that text stream continuously, looking for intent signals, named entities, and sentiment markers.
+**The "crawl-walk-run" framing for voice AI:**
+- Crawl: screen pop only — agent gets CRM context on answer (zero AI, just integration)
+- Walk: Agent Assist — AI surfaces suggestions, knowledge, summaries
+- Run: Autonomous agent — AI handles the call, escalates only when needed
 
-When Einstein detects an intent — say, the caller asking about a billing charge — the suggestion engine searches Knowledge articles, macros, and configured Next Best Actions for the most relevant matches. Those matches appear in the Agent Assist panel on the agent's Service Console within one to two seconds. The agent sees the top three or four suggestions, each with a confidence score and a link to the source. If one looks right, the agent clicks Accept and the response text populates in a notes field or is read aloud — depending on how you have configured the workflow.
+Most successful implementations start at "crawl" to prove value and build agent trust in AI, then progress to "walk" and "run" over 12–24 months.
 
-One component that deserves its own focus is Einstein Conversation Mining. This is a retrospective analysis tool that runs on historical call transcripts. It uses natural language processing to cluster similar conversations together and tells you what topics your callers are actually discussing — which may be quite different from what your IVR menu assumes they are calling about. Conversation Mining is how you discover automation gaps: the topics that come up frequently but are not yet handled by your Voice Flows or Agentforce agents.
+**Common partner mistakes:**
+- Trying to deploy autonomous mode before resolving phone number format mismatches (the screen pop doesn't fire = agents have no context = failed autonomous escalation handling)
+- Not including post-call summary quality in the acceptance criteria — agents often resist the feature if summaries are inaccurate
+- Not configuring the Lightning page layout for the Voice Call record — agents see the transcript in a tiny component instead of a well-designed working surface
 
-Now let us talk about screen pop, which is one of the most immediately visible improvements voice automation delivers.
+**Enterprise considerations:**
+- For 500+ agent deployments, the post-call summary feature can save 30–60 seconds of wrap-up time per call — at scale this is a measurable FTE cost reduction
+- Supervisor monitoring (listen/barge/whisper) requires Amazon Connect supervisor configuration — Salesforce does not manage the underlying audio stream
+- Einstein Conversation Insights keyword alerting can flag compliance keywords in real-time — surfaced to supervisors, not just agents. For heavily regulated call centers, this is a compliance evidence feature.
 
-Screen pop is the automatic display of a customer's Salesforce record when an inbound call arrives at an agent's desktop. Before the agent even says hello, they can see who is calling, what cases they have open, their account tier, and recent interaction history. The mechanism works through your CTI adapter — specifically, Open CTI — which receives the call event from your telephony provider, extracts the ANI (the caller's phone number), and uses it to query Salesforce for matching records.
+**For a financial services customer:** "Agent Assist doesn't remove human judgment — it makes your agents faster and more consistent. The AI surfaces the right knowledge article and suggests the right next action, but your agent makes the final call. Compliance is intact."
 
-You configure the lookup logic in Setup under Call Centers. The typical priority order is: first look for a Contact whose phone number matches the ANI; if no Contact is found, look for an Account; if no Account is found, look for a Lead. You can customize this order and add additional match fields.
+## Customer Advisory Tips
 
-Here is where Voice Flows and screen pop integrate beautifully. If your Voice Flow collects an account number from the caller before transferring to an agent — using a Get Input element — it can store that account number on the VoiceCall record. When the screen pop fires, it uses that stored value as a lookup key in addition to the ANI. This means that even if the caller is calling from an unrecognized phone number, the agent still gets the right record on screen because the caller confirmed their account number in the IVR portion.
+**Phone number format standardization is a prerequisite — not an assumption.** Run a data quality check on Contact and Account phone fields before promising screen pop accuracy. Common issues: national vs. E.164 format, extension numbers appended, spaces/dashes inconsistency.
 
-For cases where the screen pop finds multiple potential matches — for example, a caller whose phone number matches three different accounts — the agent sees a disambiguation list and selects the right one. For no-match scenarios, the console opens a new interaction record with prompts to create a new contact or case.
+**Post-call summary quality threshold:** Before rolling out AI summaries broadly, test on 50–100 call recordings and have agents rate accuracy. If accuracy is below ~85% on your call types, investigate transcription accuracy first (not the summary model). Summaries are downstream of transcription.
 
-Finally, let us cover real-time sentiment analysis. As the call progresses, Einstein's sentiment engine processes the transcription stream and produces a running sentiment score that appears as a color-coded gauge in the agent's console sidebar. This is most powerful in the supervisor monitoring view, where a supervisor can see all active calls simultaneously and their current sentiment status. When a call's sentiment drops into the negative range, you can configure a Flow-based alert to notify the supervisor, enabling intervention before the customer hangs up angry.
+**Agent adoption strategy:** Agents resist AI suggestions when they feel "monitored" or "replaced." Frame Agent Assist as "co-pilot" — the AI is doing the research lookup while you're listening, so you don't have to. Adoption is highest when agents actively experience time savings in the first week.
 
-The combination of these capabilities — real-time suggestions, Next Best Action, screen pop, and sentiment monitoring — is what transforms a traditional call center from a reactive operation to a proactive, AI-augmented service organization.
+**Screen pop no-match rate as a diagnostic:** If >30% of incoming calls produce no screen pop match, this indicates a phone number data quality problem in the CRM, not a Salesforce configuration problem.
 
----
+## Key Facts to Memorize
+- Autonomous mode = AI handles the call; Agent Assist = AI helps a human handling the call
+- Screen pop fires on ANI match to Contact.Phone or Account.Phone (E.164 format required for match)
+- Agent Assist surfaces: transcript, intent, suggested responses, knowledge articles, next best actions, post-call summary
+- Post-call summary requires transcription to be enabled for the call duration
+- Screen Flows ARE usable in Agent Assist (human has a screen); NOT in autonomous bot (caller has no screen)
+- Einstein Conversation Insights: real-time keyword alerting + post-call coaching flags + supervisor listen/barge/whisper
 
-## Exam Tips
-- Autonomous mode = AI handles entire call; Agent Assist mode = human handles call with AI providing suggestions — do not confuse them
-- Screen pop fires based on ANI (caller's phone number) matched against Contact, Account, or Lead records
-- IVR-collected data (account number from Get Input) can be stored on the VoiceCall record and used as a secondary screen pop key
-- Einstein Conversation Mining analyzes historical transcripts — it is retrospective, not real-time
-- Next Best Action recommendations in Agent Assist panels require prior configuration in Prediction Builder or Decision Tables
-- Real-time sentiment analysis uses the live transcription stream; the sentiment score is stored on the VoiceCall record post-call for reporting
+## Exam Traps
+- "Screen pop is configured in Agentforce Studio" → False — Screen pop is configured in Setup → Voice Call Centers → Screen Pop Settings
+- "Agent Assist works during the autonomous bot interaction" → False — Agent Assist kicks in after a human agent receives the escalated call
+- "Screen Flows are incompatible with ALL voice scenarios" → Nuanced — incompatible with autonomous voice bots; compatible with the human agent's console in Agent Assist mode
+- "A screen pop fires for every inbound call" → False — screen pop only fires when the ANI matches a record in Salesforce
+- "Post-call summary is generated by transcription" → Partially — post-call summary is generated by LLM inference over the transcript; transcription is the prerequisite input
 
----
+## Practice Questions
 
-## Lecture Summary
-- Agentforce Voice operates in two modes: Autonomous (AI handles entire call) and Agent Assist (AI supports human agent in real time)
-- Agent Assist works through real-time transcription → Einstein NLU analysis → suggestion engine → agent console panel updates
-- Einstein Conversation Mining retrospectively clusters call transcripts to identify topics and automation opportunities
-- Screen pop configuration in Call Center settings uses ANI and IVR-collected data to trigger automatic record display
-- Next Best Action surfaces ranked, one-click business actions based on call context and CRM data
-- Real-time sentiment analysis provides agents and supervisors with live emotional tone indicators, with Flow-based alerting available
+**Q:** A Salesforce administrator has configured an Agent Assist workflow. Agents report that screen pop never fires when callers call in. Investigation shows all phone numbers are stored in Salesforce in format "555-867-5309" but ANI arrives as "+15558675309". What is the fix?
+**A:** Standardize the Contact and Account phone fields to E.164 format (+1XXXXXXXXXX), or add a formula/trigger to normalize the incoming ANI to match the stored format. The phone number format mismatch between ANI (E.164) and stored format (national) prevents screen pop from matching.
 
----
+**Q:** An autonomous voice agent handles calls, and callers who escalate to a human agent report that the agent has no context about their issue. What configuration is needed?
+**A:** Configure warm transfer (not cold transfer) in the voice agent's escalation settings. Warm transfer passes the VoiceCall record context — including the transcript and any intent data — to the receiving human agent's Service Console screen.
 
-## Mini Quiz
-
-**Q1:** An agent is on a live call. The Agentforce Agent Assist panel suddenly shows a "Retention Offer" recommendation with a one-click action. What powered this recommendation?
-
-A) A Scheduled Flow that ran at midnight  
-B) Next Best Action using real-time call context and CRM data  
-C) Einstein Conversation Mining retrospective analysis  
-D) The Voice Call Flow's Decision element  
-
-**Answer:** B — Next Best Action uses real-time call context combined with CRM data (like churn risk score from Prediction Builder) to surface relevant, timely recommendations to the agent during the live call.
-
----
-
-**Q2:** A caller dials in from a mobile number not in Salesforce, but during the Voice Flow they enter their account number via DTMF. When the call transfers to an agent, what should happen with the screen pop?
-
-A) No screen pop fires because ANI lookup failed  
-B) The agent sees a disambiguation list of all accounts  
-C) The account number stored on the VoiceCall record is used as a lookup key and the correct account pops  
-D) The agent must manually search for the account  
-
-**Answer:** C — When Voice Flow stores collected DTMF input (account number) on the VoiceCall record, screen pop configuration can use that field as a secondary lookup key, ensuring the correct account displays even when ANI matching fails.
-
----
-
-**Q3:** A contact center director wants to understand which topics callers are discussing most frequently to identify knowledge gaps. Which Agentforce Voice feature should they use?
-
-A) Real-time sentiment analysis dashboard  
-B) Next Best Action Prediction Builder  
-C) Einstein Conversation Mining  
-D) Voice Call Flow Decision element logic  
-
-**Answer:** C — Einstein Conversation Mining analyzes historical call transcripts and clusters them by topic, revealing the actual distribution of caller intents. This is the correct tool for understanding call topic patterns and identifying knowledge or automation gaps.
+**Q:** A contact center manager wants to see real-time keyword alerts when callers use competitor names during live calls. Which feature enables this?
+**A:** Einstein Conversation Insights (ECI), configured with tracked keywords/phrases. ECI provides real-time keyword alerting to supervisors during live calls when configured competitor names are detected in the real-time transcript.

@@ -1,403 +1,176 @@
-# JSI Cheat Sheet — JavaScript Developer I (CRT-600)
+# JSI Cheat Sheet — CRT-600 Personal Reference
 
-**Exam:** 60 questions | 105 min | 65% pass (39/60)
+**Exam:** 60 questions | 105 min | 65% pass (39/60) | $200
 
 ---
 
-## Variables & Scope
-
+## Types & Variables
 | | `var` | `let` | `const` |
 |---|---|---|---|
 | Scope | Function | Block | Block |
-| Hoisted | Yes (undefined) | Yes (TDZ) | Yes (TDZ) |
-| Reassignable | Yes | Yes | No |
-| Re-declarable | Yes | No | No |
+| Hoisted | `undefined` | TDZ | TDZ |
+| Reassign | Yes | Yes | No |
+| Re-declare | Yes | No | No |
 
-**Temporal Dead Zone (TDZ):** `let`/`const` exist from block start but throw `ReferenceError` if accessed before declaration.
-
-**Key typeof gotchas:**
-- `typeof null` → `"object"` (bug, not a feature)
-- `typeof NaN` → `"number"`
-- `typeof undeclaredVar` → `"undefined"` (no error)
-- `typeof []` → `"object"` — use `Array.isArray()`
+**7 primitives:** `number` `string` `boolean` `null` `undefined` `symbol` `bigint`
+**typeof traps:** `typeof null === "object"` | `typeof NaN === "number"` | `typeof [] === "object"`
+**Falsy:** `false` `0` `""` `null` `undefined` `NaN` `0n`
+**Truthy traps:** `[]` `{}` `"false"` `"0"`
+**NaN:** `NaN !== NaN` — use `Number.isNaN()`; `null == undefined` is `true`
+**??** vs **||:** `??` replaces null/undefined ONLY; `||` replaces any falsy (0, "" too)
+**?.** short-circuits on null/undefined → returns `undefined` (not null)
 
 ---
 
-## Operators
-
-| Operator | Triggers on |
-|---|---|
-| `\|\|` | falsy: `false, 0, '', null, undefined, NaN` |
-| `??` | null/undefined ONLY |
-| `?.` | optional chaining — short-circuits on null/undefined |
-| `==` | coerces types before comparing |
-| `===` | no coercion — always use this |
-
-`value == null` → true for both `null` and `undefined` — the one approved `==` use.
+## Scope & Closures
+- `var` leaks out of blocks; `let`/`const` are block-scoped
+- TDZ: accessing `let`/`const` before declaration → `ReferenceError`
+- Function declarations hoisted fully; `var` hoisted to `undefined`; expressions NOT hoisted
+- Closure: function retains access to enclosing scope after it returns
+- Loop + `var` + async callback = all callbacks see final `i` → use `let` instead
+- `typeof undeclaredVar` → `"undefined"` (no TDZ error — typeof special case)
 
 ---
 
 ## Functions
+| | Declaration | Expression | Arrow |
+|---|---|---|---|
+| Hoisted | Full | No | No |
+| Own `this` | Yes | Yes | No (lexical) |
+| `arguments` | Yes | Yes | No |
+| `new` | Yes | Yes | No |
 
-**Hoisting:**
-- Function declarations: **fully hoisted** (callable before definition)
-- Function expressions / arrow functions: only variable hoisted (as `undefined`)
+- Default params trigger on `undefined` only — `null` does NOT trigger default
+- Rest params `...args` → real array; `arguments` → array-like object (no .map)
+- IIFE: `(function(){})()` — isolated scope, single execution
 
-**Arrow functions:**
-- No own `this`, `arguments`, `super`, `new.target`
-- Cannot be constructors (no `new`)
-- `this` is lexically inherited from enclosing scope
+---
 
-**Default params:** only applied for `undefined` — NOT for `null`
+## `this` Binding Priority
+1. `new` keyword → new object
+2. `call` / `apply` / `bind` → provided `thisArg`
+3. Method call `obj.fn()` → the object
+4. Default → `undefined` (strict) or global (non-strict)
+5. Arrow → lexical (enclosing scope) — **ignores everything above**
 
-**Rest vs Spread:**
-- `...rest` in parameters — collects remaining args into array (must be last)
-- `...spread` in calls — expands array into arguments
+`bind` → returns new function; `call` → invoke + comma args; `apply` → invoke + array args
+Arrow functions IGNORE `.bind(thisArg)` — lexical `this` cannot be overridden
 
 ---
 
 ## Classes
-
-```js
-class Animal {
-    #name;                              // private field
-    static count = 0;                   // static property
-    constructor(name) {
-        this.#name = name;
-        Animal.count++;
-    }
-    get name() { return this.#name; }   // getter
-    speak() { return `${this.#name} speaks`; }
-    static create(name) { return new Animal(name); } // static factory
-}
-
-class Dog extends Animal {
-    constructor(name) {
-        super(name);                    // must call before this
-    }
-    speak() { return super.speak() + ' (woof)'; }
-}
-```
-
-**Private fields** (`#field`): language-enforced, inaccessible outside class body.  
-**Static**: belongs to class, not instance — call as `ClassName.method()`.
+- NOT hoisted — must declare before `new`
+- `super()` before `this` in derived constructor (required)
+- Private `#field` — class-scoped, SyntaxError from outside even subclasses
+- `static` = on class object only, not instances
+- `instanceof` walks prototype chain
+- Getters: `get name()` | Setters: `set name(v)`
 
 ---
 
-## Prototype Chain
-
-- Property lookup: object → [[Prototype]] → [[Prototype]] → `Object.prototype` → `null`
-- `hasOwnProperty('key')`: true only if property is directly on the object
-- `'key' in obj`: true if found anywhere in the chain
-- `for...in`: iterates ALL enumerable string keys in chain (use with caution)
-- `Object.keys()`: own enumerable string keys only
-
----
-
-## Modules (ES Modules)
-
-```js
-// Named exports/imports
-export function foo() {}           export const BAR = 1;
-import { foo, BAR } from './m.js'; import { foo as f } from './m.js';
-
-// Default export/import
-export default class MyClass {}
-import MyClass from './m.js';       // any name
-
-// Namespace import
-import * as ns from './m.js';      // ns.foo(), ns.BAR
-
-// Re-export (barrel file)
-export { foo } from './a.js';
-
-// Dynamic import
-const mod = await import('./m.js'); // returns Promise<module>
-```
-
-**ESM vs CJS:**
-| | ESM | CommonJS |
-|---|---|---|
-| Syntax | `import/export` | `require/module.exports` |
-| Loading | Static (parse-time) | Dynamic (runtime) |
-| Bindings | Live | Copied snapshot |
-| Tree shaking | Yes | No |
+## Prototypes
+- Every object has `[[Prototype]]` — chain ends at `Object.prototype → null`
+- `Object.getPrototypeOf(obj)` — standard (not `__proto__`)
+- `hasOwnProperty(key)` — own props only; `Object.keys()` — own enumerable; `for...in` — own + inherited
+- `Object.create(proto)` — creates object with proto as [[Prototype]]
+- Property assignment ALWAYS creates own property — doesn't walk chain
 
 ---
 
-## Iterables & Generators
-
-**Iterable protocol:** object with `[Symbol.iterator]()` method returning iterator `{ next() → { value, done } }`
-
-**Built-in iterables:** Array, String, Map, Set, NodeList, arguments
-
-**Generator:**
-```js
-function* range(start, end) {
-    for (let i = start; i < end; i++) yield i;
-}
-for (const n of range(0, 5)) console.log(n); // 0,1,2,3,4
-```
+## ES Modules
+- Named: `export const x` → `import { x } from '...'` (must match)
+- Default: `export default fn` → `import anything from '...'` (no braces)
+- Static imports: parse time; `import()` dynamic: runtime, returns Promise
+- Live bindings: imported names track exported variable changes
+- All modules: strict mode auto, executed once (cached)
+- Tree shaking requires static imports + bundler
 
 ---
 
-## Arrays — Key Methods
-
-| Method | Returns | Mutates? |
-|---|---|---|
-| `map(fn)` | New array (same length) | No |
-| `filter(fn)` | New array (shorter/same) | No |
-| `reduce(fn, init)` | Single value | No |
-| `find(fn)` | First matching element or `undefined` | No |
-| `findIndex(fn)` | Index or `-1` | No |
-| `some(fn)` | `true` if any match | No |
-| `every(fn)` | `true` if all match | No |
-| `flat(depth)` | Flattened new array | No |
-| `flatMap(fn)` | map + flat(1) | No |
-| `sort(fn)` | Sorted (in place!) | **Yes** |
-| `splice(i,n)` | Removed elements | **Yes** |
-| `push/pop/shift/unshift` | Length/element | **Yes** |
-
-**Sort gotcha:** Default sort is **lexicographic**. Always pass comparator for numbers: `.sort((a,b) => a-b)`.
+## Iterators & Generators
+- Iterator protocol: `.next()` returns `{ value, done }`
+- Iterable protocol: `[Symbol.iterator]()` returns iterator
+- `for...of` requires iterable; `for...in` requires object (iterates keys)
+- `function*` + `yield` → auto-creates iterator; lazy evaluation
+- `yield*` delegates to another iterable
+- `[...gen()]` and `for...of` stop at `done: true` — `return` value is NOT included
 
 ---
 
-## Map & Set
-
-**Map** (ordered, any key type):
-```js
-const m = new Map(); m.set(key, val); m.get(key); m.has(key); m.size;
-for (const [k, v] of m) ...
-```
-
-**Set** (unique values, O(1) lookup):
-```js
-const s = new Set([1,2,2,3]); // {1,2,3}
-s.add(4); s.has(3); s.delete(2); s.size;
-```
-
-**Use Map/Set when:** fast membership checks, any type as key, need .size, ordered iteration.  
-**Use WeakMap/WeakSet when:** keys are objects and should not prevent garbage collection.
+## Collections
+- `sort()` without comparator = string sort → `[1,10,2,9]` not numeric
+- `sort` in-place; `map/filter/reduce` return new arrays
+- `find` → element; `findIndex` → index; both return `undefined`/`-1` if not found
+- `reduce(fn, initialValue)` — always provide initial value
+- Map: any key type, `.size`, insertion-ordered; Set: unique values
+- WeakMap/WeakSet: object keys only, not iterable, GC-friendly
 
 ---
 
-## Async JavaScript
-
-**Event loop order (same tick):**
-1. Synchronous code (call stack)
-2. Microtasks: Promise callbacks, `queueMicrotask()`
-3. Macrotasks: `setTimeout`, `setInterval`, I/O
-
-```js
-console.log('A');
-setTimeout(() => console.log('B'), 0);
-Promise.resolve().then(() => console.log('C'));
-console.log('D');
-// Output: A, D, C, B
-```
-
-**Promise combinators:**
-| Method | Behavior |
-|---|---|
-| `Promise.all([...])` | Waits for all; rejects on first failure |
-| `Promise.allSettled([...])` | Waits for all; never rejects; returns `{status, value\|reason}[]` |
-| `Promise.race([...])` | First to settle (fulfill OR reject) wins |
-| `Promise.any([...])` | First to FULFILL wins; rejects only if all reject |
-
-**async/await traps:**
-- `async forEach` doesn't await — use `for...of` or `Promise.all(arr.map(async...))`
-- `await` in a non-async function is a SyntaxError
-- `await` only pauses the current async function, not the whole program
+## Async / Event Loop
+**Order:** Synchronous → Microtasks (Promises) → Macrotasks (setTimeout)
+- `setTimeout(fn, 0)` is a macrotask — runs AFTER all microtasks
+- `async` function always returns a Promise
+- `await` pauses async fn until Promise settles; re-throws rejections
+- `Promise.all` → fail-fast; `Promise.allSettled` → all outcomes
+- `Promise.race` → first settler; `Promise.any` → first fulfilled
+- Unhandled rejection in Node ≥15 crashes the process
 
 ---
 
-## Error Handling
-
-```js
-try { ... }
-catch (e) {
-    e instanceof TypeError   // for type errors
-    e.message                // error message string
-    throw e;                 // re-throw to propagate
-}
-finally { /* always runs */ }
-```
-
-**Error types:**
-- `TypeError`: wrong type (accessing prop on null)
-- `ReferenceError`: undeclared variable
-- `RangeError`: out of range (stack overflow, invalid array length)
-- `SyntaxError`: parse-time error
+## Browser DOM & Events
+- Event phases: capture (down) → target → bubble (up)
+- `addEventListener(event, fn)` = bubbling; third arg `true` = capturing
+- `e.target` = triggered element; `e.currentTarget` = listener's element
+- `stopPropagation()` = stop travel; `preventDefault()` = stop browser default
+- `querySelectorAll` → NodeList (not Array) — use `Array.from()` to convert
+- Event delegation: one parent listener, check `e.target` → works for dynamic elements
 
 ---
 
-## DOM & Events
-
-```js
-// Querying
-document.getElementById('id')           // single element
-document.querySelector('.class')        // first match (static)
-document.querySelectorAll('div.item')   // NodeList (static)
-
-// Safe content (no XSS)
-el.textContent = userInput;  // SAFE
-el.innerHTML = userInput;    // DANGEROUS — XSS
-
-// Events
-el.addEventListener('click', handler, { once: true });
-el.removeEventListener('click', handler);  // same ref required
-
-// Event delegation
-list.addEventListener('click', e => {
-    const item = e.target.closest('li[data-id]');
-    if (item) handleClick(item.dataset.id);
-});
-```
-
-**Bubbling vs Capturing:**
-- Bubbling (default): event travels from target UP to document
-- Capturing: event travels DOWN from document to target
-- `addEventListener(event, fn, true)` — third arg `true` = capturing
-
----
-
-## Node.js
-
-**Key globals (not in browser):**
-- `process`, `process.env`, `process.argv`, `process.exit()`
-- `__dirname`, `__filename` (CommonJS only — use `import.meta.url` in ESM)
-
-**EventEmitter pattern:**
-```js
-import { EventEmitter } from 'events';
-const ee = new EventEmitter();
-ee.on('data', (d) => console.log(d));
-ee.emit('data', 'hello');
-```
-
-**npm:**
-- `dependencies` — runtime
-- `devDependencies` — dev/test only
-- `npm install --save-dev jest` → devDependencies
-
----
-
-## Jest Testing
-
-```js
-describe('MyModule', () => {
-    beforeEach(() => { /* reset state */ });
-    afterAll(() => { /* one-time teardown */ });
-
-    test('does the thing', () => {
-        expect(fn(arg)).toBe(expected);        // ===
-        expect(fn(arg)).toEqual(expected);     // deep equality
-        expect(fn(arg)).toContain(item);
-        expect(fn()).toThrow('message');
-        expect(mockFn).toHaveBeenCalledWith(x);
-        expect(mockFn).toHaveBeenCalledTimes(2);
-    });
-});
-
-// Mock function
-const mock = jest.fn().mockReturnValue(42);
-// Async mock
-const asyncMock = jest.fn().mockResolvedValue({ data: [] });
-```
-
-**Coverage targets:** statements, branches, functions, lines — 75%+ is typical.
-
----
-
-## TypeScript Quick Reference
-
-```typescript
-// Basic types
-let n: number; let s: string; let b: boolean;
-let a: unknown; let x: any; // unknown is safer
-
-// Interfaces vs Types
-interface User { id: number; name: string; email?: string; } // optional
-type ID = number | string;  // union type
-
-// Generics
-function identity<T>(arg: T): T { return arg; }
-
-// Utility types
-type ReadonlyUser = Readonly<User>;
-type PartialUser = Partial<User>;
-type UserName = Pick<User, 'name'>;
-type NoId = Omit<User, 'id'>;
-
-// Type assertion
-const el = document.getElementById('app') as HTMLDivElement;
-```
-
----
-
-## LWC JavaScript Essentials
-
+## LWC Decorators & Lifecycle
 | Decorator | Purpose |
 |---|---|
-| `@api` | Public property — parent can set it; re-renders on change |
-| `@wire` | Reactive Salesforce data binding (LDS or cacheable Apex) |
-| `@track` | (Legacy) Deep-watch objects/arrays — rarely needed today |
+| `@api` | Public reactive property; parent sets it |
+| `@wire` | Reactive Salesforce data; `$prop` prefix = reactive param |
+| `@track` | Deep-watch (post-Spring '20: mostly not needed) |
 
-**Lifecycle hooks:**
-- `constructor()` → initialize (no DOM access)
-- `connectedCallback()` → DOM ready, fetch data, subscribe
-- `renderedCallback()` → post-render DOM work (use `_rendered` flag)
-- `disconnectedCallback()` → clean up listeners, subscriptions, timers
+**Lifecycle order:** `constructor` → `connectedCallback` → render → `renderedCallback`
+**Cleanup:** `disconnectedCallback` — always mirror setup/teardown
+**Error boundary:** `errorCallback(error, stack)` catches CHILD component errors
 
-**Custom events:**
-```js
-this.dispatchEvent(new CustomEvent('myevent', {
-    detail: { payload },
-    bubbles: true,    // propagates up DOM tree
-    composed: true    // crosses shadow DOM boundary
-}));
-```
-
-**DOM in LWC:**
+**LWC rules:**
 - `this.template.querySelector()` — NOT `document.querySelector()`
-- `eval()` is blocked by Lightning Web Security
-- No inline scripts; no jQuery; no `window.document` manipulation
+- Wire data: use `?.` — data arrives after first render
+- `renderedCallback`: add `_hasRendered` flag — fires EVERY render
+- `bubbles: true, composed: true` — needed to cross shadow DOM boundaries
+- LMS = Lightning Message Service = cross-tree pub/sub
 
 ---
 
-## Security & Performance
-
-**XSS prevention:**
-- `textContent` for user data (safe)  
-- `innerHTML` for user data = XSS vulnerability
-- Sanitize with DOMPurify if HTML is needed
-
-**eval() = NEVER:**
-- Executes strings as code
-- Cannot be optimized by JS engine
-- Blocked by CSP and LWC/LWS
-
-**Big-O quick reference:**
-- `Array.includes()` / `.find()` / `.filter()` → O(n)
-- `Set.has()` / `Map.get()` → O(1)
-- `Array.sort()` → O(n log n)
-- Nested loops → O(n²) — replace with Map/Set for lookups
-
-**Memory leak prevention:**
-- Remove event listeners in `disconnectedCallback`
-- `clearInterval` / `clearTimeout` when done
-- Use `WeakMap`/`WeakSet` for object-keyed caches
+## Testing (Jest)
+- `toBe` → `===`; `toEqual` → deep equality (use for objects/arrays)
+- Async tests: must `await` or `return` the Promise
+- `jest.fn()` → mock function; `.mockReturnValue()` / `.mockResolvedValue()`
+- `expect(() => fn()).toThrow()` — function WRAPPED in arrow for throw assertions
+- `beforeEach` / `afterEach` — per-test setup/teardown
+- LWC tests: `afterEach` must clean up `document.body` to prevent test contamination
 
 ---
 
-## Exam Day Tips
-1. **`typeof null === "object"`** — always a trap question
-2. **Default sort is lexicographic** — always a trap with numbers
-3. **`==` vs `??`**: `||` catches all falsy; `??` catches only null/undefined
-4. **`forEach` ignores async** — use `for...of` or `Promise.all(arr.map(async...))` 
-5. **`Promise.all` fails fast; `allSettled` never rejects**
-6. **Arrow functions have no `this`** — they inherit from lexical scope
-7. **`Promise.race` resolves/rejects on first settlement; `Promise.any` resolves on first fulfillment**
-8. **LWC: `this.template.querySelector` not `document.querySelector`**
-9. **Module live bindings** — ESM exports reflect changes; CJS copies the value at require time
-10. **`hasOwnProperty` vs `in`** — own vs inherited
+## Performance & Security
+- O(1): Map/Set lookup; O(n): array scan; O(n log n): sort; O(n²): nested loops
+- Memory leaks: unreleased listeners, detached DOM refs, closures over large objects
+- `innerHTML = userInput` → XSS; use `textContent` (plain text) instead
+- `eval()` → CSP violation in LWC; also prevents engine optimization
+- Debounce: fire after N ms silence (search inputs); Throttle: fire max once per N ms (scroll/resize)
+
+---
+
+## Quick Exam Decision Rules
+- `typeof x === ?`: null→"object", array→"object", function→"function", NaN→"number"
+- Loop over array values → `for...of`; object keys → `for...in`
+- Private class state → `#field`; public child API → `@api`
+- Reactive Salesforce data → `@wire`; DML operation → imperative async with try/catch
+- Event to parent → `CustomEvent`; event to sibling in different tree → LMS
+- Test objects with `toEqual`, not `toBe`

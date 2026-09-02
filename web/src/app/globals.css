@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* ── Base theme backgrounds ───────────────────── */
+body {
+  background-color: #f8fafc; /* light default */
+}
+html.dark body {
+  background-color: #030712;
+}
+
 :root {
   --sidebar-width: 260px;
 

@@ -1,356 +1,166 @@
-# Lecture 02: Data Streams & Ingestion Methods
+# Data Streams & Ingestion Methods
 
-## Learning Objectives
-- Identify the main connector types available in Data Cloud and when to use each one
-- Explain the difference between batch ingestion and streaming ingestion in Data Cloud
-- Describe how to configure refresh schedules for batch Data Streams
-- Explain Ingestion API authentication and when it is the appropriate connector choice
+## Exam Domain
+Data Ingestion — 17% of exam weight (second-highest, tied with Data Modeling & Use Cases)
 
----
+## Core Concepts
 
-## Slides
+### What a Data Stream Is
+A Data Stream is the configuration object that defines how data flows from a source into Data Cloud. It specifies the source connection, the object/table to pull, field selection, refresh type, and refresh schedule. Every piece of data in Data Cloud arrived through a Data Stream — no data bypasses this layer. Each Data Stream creates and populates one corresponding DLO.
 
-### Slide 1: What Is a Data Stream?
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────┐
-  │              DATA STREAM CONFIGURATION                   │
-  │  ──────────────────────────────────────────────────────  │
-  │  Source Connection:   [ Salesforce Org — Production ]    │
-  │  Source Object:       [ Contact                      ]   │
-  │  Refresh Type:        [ Batch  ▼ ]  [ Streaming ▼ ]     │
-  │  Refresh Schedule:    [ Every 12 hours               ]   │
-  │  Field Selection:     [ FirstName, LastName, Email.. ]   │
-  │                                                          │
-  │  Target DLO:          Contact_DLO__dlm                   │
-  └──────────────────────────────────────────────────────────┘
-              │
-              ▼  (on schedule)
-  ┌──────────────────────┐
-  │  DATA LAKE OBJECT    │
-  │  (raw ingested data) │
-  └──────────────────────┘
-```
+### Batch vs. Streaming Ingestion
+Batch = Salesforce pulls data on a schedule. Streaming = source system pushes data in near-real-time. Batch is for regular, structured data loads (CRM records, nightly exports). Streaming is for real-time events (web clicks, mobile actions, IoT). When a client says "same-minute freshness," that's a streaming requirement — the Ingestion API is the only answer.
 
-**Content:**
-- A **Data Stream** is the configuration object that defines data ingestion into Data Cloud
-- Each Data Stream connects one source object/table to one Data Lake Object
-- Data Streams are the entry point for ALL data into Data Cloud — no data bypasses this layer
-- Key configuration elements: source connection, source object, refresh type (batch/streaming), field selection, refresh schedule
-- One Data Stream = one source object → one DLO (though multiple streams can feed one DLO)
-
-**Speaker Notes:** Every piece of data in Data Cloud arrived through a Data Stream. Even if you use the Ingestion API to push real-time events, Data Cloud represents that connection as a Data Stream configuration object. When exam questions describe a scenario where "data isn't appearing in Data Cloud," the first troubleshooting step is always to check whether the Data Stream ran successfully, which means checking the ingestion job status. Understanding the elements that make up a Data Stream configuration is fundamental to both implementation questions and troubleshooting questions on the exam.
+### Ingestion API Authentication
+The Ingestion API requires OAuth 2.0 Client Credentials flow via a Connected App. The source system exchanges a Consumer Key + Consumer Secret for a Bearer token, then includes that token in all API calls. This is machine-to-machine, no user login involved. Do not confuse with named credentials or username/password — those are not supported.
 
 ---
 
-### Slide 2: Connector Types — Salesforce Connector
-**Visual:**
+## Architecture
+
+### Connector Decision Tree
+
 ```
-  ┌──────────────────────┐                ┌──────────────────────┐
-  │   SALESFORCE CRM     │                │     DATA CLOUD       │
-  │   (Source Org)       │                │                      │
-  │                      │───Data Stream─▶│  Contact_DLO__dlm    │
-  │  Contacts            │                │  Account_DLO__dlm    │
-  │  Accounts            │                │  Opportunity_DLO__dlm│
-  │  Opportunities       │                │                      │
-  │  Custom Objects      │                │                      │
-  │                      │◀──Data Actions─│  (insights back      │
-  └──────────────────────┘                │   to CRM)            │
-                                          └──────────────────────┘
-             Salesforce Connector (bidirectional)
+  START: What is the data source?
+         │
+         ▼
+  ┌─────────────────────────────────────────┐
+  │ Is it a Salesforce CRM org?             │
+  │         YES ══▶ SALESFORCE CONNECTOR    │
+  │              (native, bidirectional,    │
+  │               incremental refresh)      │
+  └─────────────────────────────────────────┘
+         │ NO
+         ▼
+  ┌─────────────────────────────────────────┐
+  │ Does it drop files in S3/GCS/Azure?     │
+  │         YES ══▶ CLOUD STORAGE           │
+  │              (CSV / JSON / Parquet,     │
+  │               scheduled batch pickup)   │
+  └─────────────────────────────────────────┘
+         │ NO
+         ▼
+  ┌─────────────────────────────────────────┐
+  │ Real-time web/mobile/IoT events?        │
+  │         YES ══▶ INGESTION API           │
+  │              (OAuth 2.0 / Connected App │
+  │               streaming or bulk mode)   │
+  └─────────────────────────────────────────┘
+         │ NO
+         ▼
+  ┌─────────────────────────────────────────┐
+  │ Marketing Cloud subscriber/engagement?  │
+  │         YES ══▶ MC CONNECTOR            │
+  │              (bidirectional — ingest    │
+  │               AND activate back to MC)  │
+  └─────────────────────────────────────────┘
+         │ NO
+         ▼
+  ┌─────────────────────────────────────────┐
+  │ MuleSoft already in environment?        │
+  │         YES ══▶ MULESOFT CONNECTOR      │
+  │              (any legacy/non-standard   │
+  │               source system)            │
+  └─────────────────────────────────────────┘
 ```
 
-**Content:**
-- The **Salesforce Connector** ingests standard and custom CRM objects into Data Cloud
-- Available objects: Accounts, Contacts, Leads, Opportunities, Cases, custom objects, and more
-- Configured directly in Data Cloud Setup — no MuleSoft or middleware required
-- Supports **incremental refresh** (only changed records) and **full refresh**
-- Bidirectional: also supports **Data Actions** to write Data Cloud insights back to CRM
-- Can connect to **multiple Salesforce orgs** (multi-org scenarios)
-
-**Speaker Notes:** The Salesforce Connector is the most common connector in Data Cloud implementations and therefore features heavily on the exam. The key points to know are: it's natively built (no middleware needed), it supports incremental refresh for performance efficiency, and it's the primary source for the Individual and Contact Point DMOs in most projects. One nuanced exam topic is multi-org scenarios — a large enterprise might have separate Sales Cloud orgs for different regions, and the Salesforce Connector supports bringing all of them into a single Data Cloud instance. Data Actions flowing back to CRM are tested in the governance and use cases sections, so keep that bidirectional capability in mind.
+**Limitations:**
+- Batch connectors (Salesforce, S3/GCS/Azure, MC) cannot deliver real-time data — minimum latency = configured schedule interval
+- Batch schedule options are preset: **1h, 6h, 12h, 24h** — no custom intervals, no 15-minute option
+- Cloud Storage connectors only support CSV, JSON, and Parquet — NOT Excel (.xlsx)
+- The Marketing Cloud Connector is batch-oriented for engagement data; it does not replace the Ingestion API for real-time web events
 
 ---
 
-### Slide 3: Connector Types — Cloud Storage (S3, GCS, Azure)
-**Visual:**
+### Batch vs. Streaming Timeline
+
 ```
-  ┌─────────────────┐
-  │  Amazon S3      │──CSV/JSON/Parquet──┐
-  └─────────────────┘                   │
-  ┌─────────────────┐                   ▼
-  │  Google Cloud   │──CSV/JSON/Parquet──▶ ┌──────────────────────┐
-  │  Storage (GCS)  │                      │     DATA CLOUD       │
-  └─────────────────┘                   ▶  │                      │
-  ┌─────────────────┐                   │  │  Batch ingestion on  │
-  │  Azure Blob     │──CSV/JSON/Parquet──┘  │  configured schedule │
-  │  Storage        │                      └──────────────────────┘
-  └─────────────────┘
-        Scheduled batch pickup (not streaming)
+  BATCH INGESTION (pull on schedule)
+  ─────────────────────────────────────────────────────────────────
+  Time:  ──────────┬────────────────────┬────────────────────┬───▶
+                   │                    │                    │
+              [6 AM load]          [12 PM load]         [6 PM load]
+              ████████████████     ████████████████     ████████████
+              (large block)        (large block)        (large block)
+  Sources: Salesforce Connector, S3/GCS/Azure, Marketing Cloud
+  Latency: up to 24 hours (depends on schedule)
+
+  STREAMING INGESTION (push as events occur)
+  ─────────────────────────────────────────────────────────────────
+  Time:  ──•─•──•──•─•─•──•─•──•──•─•──•──•─•──•──•──•─•──•──▶
+            continuous individual events
+  Sources: Ingestion API (streaming mode)
+  Latency: seconds to minutes
 ```
 
-**Content:**
-- Cloud storage connectors bring files from **Amazon S3, Google Cloud Storage, or Azure Blob Storage**
-- Supported file formats: **CSV, JSON, and Parquet**
-- Typically used for: data warehouse exports, third-party data vendors, historical data loads
-- Configuration requires: bucket name, path pattern, file format, authentication credentials
-- Scheduled batch ingestion — files are picked up on the configured schedule
-- Best for large-volume, structured data that arrives on a regular cadence
-
-**Speaker Notes:** Cloud storage connectors are the workhorses for enterprise data integrations where the source system can't expose a real-time API but CAN export files regularly to a cloud bucket. A common exam scenario: a retail company has nightly exports of transaction data from their ERP system dropped into an S3 bucket. You'd configure an S3 connector Data Stream to pick up those files each morning. Key things to know for the exam: what file formats are supported (CSV, JSON, Parquet — NOT Excel), and that these are always batch, never streaming. The authentication for S3 typically uses IAM credentials or a pre-configured named credential in Salesforce.
+**Limitations:**
+- Streaming ingestion via Ingestion API does NOT update Unified Individual profiles or segment membership in real time — those still run on their own schedules
+- Streaming data lands in a DLO quickly but downstream processing (field mapping → DMO → IR → Segment) still runs on schedule
 
 ---
 
-### Slide 4: Connector Types — Ingestion API
-**Visual:**
+### Ingestion API Authentication Flow
+
 ```
-  External System                       Data Cloud
-  (website / mobile / IoT)
-                                   ┌──────────────────────┐
-  POST /ingest/sources/{id}/        │                      │
-  Authorization: Bearer {token}    │  Streaming DLO       │
-  Content-Type: application/json   │  (near-real-time)    │
-                                   │                      │
-  {                                │  Records arrive      │
-    "customerId": "C-1234",  ──────▶│  within seconds      │
-    "event": "ProductView",  │      │                      │
-    "productId": "SKU-999",  │      └──────────────────────┘
-    "timestamp": "2024-09..."│
-  }                          │
-                             │
-  OAuth 2.0 Connected App ───┘
-  (Consumer Key + Secret → Bearer Token)
-```
+  STEP 1: Create Connected App         STEP 2: Get Credentials
+  ───────────────────────────          ─────────────────────────
+  ╔═══════════════════════════╗        Consumer Key:    ABC123xyz
+  ║  Salesforce Setup         ║        Consumer Secret: s3cr3t456
+  ║  Apps > Connected Apps    ║
+  ║  ✓ Enable OAuth           ║
+  ║  ✓ Ingestion API scope    ║
+  ╚═══════════════════════════╝
 
-**Content:**
-- The **Ingestion API** enables real-time, event-driven data ingestion into Data Cloud
-- Ideal for: website clickstream data, mobile app events, IoT sensor data, real-time transactions
-- Data is pushed TO Data Cloud (not pulled) — the source system initiates the POST
-- Authentication: **OAuth 2.0 (Connected App)** — requires a Connected App in the Data Cloud org
-- Two modes: **Streaming** (near-real-time, individual records) and **Bulk** (high-volume batch via API)
-- Schema must be defined as a DLO schema before data can be sent
-
-**Speaker Notes:** The Ingestion API is a high-value exam topic because it's the only way to get true real-time streaming data into Data Cloud. The authentication mechanism is a common exam question — it uses OAuth 2.0 via a Connected App, the same pattern used across the Salesforce platform. The pre-defined schema requirement is important: you can't just start sending arbitrary JSON. You must first create the DLO schema in Data Cloud that matches your payload structure. The exam also distinguishes between the Streaming mode (individual events, near-real-time) and the Bulk mode (high-volume historical loads via the same API infrastructure). Don't confuse Ingestion API Bulk mode with the Salesforce Bulk API — they're different things.
-
----
-
-### Slide 5: Connector Types — MuleSoft & Marketing Cloud
-**Visual:**
-```
-  ┌──────────────────────────────┐  ┌──────────────────────────────┐
-  │      MULESOFT CONNECTOR      │  │  MARKETING CLOUD CONNECTOR   │
-  │  ──────────────────────────  │  │  ──────────────────────────  │
-  │                              │  │                              │
-  │  Any Source  ──▶  MuleSoft   │  │  MC Subscribers  ──▶        │
-  │  (SAP, legacy ERP, etc.)     │  │  MC Engagement Events        │
-  │        │                     │  │        │                     │
-  │        ▼                     │  │        ▼                     │
-  │   Data Cloud (DLO)           │  │   Data Cloud (DLO)           │
-  │                              │  │        │                     │
-  │  Use: MuleSoft already in    │  │        ▼  (also)             │
-  │  environment, custom         │  │  Activation back to MC       │
-  │  transformations needed      │  │  Journeys & Sends            │
-  └──────────────────────────────┘  └──────────────────────────────┘
-```
-
-**Content:**
-- **MuleSoft Connector:** Enables any MuleSoft-connected system to push data into Data Cloud
-  - Use when source system has no native connector and MuleSoft is already in the environment
-  - Supports complex data transformations before ingestion
-- **Marketing Cloud Connector:**
-  - Ingests MC data (subscribers, engagement events) into Data Cloud
-  - Also enables activation FROM Data Cloud back to MC journeys and sends
-  - Requires a connected Business Unit configuration
-  - Used for cross-channel unified profiles (email + CRM + web behavior)
-
-**Speaker Notes:** The MuleSoft and Marketing Cloud connectors fill different gaps. MuleSoft is the "anything goes" option — if you have a legacy ERP, a custom database, or a third-party SaaS that has no native Data Cloud connector, MuleSoft can bridge the gap. Marketing Cloud is a specialized connector that's particularly important because so many Data Cloud implementations are driven by marketing use cases. The MC Connector is bidirectional in a sense: it pulls MC engagement data in and also serves as the activation pathway to push segments out to MC. The exam will frequently test you on when to use the MC Connector versus the Ingestion API for marketing events — use MC Connector for structured MC engagement data, use Ingestion API for real-time web/app events.
-
----
-
-### Slide 6: Batch vs. Streaming Ingestion
-**Visual:**
-```
-  BATCH INGESTION
-  ───────────────
-  Time:  ──────────┬──────────────────┬──────────────────┬──────▶
-                   │                  │                  │
-              [6 AM load]        [12 PM load]       [6 PM load]
-              ████████████            ████████████       ████████████
-              (large block)           (large block)      (large block)
-              Sources: Salesforce Connector, S3/GCS, Marketing Cloud
-              Latency: up to 24 hours
-
-  STREAMING INGESTION
-  ───────────────────
-  Time:  ──•──•─•──•───•──•─•──•──•──•─•──•──•──•─•──•──•──•──▶
-            events arrive continuously in near-real-time
-            Sources: Ingestion API (streaming mode)
-            Latency: seconds to minutes
-```
-
-**Content:**
-- **Batch Ingestion:** Data is pulled on a schedule; options are 1, 6, 12, or 24 hours (or manual)
-  - Higher volume, lower frequency
-  - Sources: S3/GCS, Salesforce Connector, Marketing Cloud
-  - Records in Data Cloud may be up to 24 hours old
-- **Streaming Ingestion:** Data is pushed as events occur; typically seconds to minutes of latency
-  - Lower volume per event, continuous frequency
-  - Sources: Ingestion API (streaming mode), some connectors
-  - Enables real-time personalization and segmentation
-
-**Speaker Notes:** Batch versus streaming is a foundational concept tested directly on the exam. The key distinction is directionality and latency: batch is Salesforce PULLING data on a schedule; streaming is the source system PUSHING data in near-real-time. When a client requirement says "we need customer segments to reflect purchases made within the last 5 minutes," that's a streaming requirement. When a client says "we load nightly transaction data from our data warehouse," that's batch. The refresh schedule options for batch (1h, 6h, 12h, 24h) are specific numbers the exam may test. Also note: you cannot set arbitrary refresh intervals — you choose from the preset options.
-
----
-
-### Slide 7: Ingestion API — Authentication Deep Dive
-**Visual:**
-```
-  Step 1: Create Connected App          Step 2: Get Credentials
-  ─────────────────────────────         ─────────────────────────────
-  ┌─────────────────────────┐           Consumer Key:    ABC123xyz
-  │  Salesforce Setup       │           Consumer Secret: s3cr3t456
-  │  Apps > Connected Apps  │
-  │  [New Connected App]    │
-  │  ✓ Enable OAuth         │
-  │  ✓ Ingestion API scope  │
-  └─────────────────────────┘
-
-  Step 3: Exchange for Token            Step 4: Call Ingestion API
-  ─────────────────────────────         ─────────────────────────────
-  POST /services/oauth2/token           POST /api/v1/ingest/...
-  grant_type=client_credentials         Authorization: Bearer eyJ...
-  client_id=ABC123xyz
-  client_secret=s3cr3t456
-        │                                     │
-        ▼                                     ▼
-  { "access_token": "eyJ..." }         Data lands in DLO
+  STEP 3: Exchange for Token           STEP 4: Call Ingestion API
+  ─────────────────────────────        ─────────────────────────────
+  POST /services/oauth2/token          POST /api/v1/ingest/...
+  grant_type=client_credentials        Authorization: Bearer eyJ...
+  client_id=ABC123xyz                        │
+  client_secret=s3cr3t456                    ▼
+        │                               Data lands in DLO
+        ▼                               (within seconds)
+  { "access_token": "eyJ..." }
   (token expires — app must refresh)
 ```
 
-**Content:**
-- Ingestion API uses **OAuth 2.0 Client Credentials** flow (server-to-server)
-- **Step 1:** Create a Connected App in the Data Cloud org with the Ingestion API scope
-- **Step 2:** Retrieve the Consumer Key and Consumer Secret
-- **Step 3:** Exchange credentials for a Bearer token at the Salesforce token endpoint
-- **Step 4:** Include the Bearer token in all Ingestion API calls (`Authorization: Bearer {token}`)
-- Tokens expire — the calling application must handle token refresh
-
-**Speaker Notes:** The Ingestion API authentication flow is a specific exam topic, especially in scenario questions asking "how would you configure a web application to send real-time events to Data Cloud?" The answer always starts with "create a Connected App." The key detail is that this uses the **Client Credentials** OAuth flow — meaning it's machine-to-machine with no user interaction, using a Client ID and Client Secret. This is different from the standard Salesforce OAuth web flow that redirects users to a login page. Exam traps often suggest using username/password auth or named credentials directly — neither is the correct approach for the Ingestion API. Always: Connected App → OAuth 2.0 → Bearer token.
+**Limitations:**
+- Tokens expire — the calling application must implement token refresh logic
+- Only Client Credentials flow is supported (machine-to-machine) — no user-level OAuth web flow
+- Schema must be defined as a DLO before data can be sent — cannot push arbitrary JSON without a pre-defined schema
 
 ---
 
-### Slide 8: Choosing the Right Connector
-**Visual:**
-```
-  START: What is the data source?
-          │
-          ▼
-  Is it a Salesforce CRM org?
-  ├── YES ──▶  SALESFORCE CONNECTOR
-  └── NO
-          │
-          ▼
-  Does it deliver files to S3 / GCS / Azure?
-  ├── YES ──▶  CLOUD STORAGE CONNECTOR (CSV / JSON / Parquet)
-  └── NO
-          │
-          ▼
-  Is it real-time event data (web / mobile / IoT)?
-  ├── YES ──▶  INGESTION API (OAuth 2.0 Connected App)
-  └── NO
-          │
-          ▼
-  Is it Marketing Cloud data or activation?
-  ├── YES ──▶  MARKETING CLOUD CONNECTOR
-  └── NO
-          │
-          ▼
-  Is MuleSoft already in the environment?
-  └── YES ──▶  MULESOFT CONNECTOR
-```
+## Key Facts to Memorize
 
-**Content:**
-- **Salesforce CRM data** → Salesforce Connector (native, no middleware)
-- **Files in S3/GCS/Azure** → Cloud Storage Connector (CSV, JSON, Parquet)
-- **Real-time web/app events** → Ingestion API (OAuth 2.0 Connected App)
-- **Marketing Cloud data/activation** → Marketing Cloud Connector
-- **Legacy/non-standard systems with MuleSoft** → MuleSoft Connector
-- Combinations are common — most implementations use 3+ connector types
-
-**Speaker Notes:** Real exam questions will almost always describe a scenario and ask which connector to use. Run through the decision flowchart mentally: Is it CRM data? Salesforce Connector. Is it files? Cloud storage. Real-time events? Ingestion API. Marketing Cloud? MC Connector. The tricky scenarios are when a question mentions that a legacy ERP system exists — if MuleSoft is mentioned in the scenario, that's your answer. If no integration platform is mentioned, the Ingestion API (with a custom integration layer) is usually the answer. Remember that most real implementations use multiple connectors simultaneously — that's expected and normal.
+- **Salesforce Connector** supports incremental refresh (only changed records after first full load) — always prefer incremental for performance
+- **Cloud Storage connectors** support CSV, JSON, Parquet only — NOT Excel. This is a favorite trick answer.
+- **Ingestion API** = push from source system; **Salesforce Connector** = pull by Data Cloud
+- **MC Connector is bidirectional:** ingests MC subscriber/engagement data AND activates segments back to MC journeys
+- **MuleSoft Connector** = when source has no native connector but MuleSoft is already in environment
+- Batch schedule options: **1h, 6h, 12h, 24h** — no other intervals available
+- When scenario says "real-time web events" or "IoT sensor data" → **Ingestion API**
+- Multiple connector types can run simultaneously — most implementations use 3+ connectors
 
 ---
 
-## Recording Script
+## Exam Traps
 
-Welcome back. In this lecture, we're going deep on Data Streams and the various ways data gets into Data Cloud.
-
-Think of Data Streams as the front door to Data Cloud. No matter where your data comes from — your CRM, a cloud data warehouse, real-time mobile events — it all enters Data Cloud through a Data Stream. The Data Stream is the configuration that says: go to this source, pull this data, on this schedule, and put it here.
-
-Let's walk through the major connector types. The **Salesforce Connector** is the most common. It natively connects to any Salesforce org and can pull standard and custom objects. No middleware required. This is what you use to get your Accounts, Contacts, and Opportunities into Data Cloud. It supports incremental refresh, so after the first full load, only changed records are synced — keeping things efficient.
-
-For data that lives in cloud storage — like nightly exports dropped into an Amazon S3 bucket — you use the **Cloud Storage connectors**. These support CSV, JSON, and Parquet files. They run on a batch schedule, so they're perfect for regular data dumps from external systems.
-
-The **Ingestion API** is your real-time option. When a website visitor clicks on a product, you want that event in Data Cloud immediately to trigger personalized recommendations. The Ingestion API lets the source system push data directly to Data Cloud in near-real-time. Authentication uses OAuth 2.0 via a Connected App — your source system exchanges credentials for a Bearer token and includes that token in every API call.
-
-The **Marketing Cloud Connector** is specialized for the MC-to-Data Cloud integration. It brings subscriber and engagement data in, and it also serves as the pathway to activate Data Cloud segments back into MC journeys.
-
-Finally, **MuleSoft** fills the gap when you have a legacy or non-standard source system that doesn't have a native Data Cloud connector but is already connected to MuleSoft.
-
-The key exam distinction is batch versus streaming. Batch connectors pull data on a schedule — every 1, 6, 12, or 24 hours. Streaming connectors receive data pushed in near-real-time. When a client needs "same-minute" data freshness, streaming and the Ingestion API is the answer. When nightly updates are fine, batch and cloud storage connectors do the job.
-
-In the next lecture, we'll look at what happens after data lands — the DLO-to-DMO field mapping process. See you there.
+- "Use the Salesforce Connector for real-time events" — wrong, it's batch only
+- Ingestion API authentication via "username and password" or "named credential" — wrong; it's **OAuth 2.0 via Connected App**
+- "Set a custom 45-minute refresh interval" — wrong; batch options are only 1h, 6h, 12h, 24h
+- "CSV and Excel files work with the Cloud Storage Connector" — wrong; Excel (.xlsx) is NOT supported
+- Confusing Ingestion API Bulk mode with the Salesforce Bulk API — they are different things
+- "The Marketing Cloud Connector provides real-time streaming of email events" — wrong; MC Connector is batch-oriented
 
 ---
 
-## Exam Tips
+## Practice Questions
 
-- The **Ingestion API** uses **OAuth 2.0 via a Connected App** — not username/password, not named credentials
-- **Batch refresh schedules** are preset options: 1, 6, 12, or 24 hours — you cannot set arbitrary intervals
-- **Salesforce Connector** supports incremental refresh; always prefer incremental over full refresh for large datasets
-- The **Marketing Cloud Connector** is both an ingestion source AND an activation destination — it works in both directions
-- When a scenario mentions "real-time events from a website or mobile app," the answer is almost always the **Ingestion API**
+**Q:** A retail company needs to stream real-time web clickstream events into Data Cloud for same-session personalization. Which connector type is correct?
+**A:** Ingestion API in streaming mode. The source system (website) POSTs events to the Ingestion API endpoint. Authentication uses OAuth 2.0 via a Connected App. Salesforce Connector and S3 connectors are batch-only and cannot meet same-session latency requirements.
 
----
+**Q:** A developer builds server-to-server integration to push IoT sensor data to Data Cloud. What authentication mechanism is required for the Ingestion API?
+**A:** OAuth 2.0 Client Credentials flow using a Connected App. The application exchanges Consumer Key and Consumer Secret for a Bearer token, which it includes in all Ingestion API calls. Username/password, API keys, and named credentials are not valid authentication methods for the Ingestion API.
 
-## Lecture Summary
-
-Data Streams are the entry point for all data into Data Cloud, and each Data Stream uses a specific connector type suited to the source system. The five main connector types — Salesforce Connector, Cloud Storage (S3/GCS/Azure), Ingestion API, Marketing Cloud Connector, and MuleSoft — each serve different integration patterns. Batch ingestion runs on a preset schedule (1, 6, 12, or 24 hours) while streaming ingestion via the Ingestion API provides near-real-time data delivery. The Ingestion API requires OAuth 2.0 authentication through a Connected App. Choosing the right connector depends on the data source type, latency requirements, and whether the organization already uses middleware like MuleSoft.
-
----
-
-## Mini Quiz
-
-**Question 1:** A retail company wants to stream real-time web clickstream events into Data Cloud to power same-session personalization. Which connector type should they use?
-
-A) Salesforce Connector with 1-hour refresh  
-B) Amazon S3 Cloud Storage Connector  
-C) Ingestion API in streaming mode  
-D) Marketing Cloud Connector  
-
-**Answer: C**
-Real-time, event-driven data pushed by a web application is the exact use case for the Ingestion API in streaming mode. The Salesforce Connector and S3 connector are batch only. The Marketing Cloud Connector is for MC-specific data, not web events.
-
----
-
-**Question 2:** A developer is building a server-to-server integration to push IoT sensor data into Data Cloud using the Ingestion API. What authentication mechanism is required?
-
-A) Salesforce username and password  
-B) OAuth 2.0 Client Credentials flow using a Connected App  
-C) API key passed as a query parameter  
-D) Named Credential stored in Setup  
-
-**Answer: B**
-The Ingestion API requires OAuth 2.0 using a Connected App. The client application exchanges the Consumer Key and Consumer Secret for a Bearer token, which is then included in all API requests. Username/password, API keys, and Named Credentials are not supported authentication mechanisms for the Ingestion API.
-
----
-
-**Question 3:** A consultant needs to configure a Data Stream to ingest nightly transaction exports from a data warehouse. The exports are delivered as CSV files to an Amazon S3 bucket. The data must be in Data Cloud by 6 AM each day. Which configuration is most appropriate?
-
-A) Ingestion API with Bulk mode, triggered by a nightly cron job  
-B) Salesforce Connector with a 1-hour refresh schedule  
-C) Amazon S3 Cloud Storage Connector with a 24-hour refresh schedule  
-D) MuleSoft Connector with a scheduled flow  
-
-**Answer: C**
-CSV files in an S3 bucket are the exact use case for the Amazon S3 Cloud Storage Connector. A 24-hour refresh schedule will pick up the nightly export. The Ingestion API Bulk mode could work technically but would require additional development; the S3 connector is the correct native solution when files are already landing in S3.
+**Q:** A consultant needs to ingest nightly transaction CSV exports from a data warehouse that are dropped into Amazon S3. Which connector and schedule is appropriate?
+**A:** Amazon S3 Cloud Storage Connector with a 24-hour refresh schedule. The files are already in S3 in CSV format — the native S3 connector picks them up on schedule. The Ingestion API Bulk mode could technically work but would require additional custom development; the S3 connector is the correct native solution.

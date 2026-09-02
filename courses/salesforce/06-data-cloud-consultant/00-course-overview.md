@@ -1,113 +1,125 @@
-# Course 6: Salesforce Certified Data 360 Consultant (CRT-251)
+# Salesforce Certified Data 360 Consultant (CRT-251) — Personal Study Guide
 
-## Course Overview
+## What This Cert Is
 
-This course prepares you for the **Salesforce Certified Data 360 Consultant** certification exam (CRT-251). Data Cloud is Salesforce's real-time data platform that unifies customer data from multiple sources into a single Unified Customer Profile. This certification validates your ability to design, implement, and manage Data Cloud solutions for enterprise customers.
+**Salesforce Certified Data 360 Consultant** (CRT-251) validates your ability to design, implement, and manage Salesforce Data Cloud solutions. It tests hands-on knowledge of data ingestion, identity resolution, segmentation, activation, governance, and AI integrations.
+
+**Product rename history you need to know:**
+Customer 360 Audiences → Salesforce CDP → Salesforce Data Cloud → exam renamed to "Data 360 Consultant" in 2024. Old names appear in documentation and possibly in exam question distractors.
 
 ---
 
-## Exam Details
+## Exam At a Glance
 
 | Item | Detail |
 |---|---|
 | Exam Code | CRT-251 |
-| Total Questions | 60 |
+| Questions | 60 |
 | Passing Score | 67% (~40 correct) |
-| Time Limit | 105 minutes |
-| Exam Fee | $200 USD |
-| Retake Fee | $100 USD |
-| Format | Multiple choice and multiple select |
-| Delivery | Online proctored or testing center |
+| Time | 105 minutes |
+| Fee | $200 / Retake $100 |
+| Format | Multiple choice + multiple select |
 
 ---
 
-## Who This Exam Is For
+## Domain Weights — Where to Focus
 
-The Data 360 Consultant certification is designed for professionals who:
+| Domain | Weight | ~Questions | My Priority |
+|---|---|---|---|
+| Data Ingestion | 17% | ~10 | HIGH |
+| Data Modeling & Identity Resolution | 17% | ~10 | HIGH |
+| Use Cases & Business Value | 17% | ~10 | HIGH |
+| Data Cloud Fundamentals | 13% | ~8 | HIGH |
+| Administration & Governance | 13% | ~8 | MED |
+| Segmentation & Insights | 13% | ~8 | MED |
+| Activation & Engagement | 10% | ~6 | MED |
 
-- Implement and configure Salesforce Data Cloud for enterprise organizations
-- Have hands-on experience with data ingestion, identity resolution, and segmentation
-- Work with cross-cloud Salesforce integrations (Marketing Cloud, Sales Cloud, Service Cloud)
-- Advise customers on data strategy, consent management, and real-time personalization
-- Have at least **6–12 months** of hands-on Data Cloud experience
-- Hold (or are pursuing) the **Salesforce Administrator** or **Marketing Cloud** credentials
-
-**Prerequisite knowledge:** Familiarity with Salesforce CRM, basic data modeling concepts, and SQL fundamentals will help significantly.
+The top three domains are 51% of the exam. Master ingestion, data modeling/IR, and use cases first.
 
 ---
 
-## Exam Topic Weights
+## The Pipeline — Memorize This First
 
-| Domain | Weight | Approx. Questions |
+Everything in Data Cloud follows this left-to-right flow. Every exam question fits somewhere on it.
+
+```
+Source Systems
+    ║
+    ▼  [Data Stream = pipeline config object]
+Data Lake Objects (DLO) — raw, unchanged source data
+    ║
+    ▼  [Field Mapping = translate DLO fields → DMO standard schema]
+Data Model Objects (DMO) — standardized, modeled data
+    ║
+    ▼  [Identity Resolution = match + merge across sources]
+Unified Individual — single resolved profile per real customer
+    ║
+    ▼  [Segment Builder]
+Segments — filtered subsets of Unified Individuals
+    ║
+    ▼  [Activation Target config]
+Destinations (Salesforce CRM, Marketing Cloud, Ad Platforms)
+```
+
+**Calculated Insights** plug in between DMO and Segment — they pre-compute aggregate metrics (total spend, purchase count) from DMO data. CI results feed segment criteria.
+
+---
+
+## What Each Section Covers
+
+### Section 1 — Fundamentals (Lectures 01–04)
+- Platform architecture and product positioning
+- Five connector types and when to use each
+- DLO vs. DMO — the two-layer data model
+- Identity Resolution match rules and reconciliation strategies
+
+### Section 2 — Segmentation & Insights (Lectures 05–07)
+- Segment criteria types: attribute, related attribute, and Calculated Insight
+- Writing CI SQL (ANSI standard, GROUP BY required, __dlm suffix)
+- Activation Targets: CRM, Marketing Cloud, ad platforms
+
+### Section 3 — Governance (Lectures 08–10)
+- Consent fields (HasOptedOutOfEmail, DoNotProcess, HasOptedOutOfSharing)
+- Data Spaces — logical access isolation
+- Permission sets and the job refresh dependency chain
+
+### Section 4 — Use Cases (Lectures 11–13)
+- Tableau + CRM Analytics integration patterns
+- AI grounding, Agentforce, vector database, Model Builder
+- Retail, financial services, healthcare scenario patterns
+
+---
+
+## Labs — What I Need to Be Able to Do
+
+- **Lab 01:** Configure a Salesforce CRM Data Stream; map DLO fields to Individual and Contact Point Email DMOs
+- **Lab 02:** Create an Identity Resolution ruleset with exact and normalized match rules; configure Source Priority reconciliation; inspect a Unified Individual
+- **Lab 03:** Write a Calculated Insight in SQL; build a segment using a CI filter + consent exclusion; publish to a Salesforce CRM Activation Target
+
+---
+
+## Study Plan
+
+| Week | Focus | Labs |
 |---|---|---|
-| Data Cloud Fundamentals | 13% | ~8 |
-| Data Ingestion | 17% | ~10 |
-| Data Modeling & Identity Resolution | 17% | ~10 |
-| Segmentation & Insights | 13% | ~8 |
-| Activation & Engagement | 10% | ~6 |
-| Administration & Governance | 13% | ~8 |
-| Use Cases & Business Value | 17% | ~10 |
-| **Total** | **100%** | **~60** |
+| 1–2 | Sections 1–2 | Labs 01–02 |
+| 3–4 | Sections 3–4 | Lab 03 |
+| 5 | Practice exam + weak areas | Review cheat sheet |
+| Day before | Cheat sheet + any missed practice questions | — |
+
+**Target time:** 30–40 hours if you have prior Salesforce experience.
 
 ---
 
-## Course Structure
+## Non-Negotiable Facts (Learn These Before Anything Else)
 
-This course is organized into four sections aligned with the exam domains:
-
-### Section 1: Data Cloud Fundamentals (Lectures 01–04)
-Covers the platform architecture, data ingestion methods, the data object model, and identity resolution. This section maps to the **Data Cloud Fundamentals**, **Data Ingestion**, and **Data Modeling & Identity Resolution** exam domains — a combined 47% of the exam.
-
-- Lecture 01: Data Cloud Architecture & Platform Overview
-- Lecture 02: Data Streams & Ingestion Methods
-- Lecture 03: Data Lake Objects vs. Data Model Objects
-- Lecture 04: Identity Resolution
-
-### Section 2: Segmentation & Insights (Lectures 05–07)
-Covers building segments, writing Calculated Insights with SQL, and configuring Activation Targets to push audiences to downstream systems. Maps to **Segmentation & Insights** and **Activation & Engagement** — a combined 23% of the exam.
-
-- Lecture 05: Segmentation Basics
-- Lecture 06: Calculated Insights
-- Lecture 07: Activation Targets & Engagement
-
-### Section 3: Data Governance & Administration (Lectures 08–10)
-Covers consent management, data spaces, permission sets, and monitoring ingestion jobs. Maps to the **Administration & Governance** domain — 13% of the exam.
-
-- Lecture 08: Consent & Privacy
-- Lecture 09: Data Governance & Access Control
-- Lecture 10: Performance Monitoring & Administration
-
-### Section 4: Use Cases & Advanced Topics (Lectures 11–13)
-Covers integrations with Tableau, CRM Analytics, Einstein/Agentforce, and real-world industry use cases. Maps to the **Use Cases & Business Value** domain — 17% of the exam.
-
-- Lecture 11: Data Cloud + Analytics (Tableau & CRM Analytics)
-- Lecture 12: Data Cloud + AI & Personalization
-- Lecture 13: Real-World Use Cases & Scenario Questions
-
----
-
-## Labs
-
-Hands-on labs reinforce the highest-weight exam domains:
-
-- **Lab 01:** Set Up a Salesforce CRM Data Stream and map fields to a standard DMO
-- **Lab 02:** Configure an Identity Resolution ruleset and review unified profiles
-- **Lab 03:** Build a segment with a Calculated Insight and create an Activation Target
-
----
-
-## Exam Preparation
-
-- **Practice Exam:** 60 questions covering all domains proportionally
-- **Cheat Sheet:** Key terms, architecture reference, and common exam traps
-
----
-
-## Study Recommendations
-
-1. **Weeks 1–2:** Complete Sections 1–2, do Labs 01 and 02
-2. **Weeks 3–4:** Complete Sections 3–4, do Lab 03
-3. **Week 5:** Take the practice exam, review weak areas, review the cheat sheet
-4. **Day before exam:** Re-read the cheat sheet and review any mini-quiz questions you got wrong
-
-**Target study time:** 30–40 hours total for candidates with prior Salesforce experience.
+1. Segmentation runs on **DMOs**, never on raw DLOs
+2. Identity Resolution uses **Contact Point DMOs** for matching — not the email field on Individual
+3. A **Data Stream** is the pipeline config; a **DLO** is the raw storage — two different objects
+4. **Unified Individual** is the OUTPUT of Identity Resolution — you do not create it manually
+5. Batch refresh schedules are preset: **1h, 6h, 12h, 24h** — no custom intervals
+6. Ingestion API auth = **OAuth 2.0 via Connected App** — never username/password
+7. Job refresh order: **Data Stream → DMO → CI → Segment → Activation**
+8. **Data Spaces** are logical partitions, not physical database isolation
+9. Advertising platform activation sends **SHA-256 hashed** emails/phones — never raw PII
+10. **Contact Points are additive** — all emails/phones from all sources appear on the Unified Individual; reconciliation rules do NOT apply to Contact Points

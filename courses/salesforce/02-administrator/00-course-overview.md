@@ -1,78 +1,127 @@
-# Salesforce Administrator Certification — Course Overview
-
-## About This Course
-
-This course prepares you for the Salesforce Certified Administrator exam (CRT-101), one of the most widely recognized credentials in the Salesforce ecosystem. Whether you're new to Salesforce or have hands-on admin experience, this course walks you through every exam topic in a structured, exam-focused way. You'll learn how to configure a Salesforce org, manage users and security, automate business processes, and analyze data — exactly what the exam expects you to know.
-
-Each lecture aligns directly to an official exam topic area. Rather than a broad survey of the platform, the content zeros in on the concepts, UI paths, and distinctions (like profiles vs. permission sets, or roles vs. profiles) that are consistently tested. Expect concrete examples, real Setup menu paths, and mini quizzes that mirror the difficulty of actual exam questions.
-
-By the end of this course you will have covered all ten topic sections and completed enough practice questions to sit the exam with confidence. The recommended study timeline at the bottom of this overview suggests a realistic 8-week plan, but you can accelerate or slow down based on your experience level.
+# Salesforce Certified Administrator (CRT-101) — Exam Reference
 
 ## Exam Facts
 
-| Field | Detail |
-|---|---|
-| Exam Name | Salesforce Certified Administrator |
-| Exam Code | CRT-101 |
-| Format | Multiple-choice and multiple-select |
-| Number of Questions | 60 scored + up to 5 unscored pilot questions |
-| Time Limit | 105 minutes |
-| Passing Score | 65% |
-| Registration Cost | USD $200 (retake: USD $100) |
-| Delivery | Proctored online or at a testing center |
-| Recommended Experience | 6+ months of Salesforce administration |
+- **Exam:** Salesforce Certified Administrator (CRT-101)
+- **Questions:** 60 scored + up to 5 unscored pilot questions = 65 total
+- **Time:** 105 minutes
+- **Passing Score:** 65% (39 of 60 scored questions)
+- **Cost:** $200 USD (retake: $100)
+- **Format:** Multiple choice and multiple select (no drag-and-drop)
+- **Delivery:** Online proctored or testing center
 
-## Course Sections
+## Exam Domain Weights
 
-| # | Section | Lectures |
-|---|---|---|
-| 01 | Org Setup | 4 lectures |
-| 02 | User Management | 4 lectures |
-| 03 | Security & Access | 4 lectures |
-| 04 | Standard & Custom Objects | 4 lectures |
-| 05 | Sales & Marketing Applications | 4 lectures |
-| 06 | Service & Support Applications | 4 lectures |
-| 07 | Activity Management & Chatter | 3 lectures |
-| 08 | Data & Analytics Management | 4 lectures |
-| 09 | Workflow & Process Automation | 4 lectures |
-| 10 | Data Management | 3 lectures |
+| Domain | Weight | What It Covers |
+|--------|--------|----------------|
+| Configuration & Setup | 20% | Org setup, users, profiles, My Domain, AppExchange |
+| Object Manager & Lightning App Builder | 20% | Custom objects, fields, page layouts, record types, App Builder |
+| Sales & Marketing Apps | 12% | Leads, accounts, contacts, opportunities, products, quotes |
+| Service & Support Apps | 11% | Cases, queues, entitlements, knowledge, escalation |
+| Productivity & Collaboration | 7% | Activities, tasks, events, Chatter, Einstein Activity Capture |
+| Data & Analytics | 14% | Reports, dashboards, list views, data tools |
+| Workflow/Process Automation | 16% | Validation rules, flows, workflow rules, approval processes |
 
-**Total: 38 lectures**
+**Where to spend your time:** Configuration & Setup (20%) + Automation (16%) + Object Manager (20%) = 56% of the exam. Master these three.
 
-## Study Timeline
+## PTA / SA Relevance
 
-| Week | Focus | Sections |
-|---|---|---|
-| Week 1 | Platform foundations | Org Setup, User Management |
-| Week 2 | Security model | Security & Access, Objects |
-| Week 3 | CRM applications | Sales & Marketing, Service & Support |
-| Week 4 | Productivity tools | Activity Management, Chatter |
-| Week 5 | Data work | Data & Analytics Management |
-| Week 6 | Automation | Workflow & Process Automation |
-| Week 7 | Data management + review | Data Management, full review |
-| Week 8 | Practice exams | 3–4 full practice exams, weak-area drill |
+As a Partner Technical Architect, you won't be taking this exam every day — but the concepts here are the foundation every customer conversation is built on. When a customer says "we can't report on X" or "users are seeing data they shouldn't," it comes back to this material.
 
-> **Tip:** Schedule your exam at the start of Week 8 to maintain urgency during practice.
+**In customer architecture reviews:** The most common finding is overly permissive OWD combined with profiles that haven't been cleaned up in years. The security model (OWD → Role Hierarchy → Sharing Rules) is the framework for every data access conversation.
 
-## ❓ MINI QUIZ
+**For CTO conversations:** Frame the exam domains as the Salesforce operating model: Configuration = "how we configure the platform," Automation = "how we enforce business rules without code," Analytics = "how we surface insights." Every enterprise Salesforce implementation touches all seven domains.
 
-**Q1:** What is the passing score for the Salesforce Certified Administrator exam?
-- A) 60%
-- B) 63%
-- C) 65%
-- D) 70%
-**Answer:** C — The passing score is 65%. You need to answer at least 39 out of 60 scored questions correctly.
+**When a partner asks you about CRT-101:** It's the baseline cert that proves someone can operate a Salesforce org. For customers evaluating Salesforce partners, look for this cert on every admin-role engagement. It doesn't certify architecture skills — for that you want Application Architect or System Architect certs.
 
-**Q2:** Which exam topic area carries the highest weight on the Salesforce Administrator exam?
-- A) Sales & Marketing Applications
-- B) Configuration & Setup
-- C) Workflow/Process Automation
-- D) Configuration & Setup and Object Manager & Lightning App Builder are tied
-**Answer:** D — Configuration & Setup and Object Manager & Lightning App Builder are each worth 20%, making them the two largest topic areas.
+## Topic Weight by Section (Your Study Plan)
 
-**Q3:** How many scored questions are on the Salesforce Administrator exam?
-- A) 60
-- B) 65
-- C) 70
-- D) 105
-**Answer:** A — There are 60 scored questions. Up to 5 additional unscored pilot questions may appear but do not count toward your score.
+```
+Priority 1 — High Weight + Complex Material:
+  Configuration & Setup     (20%)  ← sections 1–2
+  Object Manager & App Builder (20%)  ← sections 4
+  Automation                (16%)  ← section 9
+
+Priority 2 — Medium Weight:
+  Data & Analytics          (14%)  ← section 8
+  Sales & Marketing Apps    (12%)  ← section 5
+
+Priority 3 — Lower Weight (but don't skip):
+  Service & Support         (11%)  ← section 6
+  Productivity              (7%)   ← section 7
+```
+
+## The Security Model at a Glance
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  OBJECT-LEVEL: Profile/Permission Set (what you CAN DO) │
+│  CRUD on each object + FLS on each field                │
+├─────────────────────────────────────────────────────────┤
+│  RECORD-LEVEL: (what you CAN SEE)                       │
+│  1. OWD → sets the FLOOR (most restrictive baseline)    │
+│  2. Role Hierarchy → opens UP based on manager position │
+│  3. Sharing Rules → open to groups/roles/criteria       │
+│  4. Manual Sharing → record-by-record grants            │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Automation Decision Tree
+
+```
+Does a HUMAN need to approve/reject?
+  YES → Approval Process
+  NO  → Which trigger?
+         Save (create/update) → Record-Triggered Flow (Before or After Save)
+         Schedule/batch       → Schedule-Triggered Flow
+         User-facing UI       → Screen Flow
+         Legacy org (exam)    → Workflow Rule / Process Builder
+```
+
+## Data Tool Decision
+
+```
+Object supported + under 50K records? → Data Import Wizard
+Otherwise (Opportunities, Cases, over 50K, need upsert) → Data Loader
+Full org backup → Data Export
+Specific filtered export → Report Export
+```
+
+## Key Numbers to Memorize
+
+| Number | What It Is |
+|--------|-----------|
+| 65% | Passing score |
+| 60 | Scored questions |
+| 105 min | Exam time |
+| 50,000 | Data Import Wizard max records |
+| 5,000,000 | Data Loader max records |
+| 500 | Custom fields per object |
+| 2 | Max Master-Detail per object |
+| 25 | Max Roll-Up Summary fields per object |
+| 300 | Max sharing rules per object |
+| 200 | Custom objects in Enterprise Edition |
+| 2,000 | Custom objects in Unlimited Edition |
+| 20 | Max dashboard components |
+| 3 | Max dashboard filters |
+| 10 | Max dynamic dashboards (Enterprise/Unlimited) |
+| 1 day | Developer sandbox refresh interval |
+| 5 days | Partial Copy sandbox refresh |
+| 29 days | Full sandbox refresh |
+| 3 | Max records per merge operation |
+| 4 | Max objects in custom report type |
+
+## Study Strategy
+
+1. Work through each section's lectures in order
+2. After each lecture: write out the Key Facts section from memory
+3. After each section: review the Exam Traps — these are exactly what wrong answers look like
+4. Two days before exam: work through the full Practice Exam (60 questions, 105 minutes, timed)
+5. Day before: read only this overview page + the cheat sheet
+
+## What Changed in Spring/Summer 2024+
+
+- **Profiles being replaced by Permission Sets:** Salesforce roadmap moves all permission management to Permission Sets/Groups; Profiles become a thin shell. Know both models for the exam, emphasize Permission Sets in architecture conversations.
+- **Workflow Rules retired:** No new workflow rules in new orgs after Feb 2023. Still on exam for maintenance/recognition. All new automation = Flow.
+- **Process Builder retired:** Same retirement path as Workflow Rules. Know for exam, build in Flow.
+- **Enhanced Profile UI:** The profile UI has been redesigned in recent releases; the underlying model is the same.

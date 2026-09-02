@@ -1,186 +1,152 @@
 # L13: Screen Flows
 
-## 🎯 Learning Objectives
-- Identify all available screen component types and their appropriate use cases for collecting or displaying data
-- Configure screen flow navigation (Previous, Next, Finish) and use input/output variables to pass data into and out of embedded flows
-- Apply screen flow best practices including component visibility conditions, reactive components, and the Pause element
-
-## 📊 SLIDES
-
-### Slide 1: What Is a Screen Flow?
-**Visual:** Diagram of a multi-step wizard with Step 1 → Step 2 → Step 3, each step labeled as a "Screen" element connected by arrows, inside a Lightning page frame
-**Content:**
-- A Screen Flow is a Flow type that pauses execution and displays a UI screen to the user
-- Users interact by entering data, making selections, or viewing information
-- Ideal for guided, multi-step wizards — no Apex code required
-- Can be embedded in Lightning pages, Quick Actions, Experience Cloud sites, or launched via URL
-
-**Speaker Notes:** Screen Flows are the go-to tool when you need a guided user experience — like a wizard that walks a rep through creating a case, or a multi-step onboarding form. Unlike Record-Triggered Flows that run silently in the background, Screen Flows pause and wait for the user to interact before proceeding to the next step. Admins build and maintain them entirely in Flow Builder with no code needed.
+## Exam Domain
+Business Logic & Process Automation — 28% of exam weight
 
 ---
 
-### Slide 2: Input Components — Collecting Data from Users
-**Visual:** Side-by-side screenshots (or icons) of each input component labeled: Text, Number, Date, Checkbox, Picklist, Radio Buttons, Multi-Select Picklist, File Upload, Lookup
-**Content:**
-- **Text:** Single-line or long-text area string input
-- **Number / Currency / Date / Date-Time:** Typed numeric and date inputs with built-in formatting
-- **Checkbox:** Boolean true/false toggle
-- **Picklist (Dropdown):** Single selection from a list of choices
-- **Radio Buttons:** Single selection displayed as visible radio button group
-- **Multi-Select Picklist:** Multiple selections from a list
-- **File Upload:** Allows user to attach a file (creates a ContentVersion record)
-- **Lookup:** Searches for and selects an existing Salesforce record by name
+## Core Concepts
 
-**Speaker Notes:** Each input component maps to a specific data type. Picklist and Radio Buttons both produce a single-choice string value — the difference is visual; radio buttons show all options at once while picklists hide them in a dropdown. The Lookup component is powerful because it lets users search the org's records at runtime and returns a record ID, which you can use in subsequent flow steps. File Upload is unique in that it automatically creates Content records in Salesforce Files.
+### What Screen Flows Are
+Screen Flows are Flow Builder flows with a user interface — they display screens to users as a multi-step wizard. The key thing to understand is that Screen Flows require explicit user action to launch — they don't auto-trigger. They must be embedded in a Lightning page, added as a Quick Action (button), or launched from a component. Unlike Record-Triggered Flows, Screen Flows are entirely user-driven.
 
----
+### Input and Output Components
+Screen elements contain **input components** (fields where users enter data) and **output components** (display-only content). Input components include: Text Input, Number, Currency, Date, Date/Time, Checkbox, Picklist, Multi-Select Picklist, Long Text Area, Toggle, Radio Buttons. Output components include: Display Text (shows static text or formula output), Display Image. Input components store their values in Flow variables that subsequent elements can use.
 
-### Slide 3: Output Components — Displaying Data to Users
-**Visual:** Annotated Flow Builder canvas showing a Screen with a "Display Text" element containing a merge field like {!Account.Name}, and a "Display Image" element below it
-**Content:**
-- **Display Text:** Read-only rich text block; supports merge fields from flow variables (e.g., "Your case {!caseNumber} has been created")
-- **Display Image:** Renders a static image stored in Salesforce Static Resources
-- Output components do NOT collect input — they present information only
-- Use Display Text for confirmation messages, summaries, or instructions
-- Combine input and output components on the same screen to show context while collecting data
+### Navigation Buttons
+Screen Flows provide navigation buttons that can be configured per screen: **Next** (go to next screen), **Previous** (go back), **Finish** (complete the flow), **Pause** (save progress and resume later). You can show/hide buttons per screen. "Pause" enables long-running processes where users need to stop and return — paused flows are stored in Salesforce and can be resumed.
 
-**Speaker Notes:** Display Text is one of the most underrated screen components. It allows you to surface relevant record data right on the screen — for example, showing the customer's current tier before asking them to select a new support level. Since it supports merge fields referencing any flow variable, you can make confirmation screens very dynamic. Display Image is less common but useful for branded forms or instructional diagrams stored in Static Resources.
+### Input/Output Variables — Flow in Flow Page Context
+When a Screen Flow is embedded in a Lightning record page (via a Flow component), you can pass the current record's ID into the flow as an input variable. The Flow component has a "Record ID" field that maps to a flow variable you define. This lets the screen flow pre-populate fields with data from the current record and operate in context.
+
+### Component Visibility Rules
+Individual components on a Screen element can be hidden or shown conditionally based on other field values. Example: show the "Discount Reason" text field only when "Discount %" is greater than 20. This is reactive — as the user fills in fields, other components appear/disappear in real time (Spring '23+, "Reactive Screens" feature).
 
 ---
 
-### Slide 4: Screen Flow Navigation
-**Visual:** Horizontal flow diagram showing: [Screen 1] --Next--> [Screen 2] --Next--> [Screen 3] --Finish--> [End]; with a "Previous" arrow going right-to-left between screens
-**Content:**
-- **Next:** Advances the user to the next screen; triggers screen validation before proceeding
-- **Previous (Back):** Returns to the prior screen; preserves entered values
-- **Finish:** Closes the flow; triggers any remaining flow elements after the last screen
-- Navigation buttons are auto-generated by Flow Builder but can be renamed or hidden
-- **Pause:** A special navigation action that saves flow state so the user can resume later (appears as a "Pause" button when a Pause element is included)
+## PTA / SA Relevance
 
-**Speaker Notes:** The navigation behavior is important for the exam. When a user clicks Next, the flow validates all required fields and any component-level validation rules on the current screen before moving forward — it will not advance if there are errors. Clicking Finish does not just close the screen; it executes any remaining flow elements defined after the last Screen element, such as creating records or sending emails. The Pause element deserves special attention — it allows long-running processes where the user might need to gather information and return later.
+**Replace custom Visualforce pages:** Screen Flows can replace many simple Visualforce pages and custom LWC components that collect user input and perform actions. Before scoping a custom LWC for a guided data-entry process, evaluate whether a Screen Flow can do the job — Screen Flows are admin-maintainable and no-code.
 
----
+**Pause / Resume pattern:** For approval or review workflows that take days, the Pause element in Screen Flows lets users save their progress and return. This replaces manual workarounds like saving a "draft" record. However, note that paused flows create "Flow Interview" records that consume storage.
 
-### Slide 5: Input/Output Variables — Embedding Flows
-**Visual:** Diagram showing a Lightning Record Page embedding a Screen Flow component with arrows labeled "Input Variables (pass IN)" pointing into the flow bubble and "Output Variables (pass OUT)" pointing from the flow bubble back to the page/component
-**Content:**
-- Flow variables can be marked **"Available for input"** — host component passes values INTO the flow at launch
-- Flow variables can be marked **"Available for output"** — flow passes values OUT to the host component after Finish
-- Both can be set on a single variable simultaneously
-- Common use: pass the current recordId in to pre-populate the flow; pass a confirmation number out to display on the page
-- Input/output variables enable tight integration between the flow and its launching context (Lightning page, Aura/LWC component, Quick Action)
+**LWC + Screen Flow hybrid:** For complex UI requirements beyond what Screen Flows support natively, a common pattern is a LWC wrapper that launches a Screen Flow. The LWC handles the complex UI parts; the Screen Flow handles the guided process steps. This keeps business logic in the Flow (maintainable) and complex UI in the component.
 
-**Speaker Notes:** This is a key concept for embedding flows in Lightning pages. When you drop a Screen Flow component onto a page in Lightning App Builder, any flow variable marked "Available for input" appears as a configurable field in the component properties panel — this is how you pass the current record's Id into the flow automatically. Output variables are less commonly used but allow the flow result to be read back by a parent Aura or LWC component via the flowStatusChange event. The exam may ask you to identify which setting enables a flow variable to receive data from a page.
+**Accessibility:** Screen Flows should be tested with accessibility tools — Salesforce has improved screen reader support for Flow screens, but complex visibility rule configurations can create confusing experiences for accessibility-tool users.
 
 ---
 
-### Slide 6: Launching Screen Flows
-**Visual:** Table or icon grid showing 5 launch methods: Lightning App Builder (page component), Button/Quick Action, Aura Component, LWC, Direct URL with icons for each
-**Content:**
-- **Lightning App Builder:** Add as a component to any record, app, or home page
-- **Quick Action (Flow Action):** Adds flow to object's action bar; launches in a modal
-- **Custom Button / Link:** Can target a Flow URL directly (setup: Visualforce page wrapping the flow, or Flow direct URL)
-- **Aura Component:** Use `<lightning:flow>` to embed and communicate with the flow programmatically
-- **LWC:** Use `<lightning-flow>` base component to embed within a custom component
-- **Experience Cloud:** Screen Flows can be added to Experience/Community pages as components
+## Architecture / How It Works
 
-**Speaker Notes:** The most common launch method for admins is the Lightning App Builder component — it's drag-and-drop with no code. Quick Actions are ideal when you want the flow accessible from the record page action bar or global actions menu without consuming page real estate. For developers, embedding via LWC gives the most control, including the ability to respond to flow output variables programmatically. Experience Cloud sites use the same Screen Flow components, making it easy to surface guided processes to external users like partners or customers.
+```
+Screen Flow Anatomy:
+                                                              
+  ┌──────────────────────────────────────────────────────┐   
+  │  SCREEN 1: Gather Basic Info                         │   
+  │  ┌─────────────────────┐  ┌──────────────────────┐   │   
+  │  │ Text: First Name     │  │ Text: Last Name       │   │   
+  │  └─────────────────────┘  └──────────────────────┘   │   
+  │  ┌─────────────────────────────────────────────────┐  │   
+  │  │ Picklist: Department (from object picklist)      │  │   
+  │  └─────────────────────────────────────────────────┘  │   
+  │  [Previous] [Next] [Pause]                            │   
+  └──────────────────────────────────────────────────────┘   
+                    │ Next                                    
+                    ▼                                         
+  ┌──────────────────────────────────────────────────────┐   
+  │  SCREEN 2: Review & Submit                           │   
+  │  ┌─────────────────────────────────────────────────┐  │   
+  │  │ Display Text: "You entered: {!FirstName_Var}"    │  │   
+  │  └─────────────────────────────────────────────────┘  │   
+  │  [Previous] [Finish]                                  │   
+  └──────────────────────────────────────────────────────┘   
+                    │ Finish                                  
+                    ▼                                         
+             Create Record / Update Record elements          
+```
 
----
+**Limitations:**
+- Screen Flows cannot auto-trigger — they require explicit user action to launch
+- Screens cannot be embedded in Apex (Apex calls Auto-launched Flows, not Screen Flows)
+- Paused flows consume Salesforce storage and count against flow interview limits
+- Screen Flows don't support all input types (e.g., File Upload requires a custom LWC)
 
-### Slide 7: Component Visibility Conditions & Reactive Flows
-**Visual:** Split screen — left side shows a screen with a "Has Discount?" checkbox; right side shows the same screen with a "Discount %" number field now visible because the checkbox is checked, labeled "Conditional Visibility"
-**Content:**
-- **Component Visibility:** Each screen component has a "Conditionally visible" setting; define filter conditions based on other components' values on the same screen
-- Example: Show "Discount Percentage" field only when "Apply Discount?" checkbox = True
-- Conditions evaluate locally — no server round-trip required
-- **Reactive Screen Flows (Spring '23+):** Components can automatically recalculate and re-render based on other component values without navigating away
-- Reactive components: formulas and Get Records elements can auto-execute when a dependent input changes
-- Enables dynamic, real-time UX — e.g., showing a live total as quantity changes
+```
+How to Launch a Screen Flow:
+┌─────────────────────────────────────────────────────────────┐
+│  1. Lightning App Builder → Flow component on any page      │
+│     └─ Embed directly, auto-runs when page loads or         │
+│        requires a button click (configurable)               │
+│                                                             │
+│  2. Quick Action → Flow type action → add to page layout    │
+│     └─ Button in record highlights panel, pops in modal     │
+│                                                             │
+│  3. Utility Bar (Lightning apps)                            │
+│     └─ Accessible from any page in the app                  │
+│                                                             │
+│  4. Custom button / Lightning component launches the flow   │
+│     └─ Developer adds button that calls flow via API        │
+│                                                             │
+│  5. Home page, App page, or Record page via Lightning App   │
+│     Builder component                                       │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**Speaker Notes:** Component visibility conditions are essentially client-side show/hide logic — they make screens feel intelligent without adding extra screens or decision elements. Reactive Screen Flows take this further by allowing formula fields and even record lookups to re-execute in real time as users type, without the user ever leaving the screen. This is a relatively new feature (Spring '23) and the exam has begun testing awareness of it. The key distinction: visibility conditions control whether a component appears; reactive components control whether the component's VALUE updates dynamically.
+**Limitations:**
+- Quick Action flows open in a modal overlay — they cannot fill the full screen
+- Record context (Record ID) must be explicitly configured in the Flow component or Quick Action settings to pass the current record into the flow
+- Screen Flows embedded in Communities/Experience Cloud have additional permission requirements
 
----
+```
+Component Visibility (Reactive Screens):
+                                                               
+  ┌─────────────────────────────────────────────────────┐      
+  │  SCREEN                                             │      
+  │  ┌─────────────────────────────────────────────┐    │      
+  │  │ Number: Discount Percent (%): [    25    ]  │    │      
+  │  └─────────────────────────────────────────────┘    │      
+  │  Visibility rule on "Discount Reason":               │      
+  │  SHOW WHEN: Discount_Percent > 20                   │      
+  │  ┌─────────────────────────────────────────────┐    │      
+  │  │ Text: Discount Reason: [________________]   │ ← appears when % > 20
+  │  └─────────────────────────────────────────────┘    │      
+  └─────────────────────────────────────────────────────┘      
+```
 
-### Slide 8: Screen Flow Best Practices & When to Use Screen Flows
-**Visual:** Two-column layout: left column "Best Practices" (checklist icon), right column "Screen Flow vs Apex" (comparison table)
-**Content:**
-- **Best Practices:**
-  - One task per screen — don't overload users with too many fields at once
-  - Validate input before proceeding (required fields, component validation)
-  - Use Display Text on a final confirmation screen to summarize what happened
-  - Use descriptive API names for variables for maintainability
-  - Test with both desktop and mobile (Screen Flows are responsive)
-- **When Screen Flows beat Apex:**
-  - No developer needed — admins build and maintain independently
-  - Built-in UI rendering — no Visualforce or LWC required
-  - Guided UX with back/next navigation is difficult to replicate in Apex alone
-  - Supports Pause/Resume natively with no custom session management
-
-**Speaker Notes:** The one-task-per-screen guideline is critical for user experience and is often cited in Salesforce documentation. Overwhelming a single screen with 15 fields leads to errors and abandonment. The confirmation screen using Display Text is a best practice the exam specifically calls out — always give users feedback that their action succeeded. Compared to writing an Apex-backed Visualforce page or LWC form, a Screen Flow can be built in a fraction of the time with full admin control over future changes.
-
----
-
-## 🎙️ RECORDING SCRIPT
-
-Welcome to Lecture 13 — Screen Flows. By the end of this lecture, you'll know exactly how to design a guided wizard experience for your users using Flow Builder, with zero code required.
-
-Let's start with the big picture. A Screen Flow is a special type of flow that pauses during execution and shows a screen to the user. Unlike Record-Triggered Flows that run silently in the background, Screen Flows are interactive — the user drives the process forward by filling out fields and clicking Next or Finish.
-
-Think of a Screen Flow as a wizard. You've probably used a wizard-style interface before — maybe when filing taxes online or setting up a new device. That step-by-step, guided experience where each screen focuses on one thing? That's exactly what Screen Flows deliver on Salesforce records.
-
-Now let's talk components. On each screen you can drop two categories of components: input components that collect data, and output components that display data.
-
-For inputs, you've got everything you'd expect: Text fields for names or descriptions, Number and Date fields for structured data, Checkboxes for true/false questions, and Picklists or Radio Buttons when the user needs to pick from a list. Multi-Select Picklists let users pick more than one option. File Upload lets them attach a file directly in the flow — Salesforce handles the content record creation automatically. And the Lookup component is especially powerful — it lets users search for and select any existing Salesforce record, returning that record's Id for use later in the flow.
-
-For output components, you have Display Text and Display Image. Display Text is read-only rich text that supports merge fields — so you can say "You're about to update Account: Acme Corp" using the actual record name. Display Image pulls from Static Resources.
-
-Now, navigation. Each screen has up to three navigation options: Next advances to the next screen after validating the current one, Previous goes back while preserving what the user entered, and Finish closes the flow and executes any remaining flow elements. There's also the Pause action, which saves the flow's state so users can return later — useful for long processes where they might need to gather information before completing the form.
-
-For embedding flows, the critical concept is input and output variables. When you create a flow variable and check "Available for input," a host Lightning page or component can pass a value into your flow at launch. Check "Available for output" and your flow can pass a value back out when it finishes. This is how you pre-populate the current record's Id into a flow dropped on a record page.
-
-Visibility conditions allow individual components on a screen to show or hide based on what the user has entered elsewhere on the same screen. This keeps screens clean and only shows relevant fields. Spring '23 introduced Reactive Screen Flows, which go further — dependent formulas and record lookups can re-execute in real time as values change, giving users live feedback without navigating away.
-
-Finally, best practices: keep one task per screen, validate before proceeding, and always end with a confirmation screen using Display Text. Screen Flows shine when you need guided wizards that admins can maintain without developer help.
-
----
-
-## 🔔 EXAM TIPS
-- **Input vs Output Variables:** "Available for input" lets the host pass data INTO the flow; "Available for output" lets the flow pass data back OUT. Both can be set on the same variable.
-- **Lookup Component:** Returns a Record ID — it lets the user search for and select an existing record at runtime.
-- **Pause Element:** Allows a user to save flow progress and return later; requires a Screen Flow (cannot pause Record-Triggered Flows mid-execution).
-- **Reactive Screen Flows:** Introduced Spring '23 — components auto-update without a server round-trip or screen navigation; know this as a differentiator from older conditional visibility.
-- **File Upload:** Automatically creates ContentVersion (Salesforce Files) records — no additional steps needed.
-- **Finish vs Next:** Finish executes remaining flow elements after the last screen; it is not just a close button.
-- **Quick Action vs Page Component:** Both can launch screen flows; Quick Action opens in a modal overlay; a page component embeds the flow directly in the page layout.
-- **Screen Flow vs Record-Triggered Flow:** Screen Flows require user interaction; Record-Triggered Flows run automatically on record save with no UI.
-
-## ✅ LECTURE SUMMARY
-- Screen Flows present interactive screens to users, enabling guided wizard-style experiences
-- Input components (Text, Number, Date, Checkbox, Picklist, Radio Buttons, Multi-Select, File Upload, Lookup) collect user data; output components (Display Text, Display Image) present data
-- Navigation uses Next (validates and advances), Previous (goes back), Finish (closes and executes remaining elements), and Pause (saves state for later resume)
-- Variables marked "Available for input" receive data from the host context at launch; "Available for output" send data back after Finish
-- Screen Flows can be launched from Lightning pages, Quick Actions, Aura/LWC components, direct URLs, and Experience Cloud pages
-- Component visibility conditions show/hide fields based on other values; Reactive Screen Flows (Spring '23+) enable real-time component updates without navigation
-- Best practices: one task per screen, validate before proceeding, use Display Text for confirmation
-
-## ❓ MINI QUIZ
-
-**Q1:** A Screen Flow variable needs to receive the current record's Id when the flow launches from a Lightning record page. Which setting must be enabled on that variable?
-- A) Available for output  B) Available for input  C) Allow multiple values  D) Require input
-
-**Answer:** B — Marking a variable "Available for input" allows the host Lightning page or component to pass a value into the flow at launch time, such as the current record's Id.
+**Limitations:**
+- Component visibility rules evaluate in real-time (Spring '23+ Reactive Screens) — older orgs may need a Next/refresh to re-evaluate
+- Hidden components do not clear their values when hidden — a user who enters a value then the field disappears still has the value in the variable
 
 ---
 
-**Q2:** A user needs to complete a screen flow but must wait for manager approval before finishing the last section. Which Flow element allows the user to save their progress and return later?
-- A) Wait  B) Pause  C) Assignment  D) Subflow
-
-**Answer:** B — The Pause element saves the flow's current state (including all variable values) so the user can resume from where they left off. The Wait element is used in autolaunched flows for time-based waiting, not screen flow user pauses.
+## Key Facts to Memorize
+- Screen Flows have a UI; they require user action to launch (no auto-trigger)
+- Input components: Text, Number, Currency, Date, Checkbox, Picklist, Multi-Select Picklist, Toggle
+- Output components: Display Text, Display Image
+- Navigation: Next / Previous / Finish / Pause
+- Pause: saves flow state for user to resume later; creates a Flow Interview record
+- Pass record context: configure Flow component "Record ID" field → maps to flow input variable
+- Component visibility: conditionally show/hide screen components based on field values
+- Reactive Screens (Spring '23+): visibility rules evaluate in real-time without refresh
 
 ---
 
-**Q3:** An admin wants a "Discount Percentage" number field on a screen to appear ONLY when the user checks the "Apply Discount?" checkbox on the same screen. Which feature accomplishes this without adding an extra screen?
-- A) Flow Decision element  B) Component Visibility Conditions  C) Reactive Screen Flow formula  D) Separate Screen element with branching
+## Exam Traps
+- **Screen Flows cannot auto-trigger.** If a scenario says "when a record is saved, show a screen to the user," that's a different pattern — you'd embed a Screen Flow on the record page, but it won't auto-pop up on save. Record-Triggered Flows don't have screens.
+- **Quick Actions for Screen Flows.** The "Quick Action — Flow" action type is the correct way to add a Screen Flow as a button. This is distinct from "Quick Action — Create/Update/Custom" action types.
+- **Record context requires explicit configuration.** The Screen Flow does not automatically receive the current record's ID — you must set it up in the Flow component properties or Quick Action settings.
+- **Hidden screen components retain their values.** This can cause unexpected data submissions. If a user enters a value and the field then hides, the variable still holds the value when the flow finishes.
+- **Pause requires "Let Users Pause" setting.** This is a Flow property that must be enabled. Not all Screen Flows allow pause by default.
 
-**Answer:** B — Component Visibility Conditions allow individual screen components to show or hide based on the values of other components on the same screen, with no server round-trip and no additional screens required.
+---
+
+## Practice Questions
+
+**Q:** A business wants a button on the Case record page that launches a 3-step wizard to gather escalation details and create a follow-up task. Which setup steps accomplish this?
+**A:** (1) Create a Screen Flow with the 3-step wizard logic and a Create Records element for the Task. (2) Add the flow as a Quick Action (Action Type = Flow) on the Case object. (3) Add the Quick Action button to the Case page layout (or Lightning record page). When the user clicks the button, the Screen Flow launches in a modal overlay.
+
+**Q:** A Screen Flow embedded on the Account record page needs to pre-populate a field with the current Account's Name. How is this configured?
+**A:** Create an input variable in the Flow (e.g., `recordId`, Text type, Available for Input = checked). In the Lightning App Builder, add the Flow component to the page, and in the component properties, map "Record ID" to the `recordId` variable. The flow then uses `{!recordId}` to query the Account and access its Name field.
+
+**Q:** A user starts a Screen Flow, fills in 3 screens, then pauses it. They log out and log back in the next day. How do they resume the paused flow?
+**A:** Paused flows create "Flow Interview" records. Users can resume by navigating to their Home page (if the "Paused and Waiting Interviews" component is on the Home page) or by finding the interview via the "Paused Interviews" section. The flow resumes from the screen where they paused.

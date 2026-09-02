@@ -1,38 +1,81 @@
-# Course 8: Agentforce Voice
+# Course 8: Agentforce Voice — Study Guide
 
-## About This Course
+## What This Course Covers
 
-Agentforce Voice brings Salesforce's autonomous AI agent platform directly into the phone channel — letting you deploy Agentforce agents that can handle inbound calls, assist live agents in real time, and summarize conversations automatically. This course is for Service Cloud administrators, architects, and consultants who need to configure, deploy, and optimize Agentforce Voice solutions using Salesforce's supported telephony partners. Rather than preparing for a standalone certification, this course equips you for the voice-channel scenario questions that appear in the **Agentforce Specialist (CRT-271)** exam and for real-world Service Cloud Voice implementations.
+Agentforce Voice extends the Agentforce autonomous agent platform to phone calls. The same agent you configure for chat can now handle inbound calls, assist live agents in real time, and generate post-call summaries. This course maps directly to the **Agentforce Specialist (CRT-271)** exam — voice scenarios appear in the "Use Cases & Business Value" and "Testing, Deployment & Monitoring" domains (~35% combined).
 
-## What You'll Learn
+## The Three-Layer Architecture (Memorize This First)
 
-- How Agentforce Voice fits into the broader Agentforce and Service Cloud architecture
-- The difference between autonomous voice bots and real-time agent assist mode
-- How to connect Salesforce to Amazon Connect, Genesys Cloud CX, and NICE CXone
-- The distinction between Partner Telephony and Bring Your Own Telephony (BYOT)
-- How to set up and configure a Voice Call Center in Service Cloud Setup
-- Omni-Channel routing rules for voice interactions
-- Real-time transcription, AI-suggested responses, and call summarization
-- How the Einstein Trust Layer governs voice AI interactions
-- Screen pop, softphone widget layout, and Call Center Lightning page configuration
-- Required licenses, permissions, and provisioning steps for a production voice deployment
+```
+╔══════════════════════════════════════════════════════════════╗
+║  TIER 1 — TELEPHONY NETWORK                                  ║
+║  SIP/PSTN · Telephony Partner Cloud                          ║
+║  Amazon Connect │ Genesys Cloud CX │ NICE CXone              ║
+║  Owns: call transport, audio streaming, STT/transcription    ║
+╚══════════════════════════╤═══════════════════════════════════╝
+                           │ Transcript JSON + call events
+╔══════════════════════════╧═══════════════════════════════════╗
+║  TIER 2 — SERVICE CLOUD VOICE                                ║
+║  VoiceCall Record · Real-time Transcript                     ║
+║  Omni-Channel Routing · Named Credentials                    ║
+║  Owns: CRM record creation, routing, transcript storage      ║
+╚══════════════════════════╤═══════════════════════════════════╝
+                           │ Transcript text + CRM context
+╔══════════════════════════╧═══════════════════════════════════╗
+║  TIER 3 — AGENTFORCE PLATFORM                                ║
+║  Agentforce Agent · Atlas Reasoning Engine (LLM)             ║
+║  Einstein Trust Layer · Data Cloud (optional enrichment)     ║
+║  Owns: intent classification, actions, autonomous handling   ║
+╚══════════════════════════════════════════════════════════════╝
+```
 
-## Course Structure
+**Limitations:**
+- Transcription happens at Tier 1/2 (telephony partner STT engine), not inside Agentforce
+- AI reasoning is only as good as transcription quality from Tier 1 — bad audio cascades into bad NLP
+- Each tier has distinct failure modes — always diagnose by layer
+- Amazon Connect supported regions are a subset of all AWS regions; verify data residency before choosing a region
+- Real-time transcription latency: typically 300–800ms end-to-end (speech → Salesforce)
 
-| Section | Topic | Lectures |
-|---------|-------|----------|
-| Section 1 — Fundamentals | Agentforce Voice overview, telephony integration, voice channel setup | L01, L02, L03 |
-| Section 2 — AI Capabilities | Real-time transcription, agent assist, autonomous voice bots, Einstein Conversation Mining | L04, L05, L06 |
-| Section 3 — Advanced Configuration | Omni-Channel for voice, call flows, IVR replacement, outbound scenarios | L07, L08, L09 |
-| Section 4 — Governance, Testing & Deployment | Einstein Trust Layer in voice, testing with Amazon Connect, monitoring, production checklist | L10, L11, L12 |
+## PTA / SA Relevance — Why This Architecture Matters in Real Engagements
 
-## Prerequisites
+**When a customer asks "can we put AI on our phone calls?":** The first architecture decision is which tier they're asking about. Most mean Tier 3 (autonomous AI or agent assist), but the viability depends on Tier 1 (telephony partner capability and audio quality) and Tier 2 (Service Cloud Voice license and setup). Weak audio quality upstream kills AI accuracy downstream.
 
-- **Agentforce Specialist course (Course 7) or equivalent** — you should understand Topics, Actions, the Atlas Reasoning Engine, and how agents are configured in Agentforce Studio
-- **Service Cloud fundamentals** — familiarity with cases, queues, and Omni-Channel routing
-- **Einstein Trust Layer awareness** — understanding data masking, grounding, and zero-retention policies
-- **Basic telephony literacy** — knowing what a SIP trunk is and how call routing works will help with Lecture 2; no deep telecom expertise required
+**Common partner mistakes:**
+- Treating Agentforce Voice as a Salesforce-only configuration — the telephony side requires equal attention
+- Underestimating the Amazon Connect Contact Lens / AWS Transcribe configuration effort
+- Skipping the transcription accuracy baseline before promising AI routing
+- Not budgeting for telephony-side changes (Contact Flow rework, IAM permissions, SIP trunk validation)
 
-## Key Exam Facts
+**For a customer CX/contact center leader, frame Agentforce Voice as:** A three-layer investment — telephony modernization + CRM integration + AI — not just "adding AI to calls." The ROI comes from containment rate improvement (autonomous) and handle time reduction (agent assist), both measurable within 90 days of launch.
 
-Agentforce Voice is **not a standalone Salesforce certification**. It does not have its own exam code or passing score. Instead, voice-channel topics appear as scenario questions within the **Agentforce Specialist (CRT-271)** exam — typically in the "Use Cases & Business Value" and "Testing, Deployment & Monitoring" domains, which together account for approximately 35% of the exam. Expect questions that ask you to select the right telephony integration model for a given business constraint, identify which AI capability (agent assist vs autonomous bot) fits a described workflow, or choose the correct setup step for enabling voice in Service Cloud. This course also directly supports real-world implementation projects where you are responsible for provisioning a working Salesforce + telephony environment.
+## Course Sections at a Glance
+
+| Section | What I'm Learning | PTA Relevance |
+|---------|-------------------|---------------|
+| Section 1 — Fundamentals | What Agentforce Voice is, telephony partners, Salesforce setup | Architecture decisions for customer engagements |
+| Section 2 — Building Agents | Configuring agents for voice, topics/actions, transcription | Design patterns for voice AI capabilities |
+| Section 3 — Advanced | Voice Flows & IVR replacement, Agent Assist, Omni-Channel routing | Enterprise contact center modernization |
+| Section 4 — Operations | Testing, monitoring/analytics, advanced use cases & ROI | Business case & governance for customers |
+
+## Prerequisites I Should Already Know
+
+- Agentforce agent concepts: Topics, Actions, Atlas Reasoning Engine (Course 7)
+- Service Cloud fundamentals: cases, queues, Omni-Channel routing
+- Einstein Trust Layer: data masking, zero-retention, audit trail
+- Basic telephony: what a SIP trunk is, inbound/outbound call concepts
+
+## Exam Context
+
+Agentforce Voice is **not a standalone certification**. It shows up as scenario questions inside the **Agentforce Specialist (CRT-271)** exam. Typical question types:
+- Identify the right telephony integration model for a business constraint
+- Distinguish agent assist vs. autonomous bot for a described workflow
+- Choose the correct setup step for enabling voice in Service Cloud
+
+## Customer Advisory — Telephony Partner Selection Quick Guide
+
+| Partner | Best Fit | Watch Out For |
+|---------|----------|---------------|
+| Amazon Connect | AWS-committed orgs, new deployments, deepest Salesforce integration | Region availability for data residency requirements |
+| Genesys Cloud CX | Large enterprise, complex multi-country routing, existing Genesys investment | Partner-managed integration, setup differs from Amazon Connect |
+| NICE CXone | Financial services, healthcare, compliance-heavy regulated industries | Third-party licensing costs, partner-managed CTI adapter |
+| BYOT | Customer has major existing telephony investment (Avaya, Cisco) they cannot replace | Custom development required, customer owns integration support |

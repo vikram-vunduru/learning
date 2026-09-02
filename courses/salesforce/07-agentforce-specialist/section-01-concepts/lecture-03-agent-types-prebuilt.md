@@ -1,344 +1,295 @@
-# Lecture 03: Pre-built Agent Templates
+# Pre-built Agent Types
 
-## Learning Objectives
-- Identify all major Salesforce pre-built agent templates and their intended use cases
-- Describe how to set up and configure the Service Agent using the guided setup wizard
-- Explain how to customize a pre-built agent's persona, instructions, and Topics without rebuilding from scratch
-- Distinguish between the configuration options that are agent-type-specific vs. shared across all agent types
-- Describe what the agent persona is, where it is configured, and how it affects agent behavior
+## Exam Domain
+Agentforce Concepts & Architecture — ~20% of exam weight
 
-## Slides
+## Core Concepts
 
-### Slide 1: Why Pre-built Templates?
-**Visual:**
+### The Four Agent Templates
+| Template | User-Facing | Primary Use | Key Channel |
+|----------|-------------|-------------|-------------|
+| **Service Agent** | External customers | Case deflection, FAQ, order lookup, escalation | Embedded Chat (web), Mobile |
+| **SDR Agent** | External prospects | Inbound lead qualification, BANT, meeting booking | Email, Chat |
+| **Sales Coach** | Internal sales reps | Call recording analysis, coaching feedback | Salesforce UI, Slack |
+| **Custom Agent** | Either | Any other use case | Any supported channel |
+
+Memory hook: Service = customers (help), SDR = prospects (qualify), Coach = reps (coach).
+
+### Service Agent
+A customer-facing agent for resolving service inquiries without human involvement.
+
+**Setup wizard (4 steps):**
+1. **Select Data Sources:** Choose Knowledge bases the agent can search
+2. **Configure Topics:** Pick from pre-built Topic templates or create custom ones
+3. **Set Escalation:** Define Omni-Channel queue to transfer to when agent can't resolve
+4. **Deploy:** Select deployment channel (Embedded Chat, Mobile, API)
+
+**Pre-built Topics available:**
+- Billing inquiries
+- Order status
+- Product information
+- Account management
+- General FAQ
+
+**Customizing after wizard:** You can add Actions to existing Topics, add new Topics, and edit the Instructions persona after the wizard completes. The wizard gives a starting point, not a locked configuration.
+
+### SDR Agent
+Autonomous inbound lead qualification. The SDR Agent interacts with web form leads via email or chat, gathers qualification data, and either books a meeting (qualified) or sends a nurture sequence (not yet qualified).
+
+**The BANT qualification flow:**
+1. Budget: Does the prospect have budget for this type of solution?
+2. Authority: Are they the decision-maker, or do they need to involve others?
+3. Need: Do they have a clear business need this product addresses?
+4. Timeline: When are they planning to make a decision?
+
+Qualified → books meeting on appropriate rep's calendar via Salesforce scheduling.
+Not yet qualified → adds to nurture campaign, continues follow-up autonomously.
+
+**Key SDR Agent fact:** Primarily uses the **Email channel** — it communicates with prospects through email, not embedded chat. This is different from Service Agent.
+
+### Sales Coach Agent
+Internal, rep-facing agent. It analyzes recorded sales calls (integrated with conversation intelligence tools), identifies coaching opportunities, and provides structured feedback to reps.
+
+**What Sales Coach does:**
+- Reviews call transcripts against configured sales methodology (e.g., MEDDIC, Challenger)
+- Identifies missed questions, unclear next steps, competitor mentions
+- Generates personalized coaching recommendations for each rep
+- Tracks coaching progress over time
+
+**What Sales Coach does NOT do:** It does not talk to customers. It does not handle inbound leads. It is purely an internal coaching tool.
+
+**Channel:** Available in Salesforce UI and Slack (internal). Not deployed on web chat.
+
+### Custom Agent
+Blank slate. Use Custom Agent when:
+- None of the pre-built templates fits the use case
+- You need an internal agent (for HR, IT helpdesk, field service scheduling)
+- You need very precise control over Topics, Actions, and Instructions from the start
+
+Custom Agents require building all Topics and Actions from scratch. No wizard, no pre-built Topics.
+
+### Agent Lifecycle
+Every agent goes through three states:
+
+| State | Behavior |
+|-------|---------|
+| **Draft** | Being configured; not accessible to users; no conversations |
+| **Active** | Live; users can interact; billable conversations occur |
+| **Deactivated** | Inactive; no new conversations; can be reactivated |
+
+Transitions:
+- Draft → Active: manual activation in Agentforce Studio
+- Active → Deactivated: deactivation removes from deployed channels
+- Deactivated → Active: reactivation restores to channels
+
+### Identity and Persona Configuration
+Identity applies to all agent types. Fields in Identity:
+- **Name:** What the agent introduces itself as ("Hi, I'm Aria")
+- **Company:** Company or brand name
+- **Persona tone:** Formal, conversational, empathetic — this should reflect your brand voice
+
+Best practice: Set persona in both Identity (name/tone) and Instructions (specific behavioral rules about how the persona should manifest). Identity sets the metadata; Instructions make it behavioral.
+
+## PTA / SA Relevance
+
+### Template Selection in a Discovery Call
+When a customer asks "which agent type should we start with?", use this matching framework:
+
+1. "Who is the agent interacting with?"
+   - Customers (external) → Service Agent or SDR Agent
+   - Prospects (external, inbound) → SDR Agent
+   - Employees (internal) → Custom Agent (use Slack channel)
+   - Sales reps (internal coaching) → Sales Coach
+
+2. "What's the primary goal?"
+   - Resolve issues / answer questions → Service Agent
+   - Qualify and convert → SDR Agent
+   - Coach and develop → Sales Coach
+   - Everything else → Custom Agent
+
+3. "Is there an existing pre-built template?"
+   - If use case maps cleanly to one of the three templates, start there and customize
+   - If customization requirements are so significant that the template adds no value, start Custom
+
+### Real Customer Scenarios
+
+**Large B2C e-commerce company:**
+- 80% of their contact center volume is order status, returns, billing questions
+- Service Agent is the obvious fit — high volume, well-defined, existing Knowledge base
+- Start with wizard, add Topics for returns and billing, wire to Knowledge + Flows for order lookup
+
+**SaaS company with high inbound web form volume:**
+- 200+ inbound leads/day from marketing campaigns, SDR team can only call 30% before they go cold
+- SDR Agent handles the other 70% immediately upon form submission
+- Result: 3× faster follow-up, 40–50% of leads qualified without human SDR time
+
+**Enterprise financial services company:**
+- Compliance requires human review before any customer-facing agent goes live
+- Build all agent Types in Custom, not Service Agent template — gives more precise control
+- Deploy as Assisted actions first; move to Autonomous after 30-day supervised pilot
+
+### Multi-Agent Enterprise Architecture
+For large enterprises, it's often better to run multiple specialized agents:
+- **Service Agent:** Customer service for post-sales support
+- **SDR Agent:** Pre-sales inbound qualification
+- **HR Agent (Custom):** Employee self-service (benefits, PTO, payroll questions) — deployed on Slack
+- **Field Service Agent (Custom):** Work order status, technician scheduling — deployed on Mobile
+
+Each agent is scoped tightly. Better routing accuracy. Simpler Topics. Easier to maintain and update independently.
+
+### The Customization vs Starting-Fresh Decision
+- Service, SDR, and Sales Coach templates give pre-built Topics and Actions — good starting point for standard use cases
+- If the customer has unusual process requirements, the wizard-generated Topics may add maintenance overhead
+- Rule of thumb: if you'd need to delete more than 50% of the wizard-generated Topics/Actions, start Custom
+
+## Architecture
+
+### Agent Template Decision Tree
 ```
-  Build Effort
-  ◀── Low ─────────────────────────────────────── High ──▶
-
-  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
-  │  Pre-built      │   │  Customized     │   │  Custom Agent   │
-  │  Agent          │   │  Pre-built  ★   │   │  (from scratch) │
-  │                 │   │  (most common   │   │                 │
-  │  Hours to       │   │   enterprise    │   │  Weeks to       │
-  │  deploy         │   │   starting pt)  │   │  deploy         │
-  └─────────────────┘   └─────────────────┘   └─────────────────┘
-         │                     │                     │
-    Full Identity,         Adjust persona,       Blank Identity,
-    Instructions,          refine Instructions,  no default Topics,
-    Topics, Actions        replace Actions for   no default Actions,
-    pre-configured         your data model       full control
-
-  ★ = recommended starting point for most enterprise deployments
+Who is the target user?
+        │
+        ├── External customer ──────────────────────────────────────────┐
+        │                                                                │
+        ├── External prospect (inbound lead)                            │
+        │           │                                                   │
+        │           ▼                                                   ▼
+        │     SDR Agent                                        Primary goal?
+        │     • BANT qualification                                      │
+        │     • Meeting booking                          ┌──────────────┼───────────────┐
+        │     • Email channel                            │              │               │
+        │                                         Resolve           Qualify        Custom need
+        │                                         service issue     prospects
+        │                                                │              │
+        │                                               ▼              (use SDR Agent)
+        │                                          Service Agent
+        │                                          • Case deflection
+        │                                          • Order lookup
+        │                                          • Knowledge search
+        │                                          • Escalation
+        │
+        ├── Internal rep (coaching) ──▶ Sales Coach Agent
+        │                               • Call analysis
+        │                               • Coaching feedback
+        │
+        └── Internal employee ──────▶ Custom Agent
+                                       • HR, IT, Field Service
+                                       • Slack channel
+                                       • Build Topics from scratch
 ```
-**Content:**
-- Pre-built agent templates are **starting points** — fully configured agents with default Instructions, Topics, and Actions that reflect Salesforce's best practices for each use case
-- They reduce time-to-value: a Service Agent can be deployed in hours with minimal customization for standard service scenarios
-- Pre-built templates include: **Service Agent**, **Sales Development Rep (SDR)**, **Sales Coach**
-- Customizing a pre-built template preserves the underlying structure while letting you adjust persona, Instructions, Topics, Actions, and channel configuration
-- When a pre-built template does not match the use case (e.g., HR employee service, field service dispatch), start with a **Custom Agent** template
-**Speaker Notes:** The exam will test your knowledge of when to use which template type. The key principle: always start with a pre-built template when one exists for the use case — it has Salesforce's recommended configurations baked in, including default escalation handling and safety instructions. Only reach for Custom Agent when no pre-built fits. This is consistent with Salesforce's general platform philosophy of "clicks before code" — applied here as "configure pre-built before building custom."
 
-### Slide 2: Service Agent — Overview and Setup
-**Visual:**
-```
-  Setup → Agentforce → Agents → New Agent → Service Agent
+**Limitations:**
+- Service Agent wizard generates pre-built Topics for common service scenarios only; industry-specific Topics must be added manually
+- SDR Agent is primarily email-first; web chat support has feature parity constraints to verify by release
+- Sales Coach requires a supported conversation intelligence integration — not standalone
+- Custom Agent has no guardrails or defaults — full responsibility on builder for Instructions quality
 
-  ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌──────────┐
-  │ STEP 1  │     │ STEP 2  │     │ STEP 3  │     │  STEP 4  │
-  │         │     │         │     │         │     │          │
-  │ Choose  │────▶│Configure│────▶│ Connect │────▶│Configure │
-  │ Service │     │Identity │     │Knowledge│     │Deployment│
-  │ Agent   │     │         │     │  Base   │     │ Channel  │
-  │template │     │ · Name  │     │         │     │          │
-  │         │     │ · Company│    │Einstein │     │Embedded  │
-  │         │     │ · Tone  │     │Knowledge│     │ Service  │
-  │         │     │ · Descr.│     │(required│     │  Chat    │
-  └─────────┘     └─────────┘     │ ≥1 pub. │     └──────────┘
-                                  │article) │          │
-                                  └─────────┘          ▼
-                                                  Preview agent
-                                                  in Builder
-                                                  simulator
+### Service Agent Setup Flow
 ```
-**Content:**
-- **Primary use case:** Inbound customer service — case deflection, FAQ, order status, account inquiries, escalation to human agent
-- **Default Topics included:** General FAQ, Case Management, Order Inquiry, Authentication/Verification (configurable)
-- **Setup steps:**
-  1. Navigate to Setup → Agentforce → Agents → New Agent → Service Agent
-  2. Complete the Identity form: Name, Company, Description, Persona tone
-  3. Connect a Knowledge source (Einstein Knowledge recommended for first setup)
-  4. Configure a deployment channel (Embedded Service Chat for web)
-  5. Preview and test in the Agent Builder simulator
-- **Minimum requirements:** Einstein Knowledge with at least one published article; Embedded Service Chat configuration; Agentforce licenses
-**Speaker Notes:** The Service Agent setup wizard walks you through the minimum required configuration in roughly 30 minutes for a basic deployment. The key decisions are the Knowledge source (which articles the agent can search) and the deployment channel (where customers interact with the agent). For the lab in this course we will go through this setup end-to-end. For the exam, know the navigation path (Setup → Agentforce → Agents), the four default Topics, and the fact that at least one published Knowledge article is required for the Knowledge search action to return results.
-
-### Slide 3: Service Agent — Customizing Topics and Actions
-**Visual:**
-```
-  Agentforce Builder — Service Agent
-
-  LEFT PANEL                CENTER                    RIGHT PANEL
-  ──────────────────        ──────────────────         ─────────────────
-  Topics                    Topic: Order Inquiry       Edit Action
-  ┌──────────────┐          ┌──────────────────┐      ┌───────────────┐
-  │ FAQ          │          │ Actions:         │      │ Action Name:  │
-  │ ▶ Order      │◀─selected│                  │      │ Get Order     │
-  │   Inquiry    │          │  ✎ Knowledge     │─────▶│ Status        │
-  │ Case Mgmt    │          │    Search        │      │               │
-  │ Account Upd. │          │                  │      │ Description:  │
-  └──────────────┘          │  ✎ Create Case  │      │ [editable     │
-                            │    (Flow)        │      │  text field]  │
-  [+ Add Topic]             │                  │      │               │
-                            │  [+ Add Action]  │      │ ✎ pencil =    │
-                            └──────────────────┘      │  editable     │
-                                                      └───────────────┘
-```
-**Content:**
-- Default Topics can be **renamed, edited, or removed** based on your business needs
-- New Topics can be added to extend the agent beyond defaults — each new Topic requires a label, description, and at least one Action
-- Actions within Topics can be **replaced, reordered, or supplemented** — for example, replace the default order lookup Knowledge action with a custom Flow action that queries the Order object
-- The **Action description** field is the most critical to customize — it tells Atlas when and how to invoke the action in your specific context
-- Topic descriptions should be updated to reflect your actual business vocabulary and scope
-- Out-of-box actions use Salesforce-standard data model objects (Cases, Contacts) — if you use custom objects, you need custom Flow or Apex actions
-**Speaker Notes:** The most common customization need for Service Agent is replacing generic out-of-box actions with actions that query your specific data model. If you have a custom Order__c object instead of the standard Order object, the default order lookup action will not work — you need to build a Flow that queries your custom object and wire it in as a replacement. The good news is that everything else — the agent's identity, its escalation logic, its safety instructions — can be kept from the template. You are doing targeted replacement, not a full rebuild.
-
-### Slide 4: Sales Development Rep (SDR) Agent
-**Visual:**
-```
-  Inbound Lead (web form)
+Agentforce Studio → New Agent → Service Agent
          │
          ▼
-  ┌────────────────────────────────────────────────────────────┐
-  │                    SDR AGENT                               │
-  │                                                            │
-  │  "Thanks for your interest! To understand your needs,      │
-  │   I have a few quick questions..."                         │
-  │                                                            │
-  │  Topic: Lead Qualification                                 │
-  │    · Company size? · Budget range?                        │
-  │    · Timeline? · Decision maker?                          │
-  └────────────────────────────────────────────────────────────┘
-         │                              │
-   Lead qualifies                 Lead does not qualify
-         │                              │
-         ▼                              ▼
-  ┌──────────────────┐          ┌───────────────────┐
-  │  QUALIFIED       │          │   UNQUALIFIED      │
-  │  Book meeting    │          │   Nurture sequence │
-  │  with AE         │          │   (email drip)     │
-  │  (calendar link) │          │                   │
-  └──────────────────┘          └───────────────────┘
-
-  "No human SDR required for routine qualification"
-```
-**Content:**
-- **Primary use case:** Autonomous inbound lead qualification — respond to web-form leads, ask qualifying questions via email/chat, determine lead quality, book meetings with Account Executives
-- **Key capability:** Can send and receive emails autonomously (requires Email channel configuration)
-- **Default Topics:** Lead Qualification, Meeting Scheduling, Objection Handling, Disqualification
-- **What SDR Agent does NOT do:** Generate outbound prospecting lists, make cold calls, access third-party data enrichment (without additional configuration)
-- **Salesforce integration:** Creates and updates Lead records, logs activity, books meetings to connected calendars
-- **Distinction from Sales Coach:** SDR is external-facing (talks to prospects), Sales Coach is internal-facing (talks to reps)
-**Speaker Notes:** The SDR Agent is an external-facing agent — it communicates with your prospects, not your internal team. This is a critical distinction for the exam. Sales Coach, by contrast, is internal only — it reviews recordings and provides feedback to salespeople. For the exam, when you see a scenario about "automatically responding to inbound leads," think SDR Agent. When you see "providing feedback on sales conversations," think Sales Coach. A common trap question presents both use cases together and asks which agent handles which — they are completely separate agents.
-
-### Slide 5: Sales Coach Agent
-**Visual:**
-```
-  Sales Rep completes call
+[Wizard Step 1] Select Data Sources
+    • Link Einstein Knowledge bases
+    • (optional) Connect Data Cloud data
          │
          ▼
-  ┌─────────────────────────────────────────────────────┐
-  │              SALES COACH AGENT                      │
-  │                                                     │
-  │  Inputs analyzed:                                   │
-  │  ┌──────────────┐  ┌──────────────┐  ┌──────────┐  │
-  │  │ Call         │  │ CRM Data     │  │Opportunity│ │
-  │  │ Recording    │  │ (Account,    │  │ Details  │  │
-  │  │ (audio wave) │  │  Contact)    │  │ (stage,  │  │
-  │  └──────────────┘  └──────────────┘  │  amount) │  │
-  │                                      └──────────┘  │
-  │  Generates coaching feedback                        │
-  └─────────────────────────────────────────────────────┘
+[Wizard Step 2] Configure Topics
+    • Choose from pre-built Topic templates
+    • Enabled topics: Billing, Order Status, Product Info, etc.
+    • Each template comes with default Actions
          │
          ▼
-  Coaching report in Salesforce UI (rep + manager view):
-  ┌─────────────────────────────────────────────────────┐
-  │  • Strength: Good discovery questions in first 5min │
-  │  • Improve: Did not address pricing objection       │
-  │  • Suggestion: Reference case study earlier         │
-  └─────────────────────────────────────────────────────┘
+[Wizard Step 3] Set Escalation
+    • Select Omni-Channel queue for human handoff
+    • Configure escalation trigger conditions
          │
          ▼
-  Output goes to REP — NOT to customer
-```
-**Content:**
-- **Primary use case:** Automated sales coaching — analyze sales call recordings and CRM data, generate coaching feedback for sales reps
-- **Who sees the output:** The sales rep and their manager — this is an internal tool, not customer-facing
-- **Required integrations:** Sales call recording tool (Einstein Conversation Insights or integrated third-party), Opportunity/Account data
-- **Actions included:** Analyze call recording, retrieve opportunity context, generate coaching feedback (Prompt Template action)
-- **Assisted model:** Sales Coach generates suggestions — a manager or the rep reviews and acts on them; it does not autonomously change deal strategy
-- **Licensing note:** Requires Sales Cloud + Agentforce licenses; may require Einstein Conversation Insights license for call analysis
-**Speaker Notes:** Sales Coach is different from Service Agent and SDR in one important way: it is primarily a generation/summarization agent, not an action-execution agent. Its core output is generated text (coaching feedback) rather than executed operations (creating records, sending messages). This makes it more analogous to a Prompt Template action than to a flow-execution agent. For the exam, Sales Coach questions often focus on use case identification rather than technical configuration, since its setup is more opinionated than Service Agent.
-
-### Slide 6: Customizing Agent Persona and Identity
-**Visual:**
-```
-  Identity Configuration Panel
-  ┌────────────────────────────────────────────────────────────┐
-  │  Agent Name:        [ Aria                              ]  │
-  │                                                            │
-  │  Agent Description: [ Aria is Acme's friendly digital      │
-  │                       service assistant who helps          │
-  │                       customers resolve service issues      │
-  │                       quickly                           ]  │
-  │                                                            │
-  │  Company Name:      [ Acme Corp                         ]  │
-  │                                                            │
-  │  Persona Tone:      [ Friendly ▼ ]                         │
-  │                       · Professional                       │
-  │                       · Friendly     ◀ selected            │
-  │                       · Formal                             │
-  │                       · Empathetic                         │
-  └────────────────────────────────────────────────────────────┘
-  Preview: "Hi! I'm Aria, your Acme service assistant.
-            How can I help you today?"
-
-  Identity sets base persona → Instructions extend and refine it
-```
-**Content:**
-- **Agent Name** — the name customers see; use a persona name rather than "Chatbot" or "AI Assistant" for better engagement
-- **Agent Description** — used internally to describe the agent's purpose; also feeds into the system prompt to establish the persona
-- **Company Name** — used in the agent's self-introduction (e.g., "I'm Aria, your Acme service assistant")
-- **Persona Tone** — shapes how the agent phrases responses: Friendly is warmer and uses shorter sentences, Formal is more precise and structured, Professional balances both
-- **Custom Instructions can extend persona** — use the Instructions block to add specific personality traits, vocabulary to use or avoid, and domain-specific knowledge
-- Persona configuration is cosmetic AND functional: it genuinely changes how Atlas phrases responses
-**Speaker Notes:** Persona configuration is one of the highest-visibility customizations for business stakeholders — it is usually the first thing an end-client asks about. For the exam, know that persona is configured in the Identity section (name, company, tone) and refined in the Instructions section (behavioral detail). A question might ask "where would you configure the agent to always respond in a formal, professional tone?" — the answer is both Identity (Formal tone setting) and Instructions (explicit tone guidance). These two work together.
-
-### Slide 7: Agent Lifecycle — Draft, Active, Deactivated
-**Visual:**
-```
-  ┌──────────────────┐   Activate    ┌──────────────────┐
-  │                  │ ─────────────▶│                  │
-  │     DRAFT        │               │     ACTIVE       │
-  │                  │◀─────────────-│                  │
-  │  · Configuring   │   Deactivate  │  · Live          │
-  │  · Simulator     │               │  · Receiving     │
-  │    testing only  │               │    conversations │
-  │  · No live convs │               │  · Production    │
-  └──────────────────┘               └────────┬─────────┘
-           ▲                                  │
-           │                           Deactivate
-     Edit / Reactivate                        │
-           │                                  ▼
-           └──────────────────────   ┌──────────────────┐
-                                     │                  │
-                                     │   DEACTIVATED    │
-                                     │                  │
-                                     │  · Offline       │
-                                     │  · Channels stop │
-                                     │    routing       │
-                                     └──────────────────┘
-
-  Best practice: develop in Sandbox → test → promote to Production
-```
-**Content:**
-- **Draft state** — the agent is being configured; only accessible in Agentforce Builder; test conversations in Builder simulator do not count as production conversations
-- **Active state** — the agent is published and live; new configurations require deactivation or versioning before publish
-- **Deactivated state** — agent is turned off; configured channels stop routing new conversations to it; existing open conversations may be handled differently based on channel settings
-- **Version control** — Agentforce does not have native version control in the same way as code; use change sets or Salesforce DX for promoting agent configurations between sandboxes and production
-- **Sandbox testing** is strongly recommended before activating in production — always test with the simulator and real users in a sandbox first
-**Speaker Notes:** For the exam, the agent lifecycle state question usually appears in the deployment or testing section. Know that Draft agents can be tested in the Builder simulator but cannot take live conversations. The exam may ask what state an agent must be in before it can receive customer messages — the answer is Active. Also note that when you make changes to an Active agent, best practice is to deactivate it, make changes, test in the simulator, then reactivate. In practice, Salesforce allows some in-place edits, but deactivating is the recommended approach for significant changes.
-
-### Slide 8: Choosing the Right Starting Point
-**Visual:**
-```
-  What is your use case?
+[Wizard Step 4] Deploy
+    • Choose channel: Embedded Chat / API / Mobile
+    • Test in simulator
+    • Activate
          │
-    ┌────┴──────────────────────────────────────────┐
-    │                                               │
-    ▼                                               ▼
-  Customer service,          Sales rep coaching,    Inbound lead
-  FAQ, case deflection       call analysis          qualification,
-         │                        │                 meeting booking
-         ▼                        ▼                      │
-  SERVICE AGENT             SALES COACH              SDR AGENT
-         │                  (internal only)               │
-         └─────────────────────────┴───────────────────────┘
-                                   │
-                         None of the above?
-                    (HR, field service, IT helpdesk,
-                     internal ops, custom use case)
-                                   │
-                                   ▼
-                           CUSTOM AGENT
-                    (blank canvas — full control)
-
-  ┌──────────────────────────────────────────────────────────────────┐
-  │  Use Case               │ Template     │ Facing  │ Channel       │
-  ├─────────────────────────┼──────────────┼─────────┼───────────────┤
-  │  Customer service/FAQ   │ Service      │ External│ Embedded Chat │
-  │  Lead qualification     │ SDR          │ External│ Email/Chat    │
-  │  Rep coaching           │ Sales Coach  │ Internal│ CRM UI        │
-  │  HR / Field Svc / Other │ Custom       │ Either  │ Slack / API   │
-  └──────────────────────────────────────────────────────────────────┘
+         ▼
+    Service Agent LIVE
+         │
+    Post-launch customization:
+    • Add Actions to Topics
+    • Edit Instructions for persona
+    • Add additional Topics
+    • Adjust Knowledge relevance thresholds
 ```
-**Content:**
-| Use Case | Recommended Template |
-|----------|---------------------|
-| Customer service, case deflection, FAQ | Service Agent |
-| Inbound lead qualification, meeting booking | SDR Agent |
-| Sales rep coaching, call analysis feedback | Sales Coach |
-| HR employee self-service, field service scheduling, custom business process | Custom Agent |
 
-- **Custom Agent** starting point: blank Identity, blank Instructions, no default Topics — full control, more configuration required
-- Pre-built templates include more default configurations but may include default Topics/Actions you need to remove or replace
-- You cannot convert a pre-built template to a Custom Agent or vice versa — choose the starting point before creating the agent
-- Multiple agents can coexist in one org — for example, one Service Agent for customers and one Custom HR Agent for employees
-**Speaker Notes:** The selection table is your exam cheat code for use case questions. If the scenario involves customers asking questions about their accounts, orders, or cases — Service Agent. If it involves prospects filling out web forms and being contacted for qualification — SDR Agent. If it involves sales managers wanting automated coaching on their team's calls — Sales Coach. Everything else — HR, field service, IT helpdesk, internal operations — is Custom Agent. Remember that you cannot mix templates: pick the right starting point for each use case and build separate agents rather than trying to cram everything into one.
+**Limitations:**
+- Wizard is a starting point — expect post-wizard customization for any production deployment
+- Pre-built Topics are generic; most real deployments need custom Actions wired to org-specific Flows
+- Omni-Channel must be configured and a queue must exist before wizard deployment step
+- Embedded Chat requires a Site/Experience Cloud or external web page to embed the code snippet
 
-## Recording Script
-In this lecture we look at the pre-built agent templates that Salesforce provides in Agentforce — the three purpose-built starting points that let you deploy a working agent in hours rather than building from scratch.
+### Agent Lifecycle State Transitions
+```
+       Configure
+          │
+          ▼
+       ┌─────┐
+       │Draft│ ◀── Default state for new agents
+       └──┬──┘
+          │  Activate (manual in Studio)
+          ▼
+       ┌──────┐
+       │Active│ ◀── Live, billable, visible to users
+       └──┬───┘
+          │  Deactivate
+          ▼
+    ┌────────────┐
+    │Deactivated │ ◀── No new conversations; can reactivate
+    └────────────┘
+          │  Reactivate
+          ▼
+       ┌──────┐
+       │Active│
+       └──────┘
+```
 
-The Service Agent is the flagship template. It is designed for customer-facing service scenarios: deflecting cases by answering questions from Knowledge, handling order inquiries, creating cases for issues that need human follow-up, and escalating to a live agent when needed. Setting up a basic Service Agent takes roughly 30 minutes if you have published Knowledge articles and an Embedded Service Chat configuration. The setup wizard walks you through Identity (name, company, persona tone), connecting a Knowledge source, and selecting a deployment channel.
+**Limitations:**
+- No automatic reactivation — must be manual
+- Active agents incur conversation charges — confirm billing before activating in production
+- Deactivating immediately stops new conversations; in-progress conversations may be interrupted (verify channel behavior)
+- No soft "pause" state — it's Active or not
 
-The Sales Development Rep, or SDR Agent, is for inbound lead qualification. It receives leads from web forms, engages them via email or chat with qualifying questions, determines whether the lead meets your criteria, and books meetings with account executives for qualified leads. The SDR Agent is external-facing — it talks to your prospects, not your team.
+## Key Facts to Memorize
+- Three pre-built templates: Service Agent (customers), SDR Agent (prospects), Sales Coach (reps)
+- Service Agent = external, customer service, Embedded Chat primary channel
+- SDR Agent = external, lead qualification, BANT methodology, **email channel**
+- Sales Coach = **internal**, rep coaching, NOT customer-facing
+- Custom Agent = blank slate, any use case, any channel
+- Agent lifecycle: Draft → Active → Deactivated
+- Lifecycle transitions are all **manual** — no automation
+- Simulator testing in Draft state = NOT billable
+- Identity = name + company + tone; Instructions = behavioral rules
 
-The Sales Coach is the opposite — entirely internal. It analyzes sales call recordings and CRM data to generate coaching feedback for sales reps. A rep or manager reviews the feedback; the agent does not make autonomous changes to deals or send messages to customers.
+## Customer Advisory Tips
+- **Pilot with Service Agent template:** It's the most commonly deployed, has the most pre-built content, and the quickest path to a proof-of-value demo. A working demo on real org data within 1–2 weeks is achievable.
+- **SDR Agent business case:** Frame the ROI as "speed to first meaningful response." Studies show leads contacted within 5 minutes convert 9× better than those contacted within 30 minutes. SDR Agent enables instant follow-up at scale.
+- **Sales Coach governance:** Clarify up front that Sales Coach analyzes recordings of internal calls. HR and legal should confirm call recording consent process is compliant before deploying.
+- **Custom Agent for internal use:** Many customers underestimate the value of an internal HR/IT self-service agent. Ticket deflection for HR (PTO policy, benefits questions) can reduce HR ticket volume 20–40%. Build the ROI case before the project scope discussion.
+- **Lifecycle management in production:** Build a runbook for Activation and Deactivation so the team knows the process before an urgent deactivation is needed (due to incorrect behavior in production).
 
-When none of these templates fit — HR employee service, field service dispatch, IT helpdesk — you start from the Custom Agent template. It's a blank canvas: no default Topics, no default Actions, no pre-written Instructions. More work, but maximum control.
+## Exam Traps
+- SDR Agent uses Email channel primarily, not Embedded Chat — don't assume all agents use the same channel
+- Sales Coach is internal (reps) — it is NOT a customer-facing support agent
+- Service Agent requires Omni-Channel to be set up for escalation to work — this is a prerequisite, not automatic
+- Wizard-generated configuration is a starting point — pre-built Topics need customization for real deployments
+- Custom Agent doesn't mean "custom code" — it means a blank-slate Agentforce agent, still configured in Agentforce Studio
 
-Regardless of which template you start with, the customization approach is the same: update the Identity with your company's persona, refine the Instructions to match your policies, and replace generic default Actions with Actions that target your specific data model. A Service Agent's default order lookup Action probably queries standard objects; if you have a custom Order__c object, you wire in your own Flow.
+## Practice Questions
+**Q:** A company wants an agent to handle inbound email leads from a website form, qualify them with BANT questions, and automatically schedule a demo with a sales rep if qualified. Which template?
+**A:** SDR Agent — designed for autonomous inbound lead qualification via email, BANT methodology, and meeting booking.
 
-In Section 2, we will build Topics and Actions from scratch — which is exactly what you need to customize any pre-built template.
+**Q:** An internal HR team wants a Slack-based agent that answers employee questions about benefits, PTO, and payroll. Which agent type?
+**A:** Custom Agent deployed on the Slack channel. Service Agent is customer-facing. Sales Coach is for rep coaching. Only Custom Agent is appropriate for internal HR self-service.
 
-## Exam Tips
-- Service Agent = customer-facing service and case deflection; SDR Agent = external-facing lead qualification; Sales Coach = internal rep coaching — do not confuse SDR (external) with Sales Coach (internal)
-- Pre-built templates cannot be converted to Custom Agent type — choose the correct template before creating the agent
-- Agent persona is configured in Identity (name, tone setting) AND refined in Instructions (specific behavioral guidance) — both work together
-- Agent must be in Active state to receive live conversations; Draft agents can only be tested in the Builder simulator
-- Use Custom Agent template for use cases not covered by pre-built templates: HR self-service, field service, IT helpdesk, internal operations tools
+**Q:** Which state must an agent be in for users to interact with it?
+**A:** Active. Draft = configuration only; Deactivated = off. Only Active agents accept conversations.
 
-## Lecture Summary
-Salesforce provides three pre-built agent templates as starting points: Service Agent (customer-facing service, FAQ, case deflection), Sales Development Rep Agent (external-facing inbound lead qualification), and Sales Coach (internal sales rep coaching with call analysis). Each template includes default Identity, Instructions, Topics, and Actions configured for its use case. Customization involves updating the Identity (name, company, persona tone), refining the Instructions to match company policies, and replacing generic default Actions with Actions that target your org's specific data model. Agent persona is configured in Identity (name and tone dropdown) and extended in Instructions. Agents exist in three lifecycle states: Draft (configuration only), Active (live, receiving conversations), and Deactivated (offline). Use the Custom Agent template for use cases not covered by the three pre-built templates.
-
-## Mini Quiz
-
-**Q1:** A company wants to deploy an agent that automatically responds to inbound contact form submissions, engages prospects with qualifying questions over email, and books calendar slots for qualified leads. Which Agentforce agent template should they start with?
-A) Service Agent
-B) Custom Agent
-C) Sales Coach
-D) Sales Development Rep Agent
-**Answer:** D — The SDR Agent is designed for inbound lead qualification workflows: it engages inbound leads via email or chat, qualifies them with targeted questions, and books meetings. Service Agent handles customer service, not lead qualification. Sales Coach is internal-facing for rep coaching.
-
-**Q2:** An administrator has deployed a Service Agent and wants to change its response tone from "Friendly" to "Professional" and add a rule that it never discusses competitor pricing. Where should these two changes be configured?
-A) Both changes in the Agent's Topic descriptions
-B) Tone change in Identity; competitor rule in Agent Instructions
-C) Both changes in Agent Instructions
-D) Tone change in the deployment channel settings; competitor rule in the Einstein Trust Layer
-**Answer:** B — Persona tone (Friendly, Professional, Formal, Empathetic) is configured in the Identity section of the agent configuration. Behavioral rules like "never discuss competitor pricing" are written into the Agent Instructions as explicit guidance. These two layers work together — Identity sets the base tone, Instructions refine and add specific behavioral constraints.
-
-**Q3:** A developer is modifying an active Service Agent to add a new Topic. After saving the changes, users report the agent is behaving unexpectedly. What is the recommended lifecycle practice the developer should have followed?
-A) Make changes in production and rely on the Trust Layer to catch errors
-B) Deactivate the agent, make and test changes in the Builder simulator, then reactivate
-C) Clone the agent to a new agent, make changes, then delete the original
-D) Use the Refresh Agent button to reload the agent configuration
-**Answer:** B — Best practice is to deactivate the agent before making significant configuration changes, test the changes using the Builder simulator (which does not affect live conversations), and reactivate once testing passes. This prevents configuration changes from affecting live customer conversations during editing. Cloning is an option but creates a separate agent with a different name/channel configuration — deactivate and edit in place for minor changes.
+**Q:** A Service Agent is configured but when the user's issue can't be resolved, it just says it can't help. What needs to be configured?
+**A:** Escalation to an Omni-Channel queue. Escalation must be explicitly configured (queue selection + escalation trigger conditions) — it does not happen automatically.

@@ -1,371 +1,201 @@
-# Lecture 04: Identity Resolution
+# Identity Resolution
 
-## Learning Objectives
-- Explain the purpose and outcome of Identity Resolution in Data Cloud
-- Describe match rules including exact match, fuzzy match, and normalized match
-- Configure reconciliation rules that determine which field value appears on the Unified Individual
-- Understand how the Unified Individual profile is created and what it contains
+## Exam Domain
+Data Modeling & Identity Resolution — 17% of exam weight (tied for highest)
 
----
+## Core Concepts
 
-## Slides
+### The Identity Problem
+Most enterprises have the same customer in 3–10+ systems with different IDs and no shared key. CRM has one ID, e-commerce has another, the loyalty app has a third. Without resolution, you're doing data analysis on fragments, not whole customers. Identity Resolution (IR) finds these fragments and merges them into a single Unified Individual, giving every downstream system a complete picture.
 
-### Slide 1: The Identity Problem
-**Visual:**
-```
-  Source Records (from multiple systems — same real person)
-  ─────────────────────────────────────────────────────────
-  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-  │   CRM Contact    │  │  E-Commerce Rec  │  │  Loyalty App     │
-  │  John Smith      │  │  J. Smith        │  │  John S          │
-  │  john@co.com     │  │  john@co.com     │  │  Member: LY-99   │
-  │  ID: CRM-001     │  │  ID: EC-4421     │  │  john@co.com     │
-  └──────────────────┘  └──────────────────┘  └──────────────────┘
-           │                    │                    │
-           └────────────────────┼────────────────────┘
-                                │  Identity Resolution
-                                ▼
-                   ┌────────────────────────────┐
-                   │     UNIFIED INDIVIDUAL     │
-                   │  ID: 00UXXXXXXXXXXXXX      │
-                   │  Name: John Smith          │
-                   │  Email: john@co.com        │
-                   │  Sources: CRM-001, EC-4421,│
-                   │           LY-99            │
-                   └────────────────────────────┘
-```
+### How IR Works
+IR operates on Individual DMO records and their associated Contact Point DMO records. It runs a configured Ruleset containing Match Rules (who to link) and Reconciliation Rules (whose field value wins when sources disagree). IR runs on demand or on schedule and outputs/updates Unified Individual records. Input: Individual + Contact Point DMOs. Output: Unified Individuals.
 
-**Content:**
-- Most enterprises have **multiple records for the same customer** across different systems
-- Each source system uses its own ID — no shared universal customer ID
-- Without resolution, you get duplicate outreach, inconsistent personalization, incomplete profiles
-- **Identity Resolution (IR)** is the automated process of recognizing and merging duplicate records
-- Output: a single **Unified Individual** record representing one real-world person
-
-**Speaker Notes:** Identity Resolution is one of the highest-value features of Data Cloud and is heavily tested on the exam. The exam tests both the conceptual understanding (why IR exists) and the technical configuration (how to set up rulesets, match rules, and reconciliation rules). The core problem IR solves is: the same customer has different IDs in different systems, and those systems don't know they're talking about the same person. IR finds those duplicate representations, links them together, and creates a single golden record — the Unified Individual — that reflects everything known about that customer.
+### Contact Points Are Additive
+This is the most-tested IR nuance. Reconciliation rules (Source Priority, Most Occurred, Most Recent) apply to attribute fields on the Unified Individual (FirstName, BirthDate, etc.). They do NOT apply to Contact Points. All email addresses and phone numbers from all linked source records always appear on the Unified Individual — none are discarded. A customer with 3 emails across 3 sources will have 3 emails on their Unified Individual.
 
 ---
 
-### Slide 2: Identity Resolution Architecture
-**Visual:**
+## PTA / SA Relevance
+
+### When This Comes Up in Engagements
+IR quality determines the value of the entire Data Cloud investment. A CDO or Chief Data Officer will often ask "how many unique customers do we really have?" — the Unified Individual count is your answer, and it's only trustworthy if IR is configured correctly. When scoping a Data Cloud project, IR configuration and data quality remediation are typically 30–40% of total implementation effort.
+
+### Common Partner Mistakes
+- Mapping email only to the Individual DMO and wondering why IR won't match on email (Contact Point Email DMO must be populated separately)
+- Setting fuzzy match threshold too low for a financial services client — merging two different customers is catastrophic in regulated industries
+- Running IR before verifying Contact Point DMOs have records — the IR process runs but creates zero matches, leading to incorrect conclusions about data quality
+- Not planning for the re-ingestion problem in GDPR deletion scenarios: deleting a Unified Individual without also suppressing re-ingestion means the record comes back on the next Data Stream run
+
+### Enterprise Scale Considerations
+At 100M+ Individual records, IR runtime can be significant. For large implementations: run IR on off-peak schedules, use incremental IR runs (only processes newly changed records where supported), monitor match group sizes (very large match groups indicate a "super-matcher" problem — one email/phone shared across thousands of records like a shared corporate email), and separate IR rulesets by data domain if processing time is prohibitive.
+
+### When NOT to Use IR
+Don't configure complex multi-field fuzzy match rules for a B2B account-based implementation where each account is a single legal entity with a known CRM ID. Simple exact match on account ID is cleaner and faster. Also don't use IR to try to match records with fundamentally different entity types (e.g., trying to match B2B Account records against B2C Individual records in the same ruleset).
+
+---
+
+## Architecture
+
+### Identity Resolution Flow
+
 ```
   Individual DMO Records (from multiple source DLOs)
-  ─────────────────────────────────────────────────
-  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-  │ Individual   │  │ Individual   │  │ Individual   │
-  │ (from CRM)   │  │ (from EC)    │  │ (from Loyal) │
-  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘
-         └──────────────────┼──────────────────┘
-                            │
+  ═════════════════════════════════════════════════════
+  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+  │ Individual   │   │ Individual   │   │ Individual   │
+  │ (from CRM)   │   │ (from EC)    │   │ (from Loyal) │
+  │ + CPEmail    │   │ + CPEmail    │   │ + CPEmail    │
+  └──────┬───────┘   └──────┬───────┘   └──────┬───────┘
+         └──────────────────┬┘──────────────────┘
                             ▼
-               ┌────────────────────────┐
-               │  IDENTITY RESOLUTION   │
-               │      RULESET           │
-               │  ──────────────────    │
-               │  Match Rules           │
-               │  Reconciliation Rules  │
-               └────────────┬───────────┘
-                            │
+               ╔════════════════════════════╗
+               ║  IDENTITY RESOLUTION       ║
+               ║      RULESET               ║
+               ║  ──────────────────────    ║
+               ║  Match Rules               ║
+               ║  ▸ Exact: Email            ║
+               ║  ▸ Fuzzy: FirstName+Last   ║
+               ║  ▸ Normalized: Phone       ║
+               ║  ──────────────────────    ║
+               ║  Reconciliation Rules      ║
+               ║  ▸ Source Priority: Name   ║
+               ║  ▸ Most Recent: Address    ║
+               ║  ▸ Most Occurred: Tier     ║
+               ╚════════════╤═══════════════╝
                             ▼
-               ┌────────────────────────┐
-               │  UNIFIED INDIVIDUAL    │
-               │  (one per real person) │
-               └────────────────────────┘
-  IR runs on schedule or on-demand
-  Input: Individual DMO + Contact Point DMOs
+               ╔════════════════════════════╗
+               ║  UNIFIED INDIVIDUAL        ║
+               ║  One per real person       ║
+               ║  ▸ Reconciled attributes   ║
+               ║  ▸ ALL contact points      ║
+               ║  ▸ Source record links     ║
+               ╚════════════════════════════╝
 ```
 
-**Content:**
-- IR operates on **Individual DMO records** and their associated **Contact Point** records
-- Configured through an **Identity Resolution Ruleset** — a named set of rules
-- The ruleset contains one or more **Match Rules** (who should be linked)
-- And one or more **Reconciliation Rules** (what value to use when sources disagree)
-- Running the ruleset produces/updates the **Unified Individual** records
-- IR rulesets can be run **on demand** or on a **scheduled** basis
-
-**Speaker Notes:** The architecture here is simple but the configuration details are complex, which is why the exam focuses heavily on it. A Ruleset is the container — think of it as the "policy" for how Data Cloud should identify and merge records. Within that ruleset, Match Rules define the criteria for saying "these two Individual records represent the same person." Reconciliation Rules define what to do with conflicting values — for example, if the CRM says the customer's first name is "Jon" and the e-commerce system says "John," which one wins? The ruleset runs against all Individual records and their Contact Points, builds a match graph, and outputs Unified Individual records.
+**Limitations:**
+- IR runs on a schedule — it is NOT real-time; a new customer record ingested at 2 PM may not become a Unified Individual until the next IR run
+- Maximum match rules per ruleset: consult current Salesforce limits documentation (this changes with releases)
+- IR does not support real-time lookup during Agentforce interactions — it relies on the most recently completed IR run
+- IR cannot merge records across different Data Spaces
 
 ---
 
-### Slide 3: Match Rules — Exact Match
-**Visual:**
+### Match Rules — Type Comparison
+
 ```
-  Record A (CRM)                     Record B (E-Commerce)
-  ─────────────────                  ─────────────────────
-  FirstName: John                    FirstName: J.
-  LastName:  Smith                   LastName:  Smith
-  Email: john.smith@company.com      Email: john.smith@company.com
-                                                    ▲
-                 EXACT MATCH RULE                   │
-                 ─────────────────                  │
-                 Field: EmailAddress                 │
-                 Type:  Exact                        │
-                 Case:  Normalized (auto)            │
-                         │                          │
-                         └──────── MATCH ───────────┘
-                                   DETECTED
-  Best for: email address, phone number, government ID, loyalty ID
-  Lowest false-positive rate
+  MATCH TYPE    │ USE FOR               │ HOW IT WORKS
+  ══════════════╪═══════════════════════╪══════════════════════════════════════
+  Exact         │ Email, Loyalty ID,    │ Character-for-character match
+                │ Government ID         │ (email auto-lowercased before compare)
+  ──────────────┼───────────────────────┼──────────────────────────────────────
+  Fuzzy         │ First name, Last name │ Similarity algorithm (Levenshtein)
+                │ (typos, nicknames)    │ Threshold % = minimum similarity
+                │                       │ Higher % = fewer matches, fewer errors
+  ──────────────┼───────────────────────┼──────────────────────────────────────
+  Normalized    │ Phone numbers,        │ Strip formatting → exact compare
+                │ Addresses             │ "(555) 123-4567" = "5551234567"
+                │                       │ Removes dashes, spaces, country codes
+
+  ★ NEVER use Fuzzy for email — would match "john@co.com" with "jane@co.com"
+  ★ ALWAYS use Exact or Normalized for email and phone
 ```
 
-**Content:**
-- **Exact Match:** Records match only if the specified field values are character-for-character identical
-- Most precise, lowest false positive rate, but misses variations like "john@company.com" vs "JOHN@COMPANY.COM"
-- Common exact match fields: **Email Address, Phone Number, Government ID, Loyalty Member ID**
-- Data Cloud applies case normalization to email before exact matching (case-insensitive)
-- Multiple exact match rules can be combined with AND/OR logic
-- **Use exact match** when data quality is high and fields are reliable unique identifiers
-
-**Speaker Notes:** Exact match is the strictest form of matching and should be used for high-confidence identifiers like email addresses, phone numbers formatted consistently, or proprietary IDs that are truly unique (loyalty numbers, government IDs). The exam often tests a scenario where "email addresses from two sources don't match because one source stores them in uppercase." Data Cloud handles email case normalization automatically, so "JOHN@COMPANY.COM" and "john@company.com" will match. However, other fields are case-sensitive unless normalized. The exam may ask about the tradeoffs between exact and fuzzy matching — exact has fewer false positives but lower recall (misses more true matches due to minor variations).
+**Limitations:**
+- Fuzzy matching is computationally more expensive than exact matching — use sparingly at enterprise scale
+- Fuzzy threshold tuning requires testing: start at 85–90% for names, adjust based on false positive/negative review
+- Normalized match does not change stored data — normalization is only applied at comparison time
 
 ---
 
-### Slide 4: Match Rules — Fuzzy Match
-**Visual:**
-```
-  Record A                     Record B
-  ────────────────             ────────────────
-  FirstName: Robert            FirstName: Rob
-  LastName:  Johnson           LastName:  Johnson
-  City: Chicago                City: Chicago
-            │                           │
-            └───────── FUZZY MATCH ─────┘
-                       Rule: FirstName + LastName
-                       Algorithm: Levenshtein distance
-                       Threshold: 85%
-                       Similarity score: 87%  ✓ MATCH
+### Reconciliation Rules
 
-  Higher threshold (95%) = fewer false positives, more false negatives
-  Lower threshold (70%)  = more matches found, higher merge risk
-```
-
-**Content:**
-- **Fuzzy Match:** Uses algorithms to find records that are similar but not identical
-- Used for name fields where variations, typos, or abbreviations are common
-- Data Cloud uses **Levenshtein distance** and similar algorithms to compute similarity scores
-- A **match threshold** (percentage) determines the minimum similarity to count as a match
-- Higher threshold = fewer false positives, more false negatives
-- Lower threshold = more matches found, higher risk of false positives (incorrect merges)
-- Fuzzy match is computationally more expensive than exact match
-
-**Speaker Notes:** Fuzzy matching is appropriate for name fields because people spell their names differently, use nicknames, or make typos during registration. "Robert" and "Rob," "Johnson" and "Johnston," "Katherine" and "Catherine" — all of these are cases where fuzzy matching catches true duplicates that exact match would miss. The exam tests the tradeoff: a very low threshold catches more matches but risks incorrectly merging two different people (false positive). A very high threshold is safer but misses some real duplicates (false negative). The art of configuring IR is tuning thresholds to achieve the right balance for the client's business requirements. For high-stakes industries like financial services, false positives (merging two different people) are more dangerous than false negatives.
-
----
-
-### Slide 5: Match Rules — Normalized Match
-**Visual:**
-```
-  Record A                          Record B
-  ────────────────────              ────────────────────
-  Phone: 1-800-555-0100             Phone: (800) 555-0100
-          │                                  │
-          ▼  Normalization                   ▼  Normalization
-       Strip formatting                   Strip formatting
-       (dashes, parens,                   (dashes, parens,
-        spaces, country code)              spaces, country code)
-          │                                  │
-          ▼                                  ▼
-       8005550100          ─────────      8005550100
-                              EXACT
-                              MATCH  →  MATCH DETECTED
-
-  Also applies to:
-  • Names: Remove Mr./Mrs./Dr., suffixes (Jr., Sr.), lowercase
-  • Addresses: Expand St → Street, Ave → Avenue
-```
-
-**Content:**
-- **Normalized Match:** Applies a normalization transformation before comparing field values
-- Strips formatting differences that don't represent different entities
-- Common normalizations:
-  - **Phone:** Removes dashes, parentheses, spaces, country codes → compare digit strings
-  - **Name:** Removes salutations (Mr., Mrs., Dr.), suffixes (Jr., Sr.), converts to lowercase
-  - **Address:** Expands abbreviations (St → Street, Ave → Avenue)
-- After normalization, comparison can be exact or fuzzy
-- Prevents false non-matches caused purely by formatting differences
-
-**Speaker Notes:** Normalized matching bridges the gap between exact and fuzzy. It's "exact match on normalized data." The classic example is phone numbers: "(800) 555-0100" and "800-555-0100" and "8005550100" are all the same number but would fail an exact match without normalization. By stripping all formatting and comparing only the digit strings, normalized match correctly identifies them as the same number. The exam tests understanding that normalization is a preprocessing step — it doesn't change the source data, it just prepares the values for comparison. This is important because it means normalization doesn't affect what's stored in the DLO or DMO.
-
----
-
-### Slide 6: Reconciliation Rules
-**Visual:**
 ```
   Two matched source records — conflicting FirstName:
-  ─────────────────────────────────────────────────────
-  Source A (CRM)         Source B (Loyalty App)
-  FirstName: "Jon"       FirstName: "John"
-  Updated: 2022-01-15    Updated: 2024-06-20
-                                  │
-                                  │  More recently updated
-                                  │
-         RECONCILIATION RULE: Most Recently Updated Wins
-                                  │
-                                  ▼
-                   Unified Individual.FirstName = "John"
+  Source A (CRM):      "Jon"   Updated: 2022-01-15
+  Source B (Loyalty):  "John"  Updated: 2024-06-20
 
-  Other strategies:
-  ┌────────────────────┬──────────────────────────────────────┐
-  │ Source Priority    │ Manual ranking: CRM wins over others │
-  │ Most Occurred      │ "John" appears in 2 of 3 sources     │
-  │ Most Recent        │ Most recently updated source wins    │
-  └────────────────────┴──────────────────────────────────────┘
+  STRATEGY OPTIONS:
+  ┌──────────────────────┬───────────────────────────────────────────────┐
+  │ Source Priority      │ Manually ranked trust order:                  │
+  │                      │ CRM = rank 1 → "Jon" wins                     │
+  │                      │ Best when one source is the system of record  │
+  ├──────────────────────┼───────────────────────────────────────────────┤
+  │ Most Occurred        │ Democratic — value in most sources wins:      │
+  │                      │ "John" appears in 2/3 sources → "John" wins   │
+  │                      │ Best when no single source is authoritative   │
+  ├──────────────────────┼───────────────────────────────────────────────┤
+  │ Most Recent          │ Newest update wins:                           │
+  │                      │ Loyalty updated 2024 → "John" wins            │
+  │                      │ Best for frequently changing data (address)   │
+  └──────────────────────┴───────────────────────────────────────────────┘
+
+  REMEMBER: Reconciliation = attribute fields only. Contact Points = additive.
+  The Unified Individual gets ALL emails from ALL sources regardless of reconciliation.
 ```
 
-**Content:**
-- **Reconciliation Rules** determine which source's value appears on the Unified Individual when sources disagree
-- Configured per field on the Unified Individual
-- **Reconciliation strategies:**
-  - **Source Priority:** A manually ranked list of source systems; highest-ranked source wins
-  - **Most Occurred:** The value that appears most frequently across all sources wins
-  - **Most Recent:** The most recently updated source's value wins
-- If no reconciliation rule is set, a default strategy applies
-- Reconciliation only applies when there IS a conflict — if all sources agree, the value is used directly
-
-**Speaker Notes:** Reconciliation rules are frequently tested because they represent a business decision: whose data do you trust most? For many clients, the CRM is the authoritative "source of truth" for basic profile data like name and address, so they'd use Source Priority with CRM ranked first. For behavioral data like last purchase date, the e-commerce platform might be more current, so Most Recent makes sense. The exam will present a business scenario and ask which reconciliation strategy is most appropriate. Know all three strategies cold: Source Priority (manual trust ranking), Most Occurred (democratic — majority wins), and Most Recent (time-based — newest update wins).
+**Limitations:**
+- Source Priority requires you to know and rank all source systems at configuration time — hard to maintain as new sources are added
+- Most Recent depends on data refresh timing; if batch runs are staggered, "most recent" may reflect stale data
+- No reconciliation rule covers the case where all sources have null for a field — field will be null on Unified Individual
 
 ---
 
-### Slide 7: Unified Individual — The Output
-**Visual:**
+### IR Troubleshooting Quick Reference
+
 ```
-  ┌──────────────────────────────────────────────────────┐
-  │              UNIFIED INDIVIDUAL RECORD               │
-  │  ID: 00UXXXXXXXXXXXXX                                │
-  │  ────────────────────────────────────────────────    │
-  │  PROFILE ATTRIBUTES (reconciled)                    │
-  │    FirstName: John     LastName: Smith               │
-  │    BirthDate: 1982-04-15   Gender: Male              │
-  │  ────────────────────────────────────────────────    │
-  │  CONTACT POINTS (all, from all sources)             │
-  │    Email 1: john@co.com         (CRM)               │
-  │    Email 2: john.s@gmail.com    (E-Commerce)        │
-  │    Phone 1: 555-123-4567        (Loyalty)           │
-  │  ────────────────────────────────────────────────    │
-  │  SOURCE RECORDS (linked)                            │
-  │    CRM-001  |  EC-4421  |  LY-99                    │
-  └──────────────────────────────────────────────────────┘
-  Note: Contact Points are ADDITIVE — all emails/phones
-        from all sources appear; reconciliation does not
-        apply to Contact Points (only to attribute fields)
-```
-
-**Content:**
-- The **Unified Individual** is a standard DMO record created/updated by the IR ruleset
-- Contains **reconciled attribute values** (winning values from reconciliation rules)
-- Contains references to **all linked Contact Points** (all emails and phones across sources)
-- Contains a list of **source Individual records** that were merged into it
-- Serves as the root record for segmentation and activation
-- One customer = one Unified Individual (ideally)
-- Can be inspected in the Data Cloud UI → Unified Individual section
-
-**Speaker Notes:** The Unified Individual is the North Star — the whole reason you're running all this complex processing. Every segment you build, every activation you run, every AI recommendation you serve — it all starts from the Unified Individual. When you inspect a Unified Individual record, you can see all the component records that contributed to it, all their contact points (email addresses, phone numbers), and the reconciled values that won in each field conflict. This transparency is important for data quality auditing. The exam sometimes tests what a consultant should do if a Unified Individual looks wrong — the answer is usually to review the match rules and reconciliation rules, not to edit the Unified Individual directly (you can't edit it directly).
-
----
-
-### Slide 8: IR Troubleshooting & Match Quality
-**Visual:**
-```
-  SYMPTOM                  LIKELY CAUSE              RESOLUTION
-  ─────────────────────────────────────────────────────────────
-  Too many merges          Fuzzy threshold too low   Increase threshold
-  (false positives)        Aggressive match rules    Add qualifying criteria
-
-  Too few merges           Contact Point DMO not     Map email/phone to
-  (false negatives)        populated                 Contact Point DMOs
-                           Threshold too high        Lower threshold
-                           Match rules too strict    Add more criteria
-
-  Unexpected merge         Incorrect match rule      Add exclusion criterion
-                           triggered                 Review match groups
-
-  No Unified Individuals   Individual DMO empty      Check field mapping
-  created at all           Ruleset not active        Activate the ruleset
-
-  ─────────────────────────────────────────────────────────────
+  SYMPTOM                  │ MOST LIKELY CAUSE          │ FIX
+  ═════════════════════════╪════════════════════════════╪═══════════════════════════
+  0 match groups           │ Contact Point DMOs empty   │ Fix field mapping for
+                           │                            │ ContactPointEmail DMO
+  ─────────────────────────┼────────────────────────────┼───────────────────────────
+  Too many merges          │ Fuzzy threshold too low    │ Increase threshold
+  (false positives)        │                            │ Add qualifying criteria
+  ─────────────────────────┼────────────────────────────┼───────────────────────────
+  Too few merges           │ CPEmail not populated      │ Map email to CPEmail DMO
+  (false negatives)        │ Threshold too high         │ Lower threshold slightly
+  ─────────────────────────┼────────────────────────────┼───────────────────────────
+  No Unified Individuals   │ Individual DMO is empty    │ Check field mapping saved
+  at all                   │ Ruleset not active         │ Activate the ruleset
+  ─────────────────────────┼────────────────────────────┼───────────────────────────
+  Wrong field on Unified   │ Reconciliation rule        │ Review + fix rule;
+  Individual               │ misconfigured              │ re-run ruleset
+  ─────────────────────────┴────────────────────────────┴───────────────────────────
   Review tool: Data Cloud UI → Identity Resolution → Match Groups
 ```
 
-**Content:**
-- **Too many merges (false positives):** Lower match confidence threshold or remove aggressive fuzzy rules
-- **Too few merges (false negatives):** Lower the threshold, add more match criteria (phone in addition to email), check Contact Point DMO mapping
-- **Unexpected merge:** Review the match rule that caused it — add an exclusion criterion
-- **IR not running:** Check if the ruleset is active and scheduled
-- **Records missing from Unified Individual:** Verify field mapping for Individual DMO includes the primary key
-- **Reviewing match results:** Use Data Cloud UI → Identity Resolution → Review Match Groups
+---
 
-**Speaker Notes:** Troubleshooting IR is a common exam scenario type. The pattern is always: describe a symptom, ask what the consultant should check. Low match counts → check Contact Point DMO mapping (most common root cause is unmapped email fields). Too many merges → tune match thresholds up or add qualifying criteria. Unexpected merges → review which rule caused the match and add an exclusion. Completely no merges → check that the ruleset is active and that Individual DMO records exist with valid primary keys. One specific exam trap: "the IR ruleset is configured but no Unified Individuals are being created" — check whether the Individual DMO has any records at all. If field mapping wasn't configured, the DMO is empty, and IR has nothing to process.
+## Key Facts to Memorize
+
+- IR uses **Individual DMO + Contact Point DMOs** as input — not DLOs, not Unified Individual
+- **Contact Point Email** must be mapped separately — mapping email to Individual.EmailAddress does NOT enable IR email matching
+- Three match rule types: **Exact** (email/ID), **Fuzzy** (names), **Normalized** (phone formatting)
+- Three reconciliation strategies: **Source Priority**, **Most Occurred**, **Most Recent**
+- **Contact Points are additive** — all emails/phones from all sources appear on Unified Individual
+- Reconciliation rules apply to **attribute fields only** (FirstName, BirthDate, etc.)
+- If IR produces 0 Unified Individuals → check that Individual DMO has records AND ruleset is active
+- You **cannot manually edit** a Unified Individual — fix the rules and re-run
 
 ---
 
-## Recording Script
+## Exam Traps
 
-Welcome to Lecture 04, where we tackle Identity Resolution — arguably the most technically complex topic on the Data Cloud Consultant exam.
-
-Let's start with the problem. Your enterprise client has a customer named Sarah Chen. In their CRM, she's Contact ID 10045. In their e-commerce platform, she's customer sarah.chen at gmail. In their loyalty app, she's member number 7723. Three records, one person. Without Identity Resolution, any segment you build has a fragmented view of Sarah. She might receive duplicate emails, get served ads for products she already bought, or fall out of a churn-risk segment because the model only sees part of her activity.
-
-Identity Resolution solves this by finding those three records and recognizing they represent the same person. The output is a Unified Individual record for Sarah that knows she has all three source records linked to her, knows all her contact points, and presents a single reconciled view of her attributes.
-
-How does it know the records belong to the same person? Through **Match Rules**. You configure rules that say: if two Individual records share the same email address — exact match — link them. Or if two records have similar names — fuzzy match above an 85% similarity threshold — AND share the same city, link them. You can stack multiple match rules, and any single rule creating a link is sufficient to merge the records.
-
-When two sources disagree on a field value — one source says her name is "Sara" and another says "Sarah" — **Reconciliation Rules** determine which value wins on the Unified Individual. You choose: trust the source with the highest priority (Source Priority), use the value that appears most often (Most Occurred), or use the most recently updated value (Most Recent).
-
-The three types of matching: **Exact Match** for high-confidence identifiers like email and phone. **Fuzzy Match** for name fields where variations are expected. **Normalized Match** for data that has formatting differences but is actually the same — like phone numbers stored in different formats.
-
-Remember: Identity Resolution works on the Individual DMO and Contact Point DMOs. If those DMOs aren't populated through field mapping, IR has nothing to process. That's the first troubleshooting step when IR isn't producing results.
-
-Next up, we move from data modeling into segmentation. See you in Section 2.
+- "Contact Point reconciliation: only the highest-priority source's email appears on Unified Individual" — False; Contact Points are additive, not reconciled
+- "Fuzzy match should be used for email addresses to catch typos" — dangerous and wrong; email is an exact identifier, fuzzy on email merges different people
+- "Identity Resolution creates Unified Individual records immediately when new data is ingested" — wrong; IR runs on schedule, not in real time
+- "Configure reconciliation rules on Contact Point Email DMO fields" — wrong; reconciliation applies to Individual attribute fields, not Contact Points
+- "Zero match groups means the identity resolution configuration is wrong" — not necessarily; with only one source, zero cross-source matches is expected
 
 ---
 
-## Exam Tips
+## Practice Questions
 
-- Identity Resolution uses the **Individual DMO** and **Contact Point DMOs** — not DLOs, and not the Unified Individual as input
-- **Contact Point Email** DMO must be populated for email-based matching — this is one of the most common exam traps
-- The three reconciliation strategies are **Source Priority, Most Occurred, and Most Recent** — know when to apply each
-- **Fuzzy match threshold:** Higher = fewer false positives but more false negatives; Lower = more matches but higher merge risk
-- If IR produces no Unified Individuals, check that field mapping is complete and Individual DMO records exist before checking ruleset configuration
+**Q:** A consultant configures IR to match on phone number but the same phone appears as "(800) 555-0100" in one source and "800-555-0100" in another. Which match type handles this correctly?
+**A:** Normalized Match. It strips formatting differences (dashes, parentheses, spaces, country codes) before comparing, then performs an exact match on the cleaned digit strings. This correctly identifies the two numbers as identical despite formatting differences.
 
----
+**Q:** After running IR, two customers with similar names but different email addresses are incorrectly merged. What is the most appropriate fix?
+**A:** Increase the fuzzy match threshold for the name-based match rule. The incorrect merge was caused by a name similarity score that fell above the current threshold despite the records being different people. Increasing the threshold requires a higher similarity score before declaring a match, reducing false positives.
 
-## Lecture Summary
-
-Identity Resolution is the Data Cloud process that matches records from multiple source systems and merges them into a single Unified Individual profile. It operates on Individual DMO records and their associated Contact Point records. The process is governed by an Identity Resolution Ruleset containing Match Rules and Reconciliation Rules. Match rules use exact matching for high-confidence identifiers, fuzzy matching for name fields, and normalized matching to handle formatting differences. Reconciliation rules determine which source's value wins on the Unified Individual when conflicts exist, using strategies of Source Priority, Most Occurred, or Most Recent. The Unified Individual is the output and the foundation for all downstream segmentation, activation, and analytics.
-
----
-
-## Mini Quiz
-
-**Question 1:** A consultant is configuring Identity Resolution and wants to match records where two Individual records share the same phone number, even if the phone numbers are formatted differently (e.g., "555-123-4567" vs "(555) 123-4567"). Which match rule type should be used?
-
-A) Exact Match on the phone field  
-B) Fuzzy Match with a 90% threshold  
-C) Normalized Match with phone normalization  
-D) Custom formula match using REGEX  
-
-**Answer: C**
-Normalized Match applies a normalization transformation (stripping formatting characters from phone numbers) before comparison, then performs an exact match on the normalized values. This correctly identifies the two phone numbers as identical despite formatting differences.
-
----
-
-**Question 2:** After running Identity Resolution, a consultant reviews the Unified Individual records and finds that two customers with similar names but different email addresses have been incorrectly merged into one Unified Individual. What is the most appropriate corrective action?
-
-A) Manually delete the incorrect Unified Individual record and create two new ones  
-B) Review and increase the fuzzy match threshold for the name-based match rule to reduce false positives  
-C) Add an exclusion rule for email addresses  
-D) Disable Identity Resolution for all name-based matching  
-
-**Answer: B**
-The incorrect merge was caused by a fuzzy name match that was too permissive. Increasing the match threshold requires a higher similarity score before a match is declared, reducing false positives. Manually editing Unified Individual records is not supported. Disabling all name matching is too extreme.
-
----
-
-**Question 3:** An organization has configured Identity Resolution with Source Priority reconciliation rules, ranking their CRM as the highest priority source. However, the Unified Individual records show email addresses from the e-commerce system instead of the CRM. What is the most likely explanation?
-
-A) Source Priority reconciliation only applies to name fields, not Contact Point fields  
-B) The CRM Individual records do not have associated Contact Point Email records  
-C) The e-commerce system has a higher data volume and overrides Source Priority  
-D) Contact Point fields cannot be reconciled — they are always taken from all sources  
-
-**Answer: D**
-Contact Points are additive — all contact points from all linked source Individual records are included on the Unified Individual. Reconciliation rules apply to attribute fields (name, birthdate, etc.) on the Unified Individual itself, not to Contact Points. All email addresses from all sources appear on the Unified Individual's contact point list.
+**Q:** An organization uses Source Priority reconciliation with CRM ranked first. The Unified Individual shows email addresses from the e-commerce system. Why?
+**A:** Contact Points are additive — all emails from all linked source records appear on the Unified Individual. Reconciliation rules apply to Individual attribute fields (like FirstName), not to Contact Points. The Source Priority rule affects which name/address value appears on the Unified Individual, but all emails always appear regardless.

@@ -1,343 +1,235 @@
-# Lecture 01: What is Agentforce
+# What is Agentforce
 
-## Learning Objectives
-- Explain what Agentforce is and how it differs from Einstein Copilot and earlier Einstein AI products
-- Describe the Atlas Reasoning Engine and its role in enabling autonomous agent behavior
-- Identify the primary agent types available in Agentforce: Service Agent, Sales Development Rep, Sales Coach, and custom agents
-- Distinguish between autonomous actions (agent acts without human confirmation) and assisted actions (agent suggests, human confirms)
-- Explain the core components that make up an Agentforce agent: Identity, Instructions, Topics, and Actions
+## Exam Domain
+Agentforce Concepts & Architecture — ~20% of exam weight
 
-## Slides
+## Core Concepts
 
-### Slide 1: From Assistant to Agent — The Shift
-**Visual:**
+### Agentforce vs Einstein Copilot
+Agentforce (2024) replaced Einstein Copilot. The shift: from "AI helps you do things" → "AI does things on your behalf."
+
+| | Einstein Copilot | Agentforce |
+|--|--|--|
+| Model | Assistant — suggest, wait for approval | Autonomous agent — complete multi-step goals |
+| Human role | Confirms each action | Defines goal, reviews outcomes |
+| Architecture | Reactive, one step at a time | Proactive, loops until goal complete |
+
+Both use the Einstein Trust Layer. Neither sends unmasked customer data to external LLMs.
+
+### The Four Agent Building Blocks (I-I-T-A)
+Every configuration decision maps to one of these layers:
+
+| Layer | What it is | Config location |
+|-------|-----------|----------------|
+| **Identity** | Name, company, persona tone | Identity section |
+| **Instructions** | Global system prompt: persona, rules, escalation, exclusions | Instructions block |
+| **Topics** | Conversation domains (what agent discusses) | Topics section |
+| **Actions** | Callable operations within each Topic (what agent does) | Within each Topic |
+
+Memory hook: **I-I-T-A** (Identity, Instructions, Topics, Actions)
+
+### Pre-built Agent Types
+| Template | Facing | Use Case |
+|----------|--------|---------|
+| Service Agent | External (customers) | Case deflection, FAQ, order lookup, escalation |
+| SDR Agent | External (prospects) | Inbound lead qualification, meeting booking |
+| Sales Coach | Internal (reps) | Call recording analysis, coaching feedback |
+| Custom Agent | Either | Everything else |
+
+### Autonomous vs Assisted Actions
+- **Autonomous:** Agent executes without waiting for human confirmation — appropriate for low-risk operations (read data, create a case)
+- **Assisted:** Agent prepares the action, human must confirm — appropriate for higher-risk operations (large refunds, external emails)
+- Best practice: start with assisted, move to autonomous as confidence in reliability grows
+
+### Agentforce in the Ecosystem
+Agentforce is an **orchestration layer** on top of existing Salesforce assets. The Flows you already have become Actions. The Knowledge articles you already maintain become grounding sources. Agentforce Studio (Setup → Agentforce → Agents) is where agents are built and managed.
+
+Licensing: **consumption-based** (per conversation, not per user seat). ROI framing: typical human contact cost $4–15; Agentforce per-conversation cost is a fraction of that for high-deflection scenarios.
+
+## PTA / SA Relevance
+
+### When a Customer Asks "Should We Use Agentforce?"
+Apply the four-question fit check:
+1. **High volume?** Is this 100s–1,000s of similar interactions per day? Low volume means poor ROI.
+2. **Well-defined process?** If human agents can't agree on the right answer, the AI won't either.
+3. **Data available in Salesforce (or integrated)?** Agentforce needs data it can retrieve via Flows, Apex, or Knowledge. No data = no grounding = hallucination risk.
+4. **Clear scope?** Can you write 3–7 Topics that cover 60–70% of inbound volume? Yes → strong candidate.
+
+All four YES → proceed. Any NO → investigate or redesign.
+
+### Common Partner Mistakes Building Agentforce
+- **Overly broad Topics:** One "Customer Service" Topic with 20 Actions causes Atlas routing ambiguity. Break into 5–7 focused Topics.
+- **Missing guardrails in Instructions:** Deploying without explicit escalation triggers and exclusions leads to the agent answering questions it shouldn't.
+- **Skipping grounding:** Ungrounded factual topics hallucinate confidently. Every FAQ/policy Topic needs a Knowledge Search Action.
+- **Using Screen Flows:** The most common technical blocker. Screen Flows cannot be agent Actions. Must be Autolaunched.
+- **Ignoring description quality:** Developers write one-line Action descriptions ("Gets order data") then wonder why routing is wrong. Descriptions are the routing engine.
+
+### For a CTO Conversation: Agentforce vs Traditional Automation
+- **Flow/Process Builder** is better when the task is fully deterministic, no natural language understanding required, no variability in user input. Example: auto-create a Case when an email arrives.
+- **Agentforce** is better when the task requires understanding free-form user requests, multi-step reasoning, or synthesizing responses from multiple data sources. Example: a customer types "my order is late and I need to know if I can get a refund" — this requires understanding intent, looking up order data, looking up refund policy, and generating a contextual response.
+- **The honest answer for CTOs:** Agentforce is not a replacement for well-designed automation. It is an orchestration layer for interactions that require natural language understanding and multi-step reasoning.
+
+### Enterprise-Scale Considerations
+- **Multi-agent patterns:** Large enterprises often deploy multiple specialized agents (one for customer service, one for HR, one for field service) rather than one mega-agent. Separation improves routing accuracy and maintenance.
+- **Performance at scale:** Agentforce is built on Salesforce's multi-tenant infrastructure. The consumption-based model means you can scale without re-architecting. Monitor conversation volume against purchased quota.
+- **Monitoring from day 1:** Resolution rate, escalation rate, and session duration metrics should be reviewed weekly in the first month. The first 2–4 weeks produce the most improvement data.
+
+## Architecture
+
+### Assistant vs Agent Comparison
 ```
-  Einstein Copilot (2024)              Agentforce (2024–present)
-  ─────────────────────────            ─────────────────────────
-  User asks question                   User defines goal
-         │                                     │
-         ▼                                     ▼
-   AI suggests action                  Agent observes context
-         │                                     │
-         ▼                                     ▼
-   [Approve?] ──Yes──▶ Execute         Agent reasons: which
-         │                             Topic? which Action?
-         ▼                                     │
-   Wait for next question              Agent acts autonomously
-   (user must drive each step)                 │
-                                              ▼
-                                       Agent observes result
-                                              │
-                                       Done? ─No──▶ Loop back
-                                              │
-                                             Yes
-                                              ▼
-                                       Reports to user
+Einstein Copilot (legacy)           Agentforce (current)
+─────────────────────────           ─────────────────────────────────
+User asks question                  User defines goal
+       │                                    │
+       ▼                                    ▼
+ AI suggests action                Atlas Reasoning Engine
+       │                           OBSERVE → REASON → ACT → OBSERVE
+       ▼                                    │
+ [Approve?] → Execute              Loops autonomously until done
+       │                                    │
+ Wait for next prompt              Reports outcome to user
 
-  ◀────── More Assisted ──────────────────────── More Autonomous ──────▶
+◀────── More Assisted ──────────────────────── More Autonomous ──▶
 ```
-**Content:**
-- **Einstein Copilot** — conversational AI assistant embedded in Salesforce; suggested actions but required human approval at each step; primarily reactive
-- **Agentforce** — autonomous AI agents that can complete multi-step tasks end-to-end without prompting at each step; proactive and goal-directed
-- Key shift: from "AI helps you do things" → "AI does things on your behalf"
-- Agentforce is not a product upgrade — it is a different paradigm: agents have persistent identity, defined scope (Topics), and callable tools (Actions)
-- Both are built on the Einstein Trust Layer — data stays in Salesforce, no customer data is used to train external models
-**Speaker Notes:** The most important conceptual shift to internalize is the difference between an assistant and an agent. An assistant answers questions and waits. An agent receives a goal and works toward it autonomously, using whatever tools are available. Agentforce agents can handle an entire customer service interaction — from greeting, to understanding the issue, to looking up account data, to executing a refund flow — without a human agent ever stepping in, if the conversation fits within defined scope. This is what makes Agentforce significant: it is not a better chatbot, it is a software colleague that can be assigned to do real work.
 
-### Slide 2: Atlas Reasoning Engine — The Brain
-**Visual:**
+### Agent Anatomy
 ```
-            ┌─────────────────────────────────────┐
-            │       ATLAS REASONING ENGINE        │
-            └─────────────────────────────────────┘
-                             │
-          ┌──────────────────▼──────────────────┐
-          │              OBSERVE                 │
-          │  User message + History + Context    │
-          └──────────────────┬──────────────────┘
-                             │
-          ┌──────────────────▼──────────────────┐
-          │               REASON                 │
-          │  Match Topic → Select Action         │
-          └──────────────────┬──────────────────┘
-                             │
-          ┌──────────────────▼──────────────────┐
-          │                ACT                   │
-          │  Invoke Action (Flow/Apex/Knowledge) │
-          └──────────────────┬──────────────────┘
-                             │
-          ┌──────────────────▼──────────────────┐
-          │              OBSERVE                 │
-          │    Read result, update context       │
-          └──────────────────┬──────────────────┘
-                             │
-               ┌─────────────┴──────────────────┐
-               │           Done?                │
-               ├── No ──▶ Loop back to REASON   │
-               └── Yes ──▶ Respond to user      │
-               └────────────────────────────────┘
-
-  ╔═══════════════════════════════════════════════════╗
-  ║   GUARDRAILS: Einstein Trust Layer wraps loop     ║
-  ╚═══════════════════════════════════════════════════╝
+Agent
+├── Identity (name, company, persona tone)
+├── Instructions (global system prompt: persona, rules, escalation, exclusions)
+├── Topics (conversation domains — Atlas matches these first)
+│   └── Actions (what the agent can DO — Atlas matches these second)
+│       ├── Flow Actions (Autolaunched Flow)
+│       ├── Apex Actions (@InvocableMethod)
+│       ├── Prompt Template Actions (Flex template)
+│       └── Standard Actions (Knowledge Search, etc.)
+└── Channels (Embedded Chat, Slack, API, Mobile, Email)
 ```
-**Content:**
-- **Atlas Reasoning Engine** is the LLM-based planning system that powers all Agentforce agents
-- It operates in a continuous **Observe → Reason → Act → Observe** loop
-- At each reasoning step, Atlas evaluates: what is the user's intent? which Topic applies? which Action should I invoke?
-- Atlas uses the agent's Instructions, Topic descriptions, and Action descriptions to make routing decisions
-- The loop continues until the agent determines the goal is complete, needs human escalation, or has reached an action limit
-- Atlas runs entirely within Salesforce's infrastructure — calls to the LLM are mediated by the Einstein Trust Layer
-**Speaker Notes:** Understanding the Atlas Reasoning Engine loop is the single most exam-relevant architectural concept in this course. Questions will describe a scenario — "the agent receives a message and needs to decide whether to look up a knowledge article or execute a flow" — and ask what happens architecturally. The answer is always: Atlas examines its available Topics and Actions, reads their descriptions, reasons about which one best matches the intent, then invokes it. The quality of your Action descriptions directly determines whether Atlas routes correctly. We will go much deeper on Atlas in Lecture 02, but establish the loop in your memory now.
 
-### Slide 3: Agent Types — Pre-built Templates
-**Visual:**
+**Limitations:**
+- Recommended Topics per agent: 3–7 (more causes routing ambiguity; Salesforce guidance)
+- Actions per Topic: no documented hard limit, but each description consumes context window tokens — keep descriptions concise
+- Max reasoning iterations per turn: configurable, default varies by release; prevents infinite loops but caps multi-step workflows
+- Token limit per conversation turn: all Instructions + all Topic descriptions + all Action descriptions + conversation history must fit in the LLM's context window
+- Agent scope is fixed at configuration time — Atlas cannot improvise Topics or Actions not configured
+
+### Atlas Reasoning Engine (ReAct Loop)
 ```
-  ┌──────────────────────────┬──────────────────────────┐
-  │      SERVICE AGENT       │   SALES DEV REP (SDR)    │
-  │   ☁  Service Cloud       │   ☁  Sales Cloud         │
-  │                          │                          │
-  │  Inbound customer        │  Qualifies inbound       │
-  │  service: case           │  leads via email/chat;   │
-  │  deflection, FAQ,        │  books meetings with     │
-  │  order lookups,          │  AEs for qualified       │
-  │  escalation              │  leads autonomously      │
-  ├──────────────────────────┼──────────────────────────┤
-  │      SALES COACH         │      CUSTOM AGENT        │
-  │   ☁  Sales Cloud         │   ⚙  Any Cloud           │
-  │                          │                          │
-  │  Analyzes call           │  Blank canvas — define   │
-  │  recordings; generates   │  your own Identity,      │
-  │  coaching feedback for   │  Instructions, Topics,   │
-  │  sales reps (internal,   │  and Actions from        │
-  │  not customer-facing)    │  scratch                 │
-  └──────────────────────────┴──────────────────────────┘
+User Input
+    │
+    ▼
+Atlas Engine — OBSERVE
+(Reads: message + history + Instructions + Topic descriptions
+        + Action descriptions + prior action results in this turn)
+    │
+    ▼
+REASON: which Topic matches? which Action? are inputs available?
+    │
+    ├── No Topic match → out-of-scope response or escalate
+    ├── Missing params → generate clarifying question
+    └── Topic + Action matched → ACT
+                │
+                ▼
+        ACT: invoke selected Action
+        (Flow / Apex / Knowledge Search / Prompt Template)
+                │
+                ▼
+        OBSERVE: read action result, update context
+                │
+                ├── More steps needed? → Loop back to REASON
+                └── Done → Respond to user
 ```
-**Content:**
-- **Service Agent** — handles inbound customer service: case deflection, FAQ, order lookups, escalation to human agent; deploys via embedded chat, mobile, API
-- **Sales Development Rep (SDR)** — autonomously qualifies inbound leads: responds to web form submissions, asks qualifying questions, books meetings; reduces SDR workload for low-touch leads
-- **Sales Coach** — reviews sales call recordings and CRM data, provides coaching feedback to sales reps; assisted (not autonomous) — feedback goes to rep, not to customer
-- **Custom Agent** — built from a blank template with custom Identity, Instructions, Topics, and Actions; maximum flexibility
-- All agent types share the same underlying platform — they differ in their out-of-box instructions and pre-configured actions
-**Speaker Notes:** For the exam, know the use case for each pre-built agent type. The common trap is confusing Sales Coach (internal, coaching reps) with SDR (external-facing, qualifying leads). Service Agent is by far the most commonly deployed agent type and will appear most often in exam scenarios. Custom agents are used when pre-built templates do not match the use case — for example, an HR employee self-service agent or a field service scheduling agent. The underlying mechanics — Topics, Actions, Atlas reasoning — are identical regardless of agent type.
 
-### Slide 4: Autonomous vs Assisted Actions
-**Visual:**
+**Limitations:**
+- Max iterations per turn: prevents runaway loops but means deeply multi-step workflows need careful Action sequencing
+- Atlas can invoke multiple Actions sequentially in one turn, but not in parallel
+- If Action throws unhandled exception, Atlas observes the error and must reason about recovery — always handle errors in Flows/Apex
+
+### Einstein Trust Layer
 ```
-  AUTONOMOUS ACTIONS                  ASSISTED ACTIONS
-  ──────────────────                  ────────────────
-  Agent receives request              Agent receives request
-         │                                   │
-         ▼                                   ▼
-    Lookup data ✓                       Lookup data ✓
-         │                                   │
-         ▼                                   ▼
-    Update record ✓                     Update record ✓
-         │                                   │
-         ▼                                   ▼
-    Send message ✓                    ┌──[Human Review]──┐
-         │                            │  "Approve this   │
-         ▼                            │   action?"       │
-    Done — no human step              └──────┬───────────┘
-                                            Yes          No
-                                             │            │
-                                             ▼            ▼
-                                          Execute      Cancelled
-
-  ◀── Lower Risk/Consequence ────────────── Higher Risk/Consequence ──▶
-  ◀── Start here ────────────────────────── Move here over time ──────▶
+User Prompt
+    │
+    ▼ Data Masking (PII/PCI masked before leaving Salesforce)
+    │
+    ▼ [External LLM — OpenAI / Salesforce models]
+    │   (Zero Data Retention: provider discards after response)
+    │
+    ▼ Response Filtering
+    │
+    ▼ Toxicity Detection (harmful content blocked)
+    │
+    ▼ Audit Log (every interaction recorded in org)
+    │
+    ▼ Agent Response to User
 ```
-**Content:**
-- **Autonomous actions** — agent executes without waiting for human confirmation; appropriate for low-risk, well-defined operations (lookup data, send a standard message, create a case)
-- **Assisted actions** — agent prepares the action but surfaces it to a human for review before execution; used for higher-risk operations (update financial data, send external communications on behalf of a person)
-- The distinction is configured at the Action level in Agentforce Builder
-- **Escalation to human** is a special case: the agent recognizes it cannot handle the request and routes to a live agent via Omni-Channel
-- Best practice: start with assisted, move to autonomous as you build confidence in agent reliability and test coverage
-**Speaker Notes:** The exam will ask you to identify which action type is appropriate for a given scenario. The governing principle is risk: the higher the consequence of a wrong action, the more you want a human in the loop. A lookup action (retrieving order status) is naturally autonomous — there is no risk in reading data. A credit refund action should probably be assisted until you have tested the agent extensively. For the exam, look for keywords like "automatically," "without human intervention," or "requires approval" to signal which type is being tested.
 
-### Slide 5: Agent Anatomy — The Four Building Blocks
-**Visual:**
+**Limitations:**
+- Zero-retention policy: the LLM *provider* does not retain or train on data. Salesforce DOES store conversation transcripts in your org.
+- Data masking is pattern-based — free-text sensitive data in unusual formats may not be caught
+- Toxicity detection is probabilistic — may miss novel attack patterns; may produce false positives
+- Audit log retention subject to your org's data retention settings — set a retention policy appropriate for your industry
+
+### Enterprise Agentforce Deployment (Multi-Agent)
 ```
-  ┌────────────────────────────────────────────────────────────────┐
-  │                      AGENTFORCE AGENT                         │
-  ├─────────┬──────────────────────────────────────────────────────┤
-  │ Floor 4 │  ACTIONS                                            │
-  │         │  Get Order Status (Flow) · Cancel Order (Flow)      │
-  │         │  Knowledge Search · Create Case (Flow)              │
-  ├─────────┼──────────────────────────────────────────────────────┤
-  │ Floor 3 │  TOPICS                                             │
-  │         │  Order Management · Billing Inquiries               │
-  │         │  Account Updates · Technical Support                │
-  ├─────────┼──────────────────────────────────────────────────────┤
-  │ Floor 2 │  INSTRUCTIONS                                       │
-  │         │  Tone · Behavior Rules · Escalation Triggers        │
-  │         │  Exclusions ("Never discuss competitors")           │
-  ├─────────┼──────────────────────────────────────────────────────┤
-  │ Floor 1 │  IDENTITY                                           │
-  │         │  Name: "Aria" · Company: Acme Corp                  │
-  │         │  Persona: friendly service assistant                │
-  └─────────┴──────────────────────────────────────────────────────┘
-       │              │               │               │
-  Sets persona   Instructions    Topics scope    Actions deliver
-                shape behavior   conversations    outcomes
+                    ┌─────────────────────────┐
+                    │   Einstein Trust Layer  │
+                    └─────────────┬───────────┘
+                                  │
+          ┌───────────────────────┼───────────────────────┐
+          │                       │                       │
+          ▼                       ▼                       ▼
+   ┌─────────────┐        ┌─────────────┐        ┌─────────────┐
+   │  Service    │        │  HR Self-   │        │  SDR        │
+   │  Agent      │        │  Service    │        │  Agent      │
+   │ (customers) │        │  Agent      │        │ (prospects) │
+   └──────┬──────┘        │ (employees) │        └──────┬──────┘
+          │               └──────┬──────┘               │
+    Embedded Chat                │                  Email channel
+    Mobile / API              Slack                     │
+          │               (internal)               Lead records
+          ▼                       ▼                       ▼
+   ┌──────────────────────────────────────────────────────┐
+   │   Salesforce Platform: Flows, Apex, Knowledge,       │
+   │   Data Cloud, Omni-Channel, Field Service, etc.      │
+   └──────────────────────────────────────────────────────┘
 ```
-**Content:**
-- **Identity** — the agent's name, persona description, and role. Example: "Aria, your friendly service assistant for Acme Corp."
-- **Instructions** — the system-level prompt that governs the agent's overall behavior: tone, what it should and should not do, escalation rules, compliance constraints
-- **Topics** — domains of conversation the agent can engage with. Each Topic has a label, description, and a set of Actions. Example Topic: "Order Management"
-- **Actions** — callable operations within a Topic. Example Actions under Order Management: Get Order Status (Flow), Update Shipping Address (Flow), Cancel Order (Flow with confirmation)
-- The LLM uses Topic descriptions and Action descriptions to decide what to invoke — these descriptions are part of the agent's effective prompt
-**Speaker Notes:** This anatomy is foundational — every configuration decision in Agentforce maps to one of these four layers. When you are asked on the exam "where would you configure the agent's tone of voice?" the answer is Instructions. "Where would you add a new capability?" — add a Topic with Actions. "How does the agent know it can look up orders?" — the Topic description tells Atlas this is within scope. Memorize these four layers and you will be able to answer most scenario-based questions by mapping the scenario to the right layer.
 
-### Slide 6: Einstein Trust Layer — Safety Net
-**Visual:**
-```
-  User Message
-       │
-       ▼
-┌──────────────────────────────────────────────────────────┐
-│                  EINSTEIN TRUST LAYER                    │
-│  ┌─────────────┐  ┌──────────────┐  ┌─────────────────┐ │
-│  │Data Masking │  │  Toxicity    │  │  Zero Retention │ │
-│  │(PII/PCI)    │  │  Detection   │  │   (no training) │ │
-│  └─────────────┘  └──────────────┘  └─────────────────┘ │
-│                       Audit Log                          │
-└──────────────────────────────────────────────────────────┘
-       │
-       ▼
-  External LLM
-  (OpenAI / Salesforce Model)
-       │
-       ▼
-  Response ──▶ Trust Layer ──▶ Agent ──▶ User
-```
-**Content:**
-- All LLM calls from Agentforce pass through the **Einstein Trust Layer**
-- Key Trust Layer functions:
-  - **Data masking** — sensitive fields (SSN, credit card, etc.) are masked before leaving Salesforce
-  - **Toxicity detection** — harmful inputs/outputs are flagged and blocked
-  - **Zero data retention** — by default, prompts and completions are not retained by the LLM provider
-  - **Audit log** — all LLM interactions are logged in Salesforce for compliance review
-- The Trust Layer is not an Agentforce-specific feature — it applies to all Einstein AI features
-- Configured in Setup → Einstein → Einstein Trust Layer
-**Speaker Notes:** The Einstein Trust Layer is a high-frequency exam topic across all AI certifications. For Agentforce specifically, emphasize that the Trust Layer sits between your Salesforce org and any external LLM — whether that is OpenAI's model or Salesforce's own models. No customer data is used to train the LLM. Data masking happens before the prompt leaves the org. These are the talking points that matter for the exam, and for real customer conversations when they ask "is my data safe with Agentforce?"
+## Key Facts to Memorize
+- Agentforce replaced Einstein Copilot in 2024 — Agentforce = autonomous; Copilot = assistant
+- Four building blocks: Identity, Instructions, Topics, Actions (I-I-T-A)
+- Service Agent = external customers; SDR Agent = external prospects; Sales Coach = internal reps
+- SDR and Sales Coach are opposites: SDR talks to prospects, Sales Coach talks to reps
+- Einstein Trust Layer applies to ALL Agentforce LLM calls
+- Three Trust Layer controls most tested: Data Masking, Zero Data Retention, Audit Logging
+- Licensing: consumption-based (per conversation, not per seat)
+- Simulator testing does NOT count as a billable conversation
+- Agentforce Studio: Setup → Agentforce → Agents
 
-### Slide 7: Agentforce in the Salesforce Ecosystem
-**Visual:**
-```
-  ╔══════════════════════════════════════════════════════════════════╗
-  ║                     EINSTEIN TRUST LAYER                        ║
-  ║  ┌────────────────────────────────────────────────────────────┐  ║
-  ║  │                   AGENTFORCE STUDIO                        │  ║
-  ║  │          (Build · Configure · Manage Agents)               │  ║
-  ║  └──────┬──────────┬──────────┬──────────┬────────────────────┘  ║
-  ║         │          │          │          │                        ║
-  ║   ┌─────▼──┐  ┌────▼───┐  ┌──▼──────┐  ┌▼────────┐  ┌────────┐  ║
-  ║   │ Flows  │  │  Apex  │  │ Prompt  │  │Einstein │  │  Data  │  ║
-  ║   │(Auto-  │  │(@Invoc │  │ Builder │  │Knowledge│  │ Cloud  │  ║
-  ║   │launched│  │ able)  │  │Templates│  │Articles │  │Unified │  ║
-  ║   └────────┘  └────────┘  └─────────┘  └─────────┘  └────────┘  ║
-  ║                                                                   ║
-  ║           Deployment Channels                                     ║
-  ║   ┌──────────┐  ┌────────┐  ┌──────┐  ┌─────┐                   ║
-  ║   │Embedded  │  │Salesfor│  │Slack │  │ API │                   ║
-  ║   │  Chat    │  │ce Mobile│  │      │  │     │                   ║
-  ║   └──────────┘  └────────┘  └──────┘  └─────┘                   ║
-  ╚══════════════════════════════════════════════════════════════════╝
-  Licensing: consumption-based (per conversation, not per seat)
-```
-**Content:**
-- **Agentforce Studio** is the primary UI for building and managing agents (Setup → Agentforce → Agents)
-- Agents are built FROM existing Salesforce assets: they invoke Flows you already have, Apex you already wrote, Knowledge articles your team already maintains
-- **Prompt Builder** is the separate tool for creating AI prompt templates — these can be connected to agents as actions
-- **Data Cloud** integration provides grounding with real-time unified customer data — agents can answer questions based on the most current customer profile
-- Agents deploy to **multiple channels** from a single configuration: no need to rebuild per channel
-- Licensing: Agentforce is consumption-based (per conversation, not per seat)
-**Speaker Notes:** The key architectural insight is that Agentforce is not a standalone AI system — it is a orchestration layer that connects to the Salesforce platform capabilities you already use. The flows are the same flows you use for automation. The knowledge is the same Salesforce Knowledge you use for case management. This is why an experienced Salesforce developer can get productive with Agentforce quickly: most of the "actions" are things that already exist in their org. The exam will test this understanding — you will see questions that describe a Flow that exists in org and ask how to wire it to an agent.
+## Customer Advisory Tips
+- **ROI framing:** Deflection rate × (human cost per contact - agent cost per contact) = annual savings. Human contact typically $4–15; Agentforce typically $0.10–0.50 for routine interactions.
+- **Start narrow:** First deployment should cover 1–3 high-volume, well-defined Topics. Prove ROI, then expand scope.
+- **Governance first:** Before go-live, involve legal and compliance to review Instructions (especially exclusions and escalation triggers). This is much cheaper than post-incident remediation.
+- **Human oversight posture:** For regulated industries (financial services, healthcare, insurance), start with assisted actions and human review for any action that changes data. Move to autonomous only after testing and compliance sign-off.
+- **Knowledge base is the foundation:** A grounded agent is only as good as the Knowledge articles behind it. Assess Knowledge article quality and coverage before sizing the Agentforce project.
 
-### Slide 8: Key Terminology Recap
-**Visual:**
-```
-  ┌─────────────────────────────────────────────────────────────────────┐
-  │                    AGENTFORCE QUICK REFERENCE                       │
-  ├──────────────────────────┬──────────────────────────────────────────┤
-  │ Agentforce               │ Salesforce's autonomous AI agent platform │
-  ├──────────────────────────┼──────────────────────────────────────────┤
-  │ Atlas Reasoning Engine   │ LLM-based planning engine powering all   │
-  │                          │ Agentforce agents                        │
-  ├──────────────────────────┼──────────────────────────────────────────┤
-  │ Topic                    │ A domain of conversation an agent is     │
-  │                          │ configured to handle                     │
-  ├──────────────────────────┼──────────────────────────────────────────┤
-  │ Action                   │ A callable operation (Flow, Apex, Prompt │
-  │                          │ Template, Knowledge) within a Topic      │
-  ├──────────────────────────┼──────────────────────────────────────────┤
-  │ Agent Instructions       │ System-level prompt defining overall     │
-  │                          │ behavior and constraints                 │
-  ├──────────────────────────┼──────────────────────────────────────────┤
-  │ Autonomous Action        │ Agent executes without human confirmation│
-  ├──────────────────────────┼──────────────────────────────────────────┤
-  │ Assisted Action          │ Human must confirm before execution      │
-  ├──────────────────────────┼──────────────────────────────────────────┤
-  │ Einstein Trust Layer     │ Safety/governance layer mediating all    │
-  │                          │ LLM calls from Salesforce                │
-  └──────────────────────────┴──────────────────────────────────────────┘
-```
-**Content:**
-| Term | Definition |
-|------|-----------|
-| Agentforce | Salesforce's autonomous AI agent platform |
-| Atlas Reasoning Engine | The LLM-based planning engine that powers all Agentforce agents |
-| Topic | A domain of conversation an agent is configured to handle |
-| Action | A callable operation (Flow, Apex, Prompt Template, Knowledge search) within a Topic |
-| Agent Instructions | System-level prompt defining the agent's overall behavior and constraints |
-| Autonomous Action | Agent executes without human confirmation |
-| Assisted Action | Agent prepares action; human must confirm before execution |
-| Einstein Trust Layer | Safety and governance layer mediating all LLM calls from Salesforce |
-**Speaker Notes:** This glossary covers the eight terms that appear most frequently in exam questions. When the exam describes a scenario, translate it into these terms before answering. "The agent can help customers with billing questions" — that is a Topic. "The agent runs a refund when asked" — that is an Action. "The agent never reveals internal system details" — that is part of Agent Instructions. This translation habit will make scenario questions much more tractable.
+## Exam Traps
+- Confusing SDR Agent (external, autonomous lead qualification) with Sales Coach (internal, rep coaching)
+- Thinking Agentforce is just a better chatbot — it is a different paradigm (autonomous vs assistant)
+- Thinking Zero Data Retention means Salesforce stores nothing — it means the LLM *provider* doesn't retain data
+- Placing tone/persona in Topics instead of Identity + Instructions
+- Confusing autonomous actions (no human needed) with assisted actions (human confirms before execution)
+- Service Agent is NOT for internal users — it's customer-facing. Use Custom Agent + Slack for internal HR/IT.
 
-## Recording Script
-Welcome to the Agentforce Specialist course. This first lecture establishes the conceptual foundation everything else builds on — what Agentforce actually is, how it differs from what came before, and what an agent is made of.
+## Practice Questions
+**Q:** A company wants an AI agent that automatically responds to inbound web form leads, asks qualifying questions, and books meetings without human SDR involvement. Which agent type?
+**A:** Sales Development Rep (SDR) Agent — designed for autonomous inbound lead qualification via email/chat and meeting booking. Service Agent is for customer service. Sales Coach is internal.
 
-Let's start with the most important conceptual shift. For most of its history, Salesforce AI was assistant-based: Einstein would suggest something, you would approve it, then it would execute. Einstein Copilot, launched in early 2024, was the clearest expression of this model — a conversational assistant embedded in Salesforce that could answer questions and suggest actions, but required human confirmation at every step. Agentforce, launched in late 2024, changes this fundamentally. Agentforce agents are autonomous. They receive a goal — "help this customer resolve their billing issue" — and they work toward it independently, invoking tools, retrieving data, and taking actions without waiting for a human at each step.
+**Q:** When Atlas evaluates a customer message to decide which Action to invoke, what does it primarily rely on?
+**A:** The natural language descriptions of Topics and Actions (semantic matching). Not a hard-coded routing table, not the customer's profile data, not keywords.
 
-The engine behind this autonomy is the Atlas Reasoning Engine. Atlas operates in a loop: observe the input, reason about what to do, act by invoking an available tool, then observe the result. This loop continues until the task is done, the agent needs help, or it hits a configured limit. What makes Atlas powerful is that it reasons based on natural language descriptions — the agent's instructions, the Topic descriptions, and the Action descriptions all feed into Atlas's decision about what to do next. This means how you write those descriptions directly determines how well your agent behaves.
+**Q:** An architect needs SSNs never sent to an external LLM when an Agentforce agent processes customer data. Which feature provides this?
+**A:** Einstein Trust Layer data masking — automatically detects and masks sensitive data before the prompt leaves Salesforce.
 
-Agentforce comes with several pre-built agent types. The Service Agent handles customer service scenarios. The Sales Development Rep agent qualifies inbound leads. The Sales Coach reviews sales calls and provides feedback to reps. You can also build custom agents from scratch for any use case. All of these share the same four building blocks: Identity (who the agent is), Instructions (how the agent behaves), Topics (what the agent can talk about), and Actions (what the agent can do).
-
-Everything the agent does passes through the Einstein Trust Layer, which ensures customer data is never exposed to external LLM providers unmasked, all interactions are logged for compliance, and harmful content is filtered.
-
-In the next lecture, we will go deep on the Atlas Reasoning Engine — the planning loop that makes autonomous behavior possible.
-
-## Exam Tips
-- Agentforce replaced Einstein Copilot — know the key difference: Agentforce agents are autonomous (act without human confirmation at each step) while Copilot was assistant-based (waited for human approval)
-- The four agent building blocks are Identity, Instructions, Topics, and Actions — every exam scenario maps to one of these; identify which layer is being asked about
-- Atlas Reasoning Engine operates in an Observe → Reason → Act → Observe loop — Action descriptions and Topic descriptions directly influence Atlas's routing decisions
-- Service Agent (customer-facing, service), SDR Agent (external, lead qualification), Sales Coach (internal, rep coaching) — know which is customer-facing vs internal
-- The Einstein Trust Layer applies to all Agentforce LLM calls — data masking, zero data retention, and audit logging are the three Trust Layer controls most frequently tested
-
-## Lecture Summary
-Agentforce is Salesforce's autonomous AI agent platform that replaced Einstein Copilot in 2024. Unlike Copilot's assistant model (suggest and wait for approval), Agentforce agents autonomously complete multi-step tasks using the Atlas Reasoning Engine — an LLM-based planning system that cycles through Observe → Reason → Act loops until a goal is complete. Pre-built agent types include Service Agent (customer service), Sales Development Rep (lead qualification), and Sales Coach (internal rep coaching). Every agent is built from four components: Identity (persona), Instructions (behavior rules), Topics (conversation domains), and Actions (callable tools). Actions can be autonomous (no human confirmation) or assisted (human approves before execution). All LLM calls pass through the Einstein Trust Layer, ensuring data masking, zero data retention, and audit logging.
-
-## Mini Quiz
-
-**Q1:** A company wants to deploy an AI agent that automatically responds to inbound web form leads, asks qualifying questions, and books meetings — without human SDR involvement for routine leads. Which Agentforce agent type is the best fit?
-A) Service Agent
-B) Sales Coach
-C) Sales Development Rep Agent
-D) Custom Agent with manual configuration
-**Answer:** C — The Sales Development Rep (SDR) Agent is designed exactly for this scenario: handling inbound leads autonomously, qualifying them through conversation, and booking meetings. Service Agent is for customer service, not lead qualification. Sales Coach is internal-facing for rep coaching.
-
-**Q2:** When the Atlas Reasoning Engine evaluates a customer message to decide which Action to invoke, what does it primarily rely on to make its routing decision?
-A) The agent's Identity (name and persona)
-B) The natural language descriptions of Topics and Actions
-C) A hard-coded routing table configured in Agentforce Studio
-D) The customer's profile data from Data Cloud
-**Answer:** B — Atlas uses the natural language descriptions of Topics and Actions to reason about which tool to invoke for a given input. This is why writing clear, specific Action descriptions is critical — Atlas reads them to determine fit. Identity provides persona context but does not drive routing. There is no hard-coded routing table; routing is LLM-based.
-
-**Q3:** An architect needs to ensure that Social Security Numbers stored in Salesforce are never sent to an external LLM when an Agentforce agent processes customer data. Which platform feature provides this protection?
-A) Agentforce Topic Instructions
-B) Field-Level Security settings
-C) Einstein Trust Layer data masking
-D) Agentforce Agent Instructions
-**Answer:** C — The Einstein Trust Layer's data masking feature automatically detects and masks sensitive data (including PII like SSNs and credit card numbers) before the prompt leaves Salesforce and reaches the LLM. Field-Level Security controls access within Salesforce but does not protect data in transit to an LLM. Agent Instructions define behavior, not data protection.
+**Q:** A CTO asks: "Will Salesforce or OpenAI use our customer data to train their AI models?" What is the correct answer?
+**A:** No. The Zero Data Retention policy (contractual agreement between Salesforce and its LLM partners) requires providers to discard prompt and completion data after processing. Data is not used for model training.

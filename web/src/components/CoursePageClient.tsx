@@ -38,11 +38,11 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
   };
 
   const ModeToggle = () => (
-    <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1 border border-gray-700">
+    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 border border-gray-300 dark:border-gray-700">
       <button
         onClick={() => toggleMode('read')}
         className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-          mode === 'read' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+          mode === 'read' ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
         }`}
       >
         📖 Read
@@ -50,7 +50,7 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
       <button
         onClick={() => toggleMode('record')}
         className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-          mode === 'record' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'
+          mode === 'record' ? 'bg-red-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
         }`}
       >
         🎬 Record
@@ -62,7 +62,7 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
     <div className={`flex items-center justify-between ${className}`}>
       {prev ? (
         <Link href={`/tracks/${trackId}/${prev.id}`}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 hover:border-blue-500/50 hover:text-white transition-all">
+          className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:border-blue-500/50 hover:text-gray-900 dark:hover:text-white transition-all">
           <span>←</span><span className="truncate max-w-48">{prev.title}</span>
         </Link>
       ) : <div />}
@@ -84,10 +84,10 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
     // SSR fallback — show tab bar immediately, default to Content tab
     return (
       <div className="flex flex-col min-h-screen">
-        <div className="flex items-center justify-between px-8 py-4 border-b border-gray-800 flex-shrink-0">
+        <div className="flex items-center justify-between px-8 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
           <div className="text-sm text-gray-500">{mod.title}</div>
         </div>
-        <div className="flex items-center border-b border-gray-800 flex-shrink-0 px-8" style={{ background: "#0d1117" }}>
+        <div className="flex items-center border-b border-gray-200 dark:border-gray-800 flex-shrink-0 px-8 bg-gray-50 dark:bg-[#0d1117]">
           <div className="flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 cursor-pointer">
             📚 Resources
           </div>
@@ -97,7 +97,7 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
         </div>
         <div className="p-8">
           <div className="max-w-4xl">
-            <article className="prose bg-gray-800 rounded-xl p-8 border border-gray-700"
+            <article className="prose bg-gray-100 dark:bg-gray-800 rounded-xl p-8 border border-gray-300 dark:border-gray-700"
               dangerouslySetInnerHTML={{ __html: sections.fullHtml }} />
           </div>
         </div>
@@ -109,7 +109,7 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
     return (
       <div className="flex flex-col h-screen overflow-hidden">
         {/* Record Mode Header */}
-        <div className="flex items-center justify-between px-6 py-3 bg-gray-900 border-b border-red-900/50 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-3 bg-white dark:bg-gray-900 border-b border-red-900/50 flex-shrink-0">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
@@ -134,7 +134,7 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
         {/* Split Panes */}
         <div className="flex flex-1 overflow-hidden">
           {/* Left — Slide Deck or Fallback Content */}
-          <div className="w-3/5 flex flex-col border-r border-gray-700 overflow-hidden">
+          <div className="w-3/5 flex flex-col border-r border-gray-300 dark:border-gray-700 overflow-hidden">
             {sections.isLecture && sections.slidesData.length > 0 ? (
               <SlideView slides={sections.slidesData} title={mod.title} trackId={trackId} moduleId={mod.id} />
             ) : (
@@ -152,21 +152,21 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
           </div>
 
           {/* Right — Tab bar: Notes | Resources */}
-          <div className="w-2/5 flex flex-col bg-gray-950 overflow-hidden">
+          <div className="w-2/5 flex flex-col bg-gray-50 dark:bg-gray-950 overflow-hidden">
             {/* Tab bar */}
-            <div className="flex items-center border-b border-gray-800 flex-shrink-0" style={{ background: "#0d1117" }}>
+            <div className="flex items-center border-b border-gray-200 dark:border-gray-800 flex-shrink-0 bg-gray-50 dark:bg-[#0d1117]">
               <button
                 onClick={() => setNotesTab('resources')}
                 className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
                   notesTab === 'resources'
                     ? 'border-sky-500 text-sky-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-300'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
               >
                 📚 Resources
                 {resCount > 0 && (
                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-mono ${
-                    notesTab === 'resources' ? 'bg-sky-500/20 text-sky-300' : 'bg-gray-700 text-gray-400'
+                    notesTab === 'resources' ? 'bg-sky-500/20 text-sky-300' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                   }`}>{resCount}</span>
                 )}
               </button>
@@ -175,44 +175,44 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
                 className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
                   notesTab === 'notes'
                     ? 'border-orange-500 text-orange-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-300'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
               >
-                📋 Notes
+                📋 Study Notes
               </button>
             </div>
 
             {/* Tab content */}
             <div className="flex-1 overflow-y-auto">
               {notesTab === 'notes' ? (
-                <div className="p-5">
-                  {sections.isLecture && sections.script ? (
-                    <>
-                      <article className="prose prose-sm text-gray-200 leading-relaxed"
+                <div className="p-5 space-y-4">
+                  {sections.script && (
+                    <div>
+                      <h4 className="text-gray-400 dark:text-gray-400 font-semibold text-xs uppercase tracking-wider mb-2">📋 Study Notes</h4>
+                      <article className="prose prose-sm text-gray-200 dark:text-gray-200 leading-relaxed"
                         dangerouslySetInnerHTML={{ __html: sections.script }} />
-                      {sections.examTips && (
-                        <div className="mt-6 bg-yellow-950/40 border border-yellow-800/50 rounded-lg p-4">
-                          <h4 className="text-yellow-400 font-semibold text-sm mb-2">🔔 EXAM TIPS</h4>
-                          <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: sections.examTips }} />
-                        </div>
-                      )}
-                      {sections.summary && (
-                        <div className="mt-4 bg-green-950/40 border border-green-800/50 rounded-lg p-4">
-                          <h4 className="text-green-400 font-semibold text-sm mb-2">✅ SUMMARY</h4>
-                          <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: sections.summary }} />
-                        </div>
-                      )}
-                      {sections.quiz && (
-                        <div className="mt-4 bg-purple-950/40 border border-purple-800/50 rounded-lg p-4">
-                          <h4 className="text-purple-400 font-semibold text-sm mb-2">❓ MINI QUIZ</h4>
-                          <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: sections.quiz }} />
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-gray-500 text-sm italic">
-                      No recording script found for this module.
                     </div>
+                  )}
+                  {sections.summary && (
+                    <div className="bg-green-950/40 dark:bg-green-950/40 border border-green-800/50 rounded-lg p-4">
+                      <h4 className="text-green-400 font-semibold text-sm mb-2">🔑 Key Facts to Memorize</h4>
+                      <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: sections.summary }} />
+                    </div>
+                  )}
+                  {sections.examTips && (
+                    <div className="bg-yellow-950/40 dark:bg-yellow-950/40 border border-yellow-800/50 rounded-lg p-4">
+                      <h4 className="text-yellow-400 font-semibold text-sm mb-2">⚠️ Exam Traps</h4>
+                      <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: sections.examTips }} />
+                    </div>
+                  )}
+                  {sections.quiz && (
+                    <div className="bg-purple-950/40 dark:bg-purple-950/40 border border-purple-800/50 rounded-lg p-4">
+                      <h4 className="text-purple-400 font-semibold text-sm mb-2">❓ Practice Questions</h4>
+                      <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: sections.quiz }} />
+                    </div>
+                  )}
+                  {!sections.script && !sections.examTips && !sections.summary && !sections.quiz && (
+                    <div className="text-gray-500 text-sm italic">No study notes for this module.</div>
                   )}
                 </div>
               ) : (
@@ -229,31 +229,31 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
   return (
     <div className="flex flex-col min-h-screen">
       {/* Breadcrumb + Mode Toggle */}
-      <div className="flex items-center justify-between px-8 py-4 border-b border-gray-800 flex-shrink-0">
+      <div className="flex items-center justify-between px-8 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
         <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Link href="/" className="hover:text-gray-300 transition-colors">Home</Link>
+          <Link href="/" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Home</Link>
           <span>›</span>
-          <Link href={`/tracks/${trackId}`} className="hover:text-gray-300 transition-colors">{track.title}</Link>
+          <Link href={`/tracks/${trackId}`} className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">{track.title}</Link>
           <span>›</span>
-          <span className="text-gray-300">{mod.title}</span>
+          <span className="text-gray-700 dark:text-gray-300">{mod.title}</span>
         </div>
         <ModeToggle />
       </div>
 
       {/* Tab bar */}
-      <div className="flex items-center border-b border-gray-800 flex-shrink-0 px-8" style={{ background: "#0d1117" }}>
+      <div className="flex items-center border-b border-gray-200 dark:border-gray-800 flex-shrink-0 px-8 bg-gray-50 dark:bg-[#0d1117]">
         <button
           onClick={() => setReadTab('resources')}
           className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
             readTab === 'resources'
               ? 'border-sky-500 text-sky-400'
-              : 'border-transparent text-gray-500 hover:text-gray-300'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           📚 Resources
           {resCount > 0 && (
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-mono ${
-              readTab === 'resources' ? 'bg-sky-500/20 text-sky-300' : 'bg-gray-700 text-gray-400'
+              readTab === 'resources' ? 'bg-sky-500/20 text-sky-300' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
             }`}>{resCount}</span>
           )}
         </button>
@@ -262,7 +262,7 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
           className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
             readTab === 'content'
               ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-gray-500 hover:text-gray-300'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           📖 Content
@@ -273,8 +273,17 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
       {readTab === 'content' ? (
         <div className="p-8">
           <div className="max-w-4xl">
-            <article className="prose bg-gray-800 rounded-xl p-8 border border-gray-700"
+            <article className="prose bg-gray-100 dark:bg-gray-800 rounded-xl p-8 border border-gray-300 dark:border-gray-700"
               dangerouslySetInnerHTML={{ __html: sections.fullHtml }} />
+            {/* Inline Resources */}
+            {resCount > 0 && (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  📚 Resources
+                </h3>
+                <InstructorResources moduleId={mod.id} variant="tab" />
+              </div>
+            )}
             <NavButtons className="mt-6" />
           </div>
         </div>

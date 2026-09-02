@@ -1,582 +1,209 @@
-# Lecture 16: Bias in AI
-**Section:** Section 4 — AI Ethics and Trust  
-**Duration:** 15 minutes  
-**Exam Weight:** ~10% of exam (scenario-based questions test your ability to identify the TYPE of bias)
+# Bias in AI
+
+**Exam Domain:** Ethical Considerations of AI (20%)
+**Study Priority:** HIGH — the exam gives you a scenario and asks you to identify the bias type
 
 ---
 
-## Learning Objectives
-1. Define the four main types of AI bias: training data, algorithmic, feedback loop, and representation bias
-2. Describe a vivid real-world example of each type
-3. Explain how each type of bias can enter Salesforce AI features
-4. Identify methods for detecting bias in AI outputs
-5. Describe what Salesforce does to mitigate bias in Einstein features
-6. Given a scenario, correctly identify which type of bias is present
+## Core Concepts
+
+**AI Bias:** Systematic errors in AI model outputs that result in unfair or discriminatory outcomes, typically affecting certain groups more than others.
+
+**Critical concept:** Bias is not always intentional. Even well-designed AI systems can produce biased outcomes because the training data itself reflects historical inequalities or societal biases.
 
 ---
 
-## SLIDES
+### The 4 Bias Types (Memorize All 4)
 
-### Slide 1: Title Slide
-**Visual:** A scale that's visibly unbalanced, weighted heavily to one side. Text: "Bias in AI: Where It Comes From, How to Find It, How to Fight It."
-**Content:**
-- Four types of bias every Salesforce professional must recognize
-- Real-world stories for each
-- How to identify bias type from a scenario description
-- Exam format: scenario → identify the bias type
-
-**Speaker Notes:** "The exam questions in this section are scenario-based — they describe a situation and ask you to identify what type of bias is present. To answer correctly, you need more than a definition — you need to be able to recognize the PATTERN of each bias type when it's described in real-world terms. By the end of this lecture, you'll be able to read a bias scenario and immediately categorize it."
+| Bias Type | Definition | Classic Example |
+|-----------|-----------|----------------|
+| **Training Data Bias** | The training dataset itself contains bias — either because it overrepresents some groups or underrepresents others, or because it reflects historical discriminatory patterns | Amazon's hiring model trained on 10 years of resumes (historically male-dominated tech workforce) → model learned to downgrade women's resumes |
+| **Algorithmic Bias** | The algorithm or model architecture itself introduces bias, even on unbiased data — happens when model optimization choices favor certain outcomes | A ranking algorithm optimizes for "most engagement" and systematically ranks one group higher; the choice of metric creates the bias |
+| **Feedback Loop Bias** | The model's predictions influence future training data, which reinforces and amplifies the original bias | Predictive policing: model predicts high crime in certain neighborhoods → police patrol more there → more arrests recorded there → model predicts even higher crime in those areas |
+| **Representation Bias** | Certain groups are underrepresented in training data → model performs worse for those groups | Facial recognition trained mostly on lighter-skinned faces → significantly higher error rates for darker-skinned individuals |
 
 ---
 
-### Slide 2: Why Bias in AI Is Different From Human Bias
-**Visual:**
+### How to Identify Bias Type from a Scenario
+
+**Decision flowchart:**
 ```
-   HUMAN BIAS vs. AI BIAS
+Is the bias coming from the data used to train the model?
+  → If underrepresentation of groups → REPRESENTATION BIAS
+  → If historical patterns in the data reflect past discrimination → TRAINING DATA BIAS
+  
+Is the bias coming from how the model itself is designed or what it optimizes for?
+  → ALGORITHMIC BIAS
 
-   ┌──────────────────────────────┬──────────────────────────────┐
-   │       HUMAN BIAS             │         AI BIAS              │
-   ├──────────────────────────────┼──────────────────────────────┤
-   │ Affects one decision at a    │ Affects millions of          │
-   │ time                         │ decisions simultaneously     │
-   │                              │                              │
-   │ Can be challenged, debated   │ May appear objective         │
-   │ questioned by others         │ ("the algorithm said so")    │
-   │                              │                              │
-   │ Visible — humans can be      │ Often invisible — encoded    │
-   │ held accountable             │ in model weights             │
-   │                              │                              │
-   │ Inconsistent (varies by      │ Consistently wrong at scale  │
-   │ mood, day, fatigue)          │ — bias is systematized       │
-   │                              │                              │
-   │ Hard to automate             │ Easily automated and         │
-   │                              │ deployed at low marginal     │
-   │                              │ cost per decision            │
-   └──────────────────────────────┴──────────────────────────────┘
-   Key insight: AI bias = human bias × scale × appearance of objectivity
+Is the bias getting worse over time as model outputs influence future data?
+  → FEEDBACK LOOP BIAS
 ```
-**Content:**
-**Human bias:**
-- Affects individual decisions
-- Can sometimes be identified and challenged
-- Limited in scale by individual capacity
-- Can change when the individual is educated
 
-**AI bias:**
-- Affects EVERY decision the model makes — at scale, instantly
-- Often invisible to the people it affects
-- Encoded in mathematics — not open to persuasion
-- Can persist and intensify over time (feedback loops)
-- Often affects the most vulnerable populations the most
-
-**Scale transforms the ethics:** A biased hiring manager harms dozens of candidates. A biased AI hiring tool harms thousands per year, invisibly.
-
-**Speaker Notes:** "I want to be clear upfront that human beings are biased — all of us, in various ways. That's not a moral failing; it's a product of how human cognition works. But human bias at least has a human face. You can report a biased hiring manager to HR. You can ask for a different decision-maker. You can advocate for yourself. AI bias has no face. It's mathematics. You don't even know it happened to you. And it happens to everyone who goes through the same system — at once, instantly, at scale. That's what makes it a different kind of ethical challenge."
+**Note:** Training Data Bias and Representation Bias are closely related — both involve problems in training data. The distinction:
+- Training Data Bias = data reflects historical discrimination or biased labels
+- Representation Bias = data is simply missing/underrepresenting certain groups (not necessarily due to past discrimination — just sampling gaps)
 
 ---
 
-### Slide 3: Type 1 — Training Data Bias
-**Visual:**
-```
-   HOW BIAS ENTERS THE AI PIPELINE
+### Bias Detection Methods
 
-   ┌─────────────────────────────────────────────────────────────┐
-   │                                                             │
-   │  REAL WORLD DATA                                            │
-   │  (historical decisions — may contain human biases)         │
-   │           │                                                 │
-   │           ▼ ← TRAINING DATA BIAS enters here               │
-   │  ┌────────────────┐                                         │
-   │  │ DATA COLLECTION│  Skewed sample, historical prejudice    │
-   │  └────────┬───────┘                                         │
-   │           │                                                 │
-   │           ▼ ← REPRESENTATION BIAS enters here              │
-   │  ┌────────────────┐                                         │
-   │  │  DATA PREP     │  Underrepresented groups in dataset     │
-   │  └────────┬───────┘                                         │
-   │           │                                                 │
-   │           ▼ ← ALGORITHMIC BIAS enters here                 │
-   │  ┌────────────────┐                                         │
-   │  │ MODEL TRAINING │  Algorithm amplifies existing patterns  │
-   │  └────────┬───────┘                                         │
-   │           │                                                 │
-   │           ▼ ← FEEDBACK LOOP BIAS enters here               │
-   │  ┌────────────────┐                                         │
-   │  │  DEPLOYMENT    │  Biased outputs feed back as new data   │
-   │  └────────┬───────┘                                         │
-   │           │                                                 │
-   │           ▼                                                 │
-   │  BIASED AI DECISIONS at scale                               │
-   └─────────────────────────────────────────────────────────────┘
-```
-**Content:**
-**Training Data Bias:**
-- Occurs when the historical data used to train a model reflects past biases, underrepresents certain groups, or is incomplete
-- The model learns the patterns in the data — including the biased patterns
+**Disaggregated accuracy analysis:** Measure model performance separately for different demographic groups (by race, gender, age, geography). If accuracy is significantly different across groups, the model has representational bias problems.
 
-**Real-world example:** Amazon's resume screening AI (covered in Lecture 15)
-- Trained on 10 years of predominantly male hiring decisions
-- Learned to penalize female indicators
+**Slice analysis:** Test model performance on specific subsets of data. A model that performs well overall may perform poorly on specific important subgroups.
 
-**Salesforce example:**
-- An Einstein Lead Scoring model trained in an org where leads from a specific industry or geography were historically not pursued (due to past rep bias, not lead quality)
-- Einstein will score those leads LOW — not because they're worse, but because the historical data shows they didn't convert (because they were NEVER called)
+**Human review of outputs:** Spot-check AI outputs for patterns of disparate treatment.
 
-**Key identifier:** The bias is IN THE DATA before the model trains
-
-**Speaker Notes:** "Training data bias is the original sin of machine learning. The data you train on is history — and history was written by humans with all their biases intact. Amazon's case is the most famous, but it happens everywhere. Imagine a credit scoring model trained on historical loan approval data. For decades, banks systematically denied loans to certain neighborhoods — a practice called redlining. If you train a modern AI credit model on that historical data, it will learn that residents of those neighborhoods are 'high risk' — not because they are, but because the data never gave them a fair chance to prove otherwise. The AI optimized the past into the future."
+**Fairness metrics:**
+- Equal accuracy: does the model achieve similar accuracy across groups?
+- Equal opportunity: does the model give qualified applicants from all groups similar positive prediction rates?
+- Equal error rates: do different groups have similar false positive / false negative rates?
 
 ---
 
-### Slide 4: Type 2 — Algorithmic Bias
-**Visual:**
-```
-   IDENTIFYING BIAS TYPE — DECISION GUIDE
+### Salesforce Bias Mitigation Approaches
 
-   What caused the bias?
-           │
-           ├─▶ Historical data reflects past discrimination?
-           │   → TRAINING DATA BIAS
-           │   Ex: Loan data from era of discriminatory lending
-           │
-           ├─▶ Certain groups underrepresented in training set?
-           │   → REPRESENTATION BIAS
-           │   Ex: Model trained mostly on data from one demographic
-           │
-           ├─▶ The algorithm itself amplifies group differences?
-           │   → ALGORITHMIC BIAS
-           │   Ex: Optimization objective inadvertently penalizes
-           │       one group over another
-           │
-           └─▶ Model outputs influence future training data?
-               → FEEDBACK LOOP BIAS
-               Ex: Biased hiring tool → fewer diverse hires →
-                   future training shows "diverse candidates fail"
-                   → bias worsens with each cycle
-```
-**Content:**
-**Algorithmic Bias:**
-- Occurs when the model's design, architecture, or the FEATURES chosen produce biased outcomes — even if the training data was balanced
-- Often involves proxy variables: neutral-seeming features that correlate with protected characteristics
-
-**Real-world example:** COMPAS recidivism algorithm
-- Used by US courts to predict likelihood of re-offending
-- Found to produce higher "high risk" scores for Black defendants at nearly 2x the rate for white defendants
-- The algorithm used factors like "job stability" that correlate with race and socioeconomic status
-
-**Salesforce example:**
-- A Prediction Builder model for sales territory assignment that uses "years of sales experience" as a feature
-- If women have historically been excluded from senior sales roles, this feature becomes a proxy for gender, producing systematically lower scores for women even with equal qualifications
-
-**Key identifier:** The bias emerges from the model's LOGIC or VARIABLE SELECTION — not just the data
-
-**Speaker Notes:** "Algorithmic bias is trickier than training data bias because you can look at the training data and think 'this looks balanced' and still have a biased model. The classic mechanism is the proxy variable. A proxy variable is a seemingly neutral feature that secretly correlates with a protected characteristic like race, gender, or disability. Zip code correlates with race in the US due to housing segregation history. Credit score correlates with race. Name-recognition scores correlate with ethnicity. If your model uses any of these as features, even with balanced training data, it can produce discriminatory results. This is why feature selection — deciding which variables to include in a model — is an ethical decision, not just a technical one."
+1. **Diverse training data curation**: Intentionally ensure training datasets include balanced representation of all relevant groups
+2. **Bias testing before deployment**: Run disaggregated accuracy checks during model evaluation phase
+3. **Regular bias audits post-deployment**: Schedule periodic reviews as model is used in production
+4. **Human-in-the-loop for consequential decisions**: Especially in high-stakes domains (hiring, credit, healthcare)
+5. **Model cards**: Publish known bias characteristics so deployers can make informed decisions
+6. **Feedback mechanisms**: Allow users to flag potentially biased outputs
 
 ---
 
-### Slide 5: Type 3 — Feedback Loop Bias
-**Visual:**
-```
-   FEEDBACK LOOP BIAS — The Self-Reinforcing Cycle
+## PTA / SA Relevance
 
-                    ┌─────────────────────┐
-                    │  BIASED INITIAL     │
-                    │  TRAINING DATA      │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │  BIASED MODEL       │
-                    │  DEPLOYED           │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │  BIASED DECISIONS   │
-                    │  MADE AT SCALE      │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │  OUTCOMES COLLECTED │
-                    │  AS NEW TRAINING    │
-                    │  DATA               │
-                    └──────────┬──────────┘
-                               │
-                               └──────────▶ BACK TO TOP
-                                           (bias compounds)
+**Bias is a real risk in customer Salesforce deployments, not an abstract concern:**
 
-   Each cycle: bias gets baked deeper into the model
-   Break the loop: audit data, measure subgroup outcomes, retrain
-```
-**Content:**
-**Feedback Loop Bias:**
-- Also called "automation bias" or "self-fulfilling prophecy bias"
-- Occurs when AI predictions influence human behavior, which generates new data that reinforces the original prediction
-- The model's biases become self-perpetuating — and grow stronger over time
+**Einstein Lead Scoring bias scenario:**
+- A customer trained Lead Scoring on 5 years of historical conversions
+- During that period, the sales team only pursued leads from large companies
+- Leads from small companies rarely converted — not because they weren't qualified, but because reps didn't pursue them
+- Result: Lead Scoring assigns low scores to small company leads — a feedback loop bias that perpetuates the historical behavior
+- PTA action: Audit the training data before deployment; assess whether historical patterns represent future behavior or historical bias
 
-**Real-world example:**
-- A predictive policing AI predicts high crime likelihood in certain neighborhoods
-- Police increase patrols in those neighborhoods
-- More police → more detected crime → more crime data from those neighborhoods
-- AI retrains on this data → predicts EVEN HIGHER crime risk in same neighborhoods
-- The prediction created the data that confirmed the prediction
+**Agentforce response bias:**
+- LLMs trained on internet text absorb societal biases
+- Customer service agent may give shorter, less helpful responses to users who write in less formal language (which can correlate with demographic characteristics)
+- PTA action: Test the agent's response quality across diverse user communication styles; review Einstein model cards
 
-**Salesforce example:**
-- Einstein Lead Scoring gives low scores to leads from Sector X
-- Reps deprioritize those leads (acting on the prediction)
-- Leads from Sector X never convert (because they were never called)
-- New model trains on this data → Sector X scores even lower
-- Original bias compounds over time
+**High-stakes deployment guidance for customers:**
+- Any AI used in hiring, credit decisions, healthcare triage, law enforcement, housing, or education requires formal bias audits — these are legally regulated domains in many jurisdictions
+- Always recommend human review for consequential decisions in these domains
+- EU AI Act (coming into force) categorizes AI in these domains as "high risk" with strict requirements
 
-**Key identifier:** Bias that grows stronger over time due to the model's outputs influencing future training data
-
-**Speaker Notes:** "Feedback loop bias is arguably the most dangerous type because it self-reinforces. And it can be very hard to detect from inside the system. Everyone is doing their job 'correctly' — reps prioritize high-scored leads, the AI retrains on outcomes, everyone follows the numbers. But the system is spiraling away from reality. The leads from Sector X aren't actually worse — they just have the scarlet letter from the original biased model, and every cycle of prediction → action → outcome → retraining makes the scarlet letter darker. The fix requires an intervention that deliberately breaks the loop: force-testing the AI's predictions by having humans override them in a controlled sample, to see whether the outcomes actually match what the AI predicted."
+**CTO framing:**
+- "Bias in AI isn't a bug you can patch — it's a systemic risk that requires ongoing monitoring. Your AI governance program should include regular bias audits, not just a one-time check at deployment."
 
 ---
 
-### Slide 6: Type 4 — Representation Bias
-**Visual:**
+## Bias in AI Architecture (Detection and Mitigation)
+
 ```
-   SOURCES OF AI BIAS — RELATIVE FREQUENCY IN PRACTICE
-
-   ┌─────────────────────────────────────────────────────────────┐
-   │                                                             │
-   │   Training Data Bias    ████████████████████████  ~40%     │
-   │   (most common origin)                                      │
-   │                                                             │
-   │   Representation Bias   ████████████████          ~30%     │
-   │   (undersampled groups)                                     │
-   │                                                             │
-   │   Feedback Loop Bias    ████████████              ~20%     │
-   │   (amplified over time)                                     │
-   │                                                             │
-   │   Algorithmic Bias      █████                     ~10%     │
-   │   (design flaw in model)                                    │
-   │                                                             │
-   │   Note: These types often compound each other              │
-   └─────────────────────────────────────────────────────────────┘
+╔════════════════════════════════════════════════════════════════════╗
+║              BIAS DETECTION & MITIGATION FRAMEWORK                  ║
+╠════════════════════════════════════════════════════════════════════╣
+║                                                                    ║
+║  DATA PHASE                                                        ║
+║  ┌──────────────────────────────────────────────────────────┐     ║
+║  │ Audit training data:                                     │     ║
+║  │ • Is each demographic group represented proportionally?  │     ║
+║  │ • Do historical labels reflect bias, not just outcomes?  │     ║
+║  │ • Is the data from a time period that reflects current   │     ║
+║  │   business reality?                                      │     ║
+║  └──────────────────────────────────────────────────────────┘     ║
+║                          │                                         ║
+║  MODEL TRAINING PHASE                                              ║
+║  ┌──────────────────────────────────────────────────────────┐     ║
+║  │ Check algorithmic choices:                               │     ║
+║  │ • What metric is the model optimizing?                   │     ║
+║  │ • Could optimization metric advantage certain groups?    │     ║
+║  │ • Apply fairness constraints if needed                   │     ║
+║  └──────────────────────────────────────────────────────────┘     ║
+║                          │                                         ║
+║  MODEL EVALUATION PHASE                                            ║
+║  ┌──────────────────────────────────────────────────────────┐     ║
+║  │ Disaggregated accuracy analysis:                         │     ║
+║  │ • Run accuracy metrics by demographic subgroup           │     ║
+║  │ • Compare false positive / false negative rates          │     ║
+║  │ • If significant gaps found: investigate root cause      │     ║
+║  └──────────────────────────────────────────────────────────┘     ║
+║                          │                                         ║
+║  PRODUCTION MONITORING                                             ║
+║  ┌──────────────────────────────────────────────────────────┐     ║
+║  │ Ongoing:                                                 │     ║
+║  │ • Track output distribution by group over time           │     ║
+║  │ • Watch for feedback loop amplification                  │     ║
+║  │ • Regular re-audit (quarterly recommended)               │     ║
+║  │ • Human review escalation path for flagged decisions     │     ║
+║  └──────────────────────────────────────────────────────────┘     ║
+╚════════════════════════════════════════════════════════════════════╝
 ```
-**Content:**
-**Representation Bias:**
-- Occurs when certain groups are underrepresented in the training data
-- The model performs significantly worse for underrepresented groups
-- Can occur independently of intentional bias in the data — it's a data volume problem
 
-**Real-world example:** Facial recognition accuracy gaps
-- Models trained primarily on white, male faces
-- Significantly higher error rates for women of color — up to 35% error rate vs. 1% for white men (MIT Media Lab study)
-
-**Salesforce example:**
-- An Einstein sentiment analysis model trained predominantly on English text from North American customers
-- Model performs poorly at detecting sentiment in text from customers writing in English as a second language, or using regional expressions
-- Result: customers from non-native English backgrounds get worse service because the AI misreads their emotional state
-
-**Key identifier:** The bias shows up as UNEQUAL ACCURACY across different demographic or user groups
-
-**Speaker Notes:** "Representation bias is sometimes the most sympathetically understandable type because it's not necessarily intentional. A small company builds an AI using their own customer data. Their customers happen to be predominantly from one demographic. The model works great for that demographic and poorly for others. It's not that anyone tried to exclude those other groups — they just weren't in the dataset. The problem is that when the company expands and starts serving a more diverse customer base, their AI is less accurate for the new customers. That asymmetry — the AI is better for the people it was trained on — is representation bias. It's solvable by intentionally collecting more diverse training data, but it requires explicitly recognizing the problem."
+**Limitations of bias mitigation:**
+- No AI system can be proven 100% free of bias — bias detection is an ongoing process, not a one-time certification
+- Fairness metrics can conflict — a model that achieves equal accuracy may still have unequal false positive rates; different fairness definitions require different tradeoffs
+- Protected characteristic data may not be available in Salesforce CRM data — making it difficult to run demographic disaggregation analysis
+- Mitigation techniques (e.g., rebalancing training data) can reduce bias for one group while inadvertently increasing it for another
 
 ---
 
-### Slide 7: Bias in Salesforce AI — Specific Scenarios
-**Visual:**
-```
-   REAL-WORLD BIAS SCENARIOS IN SALESFORCE
+## Key Facts to Memorize
 
-   ┌──────────────────────────┬──────────────────────────┐
-   │  SCENARIO 1              │  SCENARIO 2              │
-   │  Einstein Lead Scoring   │  Case Classification     │
-   │                          │                          │
-   │  If historical sales team│  If support tickets from │
-   │  never pursued SMB leads,│  certain regions were    │
-   │  Einstein learns SMBs    │  consistently downgraded,│
-   │  are low value →         │  model learns to         │
-   │  perpetuates the bias    │  deprioritize them       │
-   │                          │                          │
-   │  TYPE: Training Data     │  TYPE: Feedback Loop     │
-   ├──────────────────────────┼──────────────────────────┤
-   │  SCENARIO 3              │  SCENARIO 4              │
-   │  Hiring Recommendation   │  Credit Scoring via AI   │
-   │                          │                          │
-   │  Model trained on past   │  ZIP code used as proxy  │
-   │  hires (homogeneous) →   │  for creditworthiness →  │
-   │  undervalues diverse      │  correlates with race/   │
-   │  candidates              │  protected class         │
-   │                          │                          │
-   │  TYPE: Representation    │  TYPE: Algorithmic       │
-   └──────────────────────────┴──────────────────────────┘
-```
-**Content:**
-**Training Data Bias in Einstein Lead Scoring:**
-A company trained Lead Scoring on 3 years of data from a team that only called domestic leads. International leads score consistently low. Not because they don't convert — because they never got called in the historical data.
-
-**Algorithmic Bias in Prediction Builder:**
-An admin builds an employee performance prediction using "educational institution prestige" as a feature. This correlates with socioeconomic background and potentially race.
-
-**Feedback Loop Bias in Einstein Opportunity Scoring:**
-Opportunity Scoring gives low scores to deals in the education vertical. Reps stop working those deals. Education deals rarely close. The model retrains: education vertical scores even lower.
-
-**Representation Bias in Einstein Case Classification:**
-Case Classification was trained on cases from large enterprise accounts. It misclassifies small business cases 3x more often because that category was underrepresented in training.
-
-**Speaker Notes:** "These four scenarios are calibrated to look like exam questions. The exam will give you a scenario like one of these and ask you to identify the bias type. Practice reading these until you can immediately say: 'Training data bias — because the historical data was incomplete.' 'Feedback loop bias — because the model's outputs are influencing future training data.' 'Representation bias — because a group is underrepresented, producing unequal accuracy.' 'Algorithmic bias — because a proxy variable is creating discriminatory outcomes despite neutral-looking inputs.'"
+- **4 bias types**: Training Data Bias, Algorithmic Bias, Feedback Loop Bias, Representation Bias
+- **Training Data Bias**: historical discrimination baked into labels/data
+- **Algorithmic Bias**: the algorithm's optimization choices create unfairness
+- **Feedback Loop Bias**: model outputs influence future training data → amplification
+- **Representation Bias**: underrepresentation of groups → worse performance for those groups
+- **Disaggregated accuracy**: measure performance per demographic subgroup to detect bias
+- Bias is systemic, not a one-time bug — requires ongoing monitoring
+- Amazon hiring AI = canonical Training Data Bias example
+- Predictive policing = canonical Feedback Loop Bias example
+- Facial recognition disparate accuracy = canonical Representation Bias example
 
 ---
 
-### Slide 8: How to Detect Bias in AI Outputs
-**Visual:**
-```
-   BIAS DETECTION — SUBGROUP PERFORMANCE ANALYSIS
+## Exam Traps
 
-   Overall Model Accuracy: 87%
-   ─────────────────────────────────────────────────────────────
-   Performance by Subgroup:
+**Trap 1:** "Bias only exists if the model developer intended to discriminate." WRONG. Bias is typically unintentional — it emerges from historical patterns in data, algorithmic choices, and feedback loops.
 
-   Group A (majority)    ████████████████████████████████  91%
-   Group B (minority)    ██████████████████                58%
-   Group C               ███████████████████████           72%
-   Group D               █████████████████████████████     84%
+**Trap 2:** Confusing Representation Bias with Training Data Bias. Key difference: Representation Bias = groups simply missing from training data (sampling gap). Training Data Bias = labels/outcomes in the data reflect historical discrimination (the data is there but is biased).
 
-   ─────────────────────────────────────────────────────────────
-   ⚠ WARNING: 33-point accuracy gap between Group A and Group B
+**Trap 3:** "If an AI model has high overall accuracy, it doesn't have bias." WRONG. A model can have very high overall accuracy while performing significantly worse on minority groups (if majority groups dominate the test set). Disaggregated analysis is essential.
 
-   This gap indicates the model performs substantially worse
-   for Group B — a fairness problem even if overall accuracy
-   looks acceptable.
-
-   Action required: Investigate Group B representation in
-   training data. Consider re-weighting or oversampling.
-```
-**Content:**
-**Detection methods:**
-
-**1. Disaggregated accuracy analysis:**
-- Don't just measure overall accuracy — measure accuracy for each demographic subgroup separately
-- Red flag: Large accuracy gaps between groups
-
-**2. Outcome disparity analysis:**
-- Does the AI produce different outcomes (higher/lower scores, different classifications) for different groups?
-- Red flag: One group consistently receives higher risk scores, lower opportunity scores, etc.
-
-**3. Feature audit:**
-- Review which features the model uses most heavily
-- Red flag: Proxy variables (zip code, educational institution, years in workforce) that correlate with protected characteristics
-
-**4. Historical comparison:**
-- Compare AI decisions to historical human decisions for the same scenarios
-- Red flag: AI is replicating human decision patterns that were known to be biased
-
-**5. A/B testing with intentional override:**
-- Force the AI to surface some low-scored items and measure actual outcomes
-- Red flag: Actual outcomes for "low-scored" items are similar to "high-scored" items (false negatives from bias)
-
-**Speaker Notes:** "Detecting bias requires you to LOOK for it. This sounds obvious but it's not automatic. A model can be deployed, produce biased results for years, and never be identified as biased if nobody checks. The most important detection method is disaggregated accuracy analysis — instead of looking at your model's overall accuracy rate, break it down by subgroup. If your overall accuracy is 85% but the accuracy for Group X is 55%, you have a problem that the aggregate number was hiding. Every production AI model should have this kind of subgroup monitoring built in."
+**Trap 4:** "Feedback loop bias only happens with predictive policing." WRONG. Any system where AI outputs influence the generation of future training data can create feedback loops. Examples: content recommendation systems, credit scoring that affects financial behavior, hiring AI that shapes the applicant pool.
 
 ---
 
-### Slide 9: What Salesforce Does to Mitigate Bias
-**Visual:**
-```
-   BIAS TYPES — CLASSIFICATION MATRIX
+## Practice Questions
 
-                        WHEN IT ENTERS THE PIPELINE
-                   DATA STAGE          MODEL STAGE
-                ┌──────────────────┬──────────────────┐
-   ORIGIN:      │ TRAINING DATA    │ ALGORITHMIC      │
-   HISTORICAL   │ BIAS             │ BIAS             │
-   DATA         │                  │                  │
-                │ Past human bias  │ Model design     │
-                │ encoded in       │ choice amplifies │
-                │ training records │ group differences│
-                ├──────────────────┼──────────────────┤
-   ORIGIN:      │ REPRESENTATION   │ FEEDBACK LOOP    │
-   STRUCTURAL   │ BIAS             │ BIAS             │
-   GAPS         │                  │                  │
-                │ Certain groups   │ Biased outputs   │
-                │ underrepresented │ become future    │
-                │ in dataset       │ training data    │
-                └──────────────────┴──────────────────┘
-```
-**Content:**
-**Salesforce's bias mitigation approaches:**
+**Q1: A company uses Einstein Lead Scoring trained on three years of historical data. During those three years, the sales team primarily pursued leads from the financial services industry due to a company focus at that time. The model now assigns low scores to leads from other industries. What type of bias is this?**
 
-**At Build:**
-- Curate training data to include diverse representation
-- Audit features for proxy variable risk
-- Require ethics review for any AI feature affecting protected characteristics
+A) Algorithmic Bias
+B) Feedback Loop Bias
+C) Representation Bias
+D) Training Data Bias
 
-**At Test:**
-- Disaggregated accuracy testing across demographic subgroups before release
-- Red Team adversarial testing to find edge cases
-- Model cards documenting known limitations and biases
-
-**At Deploy:**
-- Human oversight requirements for high-stakes AI decisions
-- Customer guidelines in Model Cards for appropriate use contexts
-- AI Acceptable Use Policy restrictions on discriminatory use
-
-**At Monitor:**
-- Audit trails for AI decisions and outcomes
-- Outcome monitoring over time to detect feedback loop bias
-- Mechanism for users to report suspected bias
-
-**Speaker Notes:** "Salesforce's approach to bias mitigation is staged — they try to catch it at each phase of the AI lifecycle, not just at one checkpoint. Building diverse training data is the first defense. Testing for subgroup accuracy before release is the second. Requiring human oversight for consequential decisions is the third. Monitoring outcomes over time is the fourth. No single intervention is sufficient. Bias is a complex, multi-source problem — the mitigation has to be equally multi-layered."
+**Answer: D** — Training Data Bias. The historical data reflects a biased sampling (only certain industry leads were pursued and converted), and those patterns are now encoded in the model. The labels (converted/not converted) represent historical behavior, not inherent lead quality.
 
 ---
 
-### Slide 10: Exam Tips — Identifying Bias Type from Scenario
-**Visual:**
-```
-   BIAS DETECTION DECISION FRAMEWORK
+**Q2: A facial recognition security system is found to have a 2% error rate for lighter-skinned individuals but a 19% error rate for darker-skinned individuals. The model was trained on a dataset that was 85% lighter-skinned faces. What type of bias does this represent?**
 
-   Step 1: Is model accuracy uniform across subgroups?
-           │
-     ┌─────┴───────┐
-    YES             NO
-     │               │
-     ▼               ▼
-   Low bias      Investigate:
-   risk (but      ● Is subgroup underrepresented
-   keep            in training data? → Representation bias
-   monitoring)   ● Do historical outcomes reflect
-                   past discrimination? → Training data bias
-                 ● Does model weigh protected-class
-                   proxies (ZIP, name)? → Algorithmic bias
-                 ● Are biased outputs fed back as
-                   training data? → Feedback loop bias
+A) Training Data Bias
+B) Feedback Loop Bias
+C) Representation Bias
+D) Algorithmic Bias
 
-   Step 2: After identifying: Retrain with balanced data,
-           add fairness constraints, or re-weight subgroups
-
-   Step 3: Monitor continuously — bias can re-emerge
-```
-**Content:**
-**Quick identification guide:**
-
-| Trigger phrase in scenario | Bias type |
-|---|---|
-| "Historical data reflected past discrimination" | Training Data Bias |
-| "The AI used a feature that correlates with race/gender" | Algorithmic Bias |
-| "Model outputs influenced future data, making bias stronger" | Feedback Loop Bias |
-| "Model accuracy is worse for certain demographic groups" | Representation Bias |
-| "Underrepresented in the training dataset" | Representation Bias |
-| "The model retrains and performs even worse over time" | Feedback Loop Bias |
-| "Seems neutral but correlates with a protected characteristic" | Algorithmic Bias |
-
-**Speaker Notes:** "Use this table as your exam answer key for bias type questions. Read the scenario, find the trigger phrase, match to the bias type. The exam scenario will always contain a tell — a phrase that describes the MECHANISM of bias. Your job is to recognize the mechanism and name the category."
+**Answer: C** — Representation Bias. The training dataset underrepresented darker-skinned individuals (only 15% of the dataset). As a result, the model performs significantly worse for that group — a classic representation bias outcome.
 
 ---
 
-## RECORDING SCRIPT
+**Q3: A content recommendation AI on a social platform consistently recommends content that already has high engagement, which causes users to see more of that content, which drives more engagement, causing the algorithm to recommend it even more. Over time, diverse content becomes less visible. What type of bias is this?**
 
-[Opening — 0:00-2:00]
+A) Training Data Bias
+B) Representation Bias
+C) Feedback Loop Bias
+D) Algorithmic Bias
 
-"I want to try something different to open this lecture. I'm going to give you four mini-scenarios, and I want you to just sit with each one for a moment and think about what's happening.
-
-Scenario one: A bank uses a loan approval AI. It approves 87% of loan applications from applicants in wealthy zip codes and 23% from applicants in lower-income zip codes. The bank says this is because the historical repayment data supports these rates.
-
-Scenario two: A company uses an AI to score sales leads. Leads from female executives consistently score 40% lower than leads from male executives with identical job titles and company sizes.
-
-Scenario three: An Agentforce service bot consistently misunderstands questions written by non-native English speakers, causing them to wait twice as long to resolve their issues.
-
-Scenario four: An AI predictions model scores a neighborhood as high-risk for mortgage defaults. As a result, fewer home loans are made there. The homes become worth less. The families there have less wealth. Ten years later, the AI model still scores the neighborhood high-risk — but now because the people there have less wealth than when the AI started.
-
-Each of these is a different type of bias. Each one causes real harm. And in each case, the AI system appears to be working 'correctly' — it's doing exactly what it was trained to do. That's the problem we're exploring today."
-
-[Four bias types — 2:00-10:00]
-
-"Let's start with Type 1: Training Data Bias. The scenario I described about the bank and zip codes — that's training data bias. The AI learned its approval rates from historical data. That historical data reflected decades of discriminatory lending practices where banks systematically denied loans to residents of certain neighborhoods. The AI found the pattern in the data and encoded it. It didn't create the discrimination — it inherited it. And now it perpetuates it at algorithmic scale.
-
-In Salesforce terms: imagine you build a Lead Scoring model in an org where, for the last three years, the sales team only called leads from the manufacturing industry. Service sector leads were never pursued because the previous VP of Sales had a personal skepticism about that vertical. The historical data shows: manufacturing leads convert at 28%, service sector leads convert at 3%. Einstein trains on this data and gives service sector leads very low scores. But the 3% isn't because service sector leads are poor quality — it's because the team never invested in them. The AI learned a bias baked into the human team's past behavior.
-
-Type 2: Algorithmic Bias. This is my scenario about female executives scoring lower than male executives with identical profiles. The algorithm might use a feature like 'years in current role' or 'connections on LinkedIn.' If the historical data shows that female executives have shorter average tenure in roles — not because they're less committed, but because they've been systematically pushed out or passed over for advancement — then using tenure as a feature encodes gender bias into the model through what looks like a neutral variable. That neutral-looking variable that correlates with a protected characteristic is called a proxy variable. It's the mechanism of algorithmic bias.
-
-Type 3: Representation Bias. My scenario about non-native English speakers struggling with the service bot. That model was probably trained on customer service transcripts from the company's existing customers — who happened to be predominantly native English speakers. The model learned to understand standard American English idioms, syntax, and phrasing very well. When someone types in broken English, uses idioms from another culture, or structures sentences differently, the model struggles. It's not a bug — the model is performing exactly as trained. The problem is that the training data didn't represent the full diversity of the eventual user population. Accuracy is unequal, and the users who are most different from the training data pay the cost.
-
-Type 4: Feedback Loop Bias. The mortgage neighborhood scenario is the classic example. AI predicts high risk → fewer loans made → neighborhood deteriorates → AI retrains → neighborhood scores even higher risk. The model's output became the cause of the outcome it was predicting. And each cycle makes the bias stronger. This is the most insidious type because it can look like the model is 'working' — the neighborhood IS higher risk after 10 years. What's invisible is that the model CAUSED the increased risk by restricting access to capital.
-
-In Salesforce: Einstein Lead Scoring gives low scores to leads from Sector X. Reps don't call them. Sector X leads don't convert. Model retrains on data that includes 'Sector X leads have 0% conversion.' Next cycle: Sector X scores are even lower. The first low score might have been wrong. The second cycle's low score is backed by 'evidence' — evidence created by the first wrong prediction. The feedback loop has turned an error into a self-fulfilling prophecy."
-
-[Detection and mitigation — 10:00-14:00]
-
-"Knowing the four types is only half the battle. The exam also tests how to detect bias and what Salesforce does about it.
-
-Detection is fundamentally about disaggregation. The classic mistake is evaluating an AI model only on aggregate accuracy. If your model is 85% accurate overall, you might feel good about it. But what if it's 95% accurate for Group A and 55% accurate for Group B? The aggregate number hides a serious disparity. Disaggregated accuracy analysis — breaking down performance metrics by demographic group — is the essential tool for detecting representation bias and many forms of training data bias.
-
-Feature audits catch algorithmic bias. Before you train a model, review every feature you're planning to include. Ask: does this variable correlate with race, gender, age, disability, or other protected characteristics? Zip code, educational institution name, years of experience — all of these can be proxy variables that introduce algorithmic bias.
-
-Outcome monitoring catches feedback loop bias. You need to compare what the model predicted with what actually happened — and specifically, you need to check whether the model's predictions are influencing the outcomes they're predicting. If you notice that a group that the model consistently scores low NEVER gets a chance to prove the score wrong (because humans always follow the AI), you've got a feedback loop risk.
-
-What does Salesforce do? Four things. First, diverse training data curation — they intentionally seek out and include diverse training data for Einstein features. Second, subgroup accuracy testing before release — they run disaggregated accuracy checks as part of the release process. Third, model cards — they publish documentation for each AI feature detailing known limitations and biases so admins can make informed deployment decisions. And fourth, human oversight requirements — for any AI feature that affects high-stakes decisions about people, Salesforce's guidelines require a human in the loop."
-
-[Closing — 14:00-15:00]
-
-"Here's the practical takeaway. Bias in AI is not someone else's problem. If you're a Salesforce admin deploying Prediction Builder, you are making choices that determine what data trains your model, what features it uses, and how it gets evaluated. Those choices have ethical consequences. The exam tests whether you understand the types of bias and how to identify them — but in the real world, what matters is whether you ask the bias questions before you ship your AI feature, not after.
-
-Know your four types: Training Data Bias, Algorithmic Bias, Feedback Loop Bias, Representation Bias. Know the mechanism of each. Know the real-world pattern. When you see a scenario on the exam, find the mechanism and name the type."
-
----
-
-## EXAM TIPS
-- Four bias types: Training Data Bias, Algorithmic Bias, Feedback Loop Bias, Representation Bias.
-- Training Data Bias: bias is IN the historical data before training.
-- Algorithmic Bias: a proxy variable correlates with a protected characteristic.
-- Feedback Loop Bias: AI outputs influence future training data → bias grows stronger over time.
-- Representation Bias: underrepresented group → lower accuracy for that group.
-- Exam format: scenario description → identify which type of bias is present.
-- Key detection method: disaggregated accuracy analysis (break performance down by demographic group).
-- Proxy variables are the primary mechanism of algorithmic bias — seemingly neutral features that correlate with protected characteristics.
-- Salesforce mitigates bias through: diverse training data, subgroup accuracy testing, model cards, human oversight requirements.
-
----
-
-## LECTURE SUMMARY
-- AI bias is different from human bias because it operates at scale, invisibly, and can self-reinforce over time
-- Four main types: Training Data Bias (historical data reflects past bias), Algorithmic Bias (proxy variables produce discriminatory outcomes), Feedback Loop Bias (model outputs influence future training data), Representation Bias (underrepresented groups receive lower accuracy)
-- All four types can appear in Salesforce Einstein features — particularly Prediction Builder and Lead Scoring
-- Detection requires disaggregated accuracy analysis, feature audits, and outcome monitoring over time
-- Salesforce mitigates bias through diverse data curation, subgroup testing, model cards, and human oversight requirements
-
----
-
-## MINI QUIZ
-
-**Question 1:**
-A company uses Einstein Prediction Builder to predict which customers will accept upgrade offers. After 12 months, they notice that customers in rural areas are scored as very unlikely to accept upgrades. An investigation reveals that reps had historically not called rural customers with upgrade offers, so the historical conversion rate for that group appears near zero. Which type of bias is MOST present?
-
-A) Algorithmic Bias  
-B) Feedback Loop Bias  
-C) Training Data Bias  
-D) Representation Bias
-
-**Answer: C — Training Data Bias**
-
-*Explanation:* The scenario describes a situation where the historical data reflects past human behavior (reps didn't call rural customers) rather than the actual quality or likelihood of those customers. The data is biased because it didn't give rural customers an opportunity to demonstrate their conversion potential. This is classic Training Data Bias — the model learned from historical data that reflected a past business decision (don't call rural), not a genuine difference in customer quality. Feedback Loop Bias would involve the model's current outputs influencing new training data and growing stronger over time (not described). Algorithmic Bias would involve a proxy variable correlating with a protected characteristic. Representation Bias would show as lower model accuracy for rural customers.
-
----
-
-**Question 2:**
-A financial services company uses an Einstein Prediction Builder model to assess credit risk for small business loans. The model uses "neighborhood census tract median income" as a feature. An audit finds the model approves loans at 85% for predominantly white neighborhoods and 34% for predominantly minority neighborhoods. The model's developers say the income feature is purely economic, not racial. Which type of bias does this BEST describe?
-
-A) Training Data Bias  
-B) Algorithmic Bias  
-C) Feedback Loop Bias  
-D) Representation Bias
-
-**Answer: B — Algorithmic Bias**
-
-*Explanation:* This is a textbook example of Algorithmic Bias via proxy variable. "Census tract median income" may appear to be a neutral economic variable, but due to the history of housing segregation and redlining in the US, census tract income correlates strongly with racial demographics. Using this variable introduces racial discrimination into the model even if race was never directly used as a feature. The developers are correct that they didn't use race — but they used a proxy for race. Algorithmic Bias is specifically about variables that appear neutral but produce discriminatory outcomes because they correlate with protected characteristics. The bias is in the model's variable selection, not the volume of training data (Representation Bias) or feedback effects.
-
----
-
-**Question 3:**
-An Einstein Lead Scoring model was trained 18 months ago. At the time, it gave low scores to leads from the retail sector. As a result, reps stopped calling retail leads. Now, 18 months later, retail leads have a near-zero historical conversion rate in the CRM. When the model is retrained on this updated data, retail leads score even lower. What type of bias MOST accurately describes what is happening?
-
-A) Training Data Bias  
-B) Algorithmic Bias  
-C) Feedback Loop Bias  
-D) Representation Bias
-
-**Answer: C — Feedback Loop Bias**
-
-*Explanation:* This is a classic Feedback Loop Bias scenario. The original model's predictions (low retail scores) influenced human behavior (reps stopped calling retail leads). That behavior generated new outcome data (retail leads don't convert, because they weren't called). The new outcome data is now being used to retrain the model. Each retraining cycle makes the bias stronger — the model predicted low, human behavior confirmed low, model retrains on confirmed-low data, scores even lower. The key identifying features: the model's outputs affected future training data, and the bias grows stronger over time. If the scenario described the problem at a single point in time, it might look like Training Data Bias — but the described CYCLE of worsening bias is specifically Feedback Loop Bias.
+**Answer: C** — Feedback Loop Bias. The model's outputs (recommendations) influence user behavior (engagement), which becomes the future training data, which reinforces the model's existing tendencies. The cycle amplifies the initial bias over time.

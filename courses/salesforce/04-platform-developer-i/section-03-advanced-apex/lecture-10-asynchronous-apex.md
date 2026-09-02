@@ -1,209 +1,233 @@
 # Asynchronous Apex
 
-## Learning Objectives
-- Identify the four types of asynchronous Apex and the use case that best fits each
-- Write @future methods with correct signature constraints
-- Implement the Database.Batchable interface for mass data processing
-- Chain jobs using Queueable Apex and schedule jobs with CRON expressions
+## Exam Domain
+Process Automation & Logic — 30% of exam weight
 
-## Slides
+## Core Concepts
 
-### Slide 1: Why Asynchronous Apex?
-**Visual:**
+### Why Async? — Fresh Governor Contexts
+Synchronous transactions share one set of governor limits. Async Apex runs in a separate transaction with fresh limits. Use async when: volume exceeds sync limits, callouts needed from a trigger, work needs to run on a schedule, or jobs need to chain.
+
+### @future Methods
+```apex
+@future(callout=true)
+public static void callExternalService(Set<Id> accountIds) {
+    // Re-query inside — data may change before execution
+    List<Account> accounts = [SELECT Id, Name FROM Account WHERE Id IN :accountIds];
+    Http h = new Http();
+    // ... make callout
+}
 ```
-  SYNCHRONOUS (one governor context)
-  ┌───────────────────────────────────────┐
-  │  Trigger → Logic → SOQL → DML → ...  │───► LimitException if too large
-  └───────────────────────────────────────┘
-           ↑ limited to 100 SOQL, 6MB heap, etc.
+- Must be **static** and return **void**
+- Parameters: **primitives only** — no sObjects (data may change before execution)
+- `callout=true` required for HTTP callouts
+- Cannot call @future from @future
+- Limit: 50 @future invocations per synchronous transaction
 
-  ASYNCHRONOUS (separate governor context)
-  ┌─────────────┐   enqueue   ┌────────────────────────────────┐
-  │   Trigger   │ ──────────► │  @future / Batch / Queueable   │
-  │  (returns   │             │  Fresh limits per job:         │
-  │   quickly)  │             │  200 SOQL, 12MB heap, etc.     │
-  └─────────────┘             └────────────────────────────────┘
+### Batch Apex — Mass Data Processing
+```apex
+public class AccountReviewBatch implements Database.Batchable<sObject> {
+    public Database.QueryLocator start(Database.BatchableContext bc) {
+        return Database.getQueryLocator([SELECT Id, Name FROM Account]);
+    }
+    public void execute(Database.BatchableContext bc, List<Account> scope) {
+        // process 200 records — fresh governor limits per execute()
+    }
+    public void finish(Database.BatchableContext bc) {
+        // runs once after all batches complete
+    }
+}
+// Start: Database.executeBatch(new AccountReviewBatch(), 200);
 ```
-**Content:**
-- Synchronous transactions share one set of governor limits
-- Long-running or resource-intensive work needs its own context
-- Async Apex runs in a separate transaction with its own limits
-- Four types: @future, Batch Apex, Queueable Apex, Scheduled Apex
-**Speaker Notes:** Salesforce enforces per-transaction limits. When a single synchronous transaction can't finish the work — whether due to row volume, callout requirements, or timing — you move that work asynchronously. Each async job gets a fresh governor context, meaning a fresh set of limits.
+- `start()`: returns up to **50 million** records via QueryLocator
+- `execute()`: called per chunk; default size 200; max 2,000
+- `finish()`: runs once; use for summary emails, kick next job
+- Max **5 concurrent** batch jobs org-wide
 
-### Slide 2: @future Methods
-**Visual:** Code snippet showing a static void method annotated with @future(callout=true) being invoked from a trigger
-**Content:**
-- Must be `static` and return `void`
-- Parameters must be primitive types or collections of primitives — no sObjects
-- Annotate with `@future(callout=true)` to allow HTTP callouts
-- Cannot call another @future from a @future method
-- Limit: 50 @future calls per synchronous transaction
-**Speaker Notes:** The most common use of @future in triggers is making an HTTP callout after a DML event, because Salesforce does not allow callouts after uncommitted DML in the same synchronous transaction. Pass record IDs as a Set<Id> instead of sObjects — sObject parameters are not allowed because the data may have changed by the time the job runs.
-
-### Slide 3: Batch Apex
-**Visual:**
+### Queueable Apex — Flexible Async with Chaining
+```apex
+public class AccountSyncJob implements System.Queueable, Database.AllowsCallouts {
+    private List<Account> accounts;
+    public AccountSyncJob(List<Account> accounts) { this.accounts = accounts; }
+    public void execute(System.QueueableContext ctx) {
+        // process accounts — can chain another job
+        System.enqueueJob(new NextStep(accounts));
+    }
+}
+// Invoke: System.enqueueJob(new AccountSyncJob(myList));
 ```
-  ┌──────────────────┐     ┌───────────────────────┐     ┌─────────────────┐
-  │    start()       │────►│    execute()           │────►│   finish()      │
-  │                  │     │   (called per chunk)   │     │                 │
-  │  Returns         │     │                        │     │  Runs once      │
-  │  QueryLocator    │     │  200 records/chunk     │     │  after all      │
-  │  (up to 50M      │     │  (default; max 2,000)  │     │  chunks done    │
-  │   records)       │     │                        │     │                 │
-  │                  │     │  Each chunk = its own  │     │  Send summary,  │
-  │  Runs once       │     │  transaction + limits  │     │  clean up, etc. │
-  └──────────────────┘     └───────────────────────┘     └─────────────────┘
+- Implements `System.Queueable`; single `execute(QueueableContext ctx)` method
+- Accepts **non-primitive parameters** (sObjects, custom types) — unlike @future
+- Can chain: `System.enqueueJob(new NextJob())` inside execute()
+- Returns a Job ID for monitoring
+- Implement `Database.AllowsCallouts` for HTTP callouts
+
+### Scheduled Apex — Time-Based Jobs
+```apex
+public class NightlyCleanup implements System.Schedulable {
+    public void execute(System.SchedulableContext ctx) {
+        Database.executeBatch(new AccountReviewBatch());
+    }
+}
+// Schedule: System.schedule('Nightly Cleanup', '0 0 2 * * ?', new NightlyCleanup());
 ```
-**Content:**
-- Implements `Database.Batchable<sObject>` interface
-- Three required methods: `start()`, `execute()`, `finish()`
-- `start()` returns up to 50 million records via `Database.QueryLocator`
-- Default batch size: 200 records per `execute()` call; max 2,000
-- Max 5 jobs queued or active at one time (via Database.executeBatch())
-**Speaker Notes:** Batch Apex is the right tool when you need to process millions of records — think annual data cleanup, bulk recalculations, or org-wide field updates. Each call to execute() is its own transaction, so you get 150 DML statements and 100 SOQL queries per 200-record chunk. Use the optional scope parameter in Database.executeBatch() to override the batch size.
+CRON format: `Seconds Minutes Hours Day-of-Month Month Day-of-Week [Year]`
+- `'0 0 2 * * ?'` = every day at 2:00 AM
+- Max **100 scheduled jobs** in org
 
-### Slide 4: Queueable Apex
-**Visual:** Chain diagram showing QueueableJob1 calling System.enqueueJob(new QueueableJob2()) inside execute(), forming a linked chain
-**Content:**
-- Implements `System.Queueable` interface with one `execute(QueueableContext ctx)` method
-- Accepts non-primitive parameters (sObjects, custom types)
-- Can chain: call `System.enqueueJob()` inside `execute()` to queue the next job
-- Supports `Database.AllowsCallouts` interface for HTTP callouts in chained jobs
-- `System.enqueueJob()` returns a Job ID for monitoring
-**Speaker Notes:** Queueable fills the gap between @future and Batch. Unlike @future, it accepts complex object parameters and lets you chain jobs together. Unlike Batch, the setup is simpler for jobs that don't need to iterate over millions of records. In test classes, use Test.getEventBus().deliver() or wrap enqueue calls in Test.startTest()/Test.stopTest() to execute the queue synchronously.
+### Choosing the Right Type
+| Need | Use |
+|------|-----|
+| HTTP callout from trigger context | `@future(callout=true)` |
+| Millions of records | Batch Apex |
+| Object params, chaining | Queueable |
+| Time-based schedule | Scheduled Apex |
+| Simple async (no constraints) | @future or Queueable |
 
-### Slide 5: Scheduled Apex
-**Visual:**
+### Testing Async Apex
+`Test.stopTest()` forces queued async jobs to execute synchronously. Always assert AFTER `Test.stopTest()`.
+```apex
+@isTest
+static void testBatch() {
+    insert testAccounts;
+    Test.startTest();
+    Database.executeBatch(new AccountReviewBatch(), 200);
+    Test.stopTest();
+    // stopTest flushes the batch — assert here
+    System.assertEquals(expected, [SELECT COUNT() FROM Account WHERE ...]);
+}
 ```
-  CRON Expression Format (7 fields):
 
-  '0  0  2  *  *  ?'
-   │  │  │  │  │  └── Day-of-week  (? = any, SUN-SAT, 1-7)
-   │  │  │  │  └───── Month        (* = every month, 1-12)
-   │  │  │  └──────── Day-of-month (* = every day, 1-31)
-   │  │  └─────────── Hours        (0-23)
-   │  └────────────── Minutes      (0-59)
-   └───────────────── Seconds      (0-59)
+## PTA / SA Relevance
+
+**In partner code reviews, watch for:**
+- `@future` with sObject parameters — compile error, not runtime. Always pass IDs instead and re-query inside.
+- More than 5 batch jobs scheduled to run concurrently — silent queue backup. Stagger scheduled start times.
+- Queueable chains without depth limits — chaining can theoretically go forever, exhausting async job quotas. Add a depth counter and stop condition.
+- `Database.executeBatch()` called from a trigger — each record save enqueues a batch. With 200 trigger records, that's 200 batch job enqueue attempts → you'll hit the 5-concurrent limit immediately.
+
+**Enterprise-scale considerations:**
+- Batch Apex for nightly jobs is the standard enterprise pattern. Design: Scheduled Apex kicks off the batch at off-peak hours. Batch processes data in 200-record chunks. finish() sends a summary email or enqueues the next batch in a pipeline.
+- For real-time streaming patterns, Platform Events + Apex triggers consuming them is often better than @future chains — more observable, more scalable.
+- Queueable chaining is powerful for multi-step async workflows (fetch from external, process, upsert, notify) — but each step adds latency. For anything performance-critical, consider a single @future or batch.
+
+**For CTO conversations:**
+- "We have a nightly job that processes 2 million records — it keeps timing out." — Move to Batch Apex. QueryLocator handles 50M records, each execute() chunk gets fresh limits. Tune batch size (smaller chunks = more transactions but less risk of timeout).
+- "Can we call an external API when a record is saved?" — Yes, via @future(callout=true) or Queueable with AllowsCallouts. Callout cannot happen in the same synchronous transaction as DML that hasn't committed.
+
+## Architecture / How It Works
+
+```
+ASYNC APEX COMPARISON
+
+  ┌────────────────┬──────────────┬─────────────────┬────────────────┐
+  │                │   @future    │   Batch Apex    │  Queueable     │
+  ├────────────────┼──────────────┼─────────────────┼────────────────┤
+  │  Parameters    │  Primitives  │  QueryLocator   │  Anything      │
+  │                │  only        │  + scope List   │  (sObj, etc.)  │
+  ├────────────────┼──────────────┼─────────────────┼────────────────┤
+  │  Callouts      │  callout=true│  Yes (execute)  │  AllowsCallouts│
+  ├────────────────┼──────────────┼─────────────────┼────────────────┤
+  │  Chaining      │  No          │  In finish()    │  Yes           │
+  ├────────────────┼──────────────┼─────────────────┼────────────────┤
+  │  Volume        │  Low         │  50M records    │  Low-Medium    │
+  ├────────────────┼──────────────┼─────────────────┼────────────────┤
+  │  Job ID        │  No          │  Yes            │  Yes           │
+  ├────────────────┼──────────────┼─────────────────┼────────────────┤
+  │  Org limit     │  50/tx       │  5 concurrent   │  No hard limit │
+  └────────────────┴──────────────┴─────────────────┴────────────────┘
+```
+
+**Limitations:**
+- @future: max 50 invocations per synchronous transaction; cannot call @future from @future
+- Batch: max 5 active/queued; max scope 2,000; QueryLocator max 50M records
+- Queueable: 1 child enqueue per execute() in production; unlimited in test context
+- Scheduled: max 100 jobs in org; CRON must be a future time
+
+```
+BATCH APEX LIFECYCLE
+
+  Database.executeBatch(new MyBatch(), 200)
+         │
+         ▼
+  ┌──────────────────────────────────────────────────────────┐
+  │  start() — runs ONCE                                     │
+  │  Returns Database.QueryLocator                           │
+  │  SELECT Id, Name FROM Account  ← up to 50M records      │
+  └──────────────────────┬───────────────────────────────────┘
+                         │ Salesforce chunks by scope (200)
+           ┌─────────────┴──────────────┐
+           ▼                            ▼
+  ┌──────────────┐             ┌──────────────┐
+  │ execute()    │             │ execute()    │   ... (per chunk)
+  │ chunk 1      │             │ chunk 2      │
+  │ Own limits   │             │ Own limits   │
+  └──────────────┘             └──────────────┘
+           │
+           ▼ (after all chunks)
+  ┌──────────────────────────────────────────────────────────┐
+  │  finish() — runs ONCE                                    │
+  │  Send summary email, kick next batch, etc.               │
+  └──────────────────────────────────────────────────────────┘
+```
+
+**Limitations:**
+- Each execute() is its own transaction — if one chunk fails, other chunks are NOT rolled back
+- If execute() fails, Salesforce retries — code must be idempotent (safe to run twice)
+- finish() runs even if some execute() chunks failed
+
+```
+CRON EXPRESSION — 7 FIELDS
+
+  '0   0   2   *   *   ?'
+   │   │   │   │   │   └── Day-of-week  (? = unspecified, SUN-SAT, 1-7)
+   │   │   │   │   └─────── Month        (* = every, 1-12 or JAN-DEC)
+   │   │   │   └─────────── Day-of-month (* = every day, 1-31)
+   │   │   └─────────────── Hours        (0-23)
+   │   └─────────────────── Minutes      (0-59)
+   └─────────────────────── Seconds      (0-59)
 
   Examples:
   '0 0 2 * * ?'       every day at 2:00 AM
   '0 0 8 ? * MON'     every Monday at 8:00 AM
   '0 0 0 1 * ? *'     first day of every month at midnight
+  
+  Note: Either Day-of-month OR Day-of-week must be '?' (not both '*')
 ```
-**Content:**
-- Implements `System.Schedulable` interface with one `execute(SchedulableContext ctx)` method
-- Schedule with `System.schedule(name, cronExpression, instance)`
-- CRON format: `Seconds Minutes Hours Day-of-month Month Day-of-week [Year]`
-- Example: `'0 0 2 * * ?'` = every day at 2:00 AM
-- Maximum 100 scheduled jobs in the org at one time
-**Speaker Notes:** Scheduled Apex is ideal for time-based operations like nightly batch kicks, daily reports, or weekly data syncs. The CRON expression follows a seven-field format similar to Unix cron but with seconds as the first field. Remember: you cannot schedule a job from a test class without using Test.startTest()/Test.stopTest(), and scheduled jobs created in tests are not actually executed unless explicitly stopped.
 
-### Slide 6: Choosing the Right Async Type
-**Visual:**
-```
-  Need to run Apex asynchronously?
-           │
-           ▼
-  Need to make an HTTP callout from a DML trigger?
-  ├─ YES ──► @future(callout=true)
-  └─ NO
-           │
-           ▼
-  Processing millions of records?
-  ├─ YES ──► Batch Apex (Database.Batchable)
-  └─ NO
-           │
-           ▼
-  Need object parameters or job chaining?
-  ├─ YES ──► Queueable Apex (System.Queueable)
-  └─ NO
-           │
-           ▼
-  Time-based / scheduled execution?
-  ├─ YES ──► Scheduled Apex (System.Schedulable)
-  └─ NO  ──► @future (simplest option)
-```
-**Content:**
-- **@future**: HTTP callout triggered by DML; simplest async option
-- **Batch Apex**: Mass data processing (thousands to millions of records)
-- **Queueable**: Complex async logic, object parameters, job chaining
-- **Scheduled**: Time-based jobs (nightly, weekly, monthly)
-- Batch and Scheduled often work together: schedule a class that kicks off a batch job
-**Speaker Notes:** On the PDI exam, scenario-based questions often describe a business need and ask which async mechanism to use. Memorize these pairings. The key differentiators are: callouts-from-trigger requires @future with callout=true; bulk record volume requires Batch; object parameters or chaining requires Queueable; calendar/time triggers require Scheduled.
+**Limitations:**
+- Max 100 scheduled jobs in org — includes all org-wide scheduled jobs, not just yours
+- CRON past times throw an exception — must be a future time
+- Cannot schedule from anonymous Apex in tests without Test.startTest()/stopTest()
 
-### Slide 7: Monitoring and Testing Async Jobs
-**Visual:** Setup menu path to Apex Jobs page, with a table showing Job Type, Status, Batches Processed, and Failures columns
-**Content:**
-- Monitor jobs at Setup → Apex Jobs (all types) and Setup → Scheduled Jobs
-- `AsyncApexJob` object stores job status, errors, and metrics
-- In tests: `Test.startTest()` / `Test.stopTest()` forces async execution synchronously
-- `Database.executeBatch()` in tests runs with batch size of 1 by default unless overridden
-- Always assert after `Test.stopTest()` — that is when async work completes
-**Speaker Notes:** Exam questions occasionally ask how to verify that async Apex ran in a test. The answer is always to call Test.stopTest() before your assertions — this is what flushes the async queue. Querying AsyncApexJob in your test assertions is also valid for verifying that a batch job completed without errors.
+## Key Facts to Memorize
+- @future: **static void**, **primitives only**, `callout=true` for callouts, max **50/tx**
+- Batch: **50M** QueryLocator, **200** default chunk size, **5** concurrent max
+- Queueable: **non-primitives ok**, **chainable**, `Database.AllowsCallouts` for callouts
+- Scheduled: `System.schedule(name, cron, instance)`, max **100 jobs**, CRON 7 fields
+- Test async: `Test.startTest()` then `Test.stopTest()` → forces sync execution; assert AFTER stopTest
+- Cannot call @future from @future; cannot make callout after uncommitted DML without @future
 
-### Slide 8: Key Constraints and Common Pitfalls
-**Visual:** Warning-sign icons next to each constraint: no sObjects in @future, 5 concurrent batches, 100 scheduled jobs, no @future-from-@future
-**Content:**
-- @future: no sObject params, no calling @future from @future, max 50/transaction
-- Batch: max 5 queued/active; scope > 2000 is ignored (silently set to 2000)
-- Queueable: can only enqueue 1 child job per execute() in production; unlimited in tests
-- Scheduled: CRON expression must match a future time; past times throw an exception
-- All async types: governor limits reset per transaction, but callout limits still apply
-**Speaker Notes:** These constraints are prime exam bait. The most commonly tested pitfall is passing an sObject parameter to a @future method — this causes a compile error, not a runtime error. The 5-concurrent-batch limit can be a real operational problem in orgs that run many nightly jobs; organizations often stagger batch start times via Scheduled Apex to stay under this limit.
+## Customer Advisory Tips
+- **Nightly bulk processing:** Scheduled Apex (kicks off Batch) is the standard pattern. Batch handles volume, Scheduled handles timing. The combo handles anything from 10k to 50M records.
+- **Real-time integration:** @future for simple cases, Queueable for complex multi-step. For enterprise reliability, consider Platform Events for decoupled async messaging.
+- **When to use AppExchange vs custom Async?** If you're building nightly cleanup, data quality, or bulk update processes — check AppExchange first. Many exist. Custom async is appropriate when the logic is org-specific enough that a generic tool won't fit.
 
-## Recording Script
+## Exam Traps
+- @future parameter must be **primitives** — sObject parameter = **compile error**
+- `@future` without `callout=true` cannot make HTTP callouts — adding `callout=true` is required
+- Batch max scope is **2,000** (not 200 — that's the default, not the max)
+- Testing batch: assert AFTER `Test.stopTest()` — that's when the batch executes
+- Cannot call @future from another @future — Queueable chaining is the solution
+- `System.enqueueJob()` inside a Queueable can only enqueue **1 child** in production
 
-Welcome to Lecture 10 on Asynchronous Apex. In this lecture we cover one of the most heavily tested topics on the Platform Developer I exam and one of the most practically important patterns you will use in real Salesforce development.
+## Practice Questions
 
-Let's start with the "why." Salesforce enforces governor limits per transaction to ensure fair resource sharing across its multitenant platform. Some tasks — making an HTTP callout, processing a million records, or running something on a schedule — can't or shouldn't happen in a synchronous context. Asynchronous Apex solves this by running your code in a separate transaction with its own fresh set of limits.
+**Q:** A trigger needs to make an HTTP callout to an external system after a Contact is inserted. Which approach is correct?
+**A:** `@future(callout=true)` static void method, passing Contact Ids (Set<Id>) as parameters. The @future method re-queries the Contacts and makes the callout in a separate async transaction.
 
-There are four types you need to master.
+**Q:** What is the maximum number of records that Database.QueryLocator can return in Batch Apex's start() method?
+**A:** 50 million records.
 
-First: @future methods. These are the simplest form of async Apex. You annotate a static void method with @future, and Salesforce queues it to run later. The critical constraint is that parameters must be primitives — no sObjects allowed, because the data might have changed by execution time. Pass IDs instead and re-query inside the method. The main use case is making HTTP callouts triggered by a DML event, since you can't make a callout after uncommitted DML in the same transaction. You add callout=true inside the annotation: @future(callout=true).
-
-Second: Batch Apex. This is your tool for mass data processing. You implement Database.Batchable and provide three methods. The start() method runs once and returns a Database.QueryLocator that can point at up to 50 million records. The execute() method processes records in chunks — 200 at a time by default, and each chunk is its own transaction. The finish() method runs once after all chunks complete, perfect for sending a summary email. The hard limit is 5 batch jobs queued or active at any one time in the org.
-
-Third: Queueable Apex. Think of it as an upgraded @future. It accepts object parameters, not just primitives. It can chain — inside execute() you can enqueue another Queueable job. And it returns a Job ID so you can monitor it programmatically. Implement System.Queueable and write a single execute(QueueableContext ctx) method.
-
-Fourth: Scheduled Apex. Implement System.Schedulable, write an execute(SchedulableContext ctx) method, and call System.schedule() with a name, a CRON expression, and an instance of your class. The CRON format has seven fields: seconds, minutes, hours, day-of-month, month, day-of-week, and optionally year. The org limit is 100 scheduled jobs at once.
-
-For testing all async types: wrap your job invocation in Test.startTest() and Test.stopTest(). The stopTest() call forces all queued async work to execute synchronously before your test proceeds to assertions.
-
-The exam loves scenario questions: read the scenario, pick the type. Callout from a trigger? @future. Millions of records? Batch. Complex chaining with object params? Queueable. Nightly schedule? Scheduled.
-
-## Exam Tips
-- @future method parameters must be primitives or collections of primitives — sObject parameters cause a compile error, not a runtime error
-- The default batch size in Database.executeBatch() is 200; the maximum allowed scope value is 2,000
-- Maximum concurrent and queued Batch Apex jobs is 5; maximum Scheduled Apex jobs is 100
-- To allow HTTP callouts in a @future method, the annotation must be `@future(callout=true)` — omitting callout=true will throw a runtime exception when the callout is attempted
-- In test methods, place Test.stopTest() before assertions when testing async Apex — this is what forces the async job to run synchronously
-
-## Lecture Summary
-Asynchronous Apex allows Salesforce developers to run resource-intensive work in separate governor contexts using four mechanisms: @future for simple async and trigger-based callouts, Batch Apex for processing millions of records in chunked transactions, Queueable Apex for complex chaining with non-primitive parameters, and Scheduled Apex for time-based recurring jobs. Each type has specific interface requirements, parameter constraints, and org-level concurrency limits that are heavily tested on the PDI exam. Testing async Apex always requires Test.startTest() and Test.stopTest() to force synchronous execution of queued jobs within a test context.
-
-## Mini Quiz
-
-**Q1:** A developer needs to make an HTTP callout to an external system every time a new Account is inserted. Which is the correct approach?
-A) Call the HTTP class directly in the trigger
-B) Create a @future(callout=true) method and invoke it from the trigger
-C) Create a Queueable class that implements Database.AllowsCallouts and call it from the trigger
-D) Both B and C are correct
-
-**Answer:** D — Both @future(callout=true) and a Queueable that implements Database.AllowsCallouts can make callouts from a trigger context. Either is acceptable; the exam may specify one or test whether you recognize both.
-
-**Q2:** Which statement about Batch Apex is correct?
-A) The execute() method can process up to 50 million records at once
-B) A maximum of 10 batch jobs can be active or queued at the same time
-C) Each call to execute() runs in its own transaction with its own governor limits
-D) The batch size can be set to a maximum of 500 records
-
-**Answer:** C — Each execute() call is its own transaction, which is the core value of Batch Apex. The 50 million limit applies to the total records returned by start(), not execute(). The concurrent job limit is 5, not 10. The maximum batch size is 2,000, not 500.
-
-**Q3:** A Queueable Apex class needs to pass a list of custom Apex objects to the next chained job. Which statement is true?
-A) This is not possible; Queueable only supports primitive parameters
-B) This is possible because Queueable accepts non-primitive parameters, unlike @future
-C) The custom objects must be serialized to JSON strings before passing
-D) Queueable classes cannot be chained in a production org
-
-**Answer:** B — One of Queueable's key advantages over @future is the ability to accept non-primitive parameters, including sObjects and custom Apex objects. Chaining is supported in production (one child job per execute() call).
+**Q:** Why can't you pass an sObject as a parameter to a @future method?
+**A:** The sObject data might change between when the @future is enqueued and when it executes. Salesforce enforces primitives-only to prevent stale data bugs. Always pass IDs and re-query inside the @future method.

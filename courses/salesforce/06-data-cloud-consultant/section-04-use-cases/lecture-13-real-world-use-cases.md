@@ -1,436 +1,230 @@
-# Lecture 13: Real-World Use Cases & Exam Scenarios
+# Real-World Use Cases & Exam Scenarios
 
-## Learning Objectives
-- Apply Data Cloud knowledge to realistic multi-domain exam scenario questions
-- Describe how to approach and eliminate wrong answers in Data Cloud Consultant exam scenarios
-- Identify industry-specific Data Cloud patterns for retail, financial services, and healthcare
-- Recognize common exam traps and how to avoid them
+## Exam Domain
+Covers all domains — scenario questions appear throughout the exam
 
----
+## Core Concepts
 
-## Slides
+### The 4-Step Exam Scenario Strategy
+When the exam presents a business scenario question, apply this mental framework: (1) **Identify the goal** — is the question about ingestion, modeling, identity, segmentation, activation, or governance? (2) **Identify the constraint** — what makes this non-trivial (batch vs. streaming, consent, data type, hop count, permission)? (3) **Eliminate wrong answers** — cross out options that contain known-wrong statements (real-time IR, Tableau DLO access, Draft segment activation). (4) **Select the answer that matches Data Cloud architecture exactly**.
 
-### Slide 1: Exam Scenario Strategy
-**Visual:**
-```
-  4-STEP EXAM SCENARIO APPROACH
-  ──────────────────────────────────────────────────────────
-  STEP 1: IDENTIFY THE DOMAIN
-  ┌──────────────────────────────────────────────────────┐
-  │ "A consultant wants to..." — which domain?           │
-  │  Ingestion? Modeling? Segmentation? Governance? AI?  │
-  └──────────────────────────────────────────────────────┘
-                         │
-  STEP 2: IDENTIFY THE CONSTRAINT
-  ┌──────────────────────────────────────────────────────┐
-  │ What's the business rule, limitation, or requirement │
-  │ in the scenario? (consent, performance, freshness)   │
-  └──────────────────────────────────────────────────────┘
-                         │
-  STEP 3: ELIMINATE WRONG ANSWERS
-  ┌──────────────────────────────────────────────────────┐
-  │ Wrong: requires a feature that doesn't exist         │
-  │ Wrong: violates a key Data Cloud rule                │
-  │ Wrong: the right thing done in the wrong place       │
-  └──────────────────────────────────────────────────────┘
-                         │
-  STEP 4: APPLY THE PRINCIPLE
-  ┌──────────────────────────────────────────────────────┐
-  │ Choose the answer that follows Data Cloud best       │
-  │ practice for the identified domain + constraint      │
-  └──────────────────────────────────────────────────────┘
-```
+### Industry Patterns to Recognize
+Exam scenarios tend to cluster around specific industries. **Retail:** multi-source ingestion (POS + e-commerce + loyalty), IR by email/loyalty ID, segmentation by purchase recency+frequency+value (RFM), activation to MC for email + advertising for acquisition. **Financial Services:** strict identity matching (Exact match only — no fuzzy due to false merge risk), consent for GDPR/CCPA compliance, no cross-account data sharing. **Healthcare:** HIPAA considerations, strict consent, patient profile unification only with appropriate governance. Recognizing the industry sets expectations for the correct configuration choices.
 
-**Content:**
-- Exam scenario questions test application of concepts, not memorization
-- **Step 1 — Identify the domain:** Is this about ingestion, data modeling, identity resolution, segmentation, activation, governance, or AI?
-- **Step 2 — Identify the constraint:** What's the key requirement? Consent? Freshness? Performance? Access control?
-- **Step 3 — Eliminate wrong answers:** Remove answers that violate Data Cloud rules, suggest non-existent features, or do the right thing in the wrong place
-- **Step 4 — Apply the principle:** Choose the answer that reflects best practice for the specific domain and constraint
-- Most wrong answers fail because they suggest using DLOs where DMOs are needed, or skipping a required step
-
-**Speaker Notes:** This strategy framework applies to every scenario question on the exam. Most exam traps work by describing a plausible-sounding action that actually violates a core Data Cloud principle. For example: "segment directly on a DLO" — this sounds like it could work, but segmentation is built on DMO-layer data, never DLOs. Or "activate directly from a segment without an Activation Target" — this violates the architecture (AT is required). Recognizing the trap in the answer is as important as knowing the right answer.
+### The Six Most Common Exam Traps
+Across all domains, six misunderstandings appear most frequently as wrong answers: (1) Draft segments can be activated; (2) IR is real-time; (3) Contact Points are reconciled (not additive); (4) Tableau can query DLOs; (5) CI GROUP BY is optional; (6) Email field on Individual DMO enables IR email matching. If you see any of these in an answer choice, cross it out.
 
 ---
 
-### Slide 2: Retail Use Case — Customer Loyalty
-**Visual:**
-```
-  RETAIL SCENARIO: Unified Loyalty Program
-  ──────────────────────────────────────────────────────────
-  SOURCES:
-  ┌─────────────┐  ┌──────────────┐  ┌─────────────────┐
-  │ POS System  │  │  E-Commerce  │  │  Loyalty App    │
-  │ (in-store)  │  │  Platform    │  │  (mobile)       │
-  └──────┬──────┘  └──────┬───────┘  └────────┬────────┘
-         │                │                   │
-         └────────────────┼───────────────────┘
-                          ▼
-                    DATA CLOUD
-               Identity Resolution:
-               Sarah Smith (in-store)
-               ssmith@email.com (e-comm)
-               LoyaltyMember#4421 (app)
-                    → ONE Unified Individual
-                          │
-         ┌────────────────┼───────────────────┐
-         ▼                ▼                   ▼
-  ┌────────────┐  ┌─────────────────┐  ┌────────────────┐
-  │  SEGMENT   │  │  CI: TotalSpend │  │  ACTIVATION    │
-  │ High Value │  │  + ProductAffin │  │  → Marketing   │
-  │ 90d Buyers │  │  + LoyaltyTier  │  │  Cloud (offers)│
-  └────────────┘  └─────────────────┘  └────────────────┘
-```
+## PTA / SA Relevance
 
-**Content:**
-- **Retail challenge:** same customer shops in-store, online, and via app — three separate identity siloes
-- **Data Cloud solution:**
-  1. Ingest POS, e-commerce, and loyalty app data via appropriate connectors
-  2. Map all sources to Individual and related DMOs (Sales Order, Contact Point Email, etc.)
-  3. Identity Resolution unifies the three source records into one Unified Individual
-  4. CIs compute TotalSpend, purchase frequency, product affinity
-  5. Segments group customers by value/behavior
-  6. Activation delivers personalized offers via Marketing Cloud
-- **Key exam pattern:** multi-source unified identity → segmentation → personalized activation
+### When This Comes Up in Engagements
+For a PTA doing deal reviews or architecture assessments, real-world use case fluency is essential for qualifying and scoping deals. When a customer describes their scenario, you should immediately map it to: which Data Streams do they need, which DMOs, which IR configuration, which segment criteria type, which activation targets. The mental model is "Data Cloud isn't a product — it's an outcome architecture."
 
-**Speaker Notes:** The retail loyalty use case is the most common scenario template on the exam. The core problem is always the same: siloed data, duplicate identities, fragmented view of the customer. The Data Cloud solution always follows the same arc: ingest all sources → model into DMOs → resolve identities → compute CIs → segment → activate. The specific exam question will introduce a twist or constraint — maybe the retailer wants real-time in-store personalization, or they need to comply with a state privacy law. But the foundation is always this same pattern. Knowing the standard pattern lets you focus on the constraint rather than the framework.
+### Common Partner Mistakes in Use Case Design
+- Scoping Data Cloud for a use case it can't do well (real-time personalization requiring sub-second latency — Data Cloud is not a real-time API)
+- Under-scoping identity resolution in discovery — "we'll figure out IR later" leads to project failure because IR requires significant data quality work upfront
+- Designing segments before validating that the required DMOs have data — common discovery failure
+- Proposing Data Cloud when a simpler Salesforce CDP or Marketing Cloud-only solution would suffice
+
+### Enterprise Architecture Patterns
+**Multi-brand CDP:** One Data Cloud instance, multiple Data Spaces, shared unified Individual across brands (enables cross-sell), separate segment + activation per brand. **Customer Service Intelligence:** Data Cloud + Agentforce; all support interactions, purchase history, and complaint data unified in Unified Individual; grounding enables service agents to see complete customer context. **Marketing + Sales Alignment:** Data Cloud → MC for outbound email campaigns + Data Cloud → CRM Campaign Member for sales team follow-up on the same segment simultaneously.
 
 ---
 
-### Slide 3: Retail Segmentation Patterns
-**Visual:**
-```
-  THREE RETAIL SEGMENT TYPES (on exam)
-  ──────────────────────────────────────────────────────────
-  ┌──────────────────────────────────────────────────────┐
-  │  SEGMENT 1: HIGH VALUE RECENT BUYERS                 │
-  │  Attribute filter:   LoyaltyTier = "Gold"            │
-  │  CI filter:          TotalSpend90d >= $500           │
-  │  Related attribute:  hasOrder in last 30 days = true │
-  └──────────────────────────────────────────────────────┘
-  ┌──────────────────────────────────────────────────────┐
-  │  SEGMENT 2: LAPSED BUYERS — WIN-BACK CAMPAIGN        │
-  │  CI filter:          DaysSinceLastPurchase > 90      │
-  │  CI filter:          TotalHistoricSpend > $200       │
-  │  Exclusion:          NOT in "Active Buyers" segment  │
-  └──────────────────────────────────────────────────────┘
-  ┌──────────────────────────────────────────────────────┐
-  │  SEGMENT 3: PRODUCT AFFINITY — ELECTRONICS          │
-  │  CI filter:          TopCategory = "Electronics"     │
-  │  Attribute filter:   ConsentEmail = true             │
-  │  NOT in:             RecentlyContactedSegment        │
-  └──────────────────────────────────────────────────────┘
-  All segments: Dynamic — auto-refresh, count changes daily
-  All segments: Unified Individual as population object
-```
+## Architecture
 
-**Content:**
-- **High Value Recent Buyers:** Loyalty tier (attribute) + spend (CI) + recent purchase (related attribute)
-- **Lapsed Buyers Win-Back:** Days since purchase (CI) + historic spend (CI) + exclusion of active buyers
-- **Product Affinity Targeting:** CI-based top category + consent filtering + exclusion of recently contacted
-- All three patterns combine: attribute filters, CI filters, related attribute filters, and exclusions
-- These are the building blocks for almost any B2C segmentation use case
-- The exam will describe a business objective and ask which segment criteria approach to use
+### Retail Use Case — End-to-End
 
-**Speaker Notes:** These three retail segment patterns illustrate the full range of segment criteria types we covered in Section 2. The exam won't say "use a CI filter" — it will say "a consultant wants to target customers who haven't purchased in 90 days but have historically spent more than $200." Your job is to recognize that "days since last purchase" and "total historic spend" are aggregate metrics — they need to be Calculated Insights, not attribute filters. Translating the business objective into the correct Data Cloud feature is the core segmentation exam skill.
+```
+  DATA SOURCES:
+  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
+  │  POS     │  │ E-Comm   │  │ Loyalty  │  │  MC Email│
+  │ Salesf.  │  │(S3/GCS)  │  │ App      │  │ Connector│
+  │ Connector│  │CloudStore│  │Ingestion │  │          │
+  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘
+       │             │              │              │
+       └─────────────┴──────────────┴──────────────┘
+                             ▼
+                     DATA STREAMS → DLOs
+                             ▼
+                      FIELD MAPPING
+                         DMOs:
+                    Individual / CPEmail
+                    SalesOrder / SalesOrderProduct
+                    Web Engagement / Email Engagement
+                             ▼
+                  IDENTITY RESOLUTION
+                  Match: Email (Exact) + Name (Fuzzy)
+                  Reconcile: Source Priority (CRM #1)
+                             ▼
+                  UNIFIED INDIVIDUAL
+                  ~4M unique customers
+                  (from 11M source records — 2.75:1 dedup)
+                             ▼
+              ┌──────────────┬──────────────┐
+              ▼              ▼              ▼
+        SEGMENT A       SEGMENT B      SEGMENT C
+        Lapsed          High RFM       New/Recent
+        >90d no         >$1000,        <30d first
+        purchase        >3 orders      purchase
+              │              │              │
+              ▼              ▼              ▼
+        MC Campaign     MC VIP +       MC Welcome
+        + Ad suppress   Lookalike Ads  Journey
+```
 
 ---
 
-### Slide 4: Financial Services Use Case
-**Visual:**
-```
-  FINANCIAL SERVICES SCENARIO: Cross-Sell with Data Governance
-  ──────────────────────────────────────────────────────────
-  SOURCES:
-  ┌─────────────┐  ┌──────────────┐  ┌─────────────────┐
-  │  Banking    │  │  Investments │  │  Mortgage       │
-  │  CRM        │  │  Platform    │  │  System         │
-  └──────┬──────┘  └──────┬───────┘  └────────┬────────┘
-         └────────────────┼───────────────────┘
-                          ▼ via Data Cloud
-  ┌──────────────────────────────────────────────────────┐
-  │  Three Data Spaces:                                  │
-  │  [Banking DS]  [Investments DS]  [Mortgage DS]       │
-  │  Strict wall: Investment analysts CAN'T see banking  │
-  └──────────────────────────────────────────────────────┘
-                          │
-            Cross-sell only where BOTH products
-            are in scope for the analyst's role
-                          │
-  CI: RelationshipProfit (AUM + net interest – liability cost)
-  Segment: "High AUM clients without investment advisory"
-  Activation: Wealth Management team outreach (via CRM AT)
-```
+### Connector Decision Tree
 
-**Content:**
-- **Financial services challenge:** regulatory requirement to keep product lines data-separate; identify cross-sell opportunities without violating Chinese walls
-- **Data Cloud solution:** multiple Data Spaces with strict access control by role
-- Banking, Investment, and Mortgage product data in separate Data Spaces
-- Analysts only access Data Spaces for their product lines
-- Cross-product CIs computed only where cross-product analysis is permitted
-- Segment: "High AUM customers without investment advisory" → activate to wealth management
-- **Key exam pattern:** Data Spaces for regulatory separation + segment-to-CRM activation
-
-**Speaker Notes:** Financial services is the most governance-heavy use case on the exam. When you see a scenario involving financial data and words like "regulatory compliance," "Chinese wall," or "data isolation," the answer almost always involves Data Spaces to separate access by product line or role. The cross-sell use case is interesting because it requires combining data ACROSS product lines — which requires careful governance design. The exam might ask: "a wealth management analyst needs to see banking account balances but should NOT see investment holdings. How should Data Spaces be configured?" The answer: banking in one Data Space, investment holdings in another, with the analyst having only the banking Data Space in their access.
+```
+  Where is the source data?
+            │
+  ┌─────────┴──────────────────────────┐
+  ▼                                    ▼
+  In Salesforce?                       External?
+  (CRM, MC, B2B Comm)                  │
+  │                                    ├── File-based (CSV)?
+  ▼                                    │   → Cloud Storage (S3/GCS/Azure)
+  Salesforce Connector                 │
+  (Standard — low effort,              ├── API-based (streaming events)?
+   auto-updates with CRM)              │   → Ingestion API
+                                       │   (OAuth 2.0, real-time)
+                                       │
+                                       ├── In MuleSoft?
+                                       │   → MuleSoft Connector
+                                       │
+                                       └── In Marketing Cloud?
+                                           → MC Connector
+```
 
 ---
 
-### Slide 5: Compliance and Privacy Use Case
-**Visual:**
+### Segment Criteria Decision Tree
+
 ```
-  GDPR RIGHT TO ERASURE — Implementation Pattern
-  ──────────────────────────────────────────────────────────
-  CUSTOMER REQUEST: "Delete all my data"
-                          │
-  STEP 1: Identify the Unified Individual
-  ┌──────────────────────────────────────────────────────┐
-  │ Query: find Unified Individual where email matches   │
-  │ customer's email in ContactPointEmail DMO            │
-  └──────────────────────────────────────────────────────┘
-                          │
-  STEP 2: Set privacy flags on Individual DMO
-  ┌──────────────────────────────────────────────────────┐
-  │ DoNotProcess = true                                  │
-  │ → Data Cloud stops processing this individual's data │
-  └──────────────────────────────────────────────────────┘
-                          │
-  STEP 3: Execute deletion request
-  ┌──────────────────────────────────────────────────────┐
-  │ Data Cloud Consent API: submit deletion request      │
-  │ → removes from DMOs + prevents re-ingestion          │
-  └──────────────────────────────────────────────────────┘
-                          │
-  STEP 4: Verify removal
-  ┌──────────────────────────────────────────────────────┐
-  │ Confirm customer no longer in any segment            │
-  │ No pending activations for this Unified Individual   │
-  └──────────────────────────────────────────────────────┘
-  Timeline: GDPR requires response within 30 days
+  What kind of filter do I need?
+            │
+  ┌─────────┴────────────────────────────────────┐
+  ▼                                              ▼
+  Filter on a single attribute             Filter requires aggregation
+  (LoyaltyTier = "Gold")                   (total spend, count of orders)
+  │                                              │
+  ▼                                              ▼
+  Attribute Filter                         CALCULATED INSIGHT
+  (direct on Unified                       (pre-computed SQL GROUP BY)
+   Individual or Individual DMO)
+            │
+  Does the data come from a RELATED DMO?
+            │
+  ┌─────────┴──────────────┐
+  ▼                        ▼
+  1 hop away             2 hops away
+  (SalesOrder            (SalesOrder → Product)
+   directly linked)      (still allowed — max 2)
+            │                     │
+            ▼                     ▼
+   Related Attribute       Related Attribute
+   Filter (direct)         Filter (indirect)
+                                     │
+                         3+ hops? → USE CI INSTEAD
 ```
 
-**Content:**
-- **Compliance challenge:** GDPR Right to Erasure requires deletion from all marketing systems
-- **Data Cloud solution:**
-  1. Identify Unified Individual via ContactPointEmail DMO
-  2. Set `DoNotProcess = true` on Individual DMO to immediately stop processing
-  3. Submit deletion request via Data Cloud Consent API
-  4. Verify the customer is removed from all DMO data and future activations
-- `DoNotProcess = true` is the immediate stop; full deletion may take time to process through all objects
-- Customers who are deleted should NOT be re-ingested from source systems — source systems must also honor the deletion
-
-**Speaker Notes:** The GDPR right to erasure use case is very testable because it requires knowing several consent/privacy features together. The exam might ask "what is the first action a Data Cloud administrator should take when receiving a GDPR deletion request?" The immediate step is setting DoNotProcess = true — this stops the customer's data from being used in any further processing while the full deletion proceeds. Then the deletion API handles the actual removal. The exam also tests: what happens if the source system re-sends this customer's record on the next Data Stream run? The answer: without source-system-level deletion, the record will be re-ingested — so proper erasure requires coordinating the deletion at the source as well.
-
 ---
 
-### Slide 6: Healthcare Engagement Use Case
-**Visual:**
+### Activation Target Decision Tree
+
 ```
-  HEALTHCARE USE CASE: Care Gap Outreach Program
-  ──────────────────────────────────────────────────────────
-  SOURCES (de-identified per HIPAA):
-  ┌───────────────┐  ┌────────────────┐  ┌────────────────┐
-  │ EHR System    │  │  Patient Portal│  │  Claims Data   │
-  │ (diagnoses,   │  │  (login,       │  │  (procedures,  │
-  │  prescriptions│  │   engagement)  │  │   lab results) │
-  └───────┬───────┘  └───────┬────────┘  └───────┬────────┘
-          └──────────────────┼──────────────────-─┘
-                             ▼ Requires BAA with Salesforce
-                       DATA CLOUD
-                  Unified Patient Profile
-                             │
-  CI: DaysSinceLastScreening    CI: CareGapRiskScore
-                             │
-  Segment: "Due for Annual Screening"
-  (DaysSinceScreening > 365 AND ConsentOutreach = true)
-                             │
-                    Outreach via:
-  ┌───────────────────────────────────────────────────────┐
-  │  Patient's preferred contact (SMS or portal message)  │
-  │  Content: "Schedule your annual wellness exam"        │
-  └───────────────────────────────────────────────────────┘
-  KEY GOVERNANCE REQUIREMENT: BAA + Data Space isolation
+  Where do you need to send the segment?
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                    ACTIVATION TARGET TYPE                       │
+  ├──────────────────┬──────────────────┬───────────────────────────┤
+  │  Salesforce CRM  │ Marketing Cloud  │  Advertising Platform     │
+  │  ─────────────── │  ──────────────  │  ──────────────────────── │
+  │  Adds as Campaign│  Creates/updates │  Sends SHA-256 hashed     │
+  │  Members         │  Data Extension  │  email/phone for Custom   │
+  │                  │  + subscriber    │  Audience upload          │
+  │  Use: CRM-based  │  Use: Email,     │  Use: Social ads,         │
+  │  outreach, sales │  journey trigger │  suppression, lookalike   │
+  │  tasks, service  │                  │                           │
+  │                  │  ★ Subscriber    │  ★ Raw PII never sent     │
+  │                  │  Key required    │  SHA-256 only             │
+  └──────────────────┴──────────────────┴───────────────────────────┘
 ```
 
-**Content:**
-- **Healthcare challenge:** improve preventive care outcomes by identifying patients due for screenings
-- **Requirements:** HIPAA compliance (Business Associate Agreement with Salesforce), strict data access controls
-- **Data Cloud solution:**
-  - Ingest EHR, portal, and claims data
-  - Map to Individual and Encounter/Procedure DMOs
-  - CI: compute DaysSinceLastScreening, CareGapRiskScore
-  - Segment: patients due for screening who have consented to outreach
-  - Activate to preferred channel (SMS, portal, or call center)
-- **Key governance requirement:** Salesforce BAA required before health data enters Data Cloud
-- Data Spaces must isolate health data from any non-clinical uses
-
-**Speaker Notes:** Healthcare is increasingly exam-relevant as health systems adopt Salesforce for patient engagement. The HIPAA angle introduces governance constraints that change the implementation approach. Unlike retail where you can be fairly permissive with data access, healthcare requires BAA documentation, PHI minimization, and strict Data Space isolation. The exam might ask about a healthcare scenario where a consultant is setting up Data Cloud — the first governance consideration is always: "has the Salesforce BAA been executed?" Without that legal framework, no PHI should enter Data Cloud. The consent requirement — "ConsentOutreach = true" as a segment filter — is also critical: outreach to patients who haven't consented is both a HIPAA violation and an ethical violation.
-
 ---
 
-### Slide 7: Common Exam Traps
-**Visual:**
+## Six Non-Negotiable Facts
+
+These are the most commonly tested wrong-answer traps. Know these cold:
+
 ```
-  COMMON EXAM TRAPS — Know These Patterns
-  ──────────────────────────────────────────────────────────
-  TRAP 1: "Segment directly on DLO data"
-  ✗ Wrong: Segmentation only works on DMO-layer data
-  ✓ Fix:   Map DLO to DMO, then segment on DMO
+  TRAP 1: "Draft segments can be activated"
+  TRUTH:  Segments must be PUBLISHED first
 
-  TRAP 2: "Real-time segment that instantly activates"
-  ✗ Wrong: Segments refresh on schedule (not real-time by default)
-  ✓ Fix:   Use streaming segmentation OR near-real-time activation
-            (check activation target capabilities)
+  TRAP 2: "Identity Resolution is real-time"
+  TRUTH:  IR runs on schedule; Unified Individuals update
+          after the next IR run, not instantly
 
-  TRAP 3: "Create a custom DMO to hold all data"
-  ✗ Wrong: Use standard DMOs wherever possible; custom = last resort
-  ✓ Fix:   Map to standard DMOs first; custom only for unique data types
+  TRAP 3: "Contact Points are reconciled like attribute fields"
+  TRUTH:  Contact Points are ADDITIVE — ALL emails/phones
+          from ALL source records appear on Unified Individual
 
-  TRAP 4: "Build segment without consent filter"
-  ✗ Wrong: Consent filtering should be included in activation-ready segs
-  ✓ Fix:   Add consent filter (HasOptedOutOfEmail = false) before activate
+  TRAP 4: "Tableau can query DLO data"
+  TRUTH:  Tableau only accesses DMOs and CIs — never DLOs
 
-  TRAP 5: "Run CI refresh before Data Stream completes"
-  ✗ Wrong: CI operates on DMO data; DMO must be current first
-  ✓ Fix:   Job chaining — CI refresh runs AFTER Data Stream refresh
+  TRAP 5: "GROUP BY is optional in CI SQL"
+  TRUTH:  GROUP BY is REQUIRED in every CI query
 
-  TRAP 6: "Use fuzzy match for email"
-  ✗ Wrong: Fuzzy match on email allows wrong matches (similar addresses)
-  ✓ Fix:   Email match uses exact or normalized — never fuzzy
+  TRAP 6: "Map email to Individual DMO for IR email matching"
+  TRUTH:  Map to Contact Point Email DMO — not Individual
 ```
 
-**Content:**
-- **Trap 1 — DLO segmentation:** segmentation only works on DMO-layer data, never raw DLOs
-- **Trap 2 — Real-time assumption:** segments refresh on schedule by default, not in real time
-- **Trap 3 — Custom DMO over-use:** use standard DMOs when possible; custom only for truly unique data
-- **Trap 4 — Missing consent filter:** activation-ready segments should always filter out opted-out customers
-- **Trap 5 — CI before DMO:** CIs must run AFTER Data Stream + DMO refresh — enforce with job chaining
-- **Trap 6 — Fuzzy email match:** email should use exact or normalized match — fuzzy is for names, not emails
-
-**Speaker Notes:** Memorize these six traps. Each one corresponds to a fundamental Data Cloud rule that the exam will test by presenting the WRONG answer as a plausible-sounding option. The DLO segmentation trap is particularly common because candidates think "the data is in Data Cloud, so I can segment on it" — but the answer requires knowing that DLOs are the raw layer and segmentation needs the modeled DMO layer. The fuzzy email trap is subtle — fuzzy matching sounds thorough, but email addresses are exact identifiers. A fuzzy match on email would potentially match "john.smith@example.com" with "jane.smith@example.com" — which would merge two different people into one Unified Individual. That's a catastrophic identity resolution error.
-
 ---
 
-### Slide 8: Exam Decision Framework
-**Visual:**
-```
-  CONNECTOR SELECTION DECISION TREE:
-  ──────────────────────────────────────────────────────────
-  Source: Salesforce CRM? ──YES──▶ Salesforce Connector (native, bidirectional)
-                │
-               NO
-                │
-  Source: Marketing Cloud? ──YES──▶ Marketing Cloud Connector (subscriber data)
-                │
-               NO
-                │
-  Source: Cloud file storage? ──YES──▶ Cloud Storage Connector (S3/GCS/Azure CSV)
-  (S3, GCS, Azure Blob)
-                │
-               NO
-                │
-  Source: Custom API / event stream? ──YES──▶ Ingestion API (REST POST)
-                │
-               NO
-                │
-  Source: Other enterprise systems?──YES──▶ MuleSoft Connector
+## Industry-Specific Pattern Summary
 
-  SEGMENT CRITERIA DECISION:
-  ┌───────────────────────────────────────────────────────┐
-  │ Single DMO field value? → Attribute Filter            │
-  │ Field on related DMO?   → Related Attribute Filter    │
-  │ Computed metric (sum,   → Calculated Insight Filter   │
-  │  count, avg)?                                         │
-  └───────────────────────────────────────────────────────┘
+```
+  RETAIL                          FINANCIAL SERVICES
+  ═══════════════                 ══════════════════════
+  Multi-source: POS + EC          Strict identity: Exact
+  + Loyalty                       only — no Fuzzy (false
+  IR: Email Exact + Name Fuzzy    merge risk is catastrophic)
+  Segments: RFM, churn,           Consent: GDPR + CCPA
+  acquisition                     strict compliance
+  Activation: MC email + Ads      No third-party data sharing
+
+  HEALTHCARE                      B2B
+  ══════════════                  ════════════════
+  HIPAA considerations            Account-based, not person-based
+  Strict consent framework        IR by Account ID (Exact only)
+  DoNotProcess = critical         Contacts link to Accounts
+  Patient data: purpose-          Custom DMOs for B2B entities
+  based consent categories        Lower IR complexity than B2C
 ```
 
-**Content:**
-- **Connector decision:** Salesforce native → Salesforce Connector; Marketing Cloud → MC Connector; Cloud file storage → Cloud Storage Connector; REST API / streaming → Ingestion API; enterprise ETL → MuleSoft
-- **Segment criteria decision:**
-  - Single DMO field value → attribute filter
-  - Related DMO field → related attribute filter
-  - Aggregated/computed metric → Calculated Insight filter
-- **Identity Resolution match type decision:**
-  - Email/ID → exact match (never fuzzy)
-  - Phone → normalized match (removes formatting)
-  - Name → fuzzy match (handles spelling variations)
-- **Activation Target decision:** Salesforce CRM → Salesforce CRM AT; email → Marketing Cloud AT; advertising → Meta/Google AT (with hashing)
+---
 
-**Speaker Notes:** This decision framework is a quick-reference for the most common "which feature should be used" questions on the exam. Treat it as a flowchart: given a source system, which connector? Given a segment criteria need, which criteria type? Given a field to match, which match rule? Given an activation channel, which activation target? These decision trees encode the patterns from across the entire course. For the exam, you won't see these questions in isolation — they'll be embedded in a scenario. But the decision logic is the same: identify the context, apply the rule, pick the feature.
+## Key Facts to Memorize
+
+- **4-step scenario strategy**: identify goal → identify constraint → eliminate wrong answers → match to architecture
+- Learn to recognize the 6 most common exam traps — see them in an answer choice, cross them out
+- Retail: Salesforce Connector + Cloud Storage + Ingestion API, Fuzzy name + Exact email IR
+- Financial services: Exact match ONLY for IR (no fuzzy for regulated identities)
+- Healthcare: purpose-based Consent Categories, strict DoNotProcess governance
+- **Data Cloud is NOT a real-time API** — all operations have schedule-based latency
 
 ---
 
-## Recording Script
+## Practice Questions
 
-Welcome to Lecture 13 and the final lecture of the course. This is where we tie everything together for the exam.
+**Q:** A retail company ingests customer data from a POS system (via Salesforce CRM Connector), an e-commerce platform (via Cloud Storage S3), and a loyalty app (via Ingestion API). Customer records have different IDs in each system but many share the same email. What IR configuration best matches these customers across systems?
+**A:** Use an Exact Match rule on email address (via Contact Point Email DMO). Email is a reliable, exact identifier that appears consistently across all three source systems. The Salesforce Connector, Cloud Storage S3, and Ingestion API Data Streams all map their email fields to the Contact Point Email DMO. IR then matches records that share the same email, creating Unified Individuals.
 
-The Salesforce Certified Data 360 Consultant exam is heavily scenario-based. You won't be asked "what does a DMO stand for?" — you'll be asked "a consultant is designing a data model for a retailer with three data sources and needs to merge customer records across systems. What should the consultant configure?" Your job is to apply knowledge, not recite it.
+**Q:** A financial services company wants to configure Identity Resolution but is concerned about false merges (two different customers incorrectly identified as the same person). Which match rule type should they avoid?
+**A:** Fuzzy match. Fuzzy matching uses similarity algorithms that match names like "Jonathan" and "John" — a financial services firm with multiple clients named "John Smith" could incorrectly merge their accounts. For financial services, use only Exact match (on full SSN or account number) or Normalized match (on standardized phone format). Never use fuzzy match for regulated identity verification.
 
-The four-step approach I outlined works consistently: identify the domain, identify the constraint, eliminate wrong answers, apply the principle. Most wrong answers fail because they suggest doing something that violates a core Data Cloud rule — using DLOs where DMOs are needed, running CI refresh before the Data Stream completes, using fuzzy matching on email identifiers.
-
-The six exam traps are worth memorizing as a checklist you mentally run through when an answer sounds right but something feels off. DLO segmentation, missing consent filters, wrong match rule types — these are the patterns that trip up otherwise well-prepared candidates.
-
-For each industry use case we covered, remember the pattern:
-- Retail: multi-source identity unification → loyalty segment → personalized offer activation
-- Financial Services: Data Spaces for regulatory isolation → relationship profitability CI → CRM activation
-- Healthcare: BAA required → consent-gated segments → preferred channel outreach
-- Compliance: DoNotProcess flag → Consent API deletion → source-system coordination
-
-The connector and criteria decision trees give you quick answers for the most frequently tested "which feature" questions.
-
-You've now covered all 13 lectures in this course. The architecture, ingestion, data modeling, identity resolution, segmentation, activation, governance, monitoring, analytics, AI, and use case applications of Salesforce Certified Data 360 Consultant. That's the complete picture.
-
-Good luck on the exam. You're ready.
-
----
-
-## Exam Tips
-
-- **Domain identification is the first step** — before answering, decide which Data Cloud domain the scenario is about
-- Always eliminate answers that suggest **segmentation on DLOs** — this is not supported; only DMOs are segmentable
-- **Fuzzy match is only for names** — email and ID fields should use exact or normalized match
-- **Consent filtering** should be included in any segment intended for activation — look for answers that include opt-out exclusion
-- **Job chaining** is the correct answer when scenarios involve stale CI or segment data from processing order issues
-
----
-
-## Course Summary
-
-This 13-lecture course covered the complete Data Cloud Consultant certification exam domain. The architecture (Lecture 1) establishes the foundation: Data Streams bring in raw data to DLOs, field mapping creates DMOs, Identity Resolution produces Unified Individuals. Ingestion (Lecture 2) covers the five connector types and their use cases. Data modeling (Lecture 3) explains the DLO-to-DMO transformation and standard DMO types. Identity Resolution (Lecture 4) explains match and reconciliation rules. Segmentation (Lecture 5) and Calculated Insights (Lecture 6) cover the segment builder and CI computation. Activation Targets (Lecture 7) explains how segments reach external systems. Consent and Privacy (Lecture 8) and Governance (Lecture 9) cover compliance and access control. Performance Monitoring (Lecture 10) covers the Admin UI and job management. Analytics (Lecture 11) covers Tableau and CRM Analytics integration. AI and Personalization (Lecture 12) explains grounding, vector databases, and Agentforce. This final lecture (Lecture 13) integrates everything into exam-ready scenario frameworks.
-
----
-
-## Mini Quiz
-
-**Question 1:** A consultant is designing a segment to target customers who have been inactive for 90 days, have a lifetime spend of over $500, and have opted in to email marketing. Which combination of criteria is correct?
-
-A) Three attribute filters on the Individual DMO for inactivity, lifetime spend, and email opt-in  
-B) One Calculated Insight filter for DaysSinceLastPurchase, one CI filter for TotalLifetimeSpend, and one attribute filter for HasOptedOutOfEmail = false  
-C) One related attribute filter joining to Sales Order DMO for all three criteria  
-D) A single SOQL query in the Segment Builder advanced mode  
-
-**Answer: B**
-DaysSinceLastPurchase and TotalLifetimeSpend are aggregate metrics (count/sum/days) that must be pre-computed as Calculated Insights — they cannot be expressed as simple attribute filters. The email opt-in status (HasOptedOutOfEmail) is a field on the Individual or ContactPointEmail DMO and is an attribute filter. SOQL is not used in Data Cloud's segment builder; SAQL is CRM Analytics-specific.
-
----
-
-**Question 2:** A retail company's customers shop in-store, online, and through a mobile app. Identity resolution is showing a very low match rate — most customers appear as separate Unified Individuals for each channel. What is the most likely root cause?
-
-A) The match rules are configured as fuzzy instead of exact  
-B) The ContactPointEmail and ContactPointPhone DMOs are empty because the source-to-DMO field mappings for contact point objects are incomplete  
-C) The Individual DMO has too many records causing processing delays  
-D) The fuzzy match threshold is set too high, rejecting valid matches  
-
-**Answer: B**
-Identity Resolution uses email, phone, and other contact points to match Individual records across sources. If the ContactPointEmail and ContactPointPhone DMOs are empty (because field mappings weren't configured to populate these objects), the IR process has no basis for matching records — each source Individual stands alone as its own Unified Individual. This is the most common cause of low IR match rates.
-
----
-
-**Question 3:** A financial services firm wants to use Data Cloud to identify clients who hold only savings accounts but not investment products, for a cross-sell campaign. The firm has regulatory requirements to keep banking and investment data strictly separated. Which Data Cloud feature should the consultant configure first?
-
-A) Two separate Activation Targets — one for banking and one for investments  
-B) A single Calculated Insight joining banking and investment DMOs  
-C) Two separate Data Spaces with access controls, then a cross-product segment where cross-sell analysis is permitted  
-D) Two separate Connected Apps with different permission sets for each product line  
-
-**Answer: C**
-Data Spaces provide the regulatory separation required — banking data and investment data are isolated in separate Data Spaces with access controls by role. Cross-product analysis (identifying clients who have one product but not another) requires a segment that spans appropriate Data Spaces, which can be permitted for analysts who have cross-product access. Data Spaces are the correct governance feature for this regulatory requirement.
+**Q:** A campaign manager wants to target customers who haven't made a purchase in the last 90 days. She uses a Related Attribute Filter checking for no Sales Order in the last 90 days. When she publishes the segment, it shows 0 members despite knowing many customers haven't purchased recently. What is most likely wrong?
+**A:** Related attribute filters check for the PRESENCE of matching records. "Has a SalesOrder in last 90 days" finds customers who have purchased — but she wants the opposite (no purchase). She needs to use an EXCLUSION filter: include all customers, then EXCLUDE those who have a SalesOrder in the last 90 days. Alternatively, a Calculated Insight with MAX(OrderDate) and filtering on LastOrderDate before 90 days ago would work correctly.

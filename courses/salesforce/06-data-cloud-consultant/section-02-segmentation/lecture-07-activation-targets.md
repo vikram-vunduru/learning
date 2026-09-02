@@ -1,372 +1,185 @@
-# Lecture 07: Activation Targets & Engagement
+# Activation Targets & Engagement
 
-## Learning Objectives
-- Define an Activation Target and describe its role in the Data Cloud workflow
-- Configure the three main activation target types: Salesforce CRM, Marketing Cloud, and advertising platforms
-- Explain activation membership and how segment members are published to activation targets
-- Describe publish schedules and how to select the appropriate contact points for activation
+## Exam Domain
+Activation & Engagement — 10% of exam weight
+
+## Core Concepts
+
+### What an Activation Target Is
+An Activation Target (AT) is the configuration that defines WHERE and HOW a segment is published to a destination system. It is the "exit ramp" of Data Cloud — where unified, segmented customer data leaves Data Cloud and reaches the systems that communicate with customers. ATs receive Published segments (never Draft). Multiple Activation Targets can receive the same segment simultaneously.
+
+### Activation Membership vs. Segment Membership
+This is the most-tested activation concept. Segment membership = all Unified Individuals meeting the segment criteria. Activation membership = segment members who actually get sent to the destination, which may be less. The difference: some members may have no valid contact point for the channel (no email address), or have HasOptedOutOfEmail = true. This reduction is expected and not an error.
+
+### Publish Schedules
+ATs have their own publish schedule independent of the segment refresh schedule: Continuous (publishes as soon as segment refreshes), 12 hours, 24 hours, or Manual. The full chain matters: Data Stream → DMO → CI → Segment refresh → Activation publish. New segment members can't appear in the destination until ALL steps complete.
 
 ---
 
-## Slides
+## PTA / SA Relevance
 
-### Slide 1: What Is an Activation Target?
-**Visual:**
+### When This Comes Up in Engagements
+Activation is where Data Cloud's value becomes tangible to marketing stakeholders. The question "how do we get these segments into our email tool?" is answered here. For multi-channel campaigns (email + ads + CRM outreach), one segment activating to three targets simultaneously is a compelling architecture story versus the traditional "export list, upload to each system" approach.
+
+### Common Partner Mistakes
+- Activating a segment that's still in Draft status and then spending time troubleshooting why nothing appears in the destination
+- Incorrect Subscriber Key mapping in Marketing Cloud activation — results in duplicate MC subscriber records (one per contact point) instead of updating the existing subscriber
+- Not adding Activation Attributes — sending a bare list of email addresses to Marketing Cloud without the customer's loyalty tier or purchase metrics, forcing MC to do a separate data fetch
+- Expecting activation to provide real-time audience updates for programmatic advertising — advertising platform activation has a multi-hour latency (hash, upload, platform processing)
+
+### Enterprise Scale Considerations
+For large segments (1M+ members), full activation publish runs can take significant time. Use incremental publish where available (only sends new/changed members rather than the full list). For advertising platform activations, understand that match rates are 40–70% of activated records — not all customers are identifiable on ad platforms. Build this into campaign ROI expectations.
+
+### Customer Advisory: Channel Strategy
+Data Cloud's ability to activate one segment to multiple destinations simultaneously is foundational to omnichannel campaign strategy. Advise customers to think about activation in terms of the customer journey: the same "high-value at-risk" segment can simultaneously trigger an outbound call task in CRM, an email sequence in Marketing Cloud, and an ad suppression in Facebook (don't advertise to customers you're already calling). This is the integrated engagement model Data Cloud enables.
+
+---
+
+## Architecture
+
+### Activation Flow: Segment to Destinations
+
 ```
-  ┌─────────────────────────────┐
-  │         SEGMENT             │
-  │  "High-Value Customers      │
-  │   who bought in last 30d"   │
-  └──────────────┬──────────────┘
+  ╔══════════════════════════════╗
+  ║         SEGMENT              ║
+  ║  "High-Value Customers Q4"   ║
+  ║  15,000 members (Published)  ║
+  ╚══════════════╤═══════════════╝
                  │
         ┌────────┼────────┐
         ▼        ▼        ▼
-  ┌──────────┐ ┌────────┐ ┌──────────────┐
-  │Marketing │ │  CRM   │ │  Ad Platform │
-  │  Cloud   │ │Salesf. │ │  (Meta/Google│
-  │(Email)   │ │(Tasks) │ │   Audiences) │
-  └──────────┘ └────────┘ └──────────────┘
-    Activation Targets — push segment membership
-    One segment can activate to MULTIPLE targets simultaneously
+  ╔══════════╗ ╔═══════╗ ╔══════════════╗
+  ║Marketing ║ ║  CRM  ║ ║  Ad Platform ║
+  ║  Cloud   ║ ║ Salerf║ ║ (Meta/Google/║
+  ║ (Email)  ║ ║(Tasks)║ ║  LinkedIn)   ║
+  ╚══════════╝ ╚═══════╝ ╚══════════════╝
+  13,800 act.   14,200   ~9,800 matched
+  (1,200 no     (800 no  (40-70% match
+   valid email   CRM match  rate on platform)
+   or opted out) or record)
+
+  One Published segment → multiple Activation Targets simultaneously
 ```
 
-**Content:**
-- An **Activation Target (AT)** is the configuration that defines WHERE a segment is published
-- It represents the destination system that will receive segment members
-- Types of activation targets: Connected Salesforce org, Marketing Cloud, Advertising platforms (Facebook, Google, LinkedIn)
-- Activation sends the list of Unified Individuals (and their contact points) to the destination
-- Multiple Activation Targets can receive the same segment simultaneously
-- Configured in Data Cloud Setup → Activation Targets
-
-**Speaker Notes:** Activation Targets are the "exit ramp" of Data Cloud — the point where the unified, segmented customer data leaves Data Cloud and reaches the systems that actually communicate with customers. Without Activation Targets, all your segmentation work stays inside Data Cloud and has no business impact. The exam tests both the concept (what is an AT and why does it exist) and the technical configuration (how to set up each type). The key insight is that activation is always driven from a Published segment — you can't activate a Draft segment. And you can push the same segment to multiple destinations simultaneously, which is how omnichannel campaigns work.
+**Limitations:**
+- Advertising platform match rates are 40–70% of uploaded records — not all activated members are identifiable on the platform
+- Activation latency varies by destination type — CRM Campaign Member creation is fast; advertising platform audience upload can take hours
+- Activation Target creation is restricted to Data Cloud Admin permission set — not all users can create new destinations
 
 ---
 
-### Slide 2: Salesforce CRM Activation Target
-**Visual:**
+### Marketing Cloud Activation — Critical Details
+
 ```
-  DATA CLOUD                           SALESFORCE CRM
-  ──────────────────                   ─────────────────────────────
-  ┌───────────────────┐                ┌──────────────────────────┐
-  │  SEGMENT          │                │  CAMPAIGN                │
-  │  "Q4 Upsell"      │──Activation──▶ │  Name: Q4 Upsell         │
-  │  2,500 members    │                │  ──────────────────────  │
-  └───────────────────┘                │  CAMPAIGN MEMBERS (auto) │
-                                       │  ● John Smith            │
-  Config required:                     │  ● Jane Doe              │
-  ┌───────────────────┐                │  ● Robert Chen           │
-  │ Connected App:    │                │  ... 2,500 total         │
-  │ [Target CRM Org]  │                └──────────────────────────┘
-  │ Target Object:    │
-  │ [CampaignMember]  │   Sales reps get task lists; service teams
-  └───────────────────┘   get prioritized queues; CRM reporting
+  DATA CLOUD                          MARKETING CLOUD
+  ══════════════                      ═══════════════════════════════════
+  ╔═══════════════════╗               ╔══════════════════════════════╗
+  ║  SEGMENT MEMBERS  ║               ║  DATA EXTENSION              ║
+  ║  + Contact Points ║ ═Activation═▶ ║  (auto-created/updated)      ║
+  ║  + Activation     ║               ║  EmailAddress                ║
+  ║    Attributes:    ║               ║  SubscriberKey  ← CRITICAL   ║
+  ║  ▸ LoyaltyTier   ║               ║  LoyaltyTier                 ║
+  ║  ▸ TotalSpend90d ║               ║  TotalSpend90d               ║
+  ╚═══════════════════╝               ╚══════════════════════════════╝
+                                               │
+                                               ▼
+                                      Journey Builder / Sends
+                                      Personalize using attributes
+
+  ★ SUBSCRIBER KEY MAPPING IS REQUIRED ★
+  Maps Data Cloud contact identifier → MC Subscriber Key
+  Wrong mapping = duplicate MC subscriber records
 ```
 
-**Content:**
-- Activates segment members to a **Campaign** or **Campaign Member** in a connected Salesforce org
-- Requires a **Connected App** between Data Cloud and the target CRM org
-- For same-org activations: Data Cloud and CRM are the same org — connector already configured
-- For cross-org activations: a separate org connection must be configured
-- Activation creates **Campaign Member records** in the CRM for each segment member
-- The Campaign can then be used for sales outreach, service prioritization, or CRM reporting
-
-**Speaker Notes:** The Salesforce CRM Activation Target is used when you want to bring the segmentation intelligence from Data Cloud into your operational CRM workflows. For example: Data Cloud identifies a segment of customers at high churn risk, and you activate that segment to a Campaign in Sales Cloud so account executives receive a task to call each at-risk customer. The connection between Data Cloud and the target org is typically pre-configured as part of the Data Cloud setup. The exam tests the understanding that activation writes Campaign Member records — not Contact or Account records. The Campaign serves as the bridge between Data Cloud's segmentation and CRM's operational workflows.
+**Limitations:**
+- Subscriber Key mapping is required and must be correct — incorrect mapping creates duplicate subscribers in MC
+- Marketing Cloud activation is batch-oriented — it does not update MC in real time
+- Data Extension is auto-created/updated but schema changes in DC may require MC Data Extension updates
 
 ---
 
-### Slide 3: Marketing Cloud Activation Target
-**Visual:**
-```
-  DATA CLOUD                           MARKETING CLOUD
-  ──────────────────                   ─────────────────────────────
-  ┌───────────────────┐                ┌──────────────────────────┐
-  │  SEGMENT MEMBERS  │                │  DATA EXTENSION          │
-  │  + Contact Points │───Activation──▶│  (auto-created/updated)  │
-  │  + Activation     │                │  EmailAddress            │
-  │    Attributes     │                │  SubscriberKey  ← mapped │
-  │    ─────────────  │                │  LoyaltyTier             │
-  │    LoyaltyTier    │                │  TotalSpend90d           │
-  │    TotalSpend90d  │                └──────────────────────────┘
-  └───────────────────┘                         │
-                                                ▼
-  Config required:                     JOURNEY BUILDER / EMAIL SENDS
-  ┌───────────────────┐                Personalized using attributes
-  │ MC Connector:     │                (e.g., different email content
-  │ [Business Unit]   │                 for Gold vs Silver tier)
-  │ SubscriberKey:    │
-  │ [map contact ID]  │   CRITICAL: Subscriber Key mapping REQUIRED
-  └───────────────────┘
-```
+### Advertising Platform Activation — Privacy Model
 
-**Content:**
-- Activates segment members to **Marketing Cloud** for use in Journeys, Sends, and Automations
-- Requires the **Marketing Cloud Connector** to be configured
-- Members are sent as **Subscriber records** to a Data Extension in Marketing Cloud
-- **Subscriber Key mapping** is required — maps the Data Cloud contact identifier to MC Subscriber Key
-- Additional attributes (from DMOs or CIs) can be included in the activation payload to personalize MC content
-- The Data Extension in MC is automatically created/updated with each activation
-
-**Speaker Notes:** The Marketing Cloud activation is the most common activation type on the exam because MC is the primary channel system for most Data Cloud implementations. The critical configuration detail is the Subscriber Key mapping — in Marketing Cloud, every subscriber record is identified by a Subscriber Key, and you must map a contact identifier from Data Cloud (typically the email address or a customer ID) to that field. If this mapping is wrong, MC can't associate the activation data with existing subscriber records. Additional attributes allow you to pass Data Cloud metrics (like CI measures) alongside the segment membership — so MC can personalize email content based on the customer's loyalty tier or total spend.
-
----
-
-### Slide 4: Advertising Platform Activation Targets
-**Visual:**
 ```
   DATA CLOUD                     AD PLATFORMS
-  ──────────────────             ─────────────────────────────────
-  Segment Members                SHA-256
+  ═══════════════                ════════════════════════════════
+  Segment Members                SHA-256 hash (one-way)
   Email: john@co.com ─── hash ──▶ 5d41402abc4b... ──▶ Facebook
-  Phone: 555-123-4567             (one-way, cannot              Custom
-                                   reverse to PII)              Audience
+  Phone: 555-123-4567             Cannot reverse                Custom
+                                  to recover PII               Audience
                                              │
-  ┌──────────────────┐           ─── hash ──▶ Google
-  │ PRIVACY RULE:    │                        Customer
-  │ Raw PII is NEVER │           ─── hash ──▶ LinkedIn
-  │ sent to ad       │                        Matched
-  │ platforms        │                        Audience
-  └──────────────────┘
-                                 Match rate: 40–70%
-                                 (not all customers on platform)
+  ╔══════════════════╗           ─── hash ──▶ Google Customer Match
+  ║  PRIVACY RULE:   ║
+  ║  Raw PII NEVER   ║           ─── hash ──▶ LinkedIn Matched
+  ║  sent to ad      ║                        Audience
+  ║  platforms       ║
+  ╚══════════════════╝           Match rate: 40–70% (not all users
+                                  identifiable on platform)
 
-  Use cases: Ad suppression (don't show ads to existing customers)
-             Lookalike audiences, retargeting
+  Use cases:
+  ▸ Suppression: don't show ads to existing customers
+  ▸ Lookalike: find users similar to this audience
+  ▸ Retargeting: re-engage browsed-but-didn't-buy customers
 ```
 
-**Content:**
-- Data Cloud supports native activation to **Facebook, Google, and LinkedIn** ad platforms
-- Uses **Customer Match / Custom Audiences** — match Data Cloud customers to ad platform users
-- Activation sends **hashed email addresses or phone numbers** (SHA-256 hash for privacy)
-- Match rates vary by platform (typically 40-70%) — not all customers are identifiable on ad platforms
-- Useful for: ad suppression (don't advertise to existing customers), lookalike audiences, retargeting
-- Requires OAuth connection to each ad platform account
-
-**Speaker Notes:** Advertising activations are tested on the exam primarily from a conceptual and privacy standpoint. The key exam facts: data is sent as hashed PII (SHA-256 hashed emails or phones) — Data Cloud does NOT send raw email addresses to ad platforms. The ad platforms then try to match those hashes against their user databases to identify the same customers. Match rates aren't 100% — this is expected and normal. The common use cases are suppression (tell Facebook "don't show ads to these existing customers"), lookalike audiences (tell Facebook "find users similar to these customers"), and retargeting (show ads to customers who browsed but didn't purchase).
+**Limitations:**
+- SHA-256 hashing is one-way — ad platforms cannot reverse it to obtain PII
+- Match rates vary by platform and data quality — expect 40–70%, not 100%
+- Advertising platform audiences take time to process after upload (typically 24–48 hours before ads begin running against the new audience)
 
 ---
 
-### Slide 5: Activation Membership
-**Visual:**
+### Publish Schedule and Full Chain
+
 ```
-  SEGMENT MEMBERSHIP: 12,450
-  ┌─────────────────────────────────────────────────────────┐
-  │  ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●   │
-  │  ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●   │
-  └─────────────────────────────────────────────────────────┘
-                         │
-  Contact point filter: "must have valid, non-opted-out email"
-                         │
-                         ▼
-  ACTIVATION MEMBERSHIP: 11,200  (segment members - those without
-  ┌───────────────────────────────┐  valid email or opted-out)
-  │  ● ● ● ● ● ● ● ● ● ● ● ● ●  │
-  │  ● ● ● ● ● ● ● ● ● ● ● ● ●  │  Segment size ≠ Activation size
-  └───────────────────────────────┘
-  (1,250 excluded: no email on file or HasOptedOutOfEmail = true)
+  PUBLISH SCHEDULE OPTIONS:
+  ══════════════════════════════════════════════════════════
+  Continuous ─── activates changes as soon as segment refreshes
+  12 hours   ─── publishes twice daily
+  24 hours   ─── publishes once daily
+  Manual     ─── triggered by admin action only
 
-  Contact Point selection options:
-  • Most recently used
-  • Specific Contact Point Type (e.g., "work email")
-  • All contact points
+  FULL CHAIN (every step has its own schedule):
+  Data Stream ──▶ DMO update ──▶ CI refresh ──▶ Segment refresh ──▶ Activation publish
+
+  New customer qualifies for segment at 8 PM.
+  With daily schedules (Data Stream 2AM, CI 4AM, Segment 6AM, Publish 7AM):
+  Customer appears in destination at 7 AM THE NEXT DAY — 11-hour lag.
+  This is expected and must be communicated to stakeholders.
 ```
-
-**Content:**
-- **Activation membership** ≠ Segment membership — only members with valid contact points are activated
-- For email channel activation: member must have a valid, non-opted-out email address
-- For phone channel activation: member must have a valid phone number
-- For CRM activation: member must have a matching record in the target CRM org
-- **Contact Point selection:** for customers with multiple email addresses, specify which to use
-  - Options: most recently used, specific Contact Point Type, or all contact points
-- Activation membership count = segment members who pass the contact point filter
-
-**Speaker Notes:** The distinction between segment membership count and activation membership count is a frequently tested exam point. Not all segment members can be activated — you can only activate customers for whom you have the required contact information for that channel. A customer might be in your "High Value Customers" segment but have no email address on file — that customer won't be activated to an email campaign. The contact point selection is also exam-relevant: when a customer has 3 email addresses in Data Cloud, which one gets sent to Marketing Cloud? The configuration determines this — you can choose most recently used, a specific contact point type (e.g., "work email"), or all contact points.
 
 ---
 
-### Slide 6: Publish Schedules
-**Visual:**
-```
-  PUBLISH SCHEDULE OPTIONS
-  ─────────────────────────────────────────────────────────
-  Continuous  ─── Activates changes as soon as segment refreshes
-  12 hours    ─── Publishes twice daily
-  24 hours    ─── Publishes once daily
-  Manual      ─── Triggered by admin action only
+## Key Facts to Memorize
 
-  TIMELINE EXAMPLE (12-hour schedule):
-  Monday                           Tuesday
-  ─────────────────────────────────────────────────────────
-  6 AM publish    6 PM publish     6 AM publish
-     │               │                │
-     ▼               ▼                ▼
-  [1,200 members] [1,340 members]  [1,290 members]
-  (initial)       (+140 new)       (-50 fell out of window)
-
-  Full publish:        Sends ALL current segment members
-  Incremental publish: Sends only NEW members since last publish
-
-  NOTE: Segment must refresh BEFORE publish can include new members
-        Data Stream → DMO → CI → Segment → Activation (in that order)
-```
-
-**Content:**
-- Activation targets have their own **publish schedule** — independent of segment refresh schedule
-- Publish schedule options: **Continuous, 12 hours, 24 hours, or manually triggered**
-- **Continuous publishing:** activates changes as soon as the segment refreshes (fastest)
-- **Full vs. Incremental publish:**
-  - **Full publish:** sends ALL current segment members on each run
-  - **Incremental publish:** sends only NEW members added since last publish (where supported)
-- The publish schedule determines how quickly new segment members reach the destination
-- Dependency: segment must refresh before publish can include new members
-
-**Speaker Notes:** Publish schedules are another place where the exam tests operational understanding. The cascade is: Data Stream refresh → DMO update → CI refresh → Segment refresh → Activation publish. If the segment refreshes every 24 hours and the activation publishes every 12 hours, a publish might run before the segment has refreshed with new members. This is fine operationally — the activation just sends the same members again. But if the question asks "how quickly will a new customer who just met the segment criteria appear in Marketing Cloud?" the answer depends on the entire chain of refresh schedules. Full vs. incremental publish is relevant for performance — incremental is more efficient for large segments where most members don't change between runs.
-
----
-
-### Slide 7: Activation Data Configuration
-**Visual:**
-```
-  ACTIVATION TARGET CONFIGURATION
-  ──────────────────────────────────────────────────────────
-  Section 1: CONTACT POINT
-  ┌──────────────────────────────────────────────────┐
-  │ Channel:      [ Email                    ]       │
-  │ Contact Type: [ Personal Email           ]       │
-  │ Selection:    [ Most Recently Used ▼     ]       │
-  └──────────────────────────────────────────────────┘
-
-  Section 2: ACTIVATION ATTRIBUTES (additional data to send)
-  ┌──────────────────────────────────────────────────┐
-  │ + LoyaltyTier        (from Individual DMO)       │
-  │ + TotalSpend90d      (from CI: Purchase_Stats)   │
-  │ + LastPurchaseDate   (from CI: Purchase_Stats)   │
-  └──────────────────────────────────────────────────┘
-         │
-         ▼  These travel alongside segment membership
-  Marketing Cloud can use them in:
-  • Dynamic email content
-  • Journey decision splits
-  • Personalization strings
-```
-
-**Content:**
-- **Contact Point configuration:** select which contact point type to use for the channel
-- **Activation Attributes:** additional data fields to include alongside segment membership
-  - Can include Individual/Unified Individual field values
-  - Can include Calculated Insight measure values
-  - Can include related DMO field values
-- Attributes are delivered alongside segment membership to enrich destination system records
-- Example: send TotalSpend90d and LoyaltyTier to MC so Journey Builder can personalize email content
-- Attribute selection is configured per Activation Target
-
-**Speaker Notes:** Activation Attributes are the mechanism for making activations more than just "here's a list of email addresses." By including additional data fields, you're passing intelligence from Data Cloud to the destination system. Marketing Cloud can then use those attributes in dynamic content, personalization strings, and Journey decision splits. For example, a Journey might route customers to different email paths based on the LoyaltyTier attribute received from Data Cloud. The exam tests that activation attributes can include CI measures — this is important because CI measures (like TotalSpend90d) are computed metrics that don't exist as simple DMO fields.
-
----
-
-### Slide 8: Activation Troubleshooting
-**Visual:**
-```
-  SYMPTOM                     FIRST CHECK                 RESOLUTION
-  ──────────────────────────────────────────────────────────────────
-  0 members activated         Segment status              Publish the segment
-                              (Draft vs Published?)
-
-  Fewer members than          Contact point filter        Review contact point
-  expected                    or consent exclusion?       config; check opt-outs
-
-  AT not receiving data       Connection broken?          Check Connected App /
-                              Publish schedule run?       MC connector auth
-
-  Duplicate records in MC     Subscriber Key mapping      Fix key mapping config;
-                              incorrect?                  deduplicate MC records
-
-  Stale data in MC            Segment + publish           Align schedules; run
-                              schedules misaligned?       segment refresh first
-
-  CHECK FIRST: Data Cloud → Activation Log
-               (shows last publish time, member count, error messages)
-```
-
-**Content:**
-- **0 members activated:** segment is in Draft state, or no members have valid contact points
-- **Fewer members than expected:** contact point filter too restrictive, or consent exclusions removing members
-- **Activation target not receiving data:** connection to destination system is broken, or publish schedule hasn't run
-- **Duplicate records in MC:** Subscriber Key mapping is incorrect — multiple contact points creating duplicate MC subscribers
-- **Stale data in MC:** segment refresh schedule and publish schedule are misaligned
-- **Check the Activation Log** in Data Cloud for error messages and last publish details
-
-**Speaker Notes:** Troubleshooting activation is a common exam scenario type. The most important troubleshooting path: if nothing is being activated, the first check is whether the segment is Published. Draft segments cannot be activated. If some members are missing, check the contact point filter and consent exclusions. If the destination system isn't receiving data at all, check the connection (Connected App credentials, MC connector authorization) and the publish schedule. The Activation Log is the go-to diagnostic tool — it shows the last publish timestamp, the member count, and any error messages. Knowing to check the Activation Log is itself an exam answer.
-
----
-
-## Recording Script
-
-Welcome to Lecture 07, the final lecture of Section 2. We've built segments — now let's get them out to the systems that actually reach customers. That's what Activation Targets do.
-
-An Activation Target defines the destination for your segment. Data Cloud currently supports three main AT types: the connected Salesforce CRM (for Campaign Member records), Marketing Cloud (for subscriber-based outreach), and advertising platforms like Facebook, Google, and LinkedIn (for paid media targeting).
-
-Let's walk through the Marketing Cloud activation, which is the most commonly tested. When you activate a segment to MC, Data Cloud sends a list of customers — their email addresses or phone numbers — to a Data Extension in MC. Those customers then appear in MC's Journey Builder as a target audience, or they can be used directly in an email send. You can also include activation attributes — extra data fields like loyalty tier or a Calculated Insight metric — that travel with the segment membership and can personalize the MC content.
-
-Here's a critical distinction: **segment membership** is not the same as **activation membership**. Your segment might have 12,000 members, but if 800 of them have no email address on file — or have opted out — they won't appear in the MC activation. The activation count is always equal to or less than the segment count.
-
-For advertising platforms, Data Cloud sends hashed email addresses using SHA-256 — never raw PII. The ad platforms use those hashes to find matching users in their systems. Match rates are typically 40-70%, so don't be surprised if only half your segment appears as a Custom Audience in Facebook.
-
-Publish schedules work independently of segment refresh schedules. The entire chain matters: Data Stream → DMO → CI → Segment refresh → Activation publish. Every step has its own schedule, and you need them coordinated to ensure timely delivery of fresh audiences to your destinations.
-
-For troubleshooting: if zero members are being activated, check whether the segment is Published. If you're seeing fewer than expected, check consent exclusions and contact point configuration. If the destination isn't receiving data, check the connection and the publish schedule log.
-
-That wraps up Section 2. In Section 3, we move into governance, consent, and administration. See you there.
-
----
-
-## Exam Tips
-
-- Segments must be **Published** (not Draft) before they can be used in an Activation Target
-- **Activation membership** can be less than segment membership — only members with valid, non-opted-out contact points are activated
+- Segments must be **Published** (not Draft) before they can be added to an Activation Target
+- **Activation membership ≤ Segment membership** — always; contact point filtering and consent reduce the count
 - Advertising platform activations use **SHA-256 hashed** email/phone — never raw PII
-- Marketing Cloud activation requires proper **Subscriber Key mapping** — incorrect mapping causes duplicate MC subscriber records
-- Activation attributes can include **Calculated Insight measures**, enabling enriched personalization in the destination system
+- MC activation requires proper **Subscriber Key mapping** — incorrect mapping creates duplicate MC subscriber records
+- **One segment can activate to multiple Activation Targets** simultaneously — no need for separate segments
+- Activation attributes (DMO fields + CI measures) travel alongside segment membership to enrich the destination
+- Activation Target creation is **Data Cloud Admin only** — governance safeguard against unauthorized data egress
+- Check the **Activation Log** first when troubleshooting — it shows last publish time, member count, and errors
 
 ---
 
-## Lecture Summary
+## Exam Traps
 
-Activation Targets are the configured destinations where Data Cloud segment members are published — including Salesforce CRM, Marketing Cloud, and advertising platforms (Facebook, Google, LinkedIn). Activation membership differs from segment membership because only members with valid, non-opted-out contact points are activated. Marketing Cloud activation requires Subscriber Key mapping and supports activation attributes (including CI measures) for personalization. Advertising platform activations use SHA-256 hashed identifiers for privacy compliance. Publish schedules operate independently of segment refresh schedules and the entire refresh chain (Data Stream → DMO → CI → Segment → Activation) must be coordinated for timely delivery. Troubleshooting activation starts with verifying segment publish status, checking contact point configuration, and reviewing the Activation Log.
-
----
-
-## Mini Quiz
-
-**Question 1:** A segment has 15,000 members in Data Cloud. After activation to a Marketing Cloud Activation Target, the resulting Data Extension only has 13,200 records. No error messages appear in the Activation Log. What is the most likely reason for the discrepancy?
-
-A) The activation job encountered errors that weren't logged  
-B) The segment is in Draft status  
-C) 1,800 members do not have a valid email contact point or have opted out of email  
-D) Marketing Cloud has a limit of 13,200 subscriber records  
-
-**Answer: C**
-When activation membership is less than segment membership without errors, the most likely cause is that some segment members don't have valid contact points for the activation channel (no email address on file) or have opted out (HasOptedOutOfEmail = true). If the segment were in Draft status, zero records would be activated.
+- "If segment has 15,000 members but MC gets 13,200, there's an error" — wrong; expected behavior due to contact point and consent filtering
+- "Each Activation Target requires its own separate segment" — wrong; one segment activates to multiple ATs
+- "Advertising platforms receive raw email addresses" — wrong; SHA-256 hashed emails only
+- "Draft segments appear in Activation Targets" — wrong; must be Published
+- "Activation Attributes determine segment membership criteria" — wrong; attributes are extra data sent alongside membership; criteria are in the segment definition
 
 ---
 
-**Question 2:** A Data Cloud implementation sends customer segments to a Facebook Custom Audience for ad targeting. Which method does Data Cloud use to transmit customer identity to Facebook?
+## Practice Questions
 
-A) Raw email addresses transmitted via HTTPS  
-B) Salesforce-encrypted customer IDs unique to the org  
-C) SHA-256 hashed email addresses or phone numbers  
-D) Facebook Pixel tracking codes linked to customer sessions  
+**Q:** A segment has 15,000 members. After activation to MC, the Data Extension only has 13,200 records. No error messages in the Activation Log. What is the most likely reason?
+**A:** 1,800 segment members don't have a valid email contact point or have HasOptedOutOfEmail = true on their Contact Point Email record. Activation membership is always equal to or less than segment membership. This is expected behavior — not an error — because activation only includes members with valid, non-opted-out contact points for the channel.
 
-**Answer: C**
-Data Cloud sends SHA-256 hashed email addresses or phone numbers to advertising platforms. Hashing is a one-way transformation that protects raw PII while still allowing the ad platform to match users within their own systems. Raw PII is never transmitted.
+**Q:** How does Data Cloud transmit customer identity to Facebook for Custom Audiences targeting?
+**A:** Data Cloud sends SHA-256 hashed email addresses or phone numbers. Hashing is one-way and protects raw PII while still allowing Facebook to match users within its own systems. Raw PII is never transmitted to ad platforms.
 
----
-
-**Question 3:** A consultant configures an Activation Target for Marketing Cloud and adds TotalSpend90d (a Calculated Insight measure) as an Activation Attribute. What is the purpose of including this attribute in the activation?
-
-A) To determine which customers qualify for segment membership  
-B) To enrich Marketing Cloud subscriber records with the computed metric, enabling personalization in email content  
-C) To trigger the CI to refresh before the activation publish runs  
-D) To replace the contact point selection for MC routing  
-
-**Answer: B**
-Activation Attributes are extra data fields included alongside segment membership to enrich the destination system's records. Including TotalSpend90d allows Marketing Cloud to use that metric in personalization strings, Journey decision splits, or dynamic content — for example, showing different email offers to customers with different spend levels. Activation attributes do not determine segment membership (that's criteria filters) and do not control CI refresh scheduling.
+**Q:** A consultant includes TotalSpend90d (a CI measure) as an Activation Attribute in a Marketing Cloud AT. What does this enable?
+**A:** Marketing Cloud receives the TotalSpend90d value alongside each customer's segment membership, enabling MC to use it in personalization strings, Journey decision splits, or dynamic email content — for example, showing different offers to customers with different spending levels. Activation Attributes do not determine segment membership; they enrich the data sent to the destination.

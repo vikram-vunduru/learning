@@ -1,146 +1,221 @@
 # Exception Handling in Apex
 
-## Learning Objectives
-- Write try/catch/finally blocks to handle and recover from Apex exceptions
-- Identify the most common built-in exception types and the scenarios that trigger each
-- Create custom exception classes using Salesforce naming conventions
-- Compare Database.insert() allOrNone behavior to the DML statement equivalent and handle partial success
+## Exam Domain
+Process Automation & Logic — 30% of exam weight
 
-## Slides
+## Core Concepts
 
-### Slide 1: Why Exception Handling Matters
-**Visual:** Split screen — left shows an unhandled NullPointerException error page visible to an end user; right shows a friendly custom error message displayed via a catch block
-**Content:**
-- Unhandled exceptions surface raw stack traces to users — poor experience and security risk
-- Proper exception handling allows recovery, logging, and graceful degradation
-- Some exceptions are expected business conditions (record not found, validation failure)
-- Others indicate programming bugs (null pointer, type mismatch)
-- Exception handling is the difference between a fragile and a production-ready system
-**Speaker Notes:** On the exam, exception handling questions test syntax knowledge and exception type recognition. In practice, poor exception handling is one of the top causes of user-facing errors in Salesforce orgs. Well-written Apex handles expected exceptions gracefully and lets unexpected ones surface clearly in logs for debugging.
+### try / catch / finally
+```apex
+try {
+    // risky code
+    Account a = [SELECT Id FROM Account WHERE Name = :searchName LIMIT 1];
+    insert newContact;
+} catch (QueryException qe) {
+    System.debug('No record found: ' + qe.getMessage());
+} catch (DmlException de) {
+    System.debug('DML failed: ' + de.getMessage());
+} catch (Exception e) {
+    // generic — catches anything not caught above
+    System.debug('Unexpected: ' + e.getTypeName() + ' - ' + e.getMessage());
+} finally {
+    // always runs — cleanup goes here
+    cleanupTempData();
+}
+```
+- Multiple `catch` blocks: most specific type first
+- `finally` always runs whether or not exception was thrown
 
-### Slide 2: try / catch / finally Syntax
-**Visual:** Code block color-coded in three sections: try block in blue, catch block in orange, finally block in green, with annotations pointing to each
-**Content:**
-- `try` block: code that might throw an exception
-- `catch(ExceptionType e)` block: handles a specific exception type
-- Multiple `catch` blocks allowed — most specific type first
-- `finally` block: always executes whether or not an exception was thrown
-- `finally` is used for resource cleanup (closing connections, clearing state)
-**Speaker Notes:** The structure is: try the risky operation, catch specific exceptions and handle them, and use finally for cleanup that must always run. You can stack multiple catch blocks for different exception types — Apex checks them in order and executes only the first matching one. The finally block runs even if you re-throw an exception inside catch, making it reliable for cleanup like clearing temporary lists or logging transaction boundaries.
+### Common Built-In Exception Types
+| Exception | Thrown When |
+|-----------|-------------|
+| `NullPointerException` | Dereferencing a null variable |
+| `DmlException` | DML fails (validation rule, required field, duplicate) |
+| `QueryException` | Single-row SOQL assignment gets 0 or 2+ rows |
+| `LimitException` | Governor limit exceeded — **NOT catchable** |
+| `CalloutException` | HTTP callout fails (timeout, SSL, invalid endpoint) |
+| `TypeException` | Invalid type cast |
+| `ListException` | List index out of bounds |
+| `MathException` | Division by zero |
 
-### Slide 3: Common Built-In Exception Types
-**Visual:** Table with two columns — Exception Type and Trigger Scenario — listing five common exceptions with real-world examples
-**Content:**
-- `NullPointerException`: dereferencing a null variable (`account.Name` when account is null)
-- `DmlException`: DML operation fails (required field missing, validation rule, duplicate rule)
-- `QueryException`: SOQL returns wrong number of rows (0 or 2+ rows in a single-row query)
-- `LimitException`: governor limit exceeded — NOT catchable, transaction always rolls back
-- `CalloutException`: HTTP callout fails (connection timeout, SSL error, invalid endpoint)
-**Speaker Notes:** QueryException is one of the most common runtime errors: a SOQL statement using assignment (Account a = [SELECT Id FROM Account WHERE Name = 'Acme']) throws QueryException if it returns 0 rows or more than 1 row. The safe pattern is to query into a List and check the list size before accessing elements. LimitException is the one you cannot catch — memorize that distinction.
-
-### Slide 4: Exception Methods
-**Visual:** Code snippet showing a catch block calling e.getMessage(), e.getTypeName(), e.getStackTraceString(), and e.getCause() with sample output for each
-**Content:**
-- `e.getMessage()` — human-readable error description
-- `e.getTypeName()` — fully qualified exception class name (e.g., "System.DmlException")
+### Exception Methods
+- `e.getMessage()` — human-readable error
+- `e.getTypeName()` — fully qualified class name (e.g., `System.DmlException`)
 - `e.getStackTraceString()` — full stack trace for debugging
-- `e.getCause()` — the wrapped original exception, if any
-- `e.getLineNumber()` — line number where the exception occurred
-- For DmlException: `e.getDmlMessage(index)`, `e.getDmlId(index)` for per-row details
-**Speaker Notes:** The getMessage() and getStackTraceString() methods are the most useful for logging. When you have a DmlException from a bulk DML call that partially failed, getDmlMessage(i) gives you the specific error for each failed record at index i, and getDmlId(i) gives you the record ID. This is essential for building meaningful error logs and user feedback.
+- `e.getCause()` — wrapped original exception (for wrapped exceptions)
+- `e.getLineNumber()` — line number where exception occurred
+- `e.getDmlMessage(index)` — per-record error message from DmlException (for bulk DML)
+- `e.getDmlId(index)` — record Id that failed in bulk DML
 
-### Slide 5: Custom Exceptions
-**Visual:** Class definition showing `public class InsufficientInventoryException extends Exception {}` with a calling method throwing it and a caller catching it by type
-**Content:**
-- Custom exceptions extend the built-in `Exception` class
-- Naming convention: class name must end with "Exception"
-- Can be inner classes or top-level classes
-- Declare as `public class MyCustomException extends Exception {}`
-- Throw with: `throw new MyCustomException('Custom error message')`
-- Can add custom fields and constructors to carry extra context
-**Speaker Notes:** Custom exceptions allow you to represent business-specific error conditions in a typed, catchable way. By ending the class name with "Exception", Salesforce allows you to throw and catch it like a built-in exception. Inner custom exceptions are useful when the exception is tightly scoped to one class — for example, a service class might declare its own ServiceException. Top-level custom exceptions are better when multiple classes need to catch the same exception type.
+### LimitException — The Uncatchable Exception
+`LimitException` is thrown when a governor limit is exceeded. **Cannot be caught with try/catch.** Transaction always rolls back. The ONLY defense is designing code to stay under limits. Never attempt to catch it.
 
-### Slide 6: throw and Re-throw
-**Visual:** Three-level call stack diagram: Controller calls Service, Service calls Repository; Repository catches and re-throws a typed exception that Controller catches
-**Content:**
-- `throw new ExceptionType('message')` — throw a new exception
-- `throw e` inside a catch block — re-throw the caught exception (preserves stack trace)
-- Re-throwing is used to add logging at one layer and handle at a higher layer
-- Avoid swallowing exceptions (empty catch blocks) — they hide bugs
-- Pattern: catch at the lowest level to log, re-throw for the caller to handle
-**Speaker Notes:** Re-throwing preserves the original stack trace, which is critical for debugging. Wrapping is different — you catch one exception type and throw a new, more specific type with the original as the cause (using the Exception(String, Exception) constructor). This is useful in service layers that want to convert low-level database exceptions into domain-specific exceptions without losing the root cause.
+### Custom Exception Classes
+```apex
+public class InsufficientInventoryException extends Exception {}
+public class OrderProcessingException extends Exception {
+    public String orderId;
+}
 
-### Slide 7: Database.insert() vs. insert — allOrNone
-**Visual:** Comparison table showing insert statement (all-or-none, throws DmlException on any failure) vs. Database.insert(list, false) (partial success, returns SaveResult array)
-**Content:**
-- `insert myList` — all-or-none by default; any failure rolls back all records
-- `Database.insert(myList, false)` — partial success allowed; failures don't roll back successes
-- Returns `Database.SaveResult[]` — one result per record
-- `result.isSuccess()` — true if record saved; `result.getErrors()` for failures
-- Same pattern for: `Database.update()`, `Database.delete()`, `Database.upsert()`
-**Speaker Notes:** The allOrNone distinction is a favorite exam topic. The DML statement equivalent to Database.insert(list, true) is just insert list. The exam will give you a scenario where some records are valid and some are not and ask which approach allows partial success — the answer is Database.insert() with the second parameter set to false. Always iterate over the SaveResult array and log or collect errors for the records that failed.
+// Throw:
+throw new InsufficientInventoryException('Not enough stock for order ' + orderId);
 
-### Slide 8: Best Practices and Anti-Patterns
-**Visual:** Two-column checklist: green checkmarks on the left for best practices, red X marks on the right for anti-patterns
-**Content:**
-- DO: catch specific exception types rather than the generic `Exception`
-- DO: log exceptions with `System.debug()` or custom logging objects
-- DO: use `Database.insert(list, false)` when partial success is acceptable
-- DON'T: use empty catch blocks (`catch(Exception e) {}`) — they hide bugs silently
-- DON'T: expose raw exception messages to end users — wrap in user-friendly feedback
-- DON'T: catch LimitException — it is not catchable; prevent it by design
-**Speaker Notes:** The most dangerous anti-pattern is the empty catch block — it makes your code appear to work while hiding real failures. Always log at minimum, and usually re-throw or surface an error to the user. When writing DML operations in a loop context or integration layer, prefer Database.insert() with allOrNone=false to handle partial success gracefully and log specific failures per record.
+// Catch:
+try {
+    processOrder(order);
+} catch (InsufficientInventoryException e) {
+    System.debug('Inventory error: ' + e.getMessage());
+}
+```
+- **Must extend** `Exception` class (not implement)
+- Class name **must end in "Exception"** — enforced by compiler
+- Can be inner class or top-level class
 
-## Recording Script
+### DML Statement vs Database Class — allOrNone
+```apex
+// All-or-nothing — any failure rolls back ALL
+try {
+    insert contactList;
+} catch (DmlException e) {
+    // ALL records rolled back when exception thrown
+}
 
-Welcome to Lecture 12 on Exception Handling in Apex. This is a topic that separates code that works in demo from code that's ready for production. Let's walk through everything you need to know for the exam and for real development.
+// Partial success — some can fail, others commit
+List<Database.SaveResult> results = Database.insert(contactList, false);
+for (Database.SaveResult sr : results) {
+    if (!sr.isSuccess()) {
+        for (Database.Error err : sr.getErrors()) {
+            System.debug(err.getStatusCode() + ': ' + err.getMessage());
+        }
+    }
+}
+```
 
-Every piece of code that interacts with the database, calls an external service, or processes user-provided data can fail. Exception handling is how you respond to those failures in a controlled way rather than surfacing cryptic stack traces to your users.
+## PTA / SA Relevance
 
-The syntax is try/catch/finally. In the try block, you write the code that might fail. In the catch block, you handle a specific type of exception. You can have multiple catch blocks stacked up — Apex checks them in order and runs the first one that matches. The finally block always runs, whether the try succeeded or threw an exception. Use finally for cleanup that must always happen.
+**In partner code reviews, watch for:**
+- Empty catch blocks: `catch (Exception e) {}` — silent failure, hides bugs, almost always wrong
+- Catching generic `Exception` when a specific type is known — lose type information, harder to debug
+- Raw `e.getMessage()` displayed to end users — exposes internal error details (security issue)
+- LimitException listed in a catch block — it compiles but never catches (LimitException is a system exception, not catchable)
+- Missing exception logging in integration code — callout failures silently swallowed are production nightmares
 
-Now let's talk about the built-in exception types you need to recognize. NullPointerException is what you get when you dereference a null variable — the classic "variable name is null" error. DmlException fires when a DML operation fails because of a validation rule, a required field, a duplicate rule, or a sharing violation. QueryException fires when a single-row SOQL query (using direct assignment) returns zero or more than one row — this is extremely common and easily avoided by querying into a List and checking its size first. CalloutException fires when an HTTP callout fails. And LimitException fires when you exceed a governor limit — the critical distinction is that LimitException is not catchable. You cannot recover from it.
+**Enterprise-scale considerations:**
+- Build a custom error logging framework: `Error_Log__c` object with fields for exception type, message, stack trace, record ID, user, timestamp. Log in catch blocks. Expose a list view to admins.
+- For integrations using `Database.insert(list, false)`, systematically iterate SaveResult[], log all failures, and provide a retry mechanism for records that failed due to transient errors.
+- Platform Events are the modern way to handle integration failures asynchronously — publish an error event, subscribe to it with a separate process that logs and alerts.
 
-The Exception class provides several useful methods. getMessage() gives a readable description. getTypeName() gives the fully-qualified class name. getStackTraceString() gives you the full trace for debugging. For DmlException specifically, getDmlMessage(i) and getDmlId(i) give you per-record error details when a bulk DML call fails on some records.
+**For CTO conversations:**
+- "How do we know when something silently fails in Apex?" — You don't, unless you've built exception logging. Every org should have a centralized error log. Unhandled exceptions in async contexts don't surface to users at all.
 
-Custom exceptions are straightforward. Extend the built-in Exception class and end your class name with "Exception" — that is a required naming convention, not optional. Declare it as a public class, optionally add fields or constructors, and throw it with the new keyword.
+## Architecture / How It Works
 
-The allOrNone question is a PDI favorite. The plain insert statement is all-or-none: if any record in the list fails, all are rolled back. Database.insert(list, false) allows partial success: good records commit, bad ones don't, and you get back a SaveResult array. Check isSuccess() on each result and collect errors with getErrors() for the failures.
+```
+EXCEPTION CLASS HIERARCHY (relevant subset)
 
-Avoid these anti-patterns: empty catch blocks, catching the generic Exception type when you know the specific type, and exposing raw getMessage() output directly to users.
+  Exception (base)
+  ├── System.LimitException       ← NOT catchable — rolls back TX
+  ├── System.NullPointerException ← dereference null
+  ├── System.DmlException         ← DML failure; getDmlMessage(i)
+  ├── System.QueryException       ← 0 or 2+ rows in single-row query
+  ├── System.CalloutException     ← HTTP callout failure
+  ├── System.TypeException        ← invalid cast
+  ├── System.ListException        ← index out of bounds
+  └── MyCustomException           ← extends Exception (user-defined)
 
-## Exam Tips
-- `LimitException` is the only standard exception type that cannot be caught with a try/catch block — the transaction always rolls back when a governor limit is exceeded
-- Custom exception class names must end with the word "Exception" (e.g., `AccountValidationException extends Exception`) — this is enforced by the Apex compiler
-- `Database.insert(list, false)` allows partial success; `Database.insert(list, true)` and the plain `insert` statement are both all-or-none
-- `QueryException` is thrown when a single-row SOQL query (using `Account a = [SELECT ...]`) returns 0 rows or more than 1 row — always prefer querying into a List
-- `e.getDmlMessage(index)` and `e.getDmlId(index)` on a DmlException allow you to identify which specific records failed in a bulk DML operation
+  Key rule: LimitException cannot be in any catch block (uncatchable).
+```
 
-## Lecture Summary
-Apex exception handling uses try/catch/finally blocks to intercept and respond to runtime errors, with multiple catch blocks allowing different responses to different exception types and finally ensuring cleanup always runs. The most common built-in exceptions are NullPointerException, DmlException, QueryException, CalloutException, and LimitException — the last of which is uncatchable and always rolls back the transaction. Custom exceptions extend the Exception base class and must end in "Exception" by naming convention. The Database.insert()/update()/delete() methods with allOrNone=false enable partial-success DML and return SaveResult arrays for per-record error inspection, which is preferred over the plain DML statement when handling large volumes of records with potential individual failures.
+**Limitations:**
+- `LimitException` is thrown by the platform and bypasses all catch blocks
+- Custom exceptions must extend `Exception` — interfaces and other base classes are not allowed
 
-## Mini Quiz
+```
+DML allOrNone BEHAVIOR
 
-**Q1:** A developer executes `Account a = [SELECT Id, Name FROM Account WHERE Name = 'NonExistent'];`. No matching records exist. What happens?
-A) The variable `a` is set to null
-B) A `NullPointerException` is thrown
-C) A `QueryException` is thrown
-D) The query returns an empty list
+  allOrNone = true (insert myList):
+  ┌──────────────────────────────────────────────────┐
+  │  [Valid] [Valid] [INVALID] [Valid]                │
+  │                    ↑                              │
+  │  Any failure → DmlException thrown                │
+  │  → ALL records rolled back (0 committed)          │
+  │  → Catch DmlException to handle                   │
+  └──────────────────────────────────────────────────┘
 
-**Answer:** C — A single-row SOQL assignment throws a QueryException when it returns 0 rows (or more than 1 row). To safely handle this, query into a `List<Account>` and check `list.size() > 0` before accessing the first element.
+  allOrNone = false (Database.insert(list, false)):
+  ┌──────────────────────────────────────────────────┐
+  │  [Valid] [Valid] [INVALID] [Valid]                │
+  │                    ↑                              │
+  │  No exception thrown                              │
+  │  3 records committed; 1 failed                    │
+  │  → SaveResult[2].isSuccess() = false              │
+  │  → SaveResult[2].getErrors() = [error details]    │
+  └──────────────────────────────────────────────────┘
+```
 
-**Q2:** Which of the following is a valid custom exception class declaration in Apex?
-A) `public class MyError { }`
-B) `public class MyException implements Exception { }`
-C) `public class OrderProcessingException extends Exception { }`
-D) `public exception class OrderException { }`
+**Limitations:**
+- `Database.insert(list, false)` does NOT roll back successful records when others fail — successes are permanent even if some fail
+- `DmlException.getDmlMessage(i)` only works with DML statement exceptions, not Database.insert() partial failures (use SaveResult for those)
 
-**Answer:** C — Custom exceptions must extend the `Exception` class (not implement it), and the class name must end with "Exception". Option A is a regular class, B uses `implements` incorrectly, and D uses invalid syntax.
+```
+CUSTOM EXCEPTION PATTERN — SERVICE LAYER
 
-**Q3:** A developer needs to insert a list of 1,000 Contacts, some of which may violate validation rules. Failed records should be logged, but successful records must still be committed. Which code pattern achieves this?
-A) `insert contactList;` wrapped in try/catch
-B) `Database.insert(contactList, true);`
-C) `Database.insert(contactList, false);` followed by iterating SaveResult array
-D) Use a for loop with individual `insert contact;` statements in separate try/catch blocks
+  ┌─────────────────────────────────────────────────────────┐
+  │  public class OrderService {                             │
+  │                                                         │
+  │    public class OrderException extends Exception {}     │
+  │                                                         │
+  │    public static void processOrder(Order__c o) {        │
+  │        if (o.Quantity__c <= 0) {                        │
+  │            throw new OrderException('Qty must be > 0'); │
+  │        }                                                │
+  │        // ... process                                   │
+  │    }                                                    │
+  │  }                                                      │
+  │                                                         │
+  │  // Caller:                                             │
+  │  try {                                                  │
+  │      OrderService.processOrder(order);                  │
+  │  } catch (OrderService.OrderException e) {              │
+  │      // type-safe; won't catch generic exceptions       │
+  │      ApexPages.addMessage(new ApexPages.Message(        │
+  │          ApexPages.Severity.ERROR, e.getMessage()));    │
+  │  }                                                      │
+  └─────────────────────────────────────────────────────────┘
+```
 
-**Answer:** C — `Database.insert(list, false)` sets allOrNone to false, allowing partial success. The returned `Database.SaveResult[]` array contains one entry per record; iterating it and checking `result.isSuccess()` allows you to identify and log each failure while the successful records remain committed. Options A and B are all-or-none. Option D would work but uses 1,000 DML statements, risking the 150-statement governor limit.
+**Limitations:**
+- Custom exceptions without custom fields/constructors have the same 4 constructors as the base `Exception` class (no-arg, message string, cause exception, message + cause)
+- Inner exception class: referenced as `OuterClass.InnerException` from outside the outer class
+
+## Key Facts to Memorize
+- `LimitException` is the **ONLY** exception that CANNOT be caught — transaction always rolls back
+- Custom exceptions: must **extend Exception** (not implement), class name **must end in "Exception"**
+- `finally` always executes — whether exception thrown or not
+- `Database.insert(list, false)` = partial success; no exception thrown; check SaveResult[]
+- `insert myList` = all-or-nothing; throws `DmlException` on any failure
+- `e.getDmlMessage(i)` for per-record DML errors in bulk DML exception
+- Multiple catch blocks: **most specific type first**
+
+## Customer Advisory Tips
+- **Error logging framework:** Every enterprise org needs one. Custom `Error_Log__c` object + trigger-aware logging class. Log exception type, message, stack trace, record IDs, user ID.
+- **Integration error handling:** `Database.insert(list, false)` for any bulk integration. Log failures to error log. Build a "retry failed records" admin interface.
+- **User-facing errors:** Never show raw exception messages. Map exception types to user-friendly messages. Use `ApexPages.addMessage()` for Visualforce or throw/catch in @AuraEnabled methods with custom error strings.
+
+## Exam Traps
+- `LimitException` cannot be caught — even `catch (Exception e)` does NOT catch it
+- Custom exception: use `extends Exception` NOT `implements Exception` — that's a compile error
+- Custom exception name MUST end in "Exception" — `MyError` = compile error; `MyException` = valid
+- `Database.insert(list, false)` never throws — check the SaveResult array; `insert list` throws `DmlException`
+- Multiple catch blocks: if you put `catch (Exception e)` first, specific types below it are unreachable (compiler warning)
+
+## Practice Questions
+
+**Q:** `Account a = [SELECT Id FROM Account WHERE Name = 'Ghost Corp'];` — no matching records exist. What exception?
+**A:** `QueryException` — single-row SOQL assignment requires exactly one row. 0 rows → QueryException. Fix: query into `List<Account>` and use `isEmpty()` check.
+
+**Q:** What is wrong with `public class OrderError extends Exception {}`?
+**A:** The class name must end in "Exception" — `OrderError` doesn't end in "Exception". Use `OrderErrorException` or `OrderException`.
+
+**Q:** A developer writes `catch (LimitException e) { }`. What happens when a governor limit is exceeded?
+**A:** LimitException is not catchable — the transaction rolls back regardless of the catch block. This code does nothing to prevent the rollback.
