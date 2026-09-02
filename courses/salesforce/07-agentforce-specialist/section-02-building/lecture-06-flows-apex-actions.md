@@ -135,38 +135,17 @@ From production implementations:
 ## Architecture
 
 ### Flow Action Configuration in Agentforce Studio
-```
-Agentforce Studio → Agent → Topics → [Topic] → Actions → Add Action
-
-Step 1: Select Action Type
-    ○ Flow  ● Selected
-    ○ Apex
-    ○ Prompt Template
-    ○ Knowledge Search
-
-Step 2: Select Flow
-    [Only Active Autolaunched Flows appear in picker]
-    Search: "Get_Order_Status"
-    Select: ✓ Get_Order_Status (v3)
-
-Step 3: Configure Action Details
-    Action Label: "Get Order Status"
-    Action Description: [write 3-part description here]
-
-Step 4: Map Input Parameters
-    Input: orderNumber
-    ┌─────────────────────────────────────────────┐
-    │ Source: Conversation Context                 │
-    │ (Atlas extracts from what user said)         │
-    │                                             │
-    │ OR Source: User Input                        │
-    │ (Atlas explicitly asks user)                 │
-    │                                             │
-    │ OR Source: Agent Context                     │
-    │ (from session/user profile data)             │
-    └─────────────────────────────────────────────┘
-
-Step 5: Save Action
+```mermaid
+flowchart TD
+    NAV["Agentforce Studio\nAgent → Topics → Topic\n→ Actions → Add Action"]
+    NAV --> S1["Step 1: Select Action Type\nFlow (selected)"]
+    S1 --> S2["Step 2: Select Flow\nOnly Active Autolaunched Flows shown\nGet_Order_Status (v3) selected"]
+    S2 --> S3["Step 3: Configure Action Details\nLabel: Get Order Status\nDescription: 3-part format"]
+    S3 --> S4["Step 4: Map Input Parameters\nInput: orderNumber — choose source"]
+    S4 --> SRC1["Source: Conversation Context\nAtlas extracts from user's words"]
+    S4 --> SRC2["Source: User Input\nAtlas explicitly asks the user"]
+    S4 --> SRC3["Source: Agent/Session Context\nFrom session or user profile"]
+    SRC1 & SRC2 & SRC3 --> S5["Step 5: Save Action"]
 ```
 
 **Limitations:**
@@ -175,33 +154,16 @@ Step 5: Save Action
 - Each Action parameter mapping is static at configuration time — Atlas decides which value to pass based on description and conversation, but the parameter name is fixed
 
 ### Autolaunched Flow Anatomy for Agent Actions
-```
-[Start] (Autolaunched — No Trigger)
-    │
-    ▼
-[Input Variables]
-    orderNumber: Text, Available for Input ✓
-    │
-    ▼
-[Get Records: Order]
-    WHERE OrderNumber = {!orderNumber}
-    Store: singleRecord → orderRecord
-    │
-    ├── FAULT PATH ──────────────────────────────────────┐
-    │                                                    │
-    ▼                                                    ▼
-[Assignment: outputs]                          [Assignment: errorMessage]
-    orderStatus = {!orderRecord.Status}            errorMessage = "Order not found"
-    deliveryDate = {!orderRecord.ShipDate}              │
-    errorMessage = ""                                   │
-    │                                                   │
-    ▼                                                   ▼
-[End]                                               [End]
-
-[Output Variables]
-    orderStatus: Text, Available for Output ✓
-    deliveryDate: Date, Available for Output ✓
-    errorMessage: Text, Available for Output ✓
+```mermaid
+flowchart TD
+    ST["Start (Autolaunched — No Trigger)"]
+    ST --> IV["Input Variables\norderNumber: Text, Available for Input ✓"]
+    IV --> GR["Get Records: Order\nWHERE OrderNumber = orderNumber"]
+    GR -->|"Success"| AS["Assignment: outputs\norderStatus = Status\ndeliveryDate = ShipDate\nerrorMessage = ''"]
+    GR -->|"Fault Path"| EM["Assignment: errorMessage\nerrorMessage = 'Order not found'"]
+    AS --> EN1["End"]
+    EM --> EN2["End"]
+    EN1 & EN2 --> OV["Output Variables\norderStatus: Text, Available for Output ✓\ndeliveryDate: Date, Available for Output ✓\nerrorMessage: Text, Available for Output ✓"]
 ```
 
 **Limitations:**
@@ -211,30 +173,15 @@ Step 5: Save Action
 - Fault path must be explicitly added — unconfigured faults propagate as unhandled exceptions to Atlas
 
 ### Apex Action End-to-End
-```
-@InvocableMethod on Apex class
-        │
-        ▼
-Agentforce Studio: Add Apex Action
-    ← shows @InvocableMethod classes available →
-        │
-        ▼
-Map parameters in Studio
-    (same source options: conversation, user input, session)
-        │
-        ▼
-At runtime: Atlas invokes method via InvocableMethod framework
-    Request object populated with extracted values
-        │
-        ▼
-Apex runs (sync, within governor limits)
-        │
-        ▼
-Result object returned to Atlas
-    Atlas reads output variables
-        │
-        ▼
-Atlas observes result → Reason → Respond
+```mermaid
+flowchart TD
+    IM["@InvocableMethod on Apex class"]
+    IM --> AS["Agentforce Studio: Add Apex Action\n(shows @InvocableMethod classes available)"]
+    AS --> MP["Map parameters in Studio\n(source: conversation / user input / session)"]
+    MP --> RT["At runtime: Atlas invokes method\nvia InvocableMethod framework\nRequest object populated with extracted values"]
+    RT --> AR["Apex runs (sync, within governor limits)"]
+    AR --> RO["Result object returned to Atlas\nAtlas reads output variables"]
+    RO --> ATL["Atlas observes result → Reason → Respond"]
 ```
 
 **Limitations:**

@@ -31,36 +31,27 @@ Multi-currency and ACM come up in every global enterprise deal. The key architec
 
 ## Architecture / How It Works
 
-```
-Company Information — Configuration Hierarchy
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    subgraph OrgLevel["ORG-LEVEL DEFAULTS — Company Information"]
+        O1["Default Language — UI text/labels"]
+        O2["Default Locale — date/num format"]
+        O3["Default Timezone — scheduling basis"]
+        O4["Default Currency — reporting base"]
+        O5["Fiscal Year — reporting period"]
+    end
+    OrgLevel -->|"User can override"| UserLevel
+    subgraph UserLevel["USER-LEVEL SETTINGS — Personal Settings"]
+        U1["Language (override)"]
+        U2["Locale (override)"]
+        U3["Timezone (override)"]
+    end
 
-  ORG-LEVEL DEFAULTS (Company Information)
-  ┌────────────────────────────────────────┐
-  │  Default Language   → UI text/labels   │
-  │  Default Locale     → date/num format  │
-  │  Default Timezone   → scheduling basis │
-  │  Default Currency   → reporting base   │
-  │  Fiscal Year        → reporting period │
-  └────────────────────────────────────────┘
-           │ User can override
-           ▼
-  USER-LEVEL SETTINGS (Personal Settings)
-  ┌────────────────────────────────────────┐
-  │  Language (override)                   │
-  │  Locale  (override)                    │
-  │  Timezone (override)                   │
-  └────────────────────────────────────────┘
-
-  Currency Architecture:
-  ┌────────────────────────────────────────┐
-  │  Single Currency    Multi-Currency     │
-  │  (default)          (one-way toggle)   │
-  │                          │             │
-  │                    Advanced Currency   │
-  │                    Management (ACM)    │
-  │                    dated exchange rates│
-  └────────────────────────────────────────┘
+    SC["Single Currency\n(default)"]
+    MC["Multi-Currency\n(one-way toggle, irreversible)"]
+    ACM["Advanced Currency Management\ndated exchange rates\nOpportunities only"]
+    SC -->|"Enable (irreversible)"| MC
+    MC --> ACM
 ```
 
 **Limitations:**

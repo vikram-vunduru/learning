@@ -58,34 +58,22 @@ List Views are the daily operational interface for most Salesforce users. Gettin
 
 ## Architecture / How It Works
 
-```
-List View Modes
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  STANDARD LIST VIEW:
-  ┌─────────────────────────────────────────┐
-  │  Columns: Name | Stage | Amount | Close │
-  │  ─────────────────────────────────────  │
-  │  Acme    | Proposal | $50K  | 12/31    │
-  │  Beta    | Closed Won| $120K | 11/15   │
-  └─────────────────────────────────────────┘
-
-  KANBAN VIEW:
-  ┌──────────┬──────────┬──────────┬────────┐
-  │ Prospect │ Proposal │ Negotiate│ Closed │
-  │  ┌────┐  │  ┌────┐  │          │  Won   │
-  │  │Acme│  │  │Beta│  │          │        │
-  │  └────┘  │  └────┘  │          │        │
-  │  (drag ──────────────────────► )        │
-  └──────────┴──────────┴──────────┴────────┘
-
-  SPLIT VIEW:
-  ┌──────────────┬──────────────────────────┐
-  │  List:       │  Record Detail:          │
-  │  Acme ◄ active│  [Full record view]     │
-  │  Beta        │                          │
-  │  Gamma       │                          │
-  └──────────────┴──────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Standard["STANDARD LIST VIEW"]
+        SL["Filtered record list with columns\nSort by any column\nInline editing available"]
+    end
+    subgraph Kanban["KANBAN VIEW"]
+        KL["Cards organized by picklist column\nDrag card to update picklist value\nRequires at least one picklist field"]
+        K1["Prospect column"]
+        K2["Proposal column"]
+        K3["Negotiate column"]
+        K4["Closed Won column"]
+        K1 -->|"drag"| K2 -->|"drag"| K3 -->|"drag"| K4
+    end
+    subgraph Split["SPLIT VIEW"]
+        SP["List panel on the left\nRecord detail on the right\nNavigate records without losing list context\nLightning Experience only"]
+    end
 ```
 
 **Limitations:**

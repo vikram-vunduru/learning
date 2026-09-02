@@ -104,53 +104,26 @@ Key behaviors:
 
 ## Agentforce Architecture (Enterprise)
 
-```
-╔══════════════════════════════════════════════════════════════════════════╗
-║                AGENTFORCE ENTERPRISE ARCHITECTURE                         ║
-╠══════════════════════════════════════════════════════════════════════════╣
-║                                                                          ║
-║  CUSTOMER CHANNEL                                                        ║
-║  ┌────────────────────────────────────────────────────────────────────┐  ║
-║  │ Web Chat · Messaging (WhatsApp/SMS) · Slack · Einstein Copilot UI  │  ║
-║  └──────────────────────────────────┬───────────────────────────────┘  ║
-║                                     │                                   ║
-║  AGENTFORCE LAYER                   ▼                                   ║
-║  ┌──────────────────────────────────────────────────────────────────┐   ║
-║  │                                                                  │   ║
-║  │  ATLAS REASONING ENGINE                                          │   ║
-║  │  Understand → Plan → Act → Evaluate                              │   ║
-║  │                                                                  │   ║
-║  │  TOPICS (scope boundaries)                                       │   ║
-║  │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐     │   ║
-║  │  │Order Mgmt    │  │Billing       │  │Product Questions   │     │   ║
-║  │  │(in scope)    │  │(in scope)    │  │(in scope)          │     │   ║
-║  │  └──────────────┘  └──────────────┘  └────────────────────┘     │   ║
-║  │                                                                  │   ║
-║  │  ACTIONS (what agent can DO)                                     │   ║
-║  │  Flow: Look up order ──── Apex: Check inventory                  │   ║
-║  │  Flow: Process return ─── API: Update fulfillment system         │   ║
-║  │  Prompt: Draft response ─ Escalate: Route to human agent         │   ║
-║  │                                                                  │   ║
-║  └──────────────────────────────────────────────────────────────────┘   ║
-║                                     │                                   ║
-║  TRUST LAYER (always active)        │                                   ║
-║  ┌──────────────────────────────────▼───────────────────────────────┐  ║
-║  │ Masking → ZDR Boundary → External LLM → Toxicity → Audit Log     │  ║
-║  └──────────────────────────────────┬─────────────────────────────┘   ║
-║                                     │                                   ║
-║  DATA LAYER                         ▼                                   ║
-║  ┌──────────────────────────────────────────────────────────────────┐   ║
-║  │ Salesforce CRM Data    Data Cloud Grounding    External APIs      │   ║
-║  │ (Case, Order, Account) (Vector Store / Docs)   (ERP, OMS, etc.)  │   ║
-║  └──────────────────────────────────────────────────────────────────┘   ║
-║                                     │                                   ║
-║  ESCALATION PATH (mandatory)        ▼                                   ║
-║  ┌──────────────────────────────────────────────────────────────────┐   ║
-║  │ Omni-Channel → Human Agent                                       │   ║
-║  │ Context transfer: full conversation + retrieved data + actions   │   ║
-║  │ attempted → human agent has everything needed to continue        │   ║
-║  └──────────────────────────────────────────────────────────────────┘   ║
-╚══════════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    CH["Customer Channel\nWeb Chat · Messaging WhatsApp/SMS · Slack · Einstein Copilot UI"]
+    subgraph AF["Agentforce Layer"]
+        ARE["Atlas Reasoning Engine\nUnderstand → Plan → Act → Evaluate"]
+        subgraph Topics["Topics — scope boundaries"]
+            T1["Order Management"]
+            T2["Billing"]
+            T3["Product Questions"]
+        end
+        subgraph Actions["Actions — what agent can DO"]
+            A1["Flow: Look up order\nFlow: Process return"]
+            A2["Apex: Check inventory\nAPI: Update fulfillment"]
+            A3["Prompt: Draft response\nEscalate: Route to human"]
+        end
+    end
+    TL["Trust Layer — always active\nMasking → ZDR Boundary → External LLM → Toxicity → Audit Log"]
+    DL["Data Layer\nSalesforce CRM Data · Data Cloud Grounding · External APIs"]
+    ESC["Escalation Path — mandatory\nOmni-Channel → Human Agent\nContext transfer: full conversation + retrieved data + actions attempted"]
+    CH --> AF --> TL --> DL --> ESC
 ```
 
 **Limitations:**

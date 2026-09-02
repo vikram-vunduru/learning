@@ -155,28 +155,13 @@ Bind variables (`:variableName`) treat the value as a literal string — it cann
 
 ## Architecture / How It Works
 
-```
-APEX SECURITY ENFORCEMENT LAYERS
-
-  Running User (Sales Rep — private OWD, no AnnualRevenue FLS)
-           │
-           ▼  calls Apex method
-  ┌──────────────────────────────────────────────────────────┐
-  │  Apex Class (with sharing)                               │
-  │                                                          │
-  │  Layer 1: SHARING RULES                                  │
-  │  with sharing → SOQL returns ONLY user-accessible records │
-  │                                                          │
-  │  Layer 2: FLS (must be explicit)                         │
-  │  stripInaccessible(READABLE, results) →                  │
-  │  removes AnnualRevenue from results                      │
-  │                                                          │
-  │  Layer 3: CRUD (must be explicit)                        │
-  │  Schema.SObjectType.Account.isAccessible() check         │
-  └──────────────────────────────────────────────────────────┘
-           │
-           ▼  data returned to LWC
-  User sees: only their accounts, without AnnualRevenue field
+```mermaid
+flowchart TD
+    A["Running User\n(Sales Rep: private OWD, no AnnualRevenue FLS)"] --> B["calls Apex method"]
+    B --> C["Layer 1: SHARING RULES\nwith sharing -> SOQL returns ONLY user-accessible records"]
+    C --> D["Layer 2: FLS (must be explicit)\nstripInaccessible(READABLE, results)\n-> removes AnnualRevenue from results"]
+    D --> E["Layer 3: CRUD (must be explicit)\nSchema.SObjectType.Account.isAccessible() check"]
+    E --> F["Data returned to LWC\nUser sees: only their accounts, without AnnualRevenue field"]
 ```
 
 **Limitations:**
@@ -184,47 +169,37 @@ APEX SECURITY ENFORCEMENT LAYERS
 - FLS and CRUD checks must be explicitly coded — no automatic enforcement in Apex
 - `inherited sharing` defaults to system context when called from a context with no sharing declaration (e.g., Batch start/finish, anonymous Apex)
 
-```
-SHARING KEYWORD DECISION MATRIX
+| Who calls this class? | Recommended keyword |
+|---|---|
+| LWC / VF user-facing UI | `with sharing` |
+| `@AuraEnabled` REST endpoint | `with sharing` |
+| Administrative batch job | `without sharing` (explicit, documented) |
+| Reusable service / utility | `inherited sharing` |
+| Background scheduled job | `without sharing` (explicit) |
+| Trigger handler | `with sharing` (usually) |
 
-  Who calls this class?           Recommended keyword
-  ────────────────────────────    ────────────────────────────
-  LWC / VF user-facing UI         with sharing
-  @AuraEnabled REST endpoint      with sharing
-  Administrative batch job        without sharing (explicit, documented)
-  Reusable service / utility      inherited sharing
-  Background scheduled job        without sharing (explicit)
-  Trigger handler                 with sharing (usually)
-
-  RULE: Default to with sharing.
-        Use without sharing only with written justification.
-        Use inherited sharing for utility classes.
-```
+**Rule:** Default to `with sharing`. Use `without sharing` only with written justification. Use `inherited sharing` for utility classes.
 
 **Limitations:**
 - A class declared `without sharing` called from `with sharing` code still bypasses sharing — the keyword is per-class, not inherited unless `inherited sharing` is used
 - `with sharing` only enforces record-level security; field-level security is always a separate check
 
-```
-SOQL INJECTION ATTACK vs DEFENSE
+```apex
+// ATTACK — vulnerable code
+// userInput = "' OR Name != '"  <-- malicious input
+String query = 'SELECT Id FROM Account WHERE Name = \'' + userInput + '\'';
+// Executed: SELECT Id FROM Account WHERE Name = '' OR Name != ''
+// Result: returns ALL Accounts (WHERE is always true)
 
-  ATTACK (vulnerable code):
-  ─────────────────────────
-  userInput = "' OR Name != '"   ← malicious input
+// DEFENSE — bind variable (preferred)
+List<Account> results = [SELECT Id FROM Account WHERE Name = :userInput];
+// userInput treated as literal string value — cannot be interpreted as SOQL syntax
+// Injection attempt completely neutralized
 
-  query = "SELECT Id FROM Account WHERE Name = '" + userInput + "'"
-
-  Executed: SELECT Id FROM Account WHERE Name = '' OR Name != ''
-            └── returns ALL Accounts (WHERE is always true)
-
-  DEFENSE (bind variable):
-  ─────────────────────────
-  [SELECT Id FROM Account WHERE Name = :userInput]
-
-  Executed with userInput as literal string value:
-  WHERE Name = ''' OR Name != '''    ← the single quotes are part of the value
-  └── returns 0 results (no Account named that literal string)
-  └── injection attempt completely neutralized
+// DEFENSE — escapeSingleQuotes (fallback for Database.query())
+String safeInput = String.escapeSingleQuotes(userInput);
+String query2 = 'SELECT Id FROM Account WHERE Name = \'' + safeInput + '\'';
+List<Account> results2 = Database.query(query2);
 ```
 
 **Limitations:**
@@ -232,24 +207,13 @@ SOQL INJECTION ATTACK vs DEFENSE
 - For `Database.query()` (dynamic SOQL), `String.escapeSingleQuotes()` must be used
 - `String.escapeSingleQuotes()` only escapes single quotes — does not protect against all injection patterns; bind variables are always preferred
 
-```
-FLS ENFORCEMENT: WITH SECURITY_ENFORCED vs stripInaccessible()
-
-  WITH SECURITY_ENFORCED                stripInaccessible()
-  ──────────────────────────────        ─────────────────────────────────
-  Throws QueryException if              Silently removes inaccessible fields
-  any field is inaccessible             Records still returned (minus fields)
-
-  Simple syntax, inline in SOQL         Requires additional code (two lines)
-
-  Does NOT work with:                   Works with all query types including
-  - GROUP BY / HAVING                   aggregates (on the result set)
-  - COUNT() aggregates
-
-  Best for: simple read queries         Best for: complex queries, partial
-  where you want hard failure           field access, returning safe records
-  on any FLS violation
-```
+| Dimension | `WITH SECURITY_ENFORCED` | `stripInaccessible()` |
+|---|---|---|
+| On FLS violation | Throws `QueryException` | Silently removes inaccessible fields |
+| Records returned | Query fails (exception) | Records returned (minus inaccessible fields) |
+| Syntax | Inline in SOQL — simple | Two-line pattern (query + strip call) |
+| Works with GROUP BY / aggregates | No | Yes (operates on result set) |
+| Best for | Simple read queries where hard failure is wanted | Complex queries, partial field access, safe partial returns |
 
 **Limitations:**
 - Neither approach covers sharing rule enforcement — that requires `with sharing`

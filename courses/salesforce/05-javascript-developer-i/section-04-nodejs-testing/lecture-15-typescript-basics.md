@@ -150,21 +150,14 @@ Status.Inactive; // 1
 ## Architecture / How It Works
 
 ### TypeScript Compilation
-```
-.ts source
-     │
-     ▼
-TypeScript Compiler (tsc)
-     │
-     ├── Type check (compile time)
-     │     └── TypeErrors caught HERE — not at runtime
-     │
-     ▼
-.js output (ES5, ES6, or target configured in tsconfig.json)
-     │
-     ▼
-Runtime (Node.js / Browser / Salesforce)
-     └── No types at runtime — they are ERASED
+
+```mermaid
+flowchart TD
+    TS[".ts source"] --> TSC["TypeScript Compiler (tsc)"]
+    TSC -->|"compile time"| TC["Type check\nTypeErrors caught HERE — not at runtime"]
+    TSC --> JS[".js output\n(ES5, ES6, or target in tsconfig.json)"]
+    JS --> RT["Runtime\n(Node.js / Browser / Salesforce)"]
+    RT --> ERASED["No types at runtime — they are ERASED"]
 ```
 
 TypeScript types exist ONLY at compile time. At runtime, the code is plain JavaScript.

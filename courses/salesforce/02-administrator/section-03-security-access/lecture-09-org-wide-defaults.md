@@ -40,38 +40,31 @@ OWD is the single most consequential security decision in a Salesforce implement
 
 ## Architecture / How It Works
 
+```mermaid
+flowchart LR
+    Private["Private\nOwner + hierarchy only\n(most restrictive)"]
+    PRO["Public Read Only\nEveryone can read\nOnly owner/higher can edit"]
+    PRW["Public Read/Write\nEveryone can\nread and edit any record\n(most permissive)"]
+    Private -->|"Less restrictive"| PRO
+    PRO -->|"Less restrictive"| PRW
 ```
-OWD as the Security Floor
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  Most Restrictive ◄────────────────► Most Permissive
-  ┌───────────┐  ┌──────────────┐  ┌────────────────┐
-  │ Private   │  │Public Read   │  │Public Read/    │
-  │           │  │Only          │  │Write           │
-  │ Owner +   │  │Everyone can  │  │Everyone can    │
-  │ hierarchy │  │read; only    │  │read & edit     │
-  │ can access│  │owner/higher  │  │any record      │
-  └───────────┘  │can edit      │  └────────────────┘
-                 └──────────────┘
-
-  OWD + Sharing Stack:
-  ┌──────────────────────────────────────────────────┐
-  │ OWD (floor) ──────────────────────────────────── │
-  │   ↑ Role Hierarchy (opens up for managers)       │
-  │     ↑ Sharing Rules (opens up by criteria/role)  │
-  │       ↑ Manual Sharing (individual grants)       │
-  │                                                  │
-  │ Access can only be EXPANDED from OWD floor       │
-  │ Nothing can RESTRICT below OWD floor             │
-  └──────────────────────────────────────────────────┘
-
-  External vs Internal OWD:
-  ┌────────────────────┬──────────────────────────┐
-  │ Object             │ Internal  │ External      │
-  │ Account            │ Pub R/W   │ Private       │
-  │ Opportunity        │ Private   │ Private       │
-  └────────────────────┴──────────────────────────-┘
+```mermaid
+flowchart TD
+    OWD["OWD — FLOOR\nMost restrictive baseline\nSets minimum access for non-owners"]
+    RH["Role Hierarchy\nOpens up access for managers\n(upward visibility)"]
+    SR["Sharing Rules\nOpens up by criteria or owner\n(max 300 per object)"]
+    MS["Manual Sharing\nPer-record individual grants\nby users with Read access"]
+    OWD --> RH --> SR --> MS
+    Note["Access can only be EXPANDED from OWD\nNothing can RESTRICT below OWD floor"]
 ```
+
+**External vs Internal OWD** — set separately for internal users and Experience Cloud/Community users:
+
+| Object | Internal OWD | External OWD |
+|---|---|---|
+| Account | Public Read/Write | Private |
+| Opportunity | Private | Private |
 
 **Limitations:**
 - OWD can only be loosened by Role Hierarchy, Sharing Rules, or Manual Sharing — never tightened by them

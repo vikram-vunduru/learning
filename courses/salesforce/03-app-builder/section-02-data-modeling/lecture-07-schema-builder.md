@@ -33,26 +33,16 @@ Schema Builder is best for: getting a visual overview of a complex data model, c
 
 ## Architecture / How It Works
 
+```mermaid
+flowchart LR
+    Account["Account\n─────────\nName\nIndustry"]
+    Contact["Contact\n─────────\nName\nEmail"]
+    JobC["Job__c\n─────────\nFields..."]
+    AppC["Application__c\n─────────\nFields..."]
+    Contact -->|"Blue = Lookup"| Account
+    AppC -->|"Gold = Master-Detail"| JobC
 ```
-Schema Builder Canvas Layout:
-┌────────────────────────────────────────────────────────────────────┐
-│  Left Panel: Objects list         Canvas: Objects as entity boxes  │
-│  ┌──────────────────┐                                              │
-│  │ ✓ Account        │   ┌──────────────┐  ──── ┌───────────────┐  │
-│  │ ✓ Contact        │   │  Account     │ BLUE  │  Contact      │  │
-│  │ ✓ Job__c         │   │  ──────────  │◄──────│  ──────────── │  │
-│  │ ✓ Application__c │   │  Name        │       │  Name         │  │
-│  └──────────────────┘   │  Industry    │       │  Email        │  │
-│                          └──────────────┘       └───────────────┘  │
-│  Relationship key:              │                                   │
-│  ──── Blue = Lookup            GOLD              │                  │
-│  ──── Gold = Master-Detail      │                ▼                  │
-│                          ┌──────────────┐   ┌───────────────┐      │
-│  Click object to see     │Application__c│   │  Job__c       │      │
-│  its fields; draw line   │  ──────────  │   │  ──────────── │      │
-│  to create relationship  └──────────────┘   └───────────────┘      │
-└────────────────────────────────────────────────────────────────────┘
-```
+**Schema Builder key:** Left panel shows the objects list. Canvas displays objects as entity boxes. Blue lines = Lookup relationships. Gold lines = Master-Detail relationships. Click an object to see its fields; draw a line to create a relationship.
 
 **Limitations:**
 - Schema Builder does NOT show: FLS settings, validation rules, page layouts, triggers, flows
@@ -61,24 +51,19 @@ Schema Builder Canvas Layout:
 - Large orgs with hundreds of objects can become difficult to navigate on the canvas
 - Schema Builder shows a point-in-time snapshot — it does not auto-refresh
 
-```
-Schema Builder Capabilities Summary:
-┌─────────────────────────────────┬─────────┬──────────────────────┐
-│ Action                          │ Can Do? │ Alternative           │
-├─────────────────────────────────┼─────────┼──────────────────────┤
-│ View object relationships       │   YES   │                       │
-│ Create new custom objects       │   YES   │ Object Manager        │
-│ Create new fields               │   YES   │ Object Manager        │
-│ Create relationship fields      │   YES   │ Object Manager        │
-│ Delete fields                   │   NO    │ Object Manager        │
-│ Delete objects                  │   NO    │ Object Manager        │
-│ Configure FLS                   │   NO    │ Profiles / Perm Sets  │
-│ Configure page layouts          │   NO    │ Object Manager        │
-│ Edit validation rules           │   NO    │ Object Manager        │
-│ View standard objects           │   YES   │                       │
-│ Export/print diagram            │   NO*   │ Screenshot tool       │
-└─────────────────────────────────┴─────────┴──────────────────────┘
-```
+| Action | Can Do? | Alternative |
+|---|---|---|
+| View object relationships | YES | — |
+| Create new custom objects | YES | Object Manager |
+| Create new fields | YES | Object Manager |
+| Create relationship fields | YES | Object Manager |
+| Delete fields | NO | Object Manager |
+| Delete objects | NO | Object Manager |
+| Configure FLS | NO | Profiles / Permission Sets |
+| Configure page layouts | NO | Object Manager |
+| Edit validation rules | NO | Object Manager |
+| View standard objects | YES | — |
+| Export/print diagram | NO* | Screenshot tool |
 
 **Limitations:**
 - There is no native export-to-image or export-to-PDF feature in Schema Builder

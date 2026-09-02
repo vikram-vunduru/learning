@@ -38,14 +38,12 @@ Salesforce delivers three major updates per year: **Spring** (Jan–Feb), **Summ
 
 ## Architecture / How It Works
 
-```
-┌─────────────────────────────────────────────┐
-│           YOUR APPS & APPEXCHANGE           │  ← You build here
-├─────────────────────────────────────────────┤
-│   PLATFORM: Metadata Engine · APIs · Runtime │  ← Customization layer
-├─────────────────────────────────────────────┤
-│ INFRASTRUCTURE: Servers · DB · Security Patches │  ← Salesforce manages
-└─────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["YOUR APPS & APPEXCHANGE\n(You build here)"]
+    B["PLATFORM: Metadata Engine · APIs · Runtime\n(Customization layer)"]
+    C["INFRASTRUCTURE: Servers · DB · Security\n(Salesforce manages)"]
+    A --> B --> C
 ```
 
 **Limitations:**
@@ -53,33 +51,27 @@ Salesforce delivers three major updates per year: **Spring** (Jan–Feb), **Summ
 - You cannot opt out of Salesforce's three annual releases
 - Governor limits are non-negotiable — design around them
 
+```mermaid
+flowchart TD
+    subgraph SF["Shared Infrastructure (Salesforce)"]
+        OrgA["Org A\nMetadata"]
+        OrgB["Org B\nMetadata"]
+        OrgC["Org C · ...\nMetadata"]
+    end
 ```
-Multi-Tenant Model:
-┌──────────────────────────────────────────────┐
-│        Shared Infrastructure (Salesforce)     │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐       │
-│  │  Org A  │  │  Org B  │  │  Org C  │  ...  │
-│  │ Metadata│  │ Metadata│  │ Metadata│       │
-│  └─────────┘  └─────────┘  └─────────┘       │
-└──────────────────────────────────────────────┘
 Each org is logically isolated. Metadata makes each org behave differently.
-```
 
 **Limitations:**
 - Changes in one org never affect another org
 - One org cannot hog shared resources — governor limits enforce fairness
 
-```
-Declarative-First Decision Flow:
-Does standard functionality cover the need?
-  │
-  ├─ YES → Use it as-is
-  │
-  └─ NO → Can a declarative tool solve it?
-            │
-            ├─ YES → Flow / Formula / Validation Rule / App Builder
-            │
-            └─ NO → Apex / LWC / API  (last resort)
+```mermaid
+flowchart TD
+    A{"Does standard functionality\ncover the need?"}
+    A -->|"Yes"| B["Use it as-is"]
+    A -->|"No"| C{"Can a declarative\ntool solve it?"}
+    C -->|"Yes"| D["Flow / Formula /\nValidation Rule / App Builder"]
+    C -->|"No"| E["Apex / LWC / API\n(last resort)"]
 ```
 
 **Limitations:**

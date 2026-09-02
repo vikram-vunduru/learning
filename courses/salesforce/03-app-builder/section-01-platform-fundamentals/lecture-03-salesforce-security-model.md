@@ -41,65 +41,39 @@ Profiles are mandatory (every user has exactly one) and define the minimum acces
 
 ## Architecture / How It Works
 
+```mermaid
+flowchart TD
+    L4["Layer 4: Manual Sharing\nAd hoc, record-by-record\n(Share button, Share With field)"]
+    L3["Layer 3: Sharing Rules\nHorizontal + criteria-based\n(automated, bulk)"]
+    L2["Layer 2: Role Hierarchy\nVertical (upward visibility)\n(managers see subordinate records)"]
+    L1["Layer 1: OWD — Organization-Wide Defaults\nBaseline for all users\n(Public R/W | Public RO | Private)"]
+    L1 -->|"opens access"| L2
+    L2 -->|"opens access"| L3
+    L3 -->|"opens access"| L4
 ```
-Security Layer Stack (Additive Access Only):
-═══════════════════════════════════════════════════════
-Layer 4: Manual Sharing         Ad hoc, record-by-record
-         ▲ opens access         (Share button, Share With field)
-─────────────────────────────────────────────────────
-Layer 3: Sharing Rules          Horizontal + criteria-based
-         ▲ opens access         (automated, bulk)
-─────────────────────────────────────────────────────
-Layer 2: Role Hierarchy         Vertical (upward visibility)
-         ▲ opens access         (managers see subordinate records)
-─────────────────────────────────────────────────────
-Layer 1: OWD                    Baseline for all users
-  (Organization-Wide Defaults)  (Public R/W | Public RO | Private)
-═══════════════════════════════════════════════════════
-Note: Each layer can ONLY grant more access. None can restrict
-what a lower layer already allows.
-```
+Note: Each layer can ONLY grant more access. None can restrict what a lower layer already allows.
 
 **Limitations:**
 - Sharing rules cannot restrict access below OWD — OWD is the floor
 - Role hierarchy cannot be per-record — it's structural and applies uniformly
 - Manual sharing is lost when a record's owner changes (must be re-applied)
 
-```
-OWD Settings and Their Effect:
-┌─────────────────┬────────────────────────────────────────┐
-│ OWD Setting     │ Who can see/edit this record?          │
-├─────────────────┼────────────────────────────────────────┤
-│ Public R/W      │ All users — anyone can see and edit    │
-│ Public Read Only│ All users see it; only owner/above can │
-│                 │ edit                                   │
-│ Private         │ Only record owner + roles above them   │
-│                 │ in hierarchy (+ Sys Admin)             │
-└─────────────────┴────────────────────────────────────────┘
-```
+| OWD Setting | Who can see/edit this record? |
+|---|---|
+| Public Read/Write | All users — anyone can see and edit |
+| Public Read Only | All users can see; only owner/roles above can edit |
+| Private | Only record owner + roles above in hierarchy (+ Sys Admin) |
 
 **Limitations:**
 - There is no "Public No Access" OWD — Private is the most restrictive option
 - System Administrators always see all records regardless of OWD
 
-```
-Field-Level Security vs. Page Layout vs. Required:
-┌──────────────────┬────────────────────────────────────────┐
-│ Control Type     │ What it controls                       │
-├──────────────────┼────────────────────────────────────────┤
-│ Field-Level Sec. │ Whether user can see/edit field at all │
-│ (FLS)            │ Enforced by API, reports, UI           │
-├──────────────────┼────────────────────────────────────────┤
-│ Page Layout      │ Which fields appear on the edit screen │
-│                  │ UI-only: doesn't enforce via API       │
-├──────────────────┼────────────────────────────────────────┤
-│ Required (FLS)   │ Field must have a value — enforced     │
-│                  │ everywhere including API               │
-├──────────────────┼────────────────────────────────────────┤
-│ Required (Layout)│ Field required in the UI only —        │
-│                  │ API can bypass this                    │
-└──────────────────┴────────────────────────────────────────┘
-```
+| Control Type | What it controls |
+|---|---|
+| Field-Level Security (FLS) | Whether user can see/edit the field at all — enforced by API, reports, and UI |
+| Page Layout | Which fields appear on the edit screen — UI only, does not enforce via API |
+| Required (FLS / field definition) | Field must have a value — enforced everywhere including API |
+| Required (Layout only) | Field required in the UI only — API can bypass this |
 
 **Limitations:**
 - Removing a field from a page layout does NOT hide it from users — FLS must be used for true field hiding

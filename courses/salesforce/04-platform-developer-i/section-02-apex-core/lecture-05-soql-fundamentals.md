@@ -112,51 +112,45 @@ SOQL SYNTAX MAP
 - Total rows returned per transaction: 50,000
 - LIKE with leading wildcard (`'%term'`) is non-selective and very slow on large objects
 
+**Bind Variable Injection Safety:**
+
+VULNERABLE (string concatenation — SOQL injection risk):
+
+```apex
+String name = userInput;  // could be: Acme' OR Id != null
+String q = 'SELECT Id FROM Account WHERE Name = \'' + name + '\'';
+List<Account> r = Database.query(q);  // SOQL INJECTION RISK
 ```
-BIND VARIABLE INJECTION SAFETY
 
-  VULNERABLE (string concatenation):
-  ┌────────────────────────────────────────────────────────────────┐
-  │  String name = userInput;  // could be: Acme' OR Id != null   │
-  │  String q = 'SELECT Id FROM Account WHERE Name = \'' + name   │
-  │               + '\'';                                          │
-  │  List<Account> r = Database.query(q);  ← SOQL INJECTION RISK  │
-  └────────────────────────────────────────────────────────────────┘
+SAFE (bind variable — preferred, type-safe, injection-safe):
 
-  SAFE (bind variable):
-  ┌────────────────────────────────────────────────────────────────┐
-  │  String name = userInput;                                      │
-  │  List<Account> r = [SELECT Id FROM Account WHERE Name = :name];│
-  │                     ↑ colon syntax — type-safe, injection-safe │
-  └────────────────────────────────────────────────────────────────┘
+```apex
+String name = userInput;
+List<Account> r = [SELECT Id FROM Account WHERE Name = :name];
+// colon syntax treats value as literal string
+```
 
-  SAFE (Dynamic SOQL with escape):
-  ┌────────────────────────────────────────────────────────────────┐
-  │  String name = String.escapeSingleQuotes(userInput);           │
-  │  String q = 'SELECT Id FROM Account WHERE Name = \'' + name   │
-  │               + '\'';                                          │
-  │  List<Account> r = Database.query(q);  ← safe with escape     │
-  └────────────────────────────────────────────────────────────────┘
+SAFE (Dynamic SOQL with escape — fallback when bind variable not possible):
+
+```apex
+String name = String.escapeSingleQuotes(userInput);
+String q = 'SELECT Id FROM Account WHERE Name = \'' + name + '\'';
+List<Account> r = Database.query(q);  // safe with escape
 ```
 
 **Limitations:**
 - Bind variables work in static SOQL (`[SELECT ...]`) but NOT in dynamic SOQL string bodies (use `Database.query()` with `escapeSingleQuotes()` for dynamic field names/object names)
 - Collections bound to IN clause must be non-null — binding a null Set throws exception
 
-```
-SOQL GOVERNOR LIMITS
+| Limit | Synchronous | Asynchronous |
+|-------|-------------|--------------|
+| Total SOQL queries | 100 | 200 |
+| Rows returned per query | 50,000 | 50,000 |
+| Rows returned total | 50,000 | 50,000 |
+| QueryLocator (Batch only) | N/A | 50,000,000 |
+| SOSL searches | 20 | 20 |
 
-  ┌──────────────────────────────┬──────────────┬───────────────┐
-  │  Limit                       │  Synchronous │  Asynchronous │
-  ├──────────────────────────────┼──────────────┼───────────────┤
-  │  Total SOQL queries          │     100      │      200      │
-  │  Rows returned per query     │   50,000     │   50,000      │
-  │  Rows returned total         │   50,000     │   50,000      │
-  │  QueryLocator (Batch only)   │  N/A         │  50,000,000   │
-  │  SOSL searches               │      20      │       20      │
-  └──────────────────────────────┴──────────────┴───────────────┘
-  Check: System.debug(Limits.getQueries() + '/' + Limits.getLimitQueries());
-```
+Check: `System.debug(Limits.getQueries() + '/' + Limits.getLimitQueries());`
 
 **Limitations:**
 - QueryLocator's 50M limit only applies inside `start()` of Batch Apex — regular SOQL never returns more than 50,000 rows

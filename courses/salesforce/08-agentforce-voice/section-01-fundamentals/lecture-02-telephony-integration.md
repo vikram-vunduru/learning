@@ -9,22 +9,13 @@ Use Cases & Business Value / Setup & Configuration — Agentforce Specialist (CR
 
 Salesforce does not own phone network infrastructure — all voice infrastructure is provided by certified telephony partners.
 
-```
-┌───────────────────────┬───────────────────────┬───────────────────────┐
-│    AMAZON CONNECT     │   GENESYS CLOUD CX    │     NICE CXone        │
-├───────────────────────┼───────────────────────┼───────────────────────┤
-│ AWS-native platform   │ Enterprise CCaaS      │ Compliance-first      │
-│ Deepest Salesforce    │ Multi-channel, multi- │ Financial services &  │
-│ integration           │ country routing       │ healthcare focus      │
-│ Managed package from  │ AppFoundry connector  │ NICE CXone connector  │
-│ AppExchange           │                       │                       │
-├───────────────────────┼───────────────────────┼───────────────────────┤
-│ Best for:             │ Best for:             │ Best for:             │
-│ AWS-committed orgs,   │ Large enterprise,     │ Regulated industries, │
-│ new deployments       │ complex global routing│ compliance-heavy      │
-└───────────────────────┴───────────────────────┴───────────────────────┘
-         All three: Partner Telephony — managed package from AppExchange
-```
+| | Amazon Connect | Genesys Cloud CX | NICE CXone |
+|---|---|---|---|
+| **Type** | AWS-native platform | Enterprise CCaaS | Compliance-first |
+| **Integration** | Deepest Salesforce integration; managed package from AppExchange | AppFoundry connector | NICE CXone connector |
+| **Best for** | AWS-committed orgs, new deployments | Large enterprise, complex global routing | Regulated industries, compliance-heavy (FinServ, healthcare) |
+
+All three: Partner Telephony — managed package from AppExchange
 
 **Limitations:**
 - Amazon Connect is only supported in certain AWS regions — check current region availability before committing for data residency
@@ -34,30 +25,18 @@ Salesforce does not own phone network infrastructure — all voice infrastructur
 
 ### Partner Telephony vs. Bring Your Own Telephony (BYOT)
 
-```
-  PARTNER TELEPHONY                         BRING YOUR OWN TELEPHONY (BYOT)
-  ─────────────────────────                 ───────────────────────────────────
-  ┌─────────────────────────┐               ┌───────────────────────────────────┐
-  │ Salesforce-Certified    │               │ Customer's Existing Telephony     │
-  │ Partner                 │               │ (Avaya / Cisco / Custom)          │
-  │ (Amazon Connect /       │               └──────────────────┬────────────────┘
-  │  Genesys / NICE CXone)  │                                  │ SIP / API connector
-  └────────────┬────────────┘                                  │ (custom-built)
-               │ Managed Package                               │
-               │ (AppExchange install)                         ▼
-               ▼                                ┌──────────────────────────────────┐
-  ┌─────────────────────────┐                   │ Salesforce Voice API             │
-  │ Salesforce Org          │                   └──────────────────────────────────┘
-  └─────────────────────────┘                                  │
-               │                                               │
-               └───────────────────┬───────────────────────────┘
-                                   ▼
-                    ┌─────────────────────────────────┐
-                    │     Service Cloud Voice         │
-                    │  (VoiceCall Record, Routing,    │
-                    │   Transcript, Omni-Channel)     │
-                    └─────────────────────────────────┘
-  Salesforce-supported end-to-end          Customer owns integration + support
+```mermaid
+flowchart TD
+    subgraph PT["Partner Telephony (Salesforce-supported)"]
+        PART["Salesforce-Certified Partner\n(Amazon Connect / Genesys / NICE CXone)"]
+        PART -->|"Managed Package\n(AppExchange install)"| SFORG["Salesforce Org"]
+    end
+    subgraph BYOT["Bring Your Own Telephony (Customer-owned)"]
+        CUST["Customer's Existing Telephony\n(Avaya / Cisco / Custom)"]
+        CUST -->|"SIP / API connector\n(custom-built)"| VAPI["Salesforce Voice API"]
+    end
+    SFORG --> SCV["Service Cloud Voice\n(VoiceCall Record, Routing,\nTranscript, Omni-Channel)"]
+    VAPI --> SCV
 ```
 
 **Limitations:**
@@ -68,45 +47,15 @@ Salesforce does not own phone network infrastructure — all voice infrastructur
 
 ### Amazon Connect Deep Dive Architecture
 
-```
-Phone Call (PSTN)
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    AWS / AMAZON CONNECT                     │
-│                                                             │
-│  ┌─────────────────────┐     ┌────────────────────────────┐ │
-│  │ Amazon Connect      │────▶│ Amazon Connect Contact     │ │
-│  │ Instance            │     │ Lens                       │ │
-│  │ (call routing,      │     │ (real-time STT via AWS     │ │
-│  │  queuing, audio)    │     │  Transcribe, sentiment,    │ │
-│  │                     │     │  PII/PCI masking)          │ │
-│  └─────────────────────┘     └────────────────┬───────────┘ │
-│                                               │             │
-│                              ┌────────────────▼───────────┐ │
-│                              │ AWS Lambda                 │ │
-│                              │ (event bridge — fires on   │ │
-│                              │  answer / hang-up /        │ │
-│                              │  transfer events)          │ │
-│                              └────────────────┬───────────┘ │
-└───────────────────────────────────────────────┼─────────────┘
-                                                │ Transcript + Events
-                                                ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      SALESFORCE ORG                         │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │ Salesforce Voice for Amazon Connect (Managed Package) │  │
-│  │ (CTI adapter, streaming config, setup components)     │  │
-│  └───────────────────────────────┬───────────────────────┘  │
-│                                  ▼                          │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │ Service Cloud Voice (VoiceCall Record, Omni-Channel)  │  │
-│  └───────────────────────────────┬───────────────────────┘  │
-│                                  ▼                          │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │ Agentforce Agent (Atlas Reasoning Engine)             │  │
-│  └───────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    PSTN["Phone Call (PSTN)"]
+    PSTN --> ACI["Amazon Connect Instance\n(call routing, queuing, audio)"]
+    ACI --> CL["Amazon Connect Contact Lens\n(real-time STT via AWS Transcribe\nsentiment, PII/PCI masking)"]
+    CL --> LAM["AWS Lambda\n(event bridge — fires on\nanswer / hang-up / transfer events)"]
+    LAM -->|"Transcript + Events"| MP["Salesforce Voice for Amazon Connect\n(Managed Package)\n(CTI adapter, streaming config, setup components)"]
+    MP --> SCV["Service Cloud Voice\n(VoiceCall Record, Omni-Channel)"]
+    SCV --> AA["Agentforce Agent\n(Atlas Reasoning Engine)"]
 ```
 
 **Limitations:**
@@ -118,35 +67,16 @@ Phone Call (PSTN)
 
 ### Live Call Data Flow (Sequence)
 
-```
-CALLER     AMAZON CONNECT       SERVICE CLOUD VOICE    AGENTFORCE AGENT
-  │              │                       │                    │
-  │ 1. Dials     │                       │                    │
-  │─────────────▶│                       │                    │
-  │              │ 2. ANI lookup         │                    │
-  │              │ (optional PIN/IVR)    │                    │
-  │              │──────────────────────▶│                    │
-  │              │                       │                    │
-  │              │ 3. Transcript stream  │                    │
-  │              │ (Contact Lens → STT)  │                    │
-  │              │──────────────────────▶│                    │
-  │              │                       │ 4. VoiceCall rec.  │
-  │              │                       │ created, Contact   │
-  │              │                       │ matched by ANI     │
-  │              │                       │───────────────────▶│
-  │              │                       │                    │
-  │              │                       │ 5. Atlas reasons   │
-  │              │                       │ on transcript      │
-  │◀─────────────────────────────────────────────────────────│
-  │ 6. AI responds (autonomous) or suggestions shown (assist) │
-  │              │                       │                    │
-  │ 7. Hangs up  │                       │                    │
-  │─────────────▶│                       │                    │
-  │              │ Hang-up event (Lambda)│                    │
-  │              │──────────────────────▶│                    │
-  │              │                       │ 8. Post-call AI    │
-  │              │                       │ summary written to │
-  │              │                       │ VoiceCall record   │
+```mermaid
+flowchart TD
+    S1["1. Caller dials"]
+    S1 --> S2["2. Amazon Connect: ANI lookup\n(optional PIN/IVR)"]
+    S2 --> S3["3. Contact Lens: transcript stream\n(real-time STT)"]
+    S3 --> S4["4. Service Cloud Voice:\nVoiceCall record created\nContact matched by ANI"]
+    S4 --> S5["5. Agentforce Agent:\nAtlas reasons on live transcript"]
+    S5 --> S6["6. AI responds (autonomous)\nor suggestions shown (assist)"]
+    S6 --> S7["7. Caller hangs up\n→ hang-up event fires via Lambda"]
+    S7 --> S8["8. Post-call AI summary\nwritten to VoiceCall record"]
 ```
 
 **Limitations:**
@@ -156,20 +86,15 @@ CALLER     AMAZON CONNECT       SERVICE CLOUD VOICE    AGENTFORCE AGENT
 
 ### SIP Trunking — Know the Boundaries
 
-```
-PSTN (carrier lines)
-    │
-    │ SIP Trunk (virtual IP phone connection — Session Initiation Protocol)
-    │
-    ▼
-Telephony Partner Cloud (Amazon Connect / Genesys / NICE)
-    ├── Media Stream (audio RTP — raw voice data)
-    └── Signaling (SIP — call setup/teardown/transfer)
-         │
-         │ Contact Lens converts audio → text transcript
-         ▼
-Salesforce
-    (receives TEXT transcript only — never raw audio)
+```mermaid
+flowchart TD
+    PSTN["PSTN (carrier lines)"]
+    PSTN -->|"SIP Trunk\n(Session Initiation Protocol)"| TP["Telephony Partner Cloud\n(Amazon Connect / Genesys / NICE)"]
+    TP --> MS["Media Stream\n(audio RTP — raw voice data)"]
+    TP --> SIG["Signaling\n(SIP — call setup/teardown/transfer)"]
+    MS --> CL["Contact Lens\n(converts audio → text transcript)"]
+    CL --> SF["Salesforce\n(receives TEXT transcript only — never raw audio)"]
+    SIG --> SF
 ```
 
 **Limitations:**
@@ -180,16 +105,20 @@ Salesforce
 
 ### Provisioning Checklist (Both Sides Must Be Done)
 
-```
-TELEPHONY SIDE (Amazon Connect)          SALESFORCE SIDE
-────────────────────────────────         ──────────────────────────────────
-[ ] AWS account + Connect instance        [ ] Service Cloud Voice license (org)
-[ ] Contact Lens enabled on instance      [ ] Managed package installed
-[ ] Phone number claimed (DID/toll-free)  [ ] Named Credential configured
-[ ] Contact Flow routes to SF queue       [ ] Voice Call Center created
-[ ] IAM role with Connect+Lambda+STT      [ ] Omni-Channel voice channel + queue
-    permissions                           [ ] SCV (Partner Telephony) perm set (user)
-```
+**Telephony Side (Amazon Connect):**
+- [ ] AWS account + Connect instance
+- [ ] Contact Lens enabled on instance
+- [ ] Phone number claimed (DID/toll-free)
+- [ ] Contact Flow routes to SF queue
+- [ ] IAM role with Connect + Lambda + STT permissions
+
+**Salesforce Side:**
+- [ ] Service Cloud Voice license (org)
+- [ ] Managed package installed
+- [ ] Named Credential configured
+- [ ] Voice Call Center created
+- [ ] Omni-Channel voice channel + queue
+- [ ] SCV (Partner Telephony) perm set (user)
 
 ## PTA / SA Relevance
 

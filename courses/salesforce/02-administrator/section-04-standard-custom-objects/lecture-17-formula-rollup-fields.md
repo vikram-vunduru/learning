@@ -67,37 +67,19 @@ Formula fields are the no-code calculation engine in Salesforce. They're widely 
 
 ## Architecture / How It Works
 
-```
-Formula Field Evaluation
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    Load["Record loads in UI"]
+    Load --> Eval["Salesforce evaluates formula expression\n(references current field values + parent fields)"]
+    Eval --> Display["Returns calculated result for display\nNOT stored in database"]
 
-  Record loads in UI
-       ↓
-  Salesforce evaluates formula expression
-  (references current field values + parent field values)
-       ↓
-  Returns calculated result for display
-  (NOT stored in database)
+    ChildRec["Child Record"] -->|"Cross-object formula:\nAccount__r.Industry__c\nAccount.AnnualRevenue"| Display2["Display value on child record"]
 
-  Cross-Object Formula:
-  Child Record ──────────────────────► Display
-               formula references:
-               Account__r.Industry__c
-               Account.AnnualRevenue
-
-  Roll-Up Summary (Master-Detail):
-  ┌─────────────────────────────────────────┐
-  │  Parent Object (Account)                │
-  │  Roll_Up_Field = COUNT/SUM/MIN/MAX      │
-  │                 of child field values   │
-  │    ↑                                    │
-  │    │ updates when child saved/deleted   │
-  └────┼────────────────────────────────────┘
-       │
-  ┌────┴────────────────────────────────────┐
-  │  Child Records (Opportunities)          │
-  │  [Record 1] [Record 2] [Record 3]       │
-  └─────────────────────────────────────────┘
+    subgraph RollUp["Roll-Up Summary — Master-Detail"]
+        Parent["Parent Object (Account)\nRoll_Up_Field = COUNT/SUM/MIN/MAX\nof child field values"]
+        Children["Child Records (Opportunities)\nRecord 1, Record 2, Record 3"]
+        Children -->|"Updates parent when\nchild saved or deleted"| Parent
+    end
 ```
 
 **Limitations:**

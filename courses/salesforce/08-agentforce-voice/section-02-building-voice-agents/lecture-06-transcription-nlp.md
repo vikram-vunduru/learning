@@ -7,33 +7,16 @@ Use Cases & Business Value / Setup & Configuration — Agentforce Specialist (CR
 
 ### The Transcription Pipeline — End to End
 
+```mermaid
+flowchart LR
+    CP["Caller's Phone\n(Audio)"]
+    CP -->|"Audio Stream — RTP"| TP["Telephony Provider\n(Amazon Connect / Genesys / NICE)"]
+    TP -->|"Transcript JSON"| STT["Speech-to-Text Engine\n(AWS Transcribe /\nprovider-native STT)"]
+    STT -->|"Structured utterance"| SCV["Salesforce Service Cloud Voice\n(VoiceCall record,\nreal-time feed via Streaming API)"]
+    SCV --> AVA["Agentforce Voice Agent\n+ Einstein NLP\n(intent, entity, sentiment, routing)"]
 ```
-┌─────────────┐   ┌─────────────────────┐   ┌────────────────────────┐
-│ Caller's    │──▶│ Telephony Provider  │──▶│ Speech-to-Text Engine  │
-│ Phone       │   │ (Amazon Connect /   │   │ (AWS Transcribe /      │
-│             │   │  Genesys / NICE)    │   │  provider-native STT)  │
-└─────────────┘   └─────────────────────┘   └────────────┬───────────┘
-   [Audio]         [Audio Stream — RTP]         [Transcript JSON]
-                                                          │
-                                                          ▼
-                                               ┌─────────────────────┐
-                                               │ Salesforce          │
-                                               │ Service Cloud Voice │
-                                               │ (VoiceCall record,  │
-                                               │  real-time feed via │
-                                               │  Streaming API)     │
-                                               └─────────┬───────────┘
-                                              [Structured utterance]
-                                                         │
-                                                         ▼
-                                               ┌─────────────────────┐
-                                               │ Agentforce Voice    │
-                                               │ Agent + Einstein NLP│
-                                               │ (intent, entity,    │
-                                               │  sentiment, routing)│
-                                               └─────────────────────┘
-Typical end-to-end latency: 300–800ms from speech to transcript in Salesforce
-```
+
+Typical end-to-end latency: 300–800ms from speech to transcript in Salesforce.
 
 **Key architectural point:** Transcription does NOT happen inside Salesforce. Salesforce is a consumer of the transcript, not the producer. Transcription quality is determined by factors outside Salesforce control — audio clarity, STT model quality, telephony provider configuration.
 
@@ -71,32 +54,14 @@ Typical end-to-end latency: 300–800ms from speech to transcript in Salesforce
 
 ### Speaker Identification and Channel Separation
 
-```
-┌────────────────────────────────────────────────────────────┐
-│  Service Console — Voice Call Transcript Panel             │
-├──────────────────────────┬─────────────────────────────────┤
-│  CUSTOMER                │  AGENT / VOICE BOT              │
-│  ──────────────────────  │  ────────────────────────────── │
-│  "Hi I need help with    │                                 │
-│   my bill"               │                                 │
-│                          │  "Hi, I'm Aria. I can help      │
-│                          │   with billing..."              │
-│  "Yes it's 7-8-9-0-0-1"  │                                 │
-│                          │  "Thank you, pulling up         │
-│                          │   your account now..."          │
-└──────────────────────────┴─────────────────────────────────┘
+**Service Console — Voice Call Transcript Panel:** two columns showing Customer utterances on the left and Agent/Voice Bot responses on the right, labeled by speaker.
 
-Channel Mode Comparison:
-┌───────────────────┬──────────────────────────┬───────────────────────────┐
-│ Mode              │ How Speaker Labels Work  │ Accuracy                  │
-├───────────────────┼──────────────────────────┼───────────────────────────┤
-│ Two-Channel ✓     │ Separate audio streams   │ Near-100% — best practice │
-│ (Amazon Connect   │ per party, labeled        │ for production            │
-│  default)         │ definitively             │                           │
-│ Single-Channel ✗  │ Diarization ML model     │ Lower — fails on barge-in │
-│                   │ separates speakers       │ and similar voices        │
-└───────────────────┴──────────────────────────┴───────────────────────────┘
-```
+**Channel Mode Comparison:**
+
+| Mode | How Speaker Labels Work | Accuracy |
+|---|---|---|
+| Two-Channel (Amazon Connect default) | Separate audio streams per party, labeled definitively | Near-100% — best practice for production |
+| Single-Channel | Diarization ML model separates speakers | Lower — fails on barge-in and similar voices |
 
 **Limitations:**
 - Incorrect speaker labels cause Einstein NLP to misattribute intent — customer complaint labeled as agent speech breaks routing logic
@@ -105,33 +70,16 @@ Channel Mode Comparison:
 
 ### Einstein NLP Intent Detection on Transcripts
 
+```mermaid
+flowchart TD
+    U["Transcript utterance (finalized, is_partial=false):\n'I want to cancel my subscription'"]
+    U --> NLP["Einstein NLP Engine\n• NER: 'cancel' (action), 'subscription' (object)\n• Intent: Topic 'Subscription Cancellation' (confidence 0.87)\n• Sentiment: Negative tone detected"]
+    NLP --> MT["Matched Topic\n→ Agentforce agent routes to Topic actions"]
+    NLP --> NS["Negative sentiment\n→ Flag for supervisor / can trigger escalation"]
 ```
-Transcript utterance (finalized, is_partial=false):
-"I want to cancel my subscription"
-    ↓
-╔══════════════════════════════════════════════════════════════╗
-║              EINSTEIN NLP ENGINE                            ║
-║                                                              ║
-║  Named Entity Recognition (NER):                            ║
-║  → "cancel" (action), "subscription" (object)               ║
-║                                                              ║
-║  Intent Classification:                                      ║
-║  → Maps utterance → Topic: "Subscription Cancellation"      ║
-║  → Confidence: 0.87                                         ║
-║                                                              ║
-║  Sentiment Analysis:                                         ║
-║  → Detected: Negative tone                                  ║
-╚═══════════════════════════════╤══════════════════════════════╝
-                                │
-              ┌─────────────────┴────────────────┐
-              ▼                                   ▼
-  Matched Topic → Agentforce           Negative sentiment →
-  agent routes to Topic actions        Flag for supervisor /
-                                       can trigger escalation
 
-CASCADE FAILURE PATTERN (critical to understand):
+**Cascade Failure Pattern (critical):**
 Bad audio → low transcription confidence → poor NLP → wrong Topic → bad experience
-```
 
 **Limitations:**
 - Einstein NLP operates on text transcript — it cannot compensate for transcription errors
@@ -140,25 +88,20 @@ Bad audio → low transcription confidence → poor NLP → wrong Topic → bad 
 
 ### Enabling and Disabling Transcription
 
-```
-Org-Level: Setup → Service Cloud Voice Settings → Real-Time Transcription: [ON/OFF]
-    ↓ Disabling also disables Einstein NLP intent detection for all calls
+**Org-Level:** Setup → Service Cloud Voice Settings → Real-Time Transcription: ON/OFF. Disabling also disables Einstein NLP intent detection for all calls.
 
-Per-Call Override (PCI compliance):
-Card number collection step:
-    ↓
-Stop Transcription (telephony Contact Flow block)
-    ↓ Caller enters card number via DTMF
-Payment complete
-    ↓
-Resume Transcription (telephony Contact Flow block)
-    ↓ Transcript resumes — card number never captured in Salesforce
+**Per-Call Override (PCI compliance):**
+1. Card number collection step begins
+2. Stop Transcription (telephony Contact Flow block)
+3. Caller enters card number via DTMF
+4. Payment complete
+5. Resume Transcription (telephony Contact Flow block)
+6. Transcript resumes — card number never captured in Salesforce
 
-Transcription providers (configurable in Setup):
-  • Amazon Transcribe (default for Amazon Connect)
-  • Provider Native (for Genesys / NICE)
-  • Custom (for multilingual or specialized requirements)
-```
+**Transcription providers (configurable in Setup):**
+- Amazon Transcribe (default for Amazon Connect)
+- Provider Native (for Genesys / NICE)
+- Custom (for multilingual or specialized requirements)
 
 **Limitations:**
 - Per-call transcription pause is configured at the telephony layer (Amazon Connect Contact Flow) — NOT in Salesforce Flow
@@ -167,13 +110,13 @@ Transcription providers (configurable in Setup):
 
 ### VoiceCall Object — Post-Call Storage
 
-```
-VoiceCall (parent record)
-├── VoiceCallRecording (media file link in S3 / provider storage)
-├── ConversationEntry (individual utterances — speaker, text, timestamp, confidence)
-└── related Case / Contact (via screen pop match)
+**VoiceCall** (parent record)
+- VoiceCallRecording — media file link in S3 / provider storage
+- ConversationEntry — individual utterances (speaker, text, timestamp, confidence)
+- related Case / Contact (via screen pop match)
 
 SOQL to retrieve transcript:
+```sql
 SELECT Id, Body, Speaker, Timestamp FROM ConversationEntry WHERE VoiceCallId = '...'
 ```
 
@@ -184,23 +127,14 @@ SELECT Id, Body, Speaker, Timestamp FROM ConversationEntry WHERE VoiceCallId = '
 
 ### GDPR / Privacy Compliance Checklist for Voice
 
-```
-┌──────────────────────────────────────┬──────────────────────────────────────┐
-│  CONSENT (before transcription)      │  DATA MINIMIZATION                   │
-│  • IVR must play consent notice      │  • AWS Transcribe PII redaction       │
-│    before transcription begins       │    (auto-removes SSNs, card #s, DOBs) │
-│  • Required by GDPR + regional laws  │  • Prevents sensitive data reaching   │
-│                                      │    Salesforce                         │
-├──────────────────────────────────────┼──────────────────────────────────────┤
-│  RIGHT TO ERASURE                    │  ACCESS CONTROLS                     │
-│  • VoiceCall records = personal data │  • Field-Level Security on VoiceCall │
-│  • Implement retention policy         │    restricts transcript visibility   │
-│  • Deletion workflow: VoiceCall +    │  • Restrict to supervisors and       │
-│    ConversationEntry records         │    compliance roles only             │
-│  • S3 lifecycle rules for recordings│                                      │
-└──────────────────────────────────────┴──────────────────────────────────────┘
-All four quadrants required for GDPR-compliant voice deployment.
-```
+| Requirement | Details |
+|---|---|
+| **Consent (before transcription)** | IVR must play consent notice before transcription begins; required by GDPR + regional laws |
+| **Data Minimization** | AWS Transcribe PII redaction (auto-removes SSNs, card numbers, DOBs); prevents sensitive data reaching Salesforce |
+| **Right to Erasure** | VoiceCall records = personal data; implement retention policy; deletion workflow: VoiceCall + ConversationEntry records + S3 lifecycle rules for recordings |
+| **Access Controls** | Field-Level Security on VoiceCall restricts transcript visibility; restrict to supervisors and compliance roles only |
+
+All four required for GDPR-compliant voice deployment.
 
 **Limitations:**
 - GDPR right to erasure applies to audio recordings containing personal data — S3 lifecycle rules and Salesforce data retention policies must be coordinated

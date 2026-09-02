@@ -42,23 +42,18 @@
 
 ## Architecture / How It Works
 
-```
-PDI STUDY PATH
-
-Section 1: Developer Fundamentals (L01–L04)
-  └── Tools, Apex basics, variables/collections, control flow
-
-Section 2: Apex Core (L05–L09)
-  └── SOQL, SOSL, DML, Triggers, Trigger best practices
-
-Section 3: Advanced Apex (L10–L14)
-  └── Async Apex, Governor limits, Exceptions, OOP, Callouts
-
-Section 4: User Interface (L15–L19)
-  └── Visualforce, VF Controllers, LWC basics, events, wire service
-
-Section 5: Testing & Deployment (L20–L24)
-  └── Unit testing, Test best practices, Debugging, Deployment, Security
+```mermaid
+flowchart TD
+    A["PDI STUDY PATH"] --> B["Section 1: Developer Fundamentals (L01-L04)"]
+    A --> C["Section 2: Apex Core (L05-L09)"]
+    A --> D["Section 3: Advanced Apex (L10-L14)"]
+    A --> E["Section 4: User Interface (L15-L19)"]
+    A --> F["Section 5: Testing & Deployment (L20-L24)"]
+    B --> B1["Tools, Apex basics, variables/collections, control flow"]
+    C --> C1["SOQL, SOSL, DML, Triggers, Trigger best practices"]
+    D --> D1["Async Apex, Governor limits, Exceptions, OOP, Callouts"]
+    E --> E1["Visualforce, VF Controllers, LWC basics, events, wire service"]
+    F --> F1["Unit testing, Test best practices, Debugging, Deployment, Security"]
 ```
 
 **Limitations / Key Governor Limits to Know Cold:**

@@ -101,36 +101,12 @@ If any answer is No → the deployment needs additional safeguards before go-liv
 
 ## Transparency Architecture (Governance View)
 
-```
-╔═════════════════════════════════════════════════════════════════════╗
-║             AI TRANSPARENCY IMPLEMENTATION LAYERS                    ║
-╠═════════════════════════════════════════════════════════════════════╣
-║                                                                     ║
-║  PURPOSE TRANSPARENCY                                               ║
-║  ┌───────────────────────────────────────────────────────────┐     ║
-║  │ • Agentforce persona disclosure: "Hi, I'm Aria, an AI     │     ║
-║  │   assistant. How can I help you today?"                   │     ║
-║  │ • AI-generated content labels on emails/summaries         │     ║
-║  │ • AI Acceptable Use Policy for internal users             │     ║
-║  └───────────────────────────────────────────────────────────┘     ║
-║                          │                                          ║
-║  DECISION TRANSPARENCY                                              ║
-║  ┌───────────────────────────────────────────────────────────┐     ║
-║  │ • Einstein Prediction Builder driving factors             │     ║
-║  │   → "Score 78 because: Annual Revenue (positive),        │     ║
-║  │       Lead Age (negative), Industry (positive)"           │     ║
-║  │ • Einstein Lead/Opportunity Score explanations            │     ║
-║  │ • NBA recommendation rationale display                    │     ║
-║  └───────────────────────────────────────────────────────────┘     ║
-║                          │                                          ║
-║  PROCESS TRANSPARENCY                                               ║
-║  ┌───────────────────────────────────────────────────────────┐     ║
-║  │ • Model Cards (training data, methodology, known limits)  │     ║
-║  │ • Einstein Trust Layer Audit Trail (what was asked,       │     ║
-║  │   what was answered, by whom, when)                       │     ║
-║  │ • Bias assessment documentation                           │     ║
-║  └───────────────────────────────────────────────────────────┘     ║
-╚═════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    PT["Purpose Transparency — THAT AI is being used\nAgentforce persona disclosure: Hi, I#quot;m an AI assistant\nAI-generated content labels on emails/summaries\nAI Acceptable Use Policy for internal users"]
+    DT["Decision Transparency — WHY this recommendation\nEinstein Driving Factors: Score 78 because\nAnnual Revenue positive · Lead Age negative\nEinstein Lead/Opportunity Score explanations\nNBA recommendation rationale display"]
+    PrT["Process Transparency — HOW the system works\nModel Cards: training data · methodology · known limits\nEinstein Trust Layer Audit Trail:\nwhat was asked · what was answered · by whom · when\nBias assessment documentation"]
+    PT --> DT --> PrT
 ```
 
 **Limitations:**

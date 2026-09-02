@@ -51,31 +51,21 @@ Dashboards are the executive and management reporting layer. The running user co
 
 ## Architecture / How It Works
 
-```
-Dashboard Architecture
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    subgraph Dashboard["DASHBOARD\nMax 20 components | Max 3 filters"]
+        RU["Running User:\nStatic User OR Logged-in User"]
+        C1["Chart component\n(Source: Report A)"]
+        C2["Gauge component\n(Source: Report B)"]
+        C3["Metric component\n(Source: Report C)"]
+        C4["Table component\n(Source: any report)"]
+    end
+    RU -->|"Determines what data\nviewers see"| C1
+    RU --> C2
+    RU --> C3
 
-  DASHBOARD
-  ┌─────────────────────────────────────────────┐
-  │  Running User: [Static User] OR [Logged-in] │
-  │  Max 20 Components  │  Max 3 Filters        │
-  │                                             │
-  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-  │  │  Chart   │  │  Gauge   │  │  Metric  │  │
-  │  │ (Source: │  │ (Source: │  │ (Source: │  │
-  │  │ Report A)│  │ Report B)│  │ Report C)│  │
-  │  └──────────┘  └──────────┘  └──────────┘  │
-  └─────────────────────────────────────────────┘
-  
-  Running User Types:
-  ┌──────────────────────────────────────────────┐
-  │  Static:         All viewers see User X's    │
-  │  Run as "CEO"    data (CEO's access scope)   │
-  │                                              │
-  │  Dynamic:        Each viewer sees their own  │
-  │  Run as           data (their own access)    │
-  │  logged-in user  Limited: 10 per org (E/U)  │
-  └──────────────────────────────────────────────┘
+    Static["Static Running User\nAll viewers see User X's data\n(e.g., Run as CEO)"]
+    Dynamic["Dynamic Dashboard\nEach viewer sees their own data\nLimit: 10 per org (Enterprise/Unlimited)\n5 per org (Professional)"]
 ```
 
 **Limitations:**

@@ -95,31 +95,13 @@ Rather than letting different teams write ad-hoc prompts, create a library of Pr
 ## Architecture
 
 ### Prompt Template Decision Tree
-```
-What do you need to generate?
-            │
-            ├── Value for a specific record field
-            │       │
-            │       └──▶ Field Generation Template
-            │               (saves to field, Lightning Page button)
-            │
-            ├── Summary of a specific record (read-only, on-screen)
-            │       │
-            │       └──▶ Record Summary Template
-            │               (transient, Lightning component)
-            │
-            ├── Draft an outbound email
-            │       │
-            │       └──▶ Sales Email Template
-            │               (email compose area)
-            │
-            └── Flexible AI output (agent action, Flow, custom context)
-                    │
-                    └──▶ Flex Template
-                            (callable from Agentforce Actions)
-                            (callable from Flow)
-                            (callable from Apex)
-                            (callable from API)
+```mermaid
+flowchart TD
+    Q["What do you need to generate?"]
+    Q -->|"Value for a specific record field"| FG["Field Generation Template\n(saves to field, Lightning Page button)"]
+    Q -->|"Summary of a specific record\n(read-only, on-screen)"| RS["Record Summary Template\n(transient, Lightning component)"]
+    Q -->|"Draft an outbound email"| SE["Sales Email Template\n(email compose area)"]
+    Q -->|"Flexible AI output\n(agent action, Flow, custom context)"| FX["Flex Template\n(callable from Agentforce Actions,\nFlow, Apex, API)"]
 ```
 
 **Limitations:**
@@ -130,32 +112,26 @@ What do you need to generate?
 - All templates pass through Trust Layer (data masking, toxicity detection)
 
 ### Prompt Template Anatomy Diagram
+
+**Prompt Template: "Case Summary for Agent Response"**
+
+**SYSTEM PROMPT**
+> You are a helpful customer service AI. Generate a concise 2-3 sentence summary of this support case for a customer. Be empathetic. Focus on what is being done to resolve it.
+
+**TEMPLATE BODY**
 ```
-Prompt Template: "Case Summary for Agent Response"
-┌────────────────────────────────────────────────────────────┐
-│ SYSTEM PROMPT                                              │
-│ ─────────────────────────────────────────────────────────  │
-│ You are a helpful customer service AI. Generate a concise  │
-│ 2-3 sentence summary of this support case for a customer.  │
-│ Be empathetic. Focus on what is being done to resolve it.  │
-│                                                            │
-│ TEMPLATE BODY                                              │
-│ ─────────────────────────────────────────────────────────  │
-│ Case Details:                                              │
-│ Subject: {!Case.Subject}                                   │
-│ Description: {!Case.Description}                           │
-│ Status: {!Case.Status}                                     │
-│ Last Update: {!Case.LastModifiedDate}                      │
-│                                                            │
-│ Additional Context (from agent conversation):              │
-│ {!additionalContext}    ← custom input parameter          │
-│                                                            │
-│ GROUNDING (optional)                                       │
-│ ─────────────────────────────────────────────────────────  │
-│ Search Knowledge for: {!Case.Subject}                      │
-│ (retrieves relevant articles, adds to context)             │
-└────────────────────────────────────────────────────────────┘
+Case Details:
+Subject: {!Case.Subject}
+Description: {!Case.Description}
+Status: {!Case.Status}
+Last Update: {!Case.LastModifiedDate}
+
+Additional Context (from agent conversation):
+{!additionalContext}    ← custom input parameter
 ```
+
+**GROUNDING (optional)**
+> Search Knowledge for: `{!Case.Subject}` (retrieves relevant articles, adds to context)
 
 **Limitations:**
 - Merge field syntax is `{!ObjectName.FieldName}` — exclamation point is required; wrong syntax silently fails
@@ -164,22 +140,16 @@ Prompt Template: "Case Summary for Agent Response"
 - System Prompt is shared across all invocations — personalization must be in Template Body via merge fields
 
 ### Trust Layer Integration for Prompt Templates
-```
-Template invoked (by agent, Flow, Apex, or user)
-    │
-    ▼ Merge fields resolved (record data inserted)
-    │
-    ▼ Data Masking (PII/PCI masked in assembled prompt)
-    │
-    ▼ [LLM API call] — Zero Data Retention applies
-    │
-    ▼ Response received
-    │
-    ▼ Toxicity Detection (output filtered)
-    │
-    ▼ Audit Log entry written
-    │
-    ▼ Output returned to caller (agent / Flow / UI)
+```mermaid
+flowchart TD
+    TI["Template invoked\n(by agent, Flow, Apex, or user)"]
+    TI --> MF["Merge fields resolved\n(record data inserted)"]
+    MF --> DM["Data Masking\n(PII/PCI masked in assembled prompt)"]
+    DM --> LLM["LLM API call\n(Zero Data Retention applies)"]
+    LLM --> RR["Response received"]
+    RR --> TD["Toxicity Detection\n(output filtered)"]
+    TD --> AL["Audit Log entry written"]
+    AL --> OUT["Output returned to caller\n(agent / Flow / UI)"]
 ```
 
 ## Key Facts to Memorize

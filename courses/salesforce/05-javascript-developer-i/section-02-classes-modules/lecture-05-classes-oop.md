@@ -123,16 +123,18 @@ const Bar = class { };
 ## Architecture / How It Works
 
 ### LWC Class Pattern
-```
-LightningElement (base class)
-    │  extends
-    │
-MyComponent (your class)
-    ├── @api properties (public interface)
-    ├── internal properties (reactive via tracking)
-    ├── lifecycle hooks (connectedCallback etc.)
-    └── event handlers (arrow class fields)
 
+```mermaid
+flowchart TD
+    BASE["LightningElement (base class)"]
+    BASE -->|"extends"| COMP["MyComponent (your class)"]
+    COMP --> API["@api properties\n(public interface)"]
+    COMP --> INT["internal properties\n(reactive via tracking)"]
+    COMP --> LIFE["lifecycle hooks\n(connectedCallback etc.)"]
+    COMP --> HAND["event handlers\n(arrow class fields)"]
+```
+
+```javascript
 class MyComponent extends LightningElement {
     @api recordId;           // public — parent sets this
     _isLoading = false;      // internal state
@@ -144,18 +146,19 @@ class MyComponent extends LightningElement {
 ```
 
 ### Class vs Constructor Function (Same Prototype Chain)
-```
-class Person { }           ←→    function Person() { }
-new Person()                       new Person()
-    │ [[Prototype]]                    │ [[Prototype]]
-    ▼                                  ▼
-Person.prototype           ←→    Person.prototype
-    │ [[Prototype]]                    │
-    ▼                                  ▼
-Object.prototype                  Object.prototype
-    │
-    ▼
-null
+
+```mermaid
+flowchart TD
+    subgraph ClassSyntax["class Person {}"]
+        NP1["new Person()"] -->|"[[Prototype]]"| PP1["Person.prototype"]
+        PP1 -->|"[[Prototype]]"| OP1["Object.prototype"]
+        OP1 -->|"[[Prototype]]"| NULL1["null"]
+    end
+    subgraph ConstructorFn["function Person() {}"]
+        NP2["new Person()"] -->|"[[Prototype]]"| PP2["Person.prototype"]
+        PP2 -->|"[[Prototype]]"| OP2["Object.prototype"]
+    end
+    PP1 <-->|"identical chain"| PP2
 ```
 
 **Limitations:**

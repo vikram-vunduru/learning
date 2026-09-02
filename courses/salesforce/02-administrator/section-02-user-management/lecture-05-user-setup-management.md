@@ -52,30 +52,23 @@ User management seems simple but creates real enterprise problems:
 
 ## Architecture / How It Works
 
-```
-User Record — Access Chain
-━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    subgraph UserRecord["USER RECORD"]
+        UN["Username (globally unique)"]
+        EM["Email (globally unique)"]
+        LT["License Type"]
+        PR["Profile (required — exactly 1)"]
+        RO["Role (optional)"]
+        PS["Permission Sets (0 or more)"]
+    end
+    LT -->|"gates which Profiles\nare available"| PR
+    PR -->|"CRUD, FLS, app access,\nlogin hours, IP ranges"| Access["What you CAN DO + CAN SEE"]
+    RO -->|"Record visibility\nupward in hierarchy"| Access
+    PS -->|"Additive permissions\non top of Profile"| Access
 
-  USER RECORD
-  ┌─────────────────────────────────────────┐
-  │  Username (globally unique)             │
-  │  Email (globally unique)                │
-  │  License Type ──────────┐               │
-  │  Profile (required) ────┤──► What you   │
-  │  Role (optional)        │    CAN DO +   │
-  │  Permission Sets (0+) ──┘    CAN SEE    │
-  └─────────────────────────────────────────┘
-
-  License → gates which Profiles are available
-  Profile → controls: CRUD, FLS, app access, login hours, IP ranges
-  Role → controls: record visibility (upward in hierarchy)
-  Permission Sets → additive permissions on top of Profile
-
-  Freeze vs Deactivate:
-  ┌────────────────────────────────────────────┐
-  │  FREEZE: User blocked, license still used  │
-  │  DEACTIVATE: User blocked, license freed   │
-  └────────────────────────────────────────────┘
+    Freeze["FREEZE\nUser blocked\nLicense still used"]
+    Deactivate["DEACTIVATE\nUser blocked\nLicense freed"]
 ```
 
 **Limitations:**

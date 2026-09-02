@@ -89,17 +89,15 @@ Most enterprise customers are at Level 1. Planning for KB work is often the diff
 
 ### Grounding + Data Cloud Enterprise Pattern
 For large consumer businesses (retail, financial services, telco):
+```mermaid
+flowchart TD
+    IDENT["Customer identified in session"]
+    IDENT --> DC["Data Cloud retrieves\ncustomer 360° profile\n(purchase history, open cases,\nloyalty tier, churn risk score)"]
+    DC --> ATL["Profile + conversation\nadded to Atlas reasoning context"]
+    ATL --> PERS["Personalized response:\n'Gold member — order #44521\narrives Thursday'"]
 ```
-Customer identified in session
-    ↓
-Data Cloud retrieves customer 360° profile
-    (purchase history, open cases, loyalty tier, churn risk score)
-    ↓
-Profile + conversation → Atlas reasoning context
-    ↓
-Agent can personalize: "I see you're a Gold member. Your recent order #44521 is expected to arrive Thursday."
+
 Without Data Cloud: agent can only access data via explicit Flows (less seamless)
-```
 
 The Data Cloud grounding pattern is the "wow demo" for enterprise Agentforce — personalization without the agent having to call multiple Flows to assemble context.
 
@@ -114,40 +112,19 @@ Test by asking 20–30 typical customer questions and reviewing which articles a
 ## Architecture
 
 ### RAG Pipeline in Detail
-```
-User Question: "What is your return policy for electronics?"
-    │
-    ▼
-Atlas: Route to → Product Returns Topic → Knowledge Search Action
-    │
-    ▼
-Knowledge Search Action
-    │
-    ▼ Search Query: "return policy electronics" (Atlas generates)
-    │
-    ▼ Einstein Knowledge Search (semantic vector search)
-    │
-    │  Article 1: "Electronics Return Policy" — score: 0.82 ✓
-    │  Article 2: "General Return Guidelines" — score: 0.67 ✓
-    │  Article 3: "Clothing Return Policy" — score: 0.31 ✗ (below threshold)
-    │
-    ▼ Retrieved articles (2 articles above threshold)
-    │
-    ▼ Augmentation: Assembled Prompt
-    ┌────────────────────────────────────────────────────────────┐
-    │ Instructions: [agent persona and rules]                    │
-    │ Retrieved Knowledge:                                       │
-    │   Article 1 content: "Electronics may be returned..."     │
-    │   Article 2 content: "All returns must be initiated..."   │
-    │ User Question: "What is your return policy for electronics?"|
-    │ Generate a response based on the above information.       │
-    └────────────────────────────────────────────────────────────┘
-    │
-    ▼ LLM generates grounded response (based on retrieved facts)
-    │
-    ▼ Trust Layer filtering
-    │
-    ▼ Agent response to user (cites policy accurately)
+```mermaid
+flowchart TD
+    UQ["User Question:\n'What is your return policy for electronics?'"]
+    UQ --> ROUTE["Atlas: Route to Product Returns Topic\n→ Knowledge Search Action"]
+    ROUTE --> KSA["Knowledge Search Action\nSearch Query: 'return policy electronics'"]
+    KSA --> SEARCH["Einstein Knowledge Search\n(semantic vector search)"]
+    SEARCH --> A1["Article 1: Electronics Return Policy — score: 0.82 ✓"]
+    SEARCH --> A2["Article 2: General Return Guidelines — score: 0.67 ✓"]
+    SEARCH --> A3["Article 3: Clothing Return Policy — score: 0.31 ✗ (below threshold)"]
+    A1 & A2 --> AUG["Augmentation: Assembled Prompt\n• Instructions: agent persona and rules\n• Retrieved Knowledge: Articles 1 & 2\n• User Question"]
+    AUG --> LLM["LLM generates grounded response\n(based on retrieved facts)"]
+    LLM --> TL["Trust Layer filtering"]
+    TL --> AR["Agent response to user\n(cites policy accurately)"]
 ```
 
 **Limitations:**
@@ -158,26 +135,14 @@ Knowledge Search Action
 - Einstein Knowledge requires standard Knowledge object (Articles) — custom objects aren't directly searchable
 
 ### Data Cloud Grounding Pipeline
-```
-Authenticated Session
-    │
-    ▼ Customer Identity (e.g., Contact ID from session)
-    │
-    ▼ Data Cloud Vector Search
-    │   Query: customer profile + conversation context
-    │   Result: unified customer record with relevant attributes
-    │
-    ▼ Context Assembly
-    │  ┌─────────────────────────────────────────────────────┐
-    │  │ Customer: Sarah Johnson, Gold Member (5 years)      │
-    │  │ Recent Orders: #44521 (in transit), #44300 (closed) │
-    │  │ Open Cases: 1 billing dispute (Case #8831)          │
-    │  │ Churn Risk Score: 0.12 (low)                        │
-    │  └─────────────────────────────────────────────────────┘
-    │
-    ▼ Atlas uses this context for personalized reasoning
-    │
-    ▼ Response: "Hi Sarah! I see your order #44521 is on its way..."
+```mermaid
+flowchart TD
+    AUTH["Authenticated Session"]
+    AUTH --> IDENT["Customer Identity\n(e.g., Contact ID from session)"]
+    IDENT --> DC["Data Cloud Vector Search\nQuery: customer profile + conversation context"]
+    DC --> CTX["Context Assembly\nCustomer: Sarah Johnson, Gold Member (5 years)\nRecent Orders: #44521 (in transit), #44300 (closed)\nOpen Cases: 1 billing dispute (Case #8831)\nChurn Risk Score: 0.12 (low)"]
+    CTX --> ATL["Atlas uses this context\nfor personalized reasoning"]
+    ATL --> RSP["Response: 'Hi Sarah! I see your order #44521 is on its way...'"]
 ```
 
 **Limitations:**
@@ -187,24 +152,14 @@ Authenticated Session
 - PII in Data Cloud profile data passes through Trust Layer data masking before going to LLM
 
 ### Grounding Source Comparison
-```
-                  Einstein     Data        File        External
-                  Knowledge    Cloud       Search      Sources
-                  ──────────────────────────────────────────────
-Content type:     Articles     CRM/DC      Files       API content
-                               profiles    (PDF, etc.)
 
-Best for:         FAQs,        Customer    Reference   Third-party
-                  policies,    360°        docs        content
-                  how-tos      profiles
-
-Personalized:     No           Yes         No          Depends
-
-License needed:   Knowledge    Data Cloud  Included    Apex custom
-                  enabled      license     (limits)    code
-
-Setup effort:     Low          Medium-High Low         High
-```
+| Attribute | Einstein Knowledge | Data Cloud | File Search | External Sources |
+|---|---|---|---|---|
+| **Content type** | Articles | CRM/DC profiles | Files (PDF, etc.) | API content |
+| **Best for** | FAQs, policies, how-tos | Customer 360° profiles | Reference docs | Third-party content |
+| **Personalized** | No | Yes | No | Depends |
+| **License needed** | Knowledge enabled | Data Cloud license | Included (limits) | Apex custom code |
+| **Setup effort** | Low | Medium-High | Low | High |
 
 ## Key Facts to Memorize
 - RAG pattern: **Retrieve → Augment → Generate**

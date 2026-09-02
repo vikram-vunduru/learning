@@ -38,47 +38,39 @@ Record-Triggered Flows can include **Scheduled Paths** (time-delayed execution).
 
 ## Architecture / How It Works
 
-```
-Before-Save vs. After-Save Comparison:
-┌──────────────────────────┬───────────────────┬───────────────────────┐
-│ Capability               │ Before-Save       │ After-Save            │
-├──────────────────────────┼───────────────────┼───────────────────────┤
-│ When does it run?        │ Before DB write   │ After DB commit       │
-│ Can update trigger rec.? │ YES (direct, 0DML)│ YES (via Update Rec.) │
-│ Can update other records?│ NO                │ YES                   │
-│ Can create records?      │ NO                │ YES                   │
-│ Can delete records?      │ NO                │ YES                   │
-│ Can send emails?         │ NO                │ YES                   │
-│ $Record__Prior available?│ NO                │ YES                   │
-│ DML consumed?            │ 0 (for field upd.)│ Yes (counts against   │
-│                          │                   │ governor limit)        │
-│ Best for:                │ Fast field         │ Related record       │
-│                          │ defaulting         │ updates, side effects│
-└──────────────────────────┴───────────────────┴───────────────────────┘
-```
+| Capability | Before-Save | After-Save |
+|---|---|---|
+| When does it run? | Before DB write | After DB commit |
+| Can update triggering record? | YES (direct, 0 DML) | YES (via Update Records element) |
+| Can update other records? | NO | YES |
+| Can create records? | NO | YES |
+| Can delete records? | NO | YES |
+| Can send emails? | NO | YES |
+| `$Record__Prior` available? | NO | YES |
+| DML consumed? | 0 (for field updates) | Yes (counts against governor limit) |
+| Best for: | Fast field defaulting | Related record updates, side effects |
 
 **Limitations:**
 - Before-Save flows cannot send emails, make HTTP callouts, or invoke most actions
 - After-Save flows cannot use `$Record__Prior` to detect what changed BEFORE the save that already happened (use it to compare before vs after the triggering event)
 - Scheduled paths are only available in After-Save flows (not Before-Save)
 
-```
-Full Order of Execution (Record Save):
-┌─────────────────────────────────────────────────────────────────────┐
-│  1. Record enters save processing                                   │
-│  2. System validations (required fields, field types)               │
-│  3. Apex before triggers                                            │
-│  4. Validation Rules                                                │
-│  5. Duplicate Rules                                                 │
-│  6. ► Before-Save Record-Triggered Flows ◄                          │
-│  7. Record written to database (committed)                          │
-│  8. ► After-Save Record-Triggered Flows ◄                           │
-│  9. Apex after triggers                                             │
-│ 10. Assignment Rules (Leads/Cases)                                  │
-│ 11. Auto-response Rules (Cases)                                     │
-│ 12. Workflow Rules (legacy, still runs)                             │
-│ 13. Escalation Rules (Cases)                                        │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    S1["1. Record enters save processing"]
+    S2["2. System validations\n(required fields, field types)"]
+    S3["3. Apex before triggers"]
+    S4["4. Validation Rules"]
+    S5["5. Duplicate Rules"]
+    S6["6. Before-Save Record-Triggered Flows"]
+    S7["7. Record written to database (committed)"]
+    S8["8. After-Save Record-Triggered Flows"]
+    S9["9. Apex after triggers"]
+    S10["10. Assignment Rules (Leads/Cases)"]
+    S11["11. Auto-response Rules (Cases)"]
+    S12["12. Workflow Rules (legacy)"]
+    S13["13. Escalation Rules (Cases)"]
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8 --> S9 --> S10 --> S11 --> S12 --> S13
 ```
 
 **Limitations:**
@@ -86,29 +78,22 @@ Full Order of Execution (Record Save):
 - Workflow Rules still run (step 12) even in fully-flow orgs — they run last
 - If Apex before triggers or Before-Save Flows set contradictory values on the same field, the last one wins (Flows run after Apex before triggers)
 
-```
-Record-Triggered Flow Internals:
-                                                                      
-  TRIGGER OBJECT: Opportunity                                         
-  TRIGGER EVENT:  Created or Updated                                  
-  ENTRY CONDITION: StageName = "Closed Won"                           
-                                                                      
-  ┌─────────────────────────────────────────────────────────────┐     
-  │  ON EVERY Opportunity save...                               │     
-  │  Does $Record.StageName = "Closed Won"?                     │     
-  │      │                                                      │     
-  │      ├─ YES → Enter flow, execute elements                  │     
-  │      └─ NO  → Skip flow entirely (no execution)            │     
-  └─────────────────────────────────────────────────────────────┘     
-                                                                      
-  SCHEDULED PATH (in After-Save flows):                               
-  ┌─────────────────────────────────────────────────────────────┐     
-  │  After 7 days from CloseDate:                               │     
-  │  Is record STILL Closed Won?                                │     
-  │      ├─ YES → Execute scheduled path elements              │     
-  │      └─ NO  → Scheduled path does NOT run (conditions no   │     
-  │               longer met at scheduled time)                 │     
-  └─────────────────────────────────────────────────────────────┘     
+```mermaid
+flowchart TD
+    subgraph Main["On every Opportunity save — Entry Condition: StageName = Closed Won"]
+        EC{"Does StageName\n= 'Closed Won'?"}
+        EX["Enter flow,\nexecute elements"]
+        SK["Skip flow entirely\n(no execution)"]
+        EC -->|"Yes"| EX
+        EC -->|"No"| SK
+    end
+    subgraph Sched["Scheduled Path (After-Save, 7 days from CloseDate)"]
+        SC{"Is record STILL\n'Closed Won'?"}
+        SR["Execute scheduled\npath elements"]
+        SN["Scheduled path does NOT run\n(conditions no longer met)"]
+        SC -->|"Yes"| SR
+        SC -->|"No"| SN
+    end
 ```
 
 **Limitations:**

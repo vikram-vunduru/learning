@@ -91,29 +91,26 @@ List<sObject> results = Database.query(query);
 
 ## Architecture / How It Works
 
+**Relationship Query Types:**
+
+Child-to-Parent (dot notation — up to 5 levels deep):
+
+```soql
+SELECT Id, LastName,
+       Account.Name,          -- standard relationship
+       My_Custom__r.Name      -- custom: __c -> __r
+FROM   Contact
+-- Contact -> Account -> Owner -> Role -> ...
 ```
-RELATIONSHIP QUERY TYPES
 
-  CHILD-TO-PARENT (dot notation):
-  ┌────────────────────────────────────────────────────────┐
-  │  SELECT Id, LastName,                                  │
-  │         Account.Name,          ← standard relationship │
-  │         My_Custom__r.Name      ← custom: __c → __r    │
-  │  FROM   Contact                                        │
-  │                                                        │
-  │  Up to 5 parent traversal levels                       │
-  │  Contact → Account → Owner → Role → ...                │
-  └────────────────────────────────────────────────────────┘
+Parent-to-Child (subquery in SELECT — child relationship name is plural):
 
-  PARENT-TO-CHILD (subquery in SELECT):
-  ┌────────────────────────────────────────────────────────┐
-  │  SELECT Id, Name,                                      │
-  │         (SELECT Id, Email FROM Contacts),   ← plural  │
-  │         (SELECT Id, Amount FROM Opportunities)         │
-  │  FROM   Account                                        │
-  │                                                        │
-  │  Access in Apex:  account.Contacts  → List<Contact>    │
-  └────────────────────────────────────────────────────────┘
+```soql
+SELECT Id, Name,
+       (SELECT Id, Email FROM Contacts),    -- plural child relationship
+       (SELECT Id, Amount FROM Opportunities)
+FROM   Account
+-- Access in Apex: account.Contacts -> List<Contact>
 ```
 
 **Limitations:**
@@ -122,27 +119,14 @@ RELATIONSHIP QUERY TYPES
 - Subquery result cap: 50,000 child rows per relationship in total result set
 - Custom relationship traversal: `__c` field → use `__r` for relationship navigation
 
-```
-WHERE vs HAVING — FILTER TIMING
-
-  Raw Opportunity records:
-  ┌──────────────────────────────────────────────────────────────┐
-  │  All Opps in database                                        │
-  │        │                                                     │
-  │        ▼  WHERE (before grouping)                            │
-  │  Filter: StageName = 'Closed Won'  ← removes non-CW records │
-  │        │                                                     │
-  │        ▼  GROUP BY AccountId                                 │
-  │  Group: Account A = $500k, Account B = $80k, Account C = $1M │
-  │        │                                                     │
-  │        ▼  HAVING (after grouping)                            │
-  │  Filter: SUM(Amount) > $100k → removes Account B            │
-  │        │                                                     │
-  │        ▼  Result: Account A, Account C                       │
-  └──────────────────────────────────────────────────────────────┘
-
-  KEY RULE: aggregate functions in WHERE clause = INVALID SOQL
-  Must use: HAVING COUNT(Id) > 5   (not: WHERE COUNT(Id) > 5)
+```mermaid
+flowchart TD
+    A["All Opportunities in database"] --> B
+    B["WHERE: StageName = 'Closed Won'\n(removes non-Closed Won records)"] --> C
+    C["GROUP BY AccountId\nAccount A = $500k, Account B = $80k, Account C = $1M"] --> D
+    D["HAVING: SUM(Amount) > $100k\n(removes Account B)"] --> E
+    E["Result: Account A, Account C"]
+    F["KEY RULE: aggregate functions in WHERE = INVALID SOQL\nMust use: HAVING COUNT(Id) > 5\n(not: WHERE COUNT(Id) > 5)"]
 ```
 
 **Limitations:**
@@ -150,21 +134,12 @@ WHERE vs HAVING — FILTER TIMING
 - All non-aggregate fields in SELECT must appear in GROUP BY
 - AggregateResult rows DO count against the 50,000 row limit
 
-```
-DYNAMIC SOQL SECURITY
-
-  WITH USER_MODE:                       WITH SECURITY_ENFORCED:
-  ┌──────────────────────────────┐      ┌──────────────────────────────┐
-  │ [SELECT Id, SSN__c            │      │ [SELECT Id, SSN__c            │
-  │  FROM Contact                 │      │  FROM Contact                 │
-  │  WITH USER_MODE]              │      │  WITH SECURITY_ENFORCED]      │
-  │                               │      │                               │
-  │ If user lacks SSN__c access:  │      │ If user lacks SSN__c access:  │
-  │ → Field returns null          │      │ → QueryException thrown       │
-  │ → No exception                │      │                               │
-  │ → Preferred for user-facing   │      │ → Harder to handle gracefully │
-  └──────────────────────────────┘      └──────────────────────────────┘
-```
+| | `WITH USER_MODE` | `WITH SECURITY_ENFORCED` |
+|---|---|---|
+| Syntax | `[SELECT Id, SSN__c FROM Contact WITH USER_MODE]` | `[SELECT Id, SSN__c FROM Contact WITH SECURITY_ENFORCED]` |
+| If user lacks SSN__c access | Field returns `null`; no exception | `QueryException` thrown |
+| Error handling | Graceful — easy to handle | Brittle — exception must be caught |
+| Recommendation | Preferred for user-facing code | Use only when hard failure on FLS violation is desired |
 
 **Limitations:**
 - `WITH USER_MODE` respects the running user's sharing rules — may return fewer records than system mode

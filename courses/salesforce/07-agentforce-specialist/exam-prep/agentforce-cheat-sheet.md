@@ -16,17 +16,18 @@
 ---
 
 ## Agent Anatomy (I-I-T-A)
-```
-Agent
-├── Identity: name, company, persona tone
-├── Instructions: persona + behavioral rules + escalation + exclusions
-├── Topics: conversation domains (3–7 recommended)
-│   └── Actions: operations within Topics
-│       ├── Flow Action (Autolaunched Flow only, Active, vars checked)
-│       ├── Apex Action (@InvocableMethod + @InvocableVariable)
-│       ├── Prompt Template Action (Active Flex only)
-│       └── Knowledge Search Action
-└── Channels: Embedded Chat / Slack / API / Mobile / Email
+```mermaid
+flowchart TD
+    A["Agent"]
+    A --> ID["Identity\n(name, company, persona tone)"]
+    A --> INST["Instructions\n(persona + behavioral rules\n+ escalation + exclusions)"]
+    A --> TOP["Topics\n(conversation domains, 3–7 recommended)"]
+    A --> CH["Channels\n(Embedded Chat / Slack / API / Mobile / Email)"]
+    TOP --> ACT["Actions\n(operations within Topics)"]
+    ACT --> FA["Flow Action\n(Autolaunched only, Active, vars checked)"]
+    ACT --> AA["Apex Action\n(@InvocableMethod + @InvocableVariable)"]
+    ACT --> PTA["Prompt Template Action\n(Active Flex only)"]
+    ACT --> KSA["Knowledge Search Action"]
 ```
 
 **Limitations:**
@@ -37,15 +38,16 @@ Agent
 ---
 
 ## Atlas ReAct Loop
-```
-OBSERVE (context: Instructions + Topics + Actions + history + prior results)
-  → REASON (Topic match? Action match? Inputs available?)
-      → No Topic: OOS response
-      → No inputs: clarifying question
-      → Matched: ACT (Flow / Apex / Prompt Template / Knowledge Search)
-          → OBSERVE result
-              → Done? → Respond
-              → More? → Loop (REASON again)
+```mermaid
+flowchart TD
+    OBS["OBSERVE\n(Instructions + Topics + Actions\n+ history + prior results)"]
+    OBS --> RSN["REASON\n(Topic match? Action match?\nInputs available?)"]
+    RSN -->|"No Topic matched"| OOS["OOS response"]
+    RSN -->|"No inputs available"| CQ["Clarifying question"]
+    RSN -->|"Matched"| ACT["ACT\n(Flow / Apex / Prompt Template\n/ Knowledge Search)"]
+    ACT --> OBS2["OBSERVE result"]
+    OBS2 -->|"Done"| RSP["Respond to user"]
+    OBS2 -->|"More needed"| RSN
 ```
 
 **Atlas routing = semantic matching of natural language descriptions. NOT keywords.**
@@ -149,11 +151,11 @@ Generate: LLM generates response grounded in retrieved facts (not hallucinated)
 ---
 
 ## Multi-Action Pattern (Flow + Prompt Template)
-```
-User request
-  → Flow Action (deterministic data retrieval)
-  → Prompt Template Action (AI synthesis of retrieved data)
-  → Personalized natural language response
+```mermaid
+flowchart LR
+    UR["User request"] --> FA["Flow Action\n(deterministic data retrieval)"]
+    FA --> PTA["Prompt Template Action\n(AI synthesis of retrieved data)"]
+    PTA --> RSP["Personalized natural\nlanguage response"]
 ```
 Flow = gets data. Prompt Template = synthesizes text. Keep them separate.
 
@@ -193,9 +195,11 @@ Flow = gets data. Prompt Template = synthesizes text. Keep them separate.
 ---
 
 ## Agent Lifecycle
-```
-Draft → Active → Deactivated
-                ↗ (reactivate)
+```mermaid
+flowchart LR
+    D["Draft"] --> A["Active"]
+    A --> DA["Deactivated"]
+    DA -->|"Reactivate"| A
 ```
 - Simulator testing: NOT billable (any state)
 - Billing starts: Active only

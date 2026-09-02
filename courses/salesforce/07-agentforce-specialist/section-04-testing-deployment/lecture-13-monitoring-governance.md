@@ -124,34 +124,16 @@ For regulated industries:
 ## Architecture
 
 ### Trust Layer in Detail
-```
-Agent Conversation Turn:
-                                    ┌──────────────────────────────┐
-User Message                        │    EINSTEIN TRUST LAYER      │
-      │                             │                              │
-      ▼                             │  1. DATA MASKING             │
-Prompt Assembly                     │     PII/PCI/PHI → tokens     │
-(Instructions + Topics +            │     [SSN: 123-45-6789]       │
- Actions + History +                │     → [MASKED_SSN_1]         │
- Knowledge results)                 │                              │
-      │                             │  2. ZERO DATA RETENTION      │
-      ▼─────────────────────────────▶     Masked prompt sent to LLM│
-                                    │     LLM contractually bound  │
-                                    │     to discard after response │
-                                    │                              │
-                                    │  3. LLM RESPONSE received    │
-                                    │                              │
-                                    │  4. TOXICITY DETECTION       │
-                                    │     Check response content   │
-                                    │     Harmful → filtered/blocked│
-                                    │                              │
-                                    │  5. AUDIT LOG                │
-                                    │     Record: masked prompt,   │
-                                    │     response, controls, user │
-                                    └──────────────────────────────┘
-                                                │
-                                                ▼
-                                    Filtered response → Atlas → User
+```mermaid
+flowchart TD
+    UM["User Message"]
+    UM --> PA["Prompt Assembly\n(Instructions + Topics + Actions\n+ History + Knowledge results)"]
+    PA --> DM["1. Data Masking\nPII/PCI/PHI replaced with tokens\n(e.g., SSN → MASKED_SSN_1)"]
+    DM --> ZDR["2. Zero Data Retention\nMasked prompt sent to LLM\nLLM contractually bound\nto discard after response"]
+    ZDR --> LLM["3. LLM Response received"]
+    LLM --> TOX["4. Toxicity Detection\nCheck response content\nHarmful → filtered/blocked"]
+    TOX --> AUD["5. Audit Log\nRecord: masked prompt,\nresponse, controls applied, user"]
+    AUD --> OUT["Filtered response → Atlas → User"]
 ```
 
 **Limitations:**
@@ -161,27 +143,12 @@ Prompt Assembly                     │     PII/PCI/PHI → tokens     │
 - ZDR is contractual — depends on Salesforce's agreements with LLM providers; verify current agreements in Salesforce documentation
 
 ### Four-Layer Governance Model
-```
-Layer 1: EINSTEIN TRUST LAYER (Salesforce platform)
-    ├── Data Masking (automatic, configurable)
-    ├── Zero Data Retention (contractual)
-    ├── Toxicity Detection (automatic)
-    └── Audit Logging (automatic when enabled)
-
-Layer 2: AGENT INSTRUCTIONS (administrator-configured)
-    ├── Persona and behavioral rules
-    ├── Escalation triggers
-    └── Explicit exclusions ("never discuss X")
-
-Layer 3: TOPIC SCOPE (developer-configured)
-    ├── Only Topics and Actions explicitly built are available
-    ├── Agent cannot improvise new capabilities
-    └── Atlas returns OOS if no Topic matches
-
-Layer 4: HUMAN ESCALATION (process-configured)
-    ├── Omni-Channel queue routing
-    ├── Human review of edge cases
-    └── Override capability for complex situations
+```mermaid
+flowchart TD
+    L1["Layer 1: Einstein Trust Layer\n(Salesforce platform)\n• Data Masking\n• Zero Data Retention\n• Toxicity Detection\n• Audit Logging"]
+    L1 --> L2["Layer 2: Agent Instructions\n(administrator-configured)\n• Persona and behavioral rules\n• Escalation triggers\n• Explicit exclusions"]
+    L2 --> L3["Layer 3: Topic Scope\n(developer-configured)\n• Only built Topics/Actions available\n• Agent cannot improvise\n• Atlas returns OOS if no match"]
+    L3 --> L4["Layer 4: Human Escalation\n(process-configured)\n• Omni-Channel queue routing\n• Human review of edge cases\n• Override for complex situations"]
 ```
 
 **Limitations:**
@@ -191,26 +158,23 @@ Layer 4: HUMAN ESCALATION (process-configured)
 - Layer 4 (Escalation) is only as good as the human agents it routes to — escalation to an unstaffed queue is no escalation at all
 
 ### Monitoring Dashboard Components
-```
-Agentforce Monitoring Dashboard
-────────────────────────────────
-KPI Cards (current week):
-    Resolution Rate:    72% ▲ (+3% from last week)
-    Escalation Rate:    28% ▼ (-3% from last week)
-    CSAT Average:       4.2/5.0 → (steady)
-    Avg Session:        2m 47s ▲ (+12s from last week)
-    Total Conversations: 1,247
 
-Trend Charts:
-    [Resolution Rate — 12-week trend line]
-    [Escalation by Topic — bar chart]
-    [CSAT distribution — histogram]
+**KPI Cards (current week):**
 
-Problem Indicators:
-    Topics with > 50% escalation rate: Order Returns (61%)
-    Longest avg session Topic: Billing (4m 12s)
-    OOS requests this week: 89 → [view sample phrases]
-```
+| Metric | Value | Trend |
+|--------|-------|-------|
+| Resolution Rate | 72% | +3% from last week |
+| Escalation Rate | 28% | -3% from last week |
+| CSAT Average | 4.2/5.0 | Steady |
+| Avg Session | 2m 47s | +12s from last week |
+| Total Conversations | 1,247 | — |
+
+**Trend Charts:** Resolution Rate (12-week line), Escalation by Topic (bar chart), CSAT distribution (histogram)
+
+**Problem Indicators:**
+- Topics with >50% escalation rate: Order Returns (61%)
+- Longest avg session Topic: Billing (4m 12s)
+- OOS requests this week: 89 → review sample phrases
 
 ## Key Facts to Memorize
 - Five Trust Layer controls: Data Masking, Zero Data Retention, Toxicity Detection, Audit Log, Grounding

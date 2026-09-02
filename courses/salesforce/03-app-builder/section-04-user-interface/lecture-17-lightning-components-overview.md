@@ -38,21 +38,13 @@ Beyond standard Salesforce components, partners publish Lightning components on 
 
 ## Architecture / How It Works
 
-```
-Component Selection Decision Flow:
-                                                               
-Does a Standard Salesforce component do the job?              
-   │                                                           
-   ├─ YES → Use the standard component                         
-   │        (always first choice)                              
-   │                                                           
-   └─ NO → Is there an AppExchange component?                  
-               │                                               
-               ├─ YES → Install and use it                     
-               │        (cheaper than custom dev)              
-               │                                               
-               └─ NO → Build a custom LWC                      
-                        (developer required)                   
+```mermaid
+flowchart TD
+    A{"Does a Standard Salesforce\ncomponent do the job?"}
+    A -->|"Yes"| B["Use the standard component\n(always first choice)"]
+    A -->|"No"| C{"Is there an\nAppExchange component?"}
+    C -->|"Yes"| D["Install and use it\n(cheaper than custom dev)"]
+    C -->|"No"| E["Build a custom LWC\n(developer required)"]
 ```
 
 **Limitations:**
@@ -60,25 +52,23 @@ Does a Standard Salesforce component do the job?
 - AppExchange components require security review but may have limitations and licensing costs
 - Custom LWC requires developer skills and ongoing maintenance — highest cost option
 
+**LWC Component File Structure for App Builder**
+
 ```
-LWC Component Architecture for App Builder:
-                                                               
-  ┌─────────────────────────────────────────────────────────┐  
-  │  my-custom-component/                                   │  
-  │  ├── myCustomComponent.html       ← Template (UI)       │  
-  │  ├── myCustomComponent.js         ← Controller/Logic    │  
-  │  ├── myCustomComponent.css        ← Styles              │  
-  │  └── myCustomComponent.js-meta.xml ← Metadata           │  
-  │       <targets>                                         │  
-  │         <target>lightning__RecordPage</target>           │  
-  │         <target>lightning__AppPage</target>              │  
-  │       </targets>                                         │  
-  │       <targetConfigs>                                    │  
-  │         <targetConfig targets="lightning__RecordPage">   │  
-  │           <property name="myTitle" type="String"/>       │  ← configurable in App Builder
-  │         </targetConfig>                                  │  
-  │       </targetConfigs>                                   │  
-  └─────────────────────────────────────────────────────────┘  
+my-custom-component/
+├── myCustomComponent.html          ← Template (UI)
+├── myCustomComponent.js            ← Controller/Logic
+├── myCustomComponent.css           ← Styles
+└── myCustomComponent.js-meta.xml  ← Metadata
+     <targets>
+       <target>lightning__RecordPage</target>
+       <target>lightning__AppPage</target>
+     </targets>
+     <targetConfigs>
+       <targetConfig targets="lightning__RecordPage">
+         <property name="myTitle" type="String"/>  ← configurable in App Builder
+       </targetConfig>
+     </targetConfigs>
 ```
 
 **Limitations:**
@@ -86,24 +76,19 @@ LWC Component Architecture for App Builder:
 - `@api recordId` must be declared for the component to receive the current record's ID from the page
 - LWC components cannot directly access fields from the record without `@wire` or explicit SOQL via Apex
 
-```
-Standard Components by Page Type:
-┌─────────────────────────────┬───────────┬──────────┬──────────┐
-│ Component                   │ App Page  │ Rec.Page │ Home Page│
-├─────────────────────────────┼───────────┼──────────┼──────────┤
-│ Chatter Feed                │           │    ✓     │          │
-│ Related List                │           │    ✓     │          │
-│ Related List - Single       │           │    ✓     │          │
-│ Record Form / Details       │           │    ✓     │          │
-│ Report Chart                │     ✓     │    ✓     │    ✓     │
-│ Dashboard                   │     ✓     │    ✓     │    ✓     │
-│ Recent Items                │     ✓     │          │    ✓     │
-│ Rich Text                   │     ✓     │    ✓     │    ✓     │
-│ Flow (Screen Flow)          │     ✓     │    ✓     │    ✓     │
-│ Highlights Panel            │           │    ✓     │          │
-│ Activity Timeline           │           │    ✓     │          │
-└─────────────────────────────┴───────────┴──────────┴──────────┘
-```
+| Component | App Page | Record Page | Home Page |
+|---|---|---|---|
+| Chatter Feed | | ✓ | |
+| Related List | | ✓ | |
+| Related List - Single | | ✓ | |
+| Record Form / Details | | ✓ | |
+| Report Chart | ✓ | ✓ | ✓ |
+| Dashboard | ✓ | ✓ | ✓ |
+| Recent Items | ✓ | | ✓ |
+| Rich Text | ✓ | ✓ | ✓ |
+| Flow (Screen Flow) | ✓ | ✓ | ✓ |
+| Highlights Panel | | ✓ | |
+| Activity Timeline | | ✓ | |
 
 **Limitations:**
 - Record-specific components (Related List, Chatter, Record Form) are NOT available on App Pages or Home Pages — they require record context

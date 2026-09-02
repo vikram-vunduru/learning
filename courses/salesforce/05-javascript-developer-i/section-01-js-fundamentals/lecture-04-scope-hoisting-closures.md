@@ -6,20 +6,15 @@ Functions, Scope & Closures — ~11% of exam weight (combined with functions)
 ## Core Concepts
 
 ### Scope — Three Levels
-```
-┌─────────────────────────────────────────────────────────┐
-│ Global Scope (window/globalThis)                        │
-│  var declarations attach here                           │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │ Function Scope                                    │  │
-│  │  var, let, const all scoped to this function      │  │
-│  │  ┌─────────────────────────────────────────────┐  │  │
-│  │  │ Block Scope { }                             │  │  │
-│  │  │  let and const only                         │  │  │
-│  │  │  var LEAKS out of this block                │  │  │
-│  │  └─────────────────────────────────────────────┘  │  │
-│  └───────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
+
+```mermaid
+flowchart TD
+    subgraph Global["Global Scope (window/globalThis)\nvar declarations attach here"]
+        subgraph Function["Function Scope\nvar, let, const all scoped to this function"]
+            subgraph Block["Block Scope { }\nlet and const only\nvar LEAKS out of this block"]
+            end
+        end
+    end
 ```
 
 ```javascript
@@ -41,15 +36,14 @@ console.log(x); // ReferenceError
 ### Hoisting
 Variables and function declarations are moved to the top of their scope during compilation — but with different behavior:
 
-```
-During compilation phase:
-┌────────────────────────────────────────────────────────┐
-│ var declarations   → hoisted, initialized to undefined │
-│ let/const          → hoisted, in TDZ (Temporal Dead Zone)│
-│ function decl.     → hoisted IN FULL (name + body)     │
-│ function expr/arrow→ NOT hoisted (follows var/let/const)│
-└────────────────────────────────────────────────────────┘
-```
+**During compilation phase:**
+
+| Declaration type | Hoisting behavior |
+|-----------------|-------------------|
+| `var` declarations | Hoisted, initialized to `undefined` |
+| `let` / `const` | Hoisted, but in TDZ (Temporal Dead Zone) |
+| Function declarations | Hoisted IN FULL (name + body) |
+| Function expressions / arrows | NOT hoisted (follows `var`/`let`/`const` rules) |
 
 ```javascript
 console.log(a); // undefined  (var hoisted, initialized to undefined)
@@ -159,15 +153,18 @@ wiredRecord({ data, error }) {
 ```
 
 ### Variable Lifecycle Diagram
-```
-Script starts:
-  [compilation] → var declarations hoisted (=undefined)
-                → let/const hoisted but TDZ
-                → function declarations hoisted fully
 
-  [execution]   → code runs top to bottom
-                → let/const initialized when reached → TDZ ends
-                → closures capture live bindings (not snapshot values)
+```mermaid
+flowchart TD
+    START["Script starts"] --> COMP["Compilation phase"]
+    COMP --> H1["var declarations hoisted\n(initialized to undefined)"]
+    COMP --> H2["let/const hoisted into TDZ"]
+    COMP --> H3["function declarations hoisted fully"]
+    H1 --> EXEC["Execution phase\n(code runs top to bottom)"]
+    H2 --> EXEC
+    H3 --> EXEC
+    EXEC --> E1["let/const reach declaration\n→ TDZ ends, initialized"]
+    EXEC --> E2["closures capture live bindings\n(not snapshot values)"]
 ```
 
 **Limitations:**

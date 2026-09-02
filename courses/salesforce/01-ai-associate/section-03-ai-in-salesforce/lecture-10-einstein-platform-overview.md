@@ -82,41 +82,23 @@ The naming has evolved. For this exam:
 
 ## Einstein Platform Architecture (Enterprise View)
 
-```
-╔═══════════════════════════════════════════════════════════════════════╗
-║               EINSTEIN PLATFORM — ENTERPRISE VIEW                     ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║                                                                       ║
-║  ┌─────────────────────────────────────────────────────────────────┐  ║
-║  │                    USER INTERFACES                               │  ║
-║  │  Lightning App Pages · Service Console · Einstein Copilot Panel │  ║
-║  └───────────────────────────────┬─────────────────────────────────┘  ║
-║                                  │                                    ║
-║  ┌─────────────────────────────▼─────────────────────────────────┐  ║
-║  │                   EINSTEIN AI LAYER                            │  ║
-║  │                                                                │  ║
-║  │  PREDICTIVE              GENERATIVE           AGENTIC          │  ║
-║  │  ┌───────────────┐  ┌──────────────────┐  ┌──────────────┐   │  ║
-║  │  │Lead Scoring   │  │Prompt Builder    │  │Agentforce    │   │  ║
-║  │  │Opp Scoring    │  │Case Summaries    │  │Service Agent │   │  ║
-║  │  │Case Classif.  │  │Sales Emails      │  │SDR Agent     │   │  ║
-║  │  │Prediction Bldr│  │Einstein Copilot  │  │Sales Coach   │   │  ║
-║  │  │Next Best Actn │  │                  │  │Custom Agents │   │  ║
-║  │  └───────────────┘  └──────────────────┘  └──────────────┘   │  ║
-║  └───────────────────────────────┬─────────────────────────────────┘  ║
-║                                  │                                    ║
-║  ┌─────────────────────────────▼─────────────────────────────────┐  ║
-║  │                EINSTEIN TRUST LAYER                             │  ║
-║  │  Data Masking · ZDR · Toxicity Scoring · Audit Trail           │  ║
-║  └───────────────────────────────┬─────────────────────────────────┘  ║
-║                                  │                                    ║
-║  ┌─────────────────────────────▼─────────────────────────────────┐  ║
-║  │                   DATA FOUNDATION                               │  ║
-║  │  Salesforce CRM     Data Cloud         External Sources         │  ║
-║  │  (structured CRM)   (Unified Profile)  (via MuleSoft/API)       │  ║
-║  │                     Vector Store                                │  ║
-║  └─────────────────────────────────────────────────────────────────┘  ║
-╚═══════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    UI["User Interfaces\nLightning App Pages · Service Console · Einstein Copilot Panel"]
+    subgraph AI["Einstein AI Layer"]
+        PRED["Predictive\nLead Scoring\nOpp Scoring\nCase Classification\nPrediction Builder\nNext Best Action"]
+        GEN["Generative\nPrompt Builder\nCase Summaries\nSales Emails\nEinstein Copilot"]
+        AGENT["Agentic\nAgentforce\nService Agent\nSDR Agent\nSales Coach\nCustom Agents"]
+    end
+    TL["Einstein Trust Layer\nData Masking · ZDR · Toxicity Scoring · Audit Trail"]
+    subgraph Data["Data Foundation"]
+        CRM["Salesforce CRM\n(structured CRM)"]
+        DC["Data Cloud\n(Unified Profile)\nVector Store"]
+        EXT["External Sources\n(via MuleSoft/API)"]
+    end
+    UI --> AI
+    AI --> TL
+    TL --> Data
 ```
 
 **Limitations:**

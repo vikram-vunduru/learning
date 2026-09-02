@@ -84,45 +84,13 @@
 
 ## Prompt Builder Architecture
 
-```
-╔══════════════════════════════════════════════════════════════════════╗
-║                  PROMPT BUILDER FLOW                                  ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  ADMIN DESIGN TIME                                                   ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Prompt Builder (Setup → Einstein → Prompt Builder)           │    ║
-║  │                                                              │    ║
-║  │ Template: "Write a case summary for {!$Record.Subject}       │    ║
-║  │  Customer is {!$Record.Contact.Name}.                        │    ║
-║  │  Account tier: {!$Record.Account.Customer_Tier__c}.          │    ║
-║  │  Recent comments: {!$Record.Description}                     │    ║
-║  │  Be concise, professional, under 150 words."                 │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                           ║
-║  USER INVOCATION (Run Time)                                          ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ 1. User opens Case record, clicks "Generate Summary"         │    ║
-║  │ 2. Salesforce resolves merge fields → actual field values    │    ║
-║  │    (e.g., Subject = "Network outage - Priority 1")           │    ║
-║  │ 3. Resolved prompt sent to Einstein Trust Layer              │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                           ║
-║  EINSTEIN TRUST LAYER                                                ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ • PII detected and masked (Contact.Name → [MASKED_NAME])     │    ║
-║  │ • ZDR: LLM provider cannot retain this prompt                │    ║
-║  │ • Resolved prompt sent to external LLM                       │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                           ║
-║  LLM RESPONSE + OUTPUT                                               ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ • Toxicity scoring: response evaluated for harmful content   │    ║
-║  │ • Audit log entry created                                    │    ║
-║  │ • Unmasked response returned to Salesforce UI                │    ║
-║  │ • Human reviews and accepts/edits/rejects the draft          │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-╚══════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    A["Admin Design Time\nPrompt Builder template created with merge fields\ne.g. {!$Record.Subject}, {!$Record.Contact.Name}"]
+    B["User Invocation — Run Time\nUser opens record, clicks Generate\nSalesforce resolves merge fields to actual values\nResolved prompt sent to Einstein Trust Layer"]
+    C["Einstein Trust Layer\nPII detected and masked\nZDR: LLM provider cannot retain this prompt\nResolved prompt sent to external LLM"]
+    D["LLM Response + Output\nToxicity scoring on response\nAudit log entry created\nUnmasked response returned to Salesforce UI\nHuman reviews and accepts/edits/rejects"]
+    A --> B --> C --> D
 ```
 
 **Limitations:**

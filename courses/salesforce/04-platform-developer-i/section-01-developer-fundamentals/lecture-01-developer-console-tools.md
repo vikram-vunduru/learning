@@ -47,28 +47,27 @@ Standard IDE. Features: Apex IntelliSense, Org Browser, SFDX command palette, an
 
 ## Architecture / How It Works
 
-```
-DEVELOPMENT ECOSYSTEM — ENTERPRISE VIEW
-
-  Developer Machine          CI/CD Pipeline (GitHub Actions)
-  ┌────────────────┐         ┌──────────────────────────────────┐
-  │  VS Code       │         │  on: push to feature branch      │
-  │  + SFDX Ext.   │         │  ┌─────────────────────────────┐ │
-  │  + sf CLI      │ ──git── │  │ 1. Checkout code             │ │
-  └───────┬────────┘  push   │  │ 2. sf org login (JWT)        │ │
-          │                  │  │ 3. sf project deploy --dry   │ │
-    sf project               │  │    --test-level RunLocalTests│ │
-    deploy start             │  │ 4. Report pass/fail to PR    │ │
-          │                  │  └─────────────────────────────┘ │
-          ▼                  └──────────────────────────────────┘
-  ┌───────────────┐
-  │  Scratch Org  │  ← feature development (disposable)
-  │  (Dev Hub)    │
-  └───────────────┘
-
-  Promotion path:
-  Scratch Org → Integration Sandbox → QA Sandbox → UAT → Production
-                      via sf deploy         via change set or CLI
+```mermaid
+flowchart TD
+    subgraph DevMachine["Developer Machine"]
+        A["VS Code\n+ SFDX Ext.\n+ sf CLI"]
+    end
+    subgraph CICD["CI/CD Pipeline (GitHub Actions)\non: push to feature branch"]
+        B["1. Checkout code"]
+        C["2. sf org login (JWT)"]
+        D["3. sf project deploy --dry-run\n   --test-level RunLocalTests"]
+        E["4. Report pass/fail to PR"]
+        B --> C --> D --> E
+    end
+    subgraph ScratchOrg["Scratch Org (Dev Hub)"]
+        F["Feature development\n(disposable)"]
+    end
+    A -->|"git push"| CICD
+    A -->|"sf project deploy start"| F
+    F -->|"Promotion path"| G["Integration Sandbox"]
+    G -->|"sf deploy"| H["QA Sandbox"]
+    H -->|"sf deploy / change set"| I["UAT"]
+    I --> J["Production"]
 ```
 
 **Limitations:**
@@ -80,17 +79,17 @@ DEVELOPMENT ECOSYSTEM — ENTERPRISE VIEW
 ```
 SFDX PROJECT STRUCTURE
 
-  MyProject/
-  ├── sfdx-project.json           ← package directories + sourceApiVersion
-  ├── .forceignore                ← like .gitignore for Salesforce
-  ├── .github/workflows/          ← CI/CD pipeline YAML files
-  └── force-app/main/default/
-      ├── classes/                ← Apex (.cls + .cls-meta.xml pairs)
-      ├── triggers/               ← Apex triggers (.trigger + meta.xml)
-      ├── lwc/                    ← Lightning Web Components
-      ├── aura/                   ← Aura components (legacy)
-      ├── objects/                ← Custom objects + field metadata
-      └── permissionsets/         ← Permission set definitions
+MyProject/
+  sfdx-project.json           -- package directories + sourceApiVersion
+  .forceignore                -- like .gitignore for Salesforce
+  .github/workflows/          -- CI/CD pipeline YAML files
+  force-app/main/default/
+    classes/                  -- Apex (.cls + .cls-meta.xml pairs)
+    triggers/                 -- Apex triggers (.trigger + meta.xml)
+    lwc/                      -- Lightning Web Components
+    aura/                     -- Aura components (legacy)
+    objects/                  -- Custom objects + field metadata
+    permissionsets/           -- Permission set definitions
 ```
 
 **Limitations:**

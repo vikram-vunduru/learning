@@ -27,16 +27,15 @@
 ### How to Identify Bias Type from a Scenario
 
 **Decision flowchart:**
-```
-Is the bias coming from the data used to train the model?
-  → If underrepresentation of groups → REPRESENTATION BIAS
-  → If historical patterns in the data reflect past discrimination → TRAINING DATA BIAS
-  
-Is the bias coming from how the model itself is designed or what it optimizes for?
-  → ALGORITHMIC BIAS
-
-Is the bias getting worse over time as model outputs influence future data?
-  → FEEDBACK LOOP BIAS
+```mermaid
+flowchart TD
+    A{"Is the bias coming from the data\nused to train the model?"}
+    A -->|"Underrepresentation of groups"| RB["Representation Bias"]
+    A -->|"Historical discrimination\nreflected in labels"| TDB["Training Data Bias"]
+    A -->|"No"| B{"Is the bias from how the model\nis designed or what it optimizes for?"}
+    B -->|"Yes"| AB["Algorithmic Bias"]
+    B -->|"No"| C{"Is the bias getting worse over time\nas outputs influence future data?"}
+    C -->|"Yes"| FLB["Feedback Loop Bias"]
 ```
 
 **Note:** Training Data Bias and Representation Bias are closely related — both involve problems in training data. The distinction:
@@ -99,45 +98,13 @@ Is the bias getting worse over time as model outputs influence future data?
 
 ## Bias in AI Architecture (Detection and Mitigation)
 
-```
-╔════════════════════════════════════════════════════════════════════╗
-║              BIAS DETECTION & MITIGATION FRAMEWORK                  ║
-╠════════════════════════════════════════════════════════════════════╣
-║                                                                    ║
-║  DATA PHASE                                                        ║
-║  ┌──────────────────────────────────────────────────────────┐     ║
-║  │ Audit training data:                                     │     ║
-║  │ • Is each demographic group represented proportionally?  │     ║
-║  │ • Do historical labels reflect bias, not just outcomes?  │     ║
-║  │ • Is the data from a time period that reflects current   │     ║
-║  │   business reality?                                      │     ║
-║  └──────────────────────────────────────────────────────────┘     ║
-║                          │                                         ║
-║  MODEL TRAINING PHASE                                              ║
-║  ┌──────────────────────────────────────────────────────────┐     ║
-║  │ Check algorithmic choices:                               │     ║
-║  │ • What metric is the model optimizing?                   │     ║
-║  │ • Could optimization metric advantage certain groups?    │     ║
-║  │ • Apply fairness constraints if needed                   │     ║
-║  └──────────────────────────────────────────────────────────┘     ║
-║                          │                                         ║
-║  MODEL EVALUATION PHASE                                            ║
-║  ┌──────────────────────────────────────────────────────────┐     ║
-║  │ Disaggregated accuracy analysis:                         │     ║
-║  │ • Run accuracy metrics by demographic subgroup           │     ║
-║  │ • Compare false positive / false negative rates          │     ║
-║  │ • If significant gaps found: investigate root cause      │     ║
-║  └──────────────────────────────────────────────────────────┘     ║
-║                          │                                         ║
-║  PRODUCTION MONITORING                                             ║
-║  ┌──────────────────────────────────────────────────────────┐     ║
-║  │ Ongoing:                                                 │     ║
-║  │ • Track output distribution by group over time           │     ║
-║  │ • Watch for feedback loop amplification                  │     ║
-║  │ • Regular re-audit (quarterly recommended)               │     ║
-║  │ • Human review escalation path for flagged decisions     │     ║
-║  └──────────────────────────────────────────────────────────┘     ║
-╚════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    A["Data Phase\nAudit training data:\nIs each demographic group represented proportionally?\nDo historical labels reflect bias, not just outcomes?\nIs data from a time period that reflects current reality?"]
+    B["Model Training Phase\nCheck algorithmic choices:\nWhat metric is the model optimizing?\nCould the optimization metric advantage certain groups?\nApply fairness constraints if needed"]
+    C["Model Evaluation Phase\nDisaggregated accuracy analysis:\nRun accuracy metrics by demographic subgroup\nCompare false positive / false negative rates\nIf significant gaps found: investigate root cause"]
+    D["Production Monitoring — ongoing\nTrack output distribution by group over time\nWatch for feedback loop amplification\nRegular re-audit quarterly recommended\nHuman review escalation path for flagged decisions"]
+    A --> B --> C --> D
 ```
 
 **Limitations of bias mitigation:**

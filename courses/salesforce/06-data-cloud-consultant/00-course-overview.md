@@ -42,23 +42,15 @@ The top three domains are 51% of the exam. Master ingestion, data modeling/IR, a
 
 Everything in Data Cloud follows this left-to-right flow. Every exam question fits somewhere on it.
 
-```
-Source Systems
-    ║
-    ▼  [Data Stream = pipeline config object]
-Data Lake Objects (DLO) — raw, unchanged source data
-    ║
-    ▼  [Field Mapping = translate DLO fields → DMO standard schema]
-Data Model Objects (DMO) — standardized, modeled data
-    ║
-    ▼  [Identity Resolution = match + merge across sources]
-Unified Individual — single resolved profile per real customer
-    ║
-    ▼  [Segment Builder]
-Segments — filtered subsets of Unified Individuals
-    ║
-    ▼  [Activation Target config]
-Destinations (Salesforce CRM, Marketing Cloud, Ad Platforms)
+```mermaid
+flowchart TD
+    SRC["Source Systems"] -->|"Data Stream\n(pipeline config object)"| DLO["Data Lake Objects (DLO)\nraw, unchanged source data"]
+    DLO -->|"Field Mapping\n(translate DLO fields → DMO schema)"| DMO["Data Model Objects (DMO)\nstandardized, modeled data"]
+    DMO -->|"Identity Resolution\n(match + merge across sources)"| UI["Unified Individual\nsingle resolved profile per real customer"]
+    UI -->|"Segment Builder"| SEG["Segments\nfiltered subsets of Unified Individuals"]
+    SEG -->|"Activation Target config"| DEST["Destinations\n(Salesforce CRM, Marketing Cloud, Ad Platforms)"]
+    DMO --> CI["Calculated Insights\n(pre-computed aggregate metrics)"]
+    CI --> SEG
 ```
 
 **Calculated Insights** plug in between DMO and Segment — they pre-compute aggregate metrics (total spend, purchase count) from DMO data. CI results feed segment criteria.

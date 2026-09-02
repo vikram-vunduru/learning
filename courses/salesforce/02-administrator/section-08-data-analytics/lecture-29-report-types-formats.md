@@ -47,40 +47,27 @@ Custom Report Types are one of the most underused admin capabilities. When users
 
 ## Architecture / How It Works
 
+```mermaid
+flowchart TD
+    subgraph CRT["CUSTOM REPORT TYPE DEFINITION"]
+        PO["Primary Object: Account"]
+        R1["Related Object 1: Contact\nRelationship: may or may not have\n(LEFT JOIN — shows all accounts)"]
+        R2["Related Object 2: Opportunity\nRelationship: must have\n(INNER JOIN — only accounts with opps)"]
+        Fields["Available Fields:\nAll fields from all three objects"]
+        PO --> R1
+        PO --> R2
+        R1 --> Fields
+        R2 --> Fields
+    end
+    Result["Result: All Accounts with at least ONE Opportunity\n+ zero or more Contacts per account"]
 ```
-Custom Report Type Structure
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  CUSTOM REPORT TYPE DEFINITION:
-  ┌─────────────────────────────────────────┐
-  │  Primary Object: Account                │
-  │                                         │
-  │  Related Object 1: Contact              │
-  │    Relationship: may or may not have    │
-  │    (LEFT JOIN — shows all accounts)     │
-  │                                         │
-  │  Related Object 2: Opportunity          │
-  │    Relationship: must have              │
-  │    (INNER JOIN — only accounts with opps│
-  │                                         │
-  │  Available Fields: [choose from all     │
-  │    three objects]                       │
-  └─────────────────────────────────────────┘
+**"Must Have" vs "May or May Not Have":**
 
-  Result when running:
-  All Accounts that have at least ONE Opportunity
-  WITH zero or more Contacts shown per account
-
-  "Must Have" vs "May or May Not Have":
-  ┌────────────────┬─────────────────────────┐
-  │ Must Have      │ INNER JOIN              │
-  │                │ Only parents WITH child │
-  ├────────────────┼─────────────────────────┤
-  │ May or May Not │ LEFT OUTER JOIN         │
-  │ Have           │ ALL parents; blank for  │
-  │                │ those without children  │
-  └────────────────┴─────────────────────────┘
-```
+| Setting | SQL Equivalent | Behavior |
+|---|---|---|
+| Must Have | INNER JOIN | Only parent records that have at least one child record |
+| May or May Not Have | LEFT OUTER JOIN | ALL parent records; blank where no children exist |
 
 **Limitations:**
 - Custom Report Types: max 4 related objects per report type

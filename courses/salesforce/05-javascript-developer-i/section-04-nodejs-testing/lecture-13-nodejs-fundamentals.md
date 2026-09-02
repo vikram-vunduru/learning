@@ -8,19 +8,19 @@ Browser & Node APIs — ~13% of exam weight
 ### Node.js Architecture
 Node.js: JavaScript runtime built on V8 engine. Event-driven, non-blocking I/O. Single-threaded event loop (like browser, but no DOM — has OS-level I/O instead).
 
-```
-Node.js process
-├── V8 engine (JavaScript execution)
-├── libuv (event loop + thread pool for I/O)
-│     ├── Event Loop (main thread)
-│     └── Thread Pool (file I/O, crypto — 4 threads by default)
-├── Node.js Core APIs
-│     ├── fs (filesystem)
-│     ├── http/https (HTTP server/client)
-│     ├── path (path utilities)
-│     ├── events (EventEmitter)
-│     └── process (environment, exit, stdin/stdout)
-└── npm (package manager)
+```mermaid
+flowchart TD
+    NP["Node.js process"] --> V8["V8 engine\n(JavaScript execution)"]
+    NP --> LIBUV["libuv\n(event loop + thread pool for I/O)"]
+    NP --> APIS["Node.js Core APIs"]
+    NP --> NPM["npm (package manager)"]
+    LIBUV --> EL["Event Loop (main thread)"]
+    LIBUV --> TP["Thread Pool\n(file I/O, crypto — 4 threads default)"]
+    APIS --> FS["fs (filesystem)"]
+    APIS --> HTTP["http/https (HTTP server/client)"]
+    APIS --> PATH["path (path utilities)"]
+    APIS --> EVENTS["events (EventEmitter)"]
+    APIS --> PROC["process (environment, exit, stdio)"]
 ```
 
 ### process Object
@@ -140,30 +140,31 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 ## Architecture / How It Works
 
 ### Node.js Event Loop Phases
-```
-Each iteration of the event loop:
-  1. timers          → setTimeout, setInterval callbacks
-  2. I/O callbacks   → file/network callbacks
-  3. idle/prepare    → internal
-  4. poll            → fetch new I/O events (blocks here if nothing pending)
-  5. check           → setImmediate callbacks
-  6. close callbacks → socket close events
 
-  Between EACH phase → microtask queue (Promises) is drained
+```mermaid
+flowchart TD
+    T["1. timers\n(setTimeout, setInterval callbacks)"]
+    T --> IO["2. I/O callbacks\n(file/network callbacks)"]
+    IO --> IP["3. idle/prepare\n(internal)"]
+    IP --> POLL["4. poll\n(fetch new I/O events;\nblocks here if nothing pending)"]
+    POLL --> CHK["5. check\n(setImmediate callbacks)"]
+    CHK --> CC["6. close callbacks\n(socket close events)"]
+    CC --> T
+    MICRO["Microtask queue (Promises)\ndrained between EACH phase"]
+    style MICRO fill:#ffffcc
 ```
 
 ### npm Package Lifecycle
-```
-package.json
-├── "dependencies"    → production runtime packages
-├── "devDependencies" → test/build tools only (not in production bundle)
-└── "scripts"         → npm run commands
 
-npm install        → installs all dependencies
-npm install pkg    → installs to dependencies
-npm install -D pkg → installs to devDependencies
-npm test           → runs "test" script
-```
+**`package.json` structure:**
+
+| Section | Purpose |
+|---------|---------|
+| `"dependencies"` | Production runtime packages |
+| `"devDependencies"` | Test/build tools only (not in production bundle) |
+| `"scripts"` | `npm run` commands |
+
+**Commands:** `npm install` → all deps | `npm install pkg` → dependencies | `npm install -D pkg` → devDependencies | `npm test` → runs "test" script
 
 **Limitations:**
 - `fs.readFileSync` blocks the entire event loop — never use in HTTP server request handlers

@@ -22,32 +22,21 @@ CRM is transactional and operational — sales pipelines, service cases, user-ma
 
 ### Full Data Cloud Pipeline
 
-```
-  External Sources                       Data Cloud
-  ════════════════              ╔══════════════════════════════════════╗
-  Salesforce CRM  ══Data Stream▶║  Data Lake Objects (DLO)            ║
-  Marketing Cloud ══Data Stream▶║  ▸ Raw ingested data                ║
-  Web Analytics   ══Data Stream▶║  ▸ Mirrors source field names        ║
-  Custom API      ══Data Stream▶║  ▸ Auto-created per Data Stream      ║
-                                ║              │                       ║
-                                ║              ▼  Field Mapping        ║
-                                ║  Data Model Objects (DMO)            ║
-                                ║  ▸ Standardized schema               ║
-                                ║  ▸ Individual, Contact Point, etc.   ║
-                                ║              │                       ║
-                                ║              ▼  Identity Resolution  ║
-                                ║  Unified Individual Profile          ║
-                                ║  ▸ One per real customer             ║
-                                ║  ▸ Reconciled attributes             ║
-                                ║  ▸ All contact points (additive)     ║
-                                ║        │              │              ║
-                                ║        ▼              ▼              ║
-                                ║   Segments     Calculated Insights   ║
-                                ║        │              │              ║
-                                ╚════════╪══════════════╪══════════════╝
-                                         ▼              ▼
-                                   Activation      Analytics
-                                   Targets         (Tableau)
+```mermaid
+flowchart TD
+    subgraph EXT["External Sources"]
+        CRM["Salesforce CRM"]
+        MCN["Marketing Cloud"]
+        WEB["Web Analytics"]
+        CAPI["Custom API"]
+    end
+    EXT -->|"Data Stream"| DLO["Data Lake Objects (DLO)\nRaw ingested data\nMirrors source field names\nAuto-created per Data Stream"]
+    DLO -->|"Field Mapping"| DMO["Data Model Objects (DMO)\nStandardized schema\nIndividual, Contact Point, etc."]
+    DMO -->|"Identity Resolution"| UI["Unified Individual Profile\nOne per real customer\nReconciled attributes\nAll contact points (additive)"]
+    UI --> SEG["Segments"]
+    UI --> CI["Calculated Insights"]
+    SEG --> ACT["Activation Targets"]
+    CI --> ANA["Analytics (Tableau)"]
 ```
 
 **Limitations:**
@@ -59,24 +48,14 @@ CRM is transactional and operational — sales pipelines, service cases, user-ma
 
 ### Key Terminology Reference
 
-```
-  ╔══════════════════════════════════╗  ╔══════════════════════════════════╗
-  ║ DATA STREAM                      ║  ║ DATA LAKE OBJECT (DLO)           ║
-  ║ Pipeline config: source,         ║  ║ Raw storage; data lands here     ║
-  ║ schedule, field selection        ║  ║ first in exact source form       ║
-  ╚══════════════════════════════════╝  ╚══════════════════════════════════╝
-  ╔══════════════════════════════════╗  ╔══════════════════════════════════╗
-  ║ DATA MODEL OBJECT (DMO)          ║  ║ UNIFIED INDIVIDUAL               ║
-  ║ Structured, standardized layer   ║  ║ Resolved single customer profile ║
-  ║ used for IR, segmentation,       ║  ║ OUTPUT of Identity Resolution    ║
-  ║ activation, analytics            ║  ║ — not created manually           ║
-  ╚══════════════════════════════════╝  ╚══════════════════════════════════╝
-  ╔══════════════════════════════════╗  ╔══════════════════════════════════╗
-  ║ IDENTITY RESOLUTION              ║  ║ ACTIVATION TARGET                ║
-  ║ Matches + merges Individual      ║  ║ Destination where segments are   ║
-  ║ records → Unified Individual     ║  ║ published (MC, CRM, Ad Platf.)   ║
-  ╚══════════════════════════════════╝  ╚══════════════════════════════════╝
-```
+| Term | Definition |
+|---|---|
+| **Data Stream** | Pipeline config: source, schedule, field selection |
+| **Data Lake Object (DLO)** | Raw storage; data lands here first in exact source form |
+| **Data Model Object (DMO)** | Structured, standardized layer used for IR, segmentation, activation, analytics |
+| **Unified Individual** | Resolved single customer profile; OUTPUT of Identity Resolution — not created manually |
+| **Identity Resolution** | Matches + merges Individual records → Unified Individual |
+| **Activation Target** | Destination where segments are published (MC, CRM, Ad Platforms) |
 
 **Limitations:**
 - One Data Stream = one source object → one DLO (though multiple streams can feed one DLO)
@@ -86,30 +65,14 @@ CRM is transactional and operational — sales pipelines, service cases, user-ma
 
 ### The Unified Customer Profile Detail
 
-```
-  ┌────────────────┐   ┌────────────────┐   ┌────────────────┐
-  │  CRM Contact   │   │  E-Commerce    │   │  Loyalty App   │
-  │  John Smith    │   │  J. Smith      │   │  John S        │
-  │  john@co.com   │   │  john@co.com   │   │  Member LY-99  │
-  │  ID: CRM-001   │   │  ID: EC-4421   │   │  john@co.com   │
-  └───────┬────────┘   └───────┬────────┘   └───────┬────────┘
-          └───────────────────┬┘───────────────────-┘
-                              ▼  Identity Resolution
-              ╔═══════════════════════════════════════╗
-              ║         UNIFIED INDIVIDUAL            ║
-              ║  ID: 00UXXXXXXXXXXXXX                 ║
-              ║  ─────────────────────────────────    ║
-              ║  PROFILE ATTRIBUTES (reconciled)      ║
-              ║    FirstName: John  LastName: Smith   ║
-              ║  ─────────────────────────────────    ║
-              ║  CONTACT POINTS (all — additive)      ║
-              ║    Email 1: john@co.com    (CRM)      ║
-              ║    Email 2: john.s@gmail   (EC)       ║
-              ║    Phone: 555-123-4567 (Loyalty)      ║
-              ║  ─────────────────────────────────    ║
-              ║  SOURCE RECORDS LINKED                ║
-              ║    CRM-001 │ EC-4421 │ LY-99          ║
-              ╚═══════════════════════════════════════╝
+```mermaid
+flowchart TD
+    subgraph SRCS["Source Records"]
+        CRM["CRM Contact\nJohn Smith\njohn@co.com\nID: CRM-001"]
+        EC["E-Commerce\nJ. Smith\njohn@co.com\nID: EC-4421"]
+        LOY["Loyalty App\nJohn S\nMember LY-99\njohn@co.com"]
+    end
+    SRCS -->|"Identity Resolution"| UI["UNIFIED INDIVIDUAL\nID: 00UXXXXXXXXXXXXX\n\nPROFILE ATTRIBUTES (reconciled)\nFirstName: John  LastName: Smith\n\nCONTACT POINTS (all — additive)\nEmail 1: john@co.com (CRM)\nEmail 2: john.s@gmail (EC)\nPhone: 555-123-4567 (Loyalty)\n\nSOURCE RECORDS: CRM-001, EC-4421, LY-99"]
 ```
 
 **Limitations:**

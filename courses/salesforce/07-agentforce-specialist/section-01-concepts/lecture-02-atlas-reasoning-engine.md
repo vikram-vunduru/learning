@@ -112,41 +112,18 @@ This is the "Flow as orchestrator" pattern: simpler for Atlas, more reliable for
 ## Architecture
 
 ### Atlas ReAct Loop (Full Detail)
-```
-┌─────────────────────────────────────────────────────┐
-│                  CONTEXT WINDOW                     │
-│  Instructions + Topics + Actions + History          │
-│  + Prior Action results in this turn               │
-└────────────────────────┬────────────────────────────┘
-                         │
-                         ▼
-                    ┌─────────┐
-          ┌────────▶│ OBSERVE │◀────── Action Result
-          │         └────┬────┘
-          │              │
-          │              ▼
-          │         ┌─────────┐
-          │         │ REASON  │
-          │         └────┬────┘
-          │              │
-          │    ┌─────────┼─────────────┐
-          │    │         │             │
-          │    ▼         ▼             ▼
-          │  No Topic  Missing      Topic +
-          │  match     params       Action
-          │    │         │          matched
-          │    │         ▼             │
-          │  OOS      Clarify          ▼
-          │  resp.    question      ┌──────┐
-          │                        │  ACT │
-          │                        └──┬───┘
-          │                           │
-          │                     ┌─────┴──────┐
-          │                     │            │
-          │                     ▼            ▼
-          │                  More          Done
-          │                  steps          │
-          └──────────────────┘            Respond
+```mermaid
+flowchart TD
+    CW["CONTEXT WINDOW\nInstructions + Topics + Actions + History\n+ Prior Action results in this turn"]
+    CW --> OB["OBSERVE"]
+    AR["Action Result"] --> OB
+    OB --> RE["REASON"]
+    RE -->|"No Topic match"| OOS["OOS response"]
+    RE -->|"Missing params"| CQ["Clarify question"]
+    RE -->|"Topic + Action matched"| ACT["ACT"]
+    ACT --> LOOP{"More steps\nor done?"}
+    LOOP -->|"More steps"| OB
+    LOOP -->|"Done"| RSP["Respond"]
 ```
 
 **Limitations:**
@@ -157,33 +134,19 @@ This is the "Flow as orchestrator" pattern: simpler for Atlas, more reliable for
 - Atlas cannot create new Topics or Actions at runtime — scope is fixed at agent build time
 
 ### Topic and Action Two-Stage Routing
-```
-User Message
-    │
-    ▼
-Stage 1: Topic Routing
-    Atlas reads ALL Topic descriptions
-    ─────────────────────────────────
-    Topic A: "Handles billing questions..."    ← weak match
-    Topic B: "Handles order status..."         ← strong match  ◀── selected
-    Topic C: "Handles product returns..."      ← weak match
-    │
-    ▼
-Stage 2: Action Routing (within selected Topic)
-    Atlas reads all Actions in selected Topic
-    ─────────────────────────────────────────
-    Action 1: "Gets order tracking number"     ← weak match
-    Action 2: "Gets order status and ETA"      ← strong match  ◀── selected
-    Action 3: "Gets order line items"          ← weak match
-    │
-    ▼
-Parameter Check
-    Required: orderNumber
-    Source: conversation? ("my order is #12345") → extract
-           conversation? (no number given) → clarify
-    │
-    ▼
-ACT: invoke Action 2 with orderNumber="12345"
+```mermaid
+flowchart TD
+    UM["User Message"] --> S1["Stage 1: Topic Routing\nAtlas reads ALL Topic descriptions"]
+    S1 -->|"Strong match"| TB["Topic B: Handles order status ✓ SELECTED"]
+    S1 -->|"Weak match"| TA["Topic A: Handles billing questions"]
+    S1 -->|"Weak match"| TC["Topic C: Handles product returns"]
+    TB --> S2["Stage 2: Action Routing\nAtlas reads all Actions in selected Topic"]
+    S2 -->|"Strong match"| A2["Action 2: Gets order status and ETA ✓ SELECTED"]
+    S2 -->|"Weak match"| A1["Action 1: Gets order tracking number"]
+    S2 -->|"Weak match"| A3["Action 3: Gets order line items"]
+    A2 --> PC{"Parameter Check\nRequired: orderNumber"}
+    PC -->|"Found in message"| INVOKE["ACT: invoke Action 2\nwith orderNumber=12345"]
+    PC -->|"Not found"| CQ["Clarify: ask for order number"]
 ```
 
 **Limitations:**
@@ -192,24 +155,14 @@ ACT: invoke Action 2 with orderNumber="12345"
 - Parameter extraction relies on Atlas reading the conversation — if the parameter was mentioned many turns ago, it may be lost if context window is full
 
 ### Trust Layer Integration with Atlas Loop
-```
-Each Atlas LLM call:
-
-[Assembled Prompt]
-       │
-       ▼ ── Data Masking ───────────── PII/PCI/PHI replaced with tokens
-       │
-       ▼ ── LLM API call ────────────── Prompt sent to model
-       │       (Zero Data Retention)
-       │
-       ▼ ── Response received
-       │
-       ▼ ── Toxicity filter ─────────── Check output for harmful content
-       │
-       ▼ ── Audit log entry ─────────── Record: timestamp, masked prompt, outcome
-       │
-Atlas uses the filtered response to update context
-and decide next step
+```mermaid
+flowchart TD
+    AP["Assembled Prompt"] --> DM["Data Masking\nPII/PCI/PHI replaced with tokens"]
+    DM --> LLM["LLM API call\n(Zero Data Retention)"]
+    LLM --> RR["Response received"]
+    RR --> TF["Toxicity filter\nCheck output for harmful content"]
+    TF --> AL["Audit log entry\nRecord: timestamp, masked prompt, outcome"]
+    AL --> ATL["Atlas uses filtered response\nto update context and decide next step"]
 ```
 
 **Limitations:**

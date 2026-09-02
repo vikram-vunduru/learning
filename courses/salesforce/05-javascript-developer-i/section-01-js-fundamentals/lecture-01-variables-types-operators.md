@@ -6,37 +6,33 @@ Variables, Types & Operators — ~7% of exam weight
 ## Core Concepts
 
 ### var / let / const
-```
-┌──────────────────┬──────────────────┬──────────────────────────────┐
-│  var             │  let             │  const                       │
-├──────────────────┼──────────────────┼──────────────────────────────┤
-│  function-scoped │  block-scoped    │  block-scoped                │
-│  hoisted:        │  hoisted:        │  hoisted:                    │
-│  init=undefined  │  TDZ until decl  │  TDZ until decl              │
-│  can reassign    │  can reassign    │  cannot reassign binding     │
-│  can re-declare  │  cannot re-decl  │  (object contents can mutate)│
-├──────────────────┼──────────────────┼──────────────────────────────┤
-│  ⚠ AVOID        │  mutable bindings│  use by default (LWC pref.)  │
-└──────────────────┴──────────────────┴──────────────────────────────┘
-```
+
+| Feature | `var` | `let` | `const` |
+|---------|-------|-------|---------|
+| Scope | Function-scoped | Block-scoped | Block-scoped |
+| Hoisting | Initialized to `undefined` | TDZ until declaration | TDZ until declaration |
+| Reassignment | Yes | Yes | No (binding locked) |
+| Re-declaration | Yes | No | No |
+| Recommendation | ⚠ AVOID | For mutable bindings | **Use by default** (LWC preferred) |
 Rule: `const` everything. `let` only when you need to reassign. Never `var` in LWC.
 
 ### The Seven Primitive Types + Object
-```
-JavaScript Values
-├── Primitives (immutable, compared by value)
-│   ├── number      → 42, 3.14, NaN, Infinity
-│   ├── string      → "hello", 'world', `template`
-│   ├── boolean     → true, false
-│   ├── null        → null  (intentional absence)
-│   ├── undefined   → undefined  (unassigned / missing)
-│   ├── symbol      → Symbol('description')
-│   └── bigint      → 9007199254740991n
-└── Object (mutable, compared by reference)
-    ├── plain object  → { key: value }
-    ├── array         → [1, 2, 3]
-    ├── function      → function() {} / () => {}
-    └── null*         → typeof null === "object"  ← bug!
+
+```mermaid
+flowchart TD
+    A["JavaScript Values"] --> B["Primitives\n(immutable, compared by value)"]
+    A --> C["Object\n(mutable, compared by reference)"]
+    B --> B1["number: 42, 3.14, NaN, Infinity"]
+    B --> B2["string: 'hello', 'world', \`template\`"]
+    B --> B3["boolean: true, false"]
+    B --> B4["null: intentional absence"]
+    B --> B5["undefined: unassigned / missing"]
+    B --> B6["symbol: Symbol('description')"]
+    B --> B7["bigint: 9007199254740991n"]
+    C --> C1["plain object: { key: value }"]
+    C --> C2["array: [1, 2, 3]"]
+    C --> C3["function: function() {} / () => {}"]
+    C --> C4["null* — typeof null === 'object' (bug!)"]
 ```
 Primitives = compared by value. Objects = compared by reference. Two separate `{}` objects are never `===` even with identical contents.
 
@@ -88,33 +84,30 @@ return this.account?.data?.Name ?? 'Loading...';
 ## Architecture / How It Works
 
 ### Variable Declaration Timeline
-```
-var x = 5;
-─────────────────────────────────────────────────────────
-  [block entry]──[hoisted=undefined]──[assigned=5]
-                  ↑ accessible (returns undefined)
 
-let/const y = 5;
-─────────────────────────────────────────────────────────
-  [block entry]──[TDZ ██████████████]──[initialized=5]
-                  ↑ ReferenceError if accessed here
+```mermaid
+flowchart LR
+    subgraph VAR["var x = 5"]
+        A1["Block Entry"] -->|"hoisted"| B1["= undefined\n(accessible)"]
+        B1 -->|"execution reaches line"| C1["assigned = 5"]
+    end
+    subgraph LETCONST["let/const y = 5"]
+        A2["Block Entry"] -->|"hoisted into TDZ"| B2["TDZ\n(ReferenceError if accessed)"]
+        B2 -->|"declaration reached"| C2["initialized = 5"]
+    end
 ```
 
 ### LWC Wire Data Pattern — Why ?. and ?? Matter
-```
-Component Lifecycle:
-  mount → constructor → connectedCallback → [first render]
-                                                 ↓
-  Wire adapter resolves asynchronously:   [re-render with data]
 
-  this.account at first render: undefined
-  this.account.data at first render: TypeError ← crash without ?.
-
-  Safe getter:
-  get accountName() {
-    return this.account?.data?.Name ?? 'Loading...';
-  }
-  ↑ Returns 'Loading...' on first render, 'Acme Corp' after wire resolves
+```mermaid
+flowchart TD
+    A["mount"] --> B["constructor"]
+    B --> C["connectedCallback"]
+    C --> D["first render\nthis.account = undefined"]
+    D -->|"Wire adapter resolves asynchronously"| E["re-render with data\nthis.account.data available"]
+    D -->|"without ?. → crash"| ERR["TypeError:\ncannot read data of undefined"]
+    D -->|"with ?. and ??"| SAFE["Returns 'Loading...'"]
+    E --> RESOLVED["Returns 'Acme Corp'"]
 ```
 
 **Limitations:**

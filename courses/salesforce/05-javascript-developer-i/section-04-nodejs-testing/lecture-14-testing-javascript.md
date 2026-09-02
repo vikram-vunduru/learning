@@ -118,22 +118,25 @@ it('loads contacts', (done) => {
 ```
 
 ### Code Coverage
-```
-Metrics Jest reports:
-├── Statements — % of statements executed
-├── Branches   — % of if/else/ternary branches hit
-├── Functions  — % of functions called
-└── Lines      — % of lines executed
+
+**Metrics Jest reports:**
+
+| Metric | Meaning |
+|--------|---------|
+| Statements | % of statements executed |
+| Branches | % of if/else/ternary branches hit |
+| Functions | % of functions called |
+| Lines | % of lines executed |
 
 Target: 80%+ is common in enterprise; 100% is rare and often not valuable
-```
 
 ### Test-Driven Development (TDD)
-```
-RED   → Write failing test first
-GREEN → Write minimum code to pass
-REFACTOR → Clean up code, tests still pass
-Repeat
+
+```mermaid
+flowchart LR
+    RED["RED\nWrite failing test first"] -->|"implement"| GREEN["GREEN\nWrite minimum code to pass"]
+    GREEN -->|"improve"| REFACTOR["REFACTOR\nClean up, tests still pass"]
+    REFACTOR -->|"next feature"| RED
 ```
 
 ### LWC Testing with Jest
@@ -175,17 +178,12 @@ describe('c-my-component', () => {
 ## Architecture / How It Works
 
 ### Test Isolation Chain
-```
-SUT (Subject Under Test)
-    │ depends on
-    ▼
-External dependency (API, DB, Apex)
-    │ replaced by
-    ▼
-Mock/Stub
-    │ allows
-    ▼
-Controlled test behavior
+
+```mermaid
+flowchart TD
+    SUT["SUT (Subject Under Test)"] -->|"depends on"| EXT["External dependency\n(API, DB, Apex)"]
+    EXT -->|"replaced by"| MOCK["Mock / Stub"]
+    MOCK -->|"allows"| CTRL["Controlled test behavior"]
 ```
 
 **Limitations:**

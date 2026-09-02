@@ -117,26 +117,14 @@ static void testBatch() {
 
 ## Architecture / How It Works
 
-```
-ASYNC APEX COMPARISON
-
-  ┌────────────────┬──────────────┬─────────────────┬────────────────┐
-  │                │   @future    │   Batch Apex    │  Queueable     │
-  ├────────────────┼──────────────┼─────────────────┼────────────────┤
-  │  Parameters    │  Primitives  │  QueryLocator   │  Anything      │
-  │                │  only        │  + scope List   │  (sObj, etc.)  │
-  ├────────────────┼──────────────┼─────────────────┼────────────────┤
-  │  Callouts      │  callout=true│  Yes (execute)  │  AllowsCallouts│
-  ├────────────────┼──────────────┼─────────────────┼────────────────┤
-  │  Chaining      │  No          │  In finish()    │  Yes           │
-  ├────────────────┼──────────────┼─────────────────┼────────────────┤
-  │  Volume        │  Low         │  50M records    │  Low-Medium    │
-  ├────────────────┼──────────────┼─────────────────┼────────────────┤
-  │  Job ID        │  No          │  Yes            │  Yes           │
-  ├────────────────┼──────────────┼─────────────────┼────────────────┤
-  │  Org limit     │  50/tx       │  5 concurrent   │  No hard limit │
-  └────────────────┴──────────────┴─────────────────┴────────────────┘
-```
+| | `@future` | Batch Apex | Queueable |
+|---|---|---|---|
+| Parameters | Primitives only | QueryLocator + scope List | Anything (sObjects, etc.) |
+| Callouts | `callout=true` required | Yes (in execute()) | `Database.AllowsCallouts` |
+| Chaining | No | In finish() | Yes |
+| Volume | Low | 50M records | Low-Medium |
+| Job ID returned | No | Yes | Yes |
+| Org limit | 50 per transaction | 5 concurrent | No hard limit |
 
 **Limitations:**
 - @future: max 50 invocations per synchronous transaction; cannot call @future from @future
@@ -144,31 +132,17 @@ ASYNC APEX COMPARISON
 - Queueable: 1 child enqueue per execute() in production; unlimited in test context
 - Scheduled: max 100 jobs in org; CRON must be a future time
 
-```
-BATCH APEX LIFECYCLE
-
-  Database.executeBatch(new MyBatch(), 200)
-         │
-         ▼
-  ┌──────────────────────────────────────────────────────────┐
-  │  start() — runs ONCE                                     │
-  │  Returns Database.QueryLocator                           │
-  │  SELECT Id, Name FROM Account  ← up to 50M records      │
-  └──────────────────────┬───────────────────────────────────┘
-                         │ Salesforce chunks by scope (200)
-           ┌─────────────┴──────────────┐
-           ▼                            ▼
-  ┌──────────────┐             ┌──────────────┐
-  │ execute()    │             │ execute()    │   ... (per chunk)
-  │ chunk 1      │             │ chunk 2      │
-  │ Own limits   │             │ Own limits   │
-  └──────────────┘             └──────────────┘
-           │
-           ▼ (after all chunks)
-  ┌──────────────────────────────────────────────────────────┐
-  │  finish() — runs ONCE                                    │
-  │  Send summary email, kick next batch, etc.               │
-  └──────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["Database.executeBatch(new MyBatch(), 200)"] --> B
+    B["start() — runs ONCE\nReturns Database.QueryLocator\nSELECT Id, Name FROM Account (up to 50M records)"] --> C
+    C["Salesforce chunks records by scope size (200)"]
+    C --> D["execute() — chunk 1\nOwn governor limits"]
+    C --> E["execute() — chunk 2\nOwn governor limits"]
+    C --> F["execute() — chunk N ...\n(one per chunk, parallel)"]
+    D --> G["finish() — runs ONCE\nSend summary email, kick next batch, etc."]
+    E --> G
+    F --> G
 ```
 
 **Limitations:**
@@ -176,24 +150,26 @@ BATCH APEX LIFECYCLE
 - If execute() fails, Salesforce retries — code must be idempotent (safe to run twice)
 - finish() runs even if some execute() chunks failed
 
-```
-CRON EXPRESSION — 7 FIELDS
+**CRON Expression — 7 Fields:**
 
-  '0   0   2   *   *   ?'
-   │   │   │   │   │   └── Day-of-week  (? = unspecified, SUN-SAT, 1-7)
-   │   │   │   │   └─────── Month        (* = every, 1-12 or JAN-DEC)
-   │   │   │   └─────────── Day-of-month (* = every day, 1-31)
-   │   │   └─────────────── Hours        (0-23)
-   │   └─────────────────── Minutes      (0-59)
-   └─────────────────────── Seconds      (0-59)
+`'Seconds  Minutes  Hours  Day-of-Month  Month  Day-of-Week  [Year]'`
 
-  Examples:
-  '0 0 2 * * ?'       every day at 2:00 AM
-  '0 0 8 ? * MON'     every Monday at 8:00 AM
-  '0 0 0 1 * ? *'     first day of every month at midnight
-  
-  Note: Either Day-of-month OR Day-of-week must be '?' (not both '*')
-```
+| Position | Field | Values |
+|----------|-------|--------|
+| 1 | Seconds | 0-59 |
+| 2 | Minutes | 0-59 |
+| 3 | Hours | 0-23 |
+| 4 | Day-of-month | 1-31 or `*` (every) |
+| 5 | Month | 1-12 or JAN-DEC or `*` |
+| 6 | Day-of-week | 1-7 or SUN-SAT or `?` (unspecified) |
+| 7 | Year (optional) | 4-digit year |
+
+**Examples:**
+- `'0 0 2 * * ?'` — every day at 2:00 AM
+- `'0 0 8 ? * MON'` — every Monday at 8:00 AM
+- `'0 0 0 1 * ? *'` — first day of every month at midnight
+
+Note: Either Day-of-month OR Day-of-week must be `?` (not both `*`).
 
 **Limitations:**
 - Max 100 scheduled jobs in org — includes all org-wide scheduled jobs, not just yours

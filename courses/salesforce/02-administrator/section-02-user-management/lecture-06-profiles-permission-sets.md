@@ -44,43 +44,33 @@ The Salesforce roadmap (announced 2022–2023) is moving toward a world where Pr
 
 ## Architecture / How It Works
 
+```mermaid
+flowchart TD
+    subgraph User["USER"]
+        subgraph Profile["Profile (exactly 1)"]
+            P1["Object CRUD"]
+            P2["Field Read/Edit (FLS)"]
+            P3["App access + Tab visibility"]
+            P4["Login hours + IP ranges"]
+            P5["Page layouts + Record types"]
+        end
+        subgraph PS["Permission Sets (0 or more)"]
+            PS1["Additive CRUD"]
+            PS2["Additive FLS"]
+            PS3["User permissions + Connected apps"]
+        end
+    end
+    Profile -->|"Base permissions"| Result["Effective Permissions\n(most permissive wins)"]
+    PS -->|"Additive only:\nYES overrides Profile NO"| Result
 ```
-Access Control — Profile + Permission Set Stack
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  USER
-  ┌──────────────────────────────────────────────────┐
-  │  Profile (1)              Permission Sets (0+)   │
-  │  ┌───────────────┐        ┌──────────────────┐   │
-  │  │ Object CRUD   │   +    │ Additive CRUD    │   │
-  │  │ Field R/E     │        │ Additive FLS     │   │
-  │  │ App access    │        │ User permissions │   │
-  │  │ Tab visibility│        │ Connected apps   │   │
-  │  │ Login hours   │        └──────────────────┘   │
-  │  │ IP ranges     │                               │
-  │  │ Page layouts  │                               │
-  │  │ Record types  │                               │
-  │  └───────────────┘                               │
-  └──────────────────────────────────────────────────┘
+**FLS additive rule:** If Profile says READ = No but a Permission Set says READ = Yes, the user CAN read the field. Permission Sets can only add permissions, never remove them.
 
-  FLS Decision:
-  ┌──────────────────────────────────────────────────┐
-  │  Profile says READ = No                          │
-  │  Permission Set says READ = Yes                  │
-  │  ──────────────────────────────                  │
-  │  Result: User CAN read the field ✓               │
-  │  (Permission Sets are additive — always wins)    │
-  └──────────────────────────────────────────────────┘
-
-  Object-Level Security (OLS):
-  ┌──────────────────────────────────────────────────┐
-  │  CRUD controls:                                  │
-  │  C = Create new records                          │
-  │  R = Read/view records (if sharing allows)       │
-  │  U = Edit existing records                       │
-  │  D = Delete records                              │
-  └──────────────────────────────────────────────────┘
-```
+**Object-Level Security (OLS) — CRUD:**
+- **C** = Create new records
+- **R** = Read/view records (if sharing also allows)
+- **U** = Edit (Update) existing records
+- **D** = Delete records
 
 **Limitations:**
 - Permission Sets cannot REMOVE permissions granted by a profile — additive only

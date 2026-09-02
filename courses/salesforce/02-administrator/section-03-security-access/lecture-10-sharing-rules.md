@@ -44,31 +44,16 @@ Sharing rules are the workhorse of the Salesforce sharing model for exceptions. 
 
 ## Architecture / How It Works
 
-```
-Sharing Rules — Extending OWD
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  OWD = Private (baseline: owner-only access)
-  │
-  ├── Role Hierarchy: managers see subordinate records
-  │
-  ├── SHARING RULES (automated grants):
-  │   ┌────────────────────────────────────────┐
-  │   │ Owner-Based Rule:                      │
-  │   │ "Records owned by [Role/Group A]"      │
-  │   │    → Share Read/Write with [Group B]   │
-  │   └────────────────────────────────────────┘
-  │   ┌────────────────────────────────────────┐
-  │   │ Criteria-Based Rule:                   │
-  │   │ "Records where [Field] = [Value]"      │
-  │   │    → Share Read Only with [Group C]    │
-  │   └────────────────────────────────────────┘
-  │
-  └── Manual Sharing (per-record, by users)
-
-  Max 300 sharing rules per object
-  Can grant: Read Only OR Read/Write
-  Cannot RESTRICT (can only extend above OWD)
+```mermaid
+flowchart TD
+    OWD["OWD = Private\nBaseline: owner-only access"]
+    RH["Role Hierarchy\nManagers see subordinate records"]
+    OWD --> RH
+    RH --> OwnerRule["Owner-Based Sharing Rule\nRecords owned by Role/Group A\nShare Read/Write with Group B"]
+    RH --> CriteriaRule["Criteria-Based Sharing Rule\nRecords where Field = Value\nShare Read Only with Group C"]
+    OwnerRule --> MS["Manual Sharing\nPer-record grants by users"]
+    CriteriaRule --> MS
+    Note["Max 300 sharing rules per object\nCan grant: Read Only or Read/Write\nCannot RESTRICT below OWD"]
 ```
 
 **Limitations:**

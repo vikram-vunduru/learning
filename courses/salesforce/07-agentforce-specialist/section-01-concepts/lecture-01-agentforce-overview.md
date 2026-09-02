@@ -77,34 +77,34 @@ All four YES → proceed. Any NO → investigate or redesign.
 ## Architecture
 
 ### Assistant vs Agent Comparison
-```
-Einstein Copilot (legacy)           Agentforce (current)
-─────────────────────────           ─────────────────────────────────
-User asks question                  User defines goal
-       │                                    │
-       ▼                                    ▼
- AI suggests action                Atlas Reasoning Engine
-       │                           OBSERVE → REASON → ACT → OBSERVE
-       ▼                                    │
- [Approve?] → Execute              Loops autonomously until done
-       │                                    │
- Wait for next prompt              Reports outcome to user
-
-◀────── More Assisted ──────────────────────── More Autonomous ──▶
+```mermaid
+flowchart LR
+    subgraph Copilot["Einstein Copilot (legacy) — More Assisted"]
+        direction TB
+        C1["User asks question"] --> C2["AI suggests action"]
+        C2 --> C3["Approve? → Execute"]
+        C3 --> C4["Wait for next prompt"]
+    end
+    subgraph AF["Agentforce (current) — More Autonomous"]
+        direction TB
+        A1["User defines goal"] --> A2["Atlas Reasoning Engine\nOBSERVE → REASON → ACT → OBSERVE"]
+        A2 --> A3["Loops autonomously until done"]
+        A3 --> A4["Reports outcome to user"]
+    end
 ```
 
 ### Agent Anatomy
-```
-Agent
-├── Identity (name, company, persona tone)
-├── Instructions (global system prompt: persona, rules, escalation, exclusions)
-├── Topics (conversation domains — Atlas matches these first)
-│   └── Actions (what the agent can DO — Atlas matches these second)
-│       ├── Flow Actions (Autolaunched Flow)
-│       ├── Apex Actions (@InvocableMethod)
-│       ├── Prompt Template Actions (Flex template)
-│       └── Standard Actions (Knowledge Search, etc.)
-└── Channels (Embedded Chat, Slack, API, Mobile, Email)
+```mermaid
+flowchart TD
+    Agent --> Identity["Identity\n(name, company, persona tone)"]
+    Agent --> Instructions["Instructions\n(global system prompt)"]
+    Agent --> Topics["Topics\n(conversation domains)"]
+    Topics --> Actions["Actions\n(what agent can DO)"]
+    Actions --> FA["Flow Actions\n(Autolaunched Flow)"]
+    Actions --> AA["Apex Actions\n(@InvocableMethod)"]
+    Actions --> PTA["Prompt Template Actions\n(Flex template)"]
+    Actions --> SA["Standard Actions\n(Knowledge Search)"]
+    Agent --> Channels["Channels\n(Embedded Chat, Slack, API, Mobile, Email)"]
 ```
 
 **Limitations:**
@@ -115,30 +115,16 @@ Agent
 - Agent scope is fixed at configuration time — Atlas cannot improvise Topics or Actions not configured
 
 ### Atlas Reasoning Engine (ReAct Loop)
-```
-User Input
-    │
-    ▼
-Atlas Engine — OBSERVE
-(Reads: message + history + Instructions + Topic descriptions
-        + Action descriptions + prior action results in this turn)
-    │
-    ▼
-REASON: which Topic matches? which Action? are inputs available?
-    │
-    ├── No Topic match → out-of-scope response or escalate
-    ├── Missing params → generate clarifying question
-    └── Topic + Action matched → ACT
-                │
-                ▼
-        ACT: invoke selected Action
-        (Flow / Apex / Knowledge Search / Prompt Template)
-                │
-                ▼
-        OBSERVE: read action result, update context
-                │
-                ├── More steps needed? → Loop back to REASON
-                └── Done → Respond to user
+```mermaid
+flowchart TD
+    U["User Input"] --> OB["OBSERVE\n(message + history + Instructions\n+ Topic/Action descriptions\n+ prior Action results)"]
+    OB --> RE["REASON\n(which Topic? which Action?\nare inputs available?)"]
+    RE -->|"No Topic match"| OOS["Out-of-scope response\nor escalate"]
+    RE -->|"Missing params"| CQ["Generate clarifying question"]
+    RE -->|"Topic + Action matched"| ACT["ACT\n(invoke selected Action:\nFlow / Apex / Knowledge Search\n/ Prompt Template)"]
+    ACT --> OB2["OBSERVE\n(read action result,\nupdate context)"]
+    OB2 -->|"More steps needed"| RE
+    OB2 -->|"Done"| R["Respond to user"]
 ```
 
 **Limitations:**
@@ -147,21 +133,14 @@ REASON: which Topic matches? which Action? are inputs available?
 - If Action throws unhandled exception, Atlas observes the error and must reason about recovery — always handle errors in Flows/Apex
 
 ### Einstein Trust Layer
-```
-User Prompt
-    │
-    ▼ Data Masking (PII/PCI masked before leaving Salesforce)
-    │
-    ▼ [External LLM — OpenAI / Salesforce models]
-    │   (Zero Data Retention: provider discards after response)
-    │
-    ▼ Response Filtering
-    │
-    ▼ Toxicity Detection (harmful content blocked)
-    │
-    ▼ Audit Log (every interaction recorded in org)
-    │
-    ▼ Agent Response to User
+```mermaid
+flowchart TD
+    UP["User Prompt"] --> DM["Data Masking\n(PII/PCI masked before leaving Salesforce)"]
+    DM --> LLM["External LLM\n(OpenAI / Salesforce models)\nZero Data Retention: provider discards after response"]
+    LLM --> RF["Response Filtering"]
+    RF --> TD["Toxicity Detection\n(harmful content blocked)"]
+    TD --> AL["Audit Log\n(every interaction recorded in org)"]
+    AL --> AR["Agent Response to User"]
 ```
 
 **Limitations:**
@@ -171,28 +150,16 @@ User Prompt
 - Audit log retention subject to your org's data retention settings — set a retention policy appropriate for your industry
 
 ### Enterprise Agentforce Deployment (Multi-Agent)
-```
-                    ┌─────────────────────────┐
-                    │   Einstein Trust Layer  │
-                    └─────────────┬───────────┘
-                                  │
-          ┌───────────────────────┼───────────────────────┐
-          │                       │                       │
-          ▼                       ▼                       ▼
-   ┌─────────────┐        ┌─────────────┐        ┌─────────────┐
-   │  Service    │        │  HR Self-   │        │  SDR        │
-   │  Agent      │        │  Service    │        │  Agent      │
-   │ (customers) │        │  Agent      │        │ (prospects) │
-   └──────┬──────┘        │ (employees) │        └──────┬──────┘
-          │               └──────┬──────┘               │
-    Embedded Chat                │                  Email channel
-    Mobile / API              Slack                     │
-          │               (internal)               Lead records
-          ▼                       ▼                       ▼
-   ┌──────────────────────────────────────────────────────┐
-   │   Salesforce Platform: Flows, Apex, Knowledge,       │
-   │   Data Cloud, Omni-Channel, Field Service, etc.      │
-   └──────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    ETL["Einstein Trust Layer"]
+    ETL --> SA["Service Agent\n(customers)"]
+    ETL --> HR["HR Self-Service Agent\n(employees)"]
+    ETL --> SDR["SDR Agent\n(prospects)"]
+    SA -->|"Embedded Chat\nMobile / API"| PLAT
+    HR -->|"Slack (internal)"| PLAT
+    SDR -->|"Email channel\nLead records"| PLAT
+    PLAT["Salesforce Platform\n(Flows, Apex, Knowledge,\nData Cloud, Omni-Channel, Field Service)"]
 ```
 
 ## Key Facts to Memorize

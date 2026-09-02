@@ -7,22 +7,15 @@ Setup & Configuration / Architecture — Agentforce Specialist (CRT-271)
 
 ### Omni-Channel Voice Routing Architecture
 
-```
-Inbound Call (PSTN)
-    ↓
-Telephony Provider (Amazon Connect / Genesys / NICE)
-    ↓ Routes based on: DNIS, ANI, IVR selection
-Service Cloud Voice API
-    ↓
-Omni-Channel Routing Engine
-    ├── Check: Is an Agentforce Voice Agent assigned to this channel?
-    │   YES → Route to autonomous agent (bot capacity unit consumed)
-    │   NO  → Route to human agent queue
-    │
-    └── Human Queue Routing:
-        ├── Most Available (least # of conversations)
-        ├── Least Active (most free capacity remaining)
-        └── Skills-Based (match required skills to agent skills)
+```mermaid
+flowchart TD
+    IC["Inbound Call (PSTN)"]
+    IC --> TP["Telephony Provider\n(Amazon Connect / Genesys / NICE)\nRoutes based on: DNIS, ANI, IVR selection"]
+    TP --> SCV["Service Cloud Voice API"]
+    SCV --> OC["Omni-Channel Routing Engine"]
+    OC --> AGENT_CHECK{"Agentforce Voice Agent\nassigned to this channel?"}
+    AGENT_CHECK -->|"YES"| BOT["Route to autonomous agent\n(bot capacity unit consumed)"]
+    AGENT_CHECK -->|"NO"| HQ["Route to human agent queue\n• Most Available\n• Least Active\n• Skills-Based"]
 ```
 
 **Omni-Channel treats voice as a work item, just like chat or email.** The routing logic is the same Omni-Channel routing engine — Skills-Based, Most Available, Least Active — applied to voice calls. The telephony provider handles the actual call setup; Omni-Channel handles who receives the work item.
@@ -34,22 +27,15 @@ Omni-Channel Routing Engine
 
 ### Skills-Based Routing for Voice
 
-```
-Incoming Call: Customer speaks Spanish
-    ↓
-ANI Lookup → Account record → Language = Spanish
-    ↓
-Routing Configuration: Required skills = [Spanish Language]
-    ↓
-Omni-Channel queries: which Available agents have Spanish skill?
-    ├── Agent A: English (no match)
-    ├── Agent B: English + Spanish (MATCH)
-    └── Agent C: English + French (no match)
-    ↓
-Route to Agent B
-    ↓
-If no match found within SLA threshold:
-Skill Relaxation → route to English-only agent after N seconds
+```mermaid
+flowchart TD
+    IC["Incoming Call: Customer speaks Spanish"]
+    IC --> ANI["ANI Lookup → Account record\nLanguage = Spanish"]
+    ANI --> RC["Routing Config: Required skills = [Spanish Language]"]
+    RC --> QUERY["Omni-Channel queries available agents with Spanish skill"]
+    QUERY --> MATCH{"Match found?"}
+    MATCH -->|"YES (Agent B: English + Spanish)"| ROUTE["Route to Agent B"]
+    MATCH -->|"NO — within SLA threshold"| RELAX["Skill Relaxation\n→ route to English-only agent after N seconds"]
 ```
 
 **Skill Relaxation** is the fallback when no skilled agent is available. It progressively removes required skills after configurable time thresholds to prevent calls waiting indefinitely.
@@ -67,23 +53,14 @@ Skill Relaxation → route to English-only agent after N seconds
 
 ### Agent Capacity and Work Item Design
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│  CAPACITY MODEL: Voice vs. Other Channels                         │
-├──────────────────────────┬────────────────────────────────────────┤
-│  Channel                 │  Typical Capacity Cost Configuration   │
-├──────────────────────────┼────────────────────────────────────────┤
-│  Voice Call (default)    │  100% capacity (no other work)         │
-│  Live Chat               │  25% capacity (up to 4 concurrent)     │
-│  Email / Case            │  10% capacity (up to 10 concurrent)    │
-│  Blended Voice + Chat    │  Voice 80% + Chat 20% (edge case;      │
-│                          │  operational challenge in practice)    │
-└──────────────────────────┴────────────────────────────────────────┘
+| Channel | Typical Capacity Cost |
+|---|---|
+| Voice Call (default) | 100% capacity (no other work while on call) |
+| Live Chat | 25% capacity (up to 4 concurrent) |
+| Email / Case | 10% capacity (up to 10 concurrent) |
+| Blended Voice + Chat | Voice 80% + Chat 20% (edge case; operationally challenging) |
 
-Agent capacity total: 100 units (standard default)
-Voice call capacity cost: 100 units → agent fully occupied
-Chat capacity cost: 25 units → 4 simultaneous chats
-```
+Agent capacity total: 100 units (standard default). Voice = 100 units → fully occupied. Chat = 25 units → 4 simultaneous chats.
 
 **Limitations:**
 - Blended voice + chat capacity configuration is technically possible but operationally difficult — an agent cannot effectively read a chat message while speaking on a phone call
@@ -92,23 +69,18 @@ Chat capacity cost: 25 units → 4 simultaneous chats
 
 ### Omni-Channel Agent States for Voice
 
+```mermaid
+flowchart LR
+    OFF["Offline"] -->|"Manual login"| AV["Available"]
+    AV -->|"Inbound call assigned"| OC["On Call"]
+    OC -->|"Call ends"| ACW["ACW\n(After Call Work)"]
+    ACW -->|"Timer expires"| AV
+    AV -->|"Manual"| BREAK["Break / Lunch\n/ Training / Other"]
+    BREAK -->|"Manual"| AV
+    AV -->|"Manual logout"| OFF
 ```
-Agent State Machine (voice-specific path):
 
-OFFLINE ←──────────────────────────────────────────
-   │                                               │
-   │ (manual login)                                │ (manual logout)
-   ▼                                               │
-AVAILABLE ──[inbound call assigned]──▶ ON CALL ──[call ends]──▶ ACW
-   │                                                              │
-   │                                                              │ (ACW timer)
-   │ ◀────────────────────────────── [timer expires] ────────────┘
-   │
-   └──[manual]──▶ BREAK / LUNCH / TRAINING / OTHER (custom statuses)
-
-ACW = After Call Work (Wrap-Up) — agent finishes notes, updates case, closes loop
-ACW is timed — configurable duration per queue or routing configuration
-```
+ACW = After Call Work (Wrap-Up) — agent finishes notes, updates case. Timed — configurable duration per queue or routing configuration.
 
 **After Call Work (ACW) is critical for call center operations.** Without it, agents would have to take another call immediately before finishing the previous one. ACW gives them time to update the case record, write call notes, and set disposition codes.
 
@@ -119,28 +91,15 @@ ACW is timed — configurable duration per queue or routing configuration
 
 ### Queue Overflow and Callback
 
-```
-Queue State:
-    All agents BUSY → Call enters Queue
-        ↓
-    Position in queue: 1, 2, 3...
-        ↓
-    Max Queue Size: [configurable] (calls after max → overflow action)
-        ↓
-    Overflow Actions (must be configured; none by default):
-    ├── Play Message + Disconnect
-    ├── Transfer to External Number (backup IVR or overflow center)
-    ├── Offer Callback: "We'll call you back when an agent is free"
-    └── Transfer to Another Queue
-
-Callback Feature (Salesforce Service Cloud Voice):
-    Customer agrees to callback
-        ↓
-    Salesforce creates a Scheduled Callback record
-        ↓
-    When agent becomes Available → automatic outbound call placed
-        ↓
-    Agent receives callback work item in Omni-Channel
+```mermaid
+flowchart TD
+    BUSY["All agents BUSY → Call enters Queue\n(position: 1, 2, 3...)"]
+    BUSY --> MAX{"Max Queue Size\nexceeded?"}
+    MAX -->|"YES"| OVF["Overflow Actions:\n• Play Message + Disconnect\n• Transfer to External Number\n• Offer Callback\n• Transfer to Another Queue"]
+    MAX -->|"NO"| WAIT["Call waits for available agent"]
+    OVF -->|"Callback offered"| CB["Customer agrees to callback"]
+    CB --> SCB["Salesforce creates\nScheduled Callback record"]
+    SCB --> OUTBOUND["When agent becomes Available\n→ automatic outbound call placed\n→ callback work item in Omni-Channel"]
 ```
 
 **Limitations:**
@@ -150,27 +109,20 @@ Callback Feature (Salesforce Service Cloud Voice):
 
 ### Omni-Channel Supervisor Features
 
-```
-SUPERVISOR CONSOLE REAL-TIME VIEW:
+**Supervisor Console Real-Time View:**
 
-┌────────────────────────────────────────────────────────────────┐
-│  QUEUE STATUS                                                  │
-│  Queue: Voice Technical Support                                │
-│  Calls in Queue: 3   Longest Wait: 1:47   Avg Wait: 0:52       │
-│                                                                │
-│  AGENT STATUS                                                  │
-│  ┌────────────────┬──────────────┬─────────────────────────┐  │
-│  │ Agent          │ Status       │ Current Work Item       │  │
-│  ├────────────────┼──────────────┼─────────────────────────┤  │
-│  │ J. Smith       │ On Call      │ Call: Jane Doe 2:31     │  │
-│  │ M. Johnson     │ ACW          │ Wrap-up: 0:45 remaining │  │
-│  │ T. Williams    │ Available    │ (idle)                  │  │
-│  │ A. Kumar       │ Break        │                         │  │
-│  └────────────────┴──────────────┴─────────────────────────┘  │
-│                                                                │
-│  [Listen] [Barge] [Whisper]  ← voice monitoring controls      │
-└────────────────────────────────────────────────────────────────┘
-```
+**Queue Status:** Queue name, Calls in Queue, Longest Wait, Avg Wait time
+
+**Agent Status table:**
+
+| Agent | Status | Current Work Item |
+|---|---|---|
+| J. Smith | On Call | Call: Jane Doe — 2:31 |
+| M. Johnson | ACW | Wrap-up: 0:45 remaining |
+| T. Williams | Available | (idle) |
+| A. Kumar | Break | — |
+
+**Voice monitoring controls:** Listen (silent monitor), Barge (join call), Whisper (coach agent only)
 
 **Limitations:**
 - Supervisor console real-time data refreshes on a polling interval — not true instantaneous display
@@ -179,24 +131,15 @@ SUPERVISOR CONSOLE REAL-TIME VIEW:
 
 ### Routing Priority Between Bot and Human Queue
 
-```
-Typical Routing Hierarchy:
-    ┌─────────────────────────────────────────────────────┐
-    │  Inbound Call (via DNIS / IVR selection)            │
-    │      ↓                                              │
-    │  Business Hours Check (Routing Config)              │
-    │      ├── Business Hours: Route to Agent Queue       │
-    │      │   Agentforce Voice Agent (autonomous)        │
-    │      │       → escalates to Human Queue if needed   │
-    │      │                                              │
-    │      └── After Hours: Route directly to Human Queue │
-    │          (all calls queued for next business day    │
-    │           or overflow to voicemail/external number) │
-    └─────────────────────────────────────────────────────┘
-
-For VIP callers (Skills-Based):
-    ├── VIP Account: route to Priority Queue (shorter SLA)
-    └── Standard Account: route to Standard Queue
+```mermaid
+flowchart TD
+    IC["Inbound Call\n(via DNIS / IVR selection)"]
+    IC --> BH{"Business Hours\nCheck (Routing Config)"}
+    BH -->|"Business Hours"| AQ["Route to Agent Queue\n(Agentforce Voice Agent — autonomous)\n→ escalates to Human Queue if needed"]
+    BH -->|"After Hours"| HQ["Route directly to Human Queue\n(queued for next business day\nor overflow to voicemail/external)"]
+    IC --> VIP{"VIP Caller?"}
+    VIP -->|"VIP Account"| PQ["Priority Queue\n(shorter SLA)"]
+    VIP -->|"Standard Account"| SQ["Standard Queue"]
 ```
 
 **Limitations:**

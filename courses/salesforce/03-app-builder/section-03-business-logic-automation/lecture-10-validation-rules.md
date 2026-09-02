@@ -36,29 +36,22 @@ The standard bypass mechanism is a **Custom Permission** — create a Custom Per
 
 ## Architecture / How It Works
 
-```
-Record Save Order of Execution:
-┌─────────────────────────────────────────────────────────────────┐
-│  1. System Validations (required fields, field type checks)     │
-│         │                                                        │
-│  2. Apex Before Triggers                                         │
-│         │                                                        │
-│  3. ► VALIDATION RULES ◄  ── if TRUE → error shown, save stops  │
-│         │                                                        │
-│  4. Duplicate Rules                                              │
-│         │                                                        │
-│  5. Before-Save Record-Triggered Flows                           │
-│         │                                                        │
-│  6. Record committed to database                                 │
-│         │                                                        │
-│  7. After-Save Record-Triggered Flows                            │
-│         │                                                        │
-│  8. Apex After Triggers                                          │
-│         │                                                        │
-│  9. Workflow Rules / Processes (legacy)                          │
-└─────────────────────────────────────────────────────────────────┘
-Note: If Validation Rule fires (returns TRUE), execution stops at step 3.
-No save, no flows, no triggers.
+```mermaid
+flowchart TD
+    S1["1. System Validations\n(required fields, field type checks)"]
+    S2["2. Apex Before Triggers"]
+    S3["3. VALIDATION RULES\n(if TRUE → error shown, save stops)"]
+    S4["4. Duplicate Rules"]
+    S5["5. Before-Save Record-Triggered Flows"]
+    S6["6. Record committed to database"]
+    S7["7. After-Save Record-Triggered Flows"]
+    S8["8. Apex After Triggers"]
+    S9["9. Workflow Rules / Processes (legacy)"]
+    ERR["ERROR — save stops here"]
+    S1 --> S2 --> S3
+    S3 -->|"Returns FALSE\n(no error)"| S4
+    S3 -->|"Returns TRUE"| ERR
+    S4 --> S5 --> S6 --> S7 --> S8 --> S9
 ```
 
 **Limitations:**
@@ -89,22 +82,17 @@ Common Mistake:
 - The "TRUE = error" logic is non-intuitive and causes bugs when developers think about it as "validation passes when true"
 - Using `=` to compare picklist values instead of `ISPICKVAL` causes runtime errors
 
-```
-Key Validation Rule Functions:
-┌────────────────────────────────────────────────────────────────────┐
-│ Function          │ Returns TRUE when...                           │
-├───────────────────┼────────────────────────────────────────────────┤
-│ ISBLANK(f)        │ Field has no value (all field types)           │
-│ ISNULL(f)         │ Field is null (numbers/dates — not text)       │
-│ ISPICKVAL(f, v)   │ Picklist field equals specified value          │
-│ ISCHANGED(f)      │ Field value was modified in this save          │
-│ ISNEW()           │ Record is being created (not updated)          │
-│ NOT(ISNEW())      │ Record is being updated (not created)          │
-│ PRIORVALUE(f)     │ Value of field before this save                │
-│ $Profile.Name     │ Global var — current user's profile name       │
-│ $Permission.Name  │ Global var — user has named custom permission  │
-└────────────────────────────────────────────────────────────────────┘
-```
+| Function | Returns TRUE when... |
+|---|---|
+| `ISBLANK(f)` | Field has no value (all field types) |
+| `ISNULL(f)` | Field is null (numbers/dates — not reliable for text) |
+| `ISPICKVAL(f, v)` | Picklist field equals specified value |
+| `ISCHANGED(f)` | Field value was modified in this save |
+| `ISNEW()` | Record is being created (not updated) |
+| `NOT(ISNEW())` | Record is being updated (not created) |
+| `PRIORVALUE(f)` | Value of field before this save |
+| `$Profile.Name` | Global var — current user's profile name |
+| `$Permission.Name` | Global var — user has named custom permission |
 
 **Limitations:**
 - `PRIORVALUE()` only works when the record is being updated — on insert it returns null

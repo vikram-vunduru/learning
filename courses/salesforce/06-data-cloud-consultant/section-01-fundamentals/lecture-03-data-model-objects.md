@@ -20,26 +20,19 @@ Standard DMOs are pre-built by Salesforce with fixed schemas — they cannot be 
 
 ### The Two-Layer Data Model
 
-```
-  ╔══════════════════════════════════════════════════════════════╗
-  ║             DATA MODEL OBJECTS (DMO)                        ║
-  ║           Standardized, clean, actionable layer             ║
-  ║  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐    ║
-  ║  │  Individual  │   │ContactPoint  │   │  SalesOrder  │    ║
-  ║  │  FirstName   │   │  Email       │   │  OrderDate   │    ║
-  ║  │  LastName    │   │  HasOptedOut │   │  TotalAmount │    ║
-  ║  └──────────────┘   └──────────────┘   └──────────────┘    ║
-  ╚══════════════════▲═══════════════════════════════════════════╝
-                     ║  Field Mapping (translate DLO → DMO)
-  ╔══════════════════════════════════════════════════════════════╗
-  ║             DATA LAKE OBJECTS (DLO)                         ║
-  ║             Raw, source-system structure                    ║
-  ║  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐    ║
-  ║  │ cust_fname   │   │ email_addr   │   │ order_dt     │    ║
-  ║  │ cust_lname   │   │ opt_out_flg  │   │ order_total  │    ║
-  ║  │ acct_num     │   │ sub_key      │   │ cust_id      │    ║
-  ║  └──────────────┘   └──────────────┘   └──────────────┘    ║
-  ╚══════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    subgraph DLO["DATA LAKE OBJECTS (DLO)\nRaw, source-system structure"]
+        D1["cust_fname\ncust_lname\nacct_num"]
+        D2["email_addr\nopt_out_flg\nsub_key"]
+        D3["order_dt\norder_total\ncust_id"]
+    end
+    DLO -->|"Field Mapping\n(translate DLO → DMO)"| DMO
+    subgraph DMO["DATA MODEL OBJECTS (DMO)\nStandardized, clean, actionable layer"]
+        M1["Individual\nFirstName\nLastName"]
+        M2["Contact Point Email\nEmail\nHasOptedOut"]
+        M3["Sales Order\nOrderDate\nTotalAmount"]
+    end
 ```
 
 **Limitations:**
@@ -51,35 +44,18 @@ Standard DMOs are pre-built by Salesforce with fixed schemas — they cannot be 
 
 ### Key Standard DMOs
 
-```
-  ┌───────────────────────────┬───────────────────────────────────────────┐
-  │ DMO Name                  │ Purpose & Key Fields                      │
-  ├───────────────────────────┼───────────────────────────────────────────┤
-  │ Individual                │ Core person record — IR INPUT             │
-  │                           │ FirstName, LastName, BirthDate, etc.      │
-  ├───────────────────────────┼───────────────────────────────────────────┤
-  │ Contact Point Email       │ Email addresses linked to Individual       │
-  │                           │ EmailAddress, HasOptedOutOfEmail (consent)│
-  │                           │ IndividualId (FK) — IR MATCHING           │
-  ├───────────────────────────┼───────────────────────────────────────────┤
-  │ Contact Point Phone       │ Phone numbers linked to Individual        │
-  │                           │ TelephoneNumber, HasSmsOptedOut, IndivId  │
-  ├───────────────────────────┼───────────────────────────────────────────┤
-  │ Unified Individual        │ OUTPUT of IR — merged profile             │
-  │                           │ Not an input DMO — do not map to it      │
-  ├───────────────────────────┼───────────────────────────────────────────┤
-  │ Sales Order               │ Purchase/transaction header               │
-  │                           │ OrderDate, TotalAmount, IndividualId (FK) │
-  ├───────────────────────────┼───────────────────────────────────────────┤
-  │ Sales Order Product       │ Line items within a Sales Order           │
-  │                           │ ProductCategory, Quantity, Price          │
-  ├───────────────────────────┼───────────────────────────────────────────┤
-  │ Web Engagement            │ Web clickstream / behavioral events       │
-  ├───────────────────────────┼───────────────────────────────────────────┤
-  │ Email Engagement          │ MC email open/click events                │
-  └───────────────────────────┴───────────────────────────────────────────┘
-  ★ Unified Individual is OUTPUT of IR — not an input to map to manually
-```
+| DMO Name | Purpose & Key Fields |
+|---|---|
+| **Individual** | Core person record — IR INPUT. Fields: FirstName, LastName, BirthDate, etc. |
+| **Contact Point Email** | Email addresses linked to Individual. Fields: EmailAddress, HasOptedOutOfEmail (consent), IndividualId (FK) — IR MATCHING |
+| **Contact Point Phone** | Phone numbers linked to Individual. Fields: TelephoneNumber, HasSmsOptedOut, IndividualId (FK) |
+| **Unified Individual** | OUTPUT of IR — merged profile. Not an input DMO — do not map to it manually |
+| **Sales Order** | Purchase/transaction header. Fields: OrderDate, TotalAmount, IndividualId (FK) |
+| **Sales Order Product** | Line items within a Sales Order. Fields: ProductCategory, Quantity, Price |
+| **Web Engagement** | Web clickstream / behavioral events |
+| **Email Engagement** | MC email open/click events |
+
+**Note:** Unified Individual is OUTPUT of IR — not an input to map to manually.
 
 **Limitations:**
 - Standard DMO schemas are fixed — you cannot add or remove standard fields
@@ -90,33 +66,17 @@ Standard DMOs are pre-built by Salesforce with fixed schemas — they cannot be 
 
 ### Field Mapping: Multiple DLOs → One DMO
 
-```
-  DLO: Salesforce_Contact    ──mapping──┐
-  ▸ cust_id ─────────────────────────────▶ Individual.PartyId
-  ▸ cust_fname ───────────────────────────▶ Individual.FirstName
-  ▸ cust_lname ───────────────────────────▶ Individual.LastName
-                                          │
-  DLO: EC_Customer           ──mapping──┤
-  ▸ customer_id ──────────────────────────▶ Individual.PartyId
-  ▸ first_name ───────────────────────────▶ Individual.FirstName
-  ▸ last_name ────────────────────────────▶ Individual.LastName
-                                          │
-  DLO: Loyalty_Member        ──mapping──┘
-  ▸ mbr_id ───────────────────────────────▶ Individual.PartyId
-  ▸ fname ────────────────────────────────▶ Individual.FirstName
-                                          ▼
-                                  ╔══════════════════════╗
-                                  ║   DMO: Individual    ║
-                                  ║  (standard schema)   ║
-                                  ║  PartyId             ║
-                                  ║  FirstName           ║
-                                  ║  LastName            ║
-                                  ╚══════════════════════╝
-
-  ALSO needed — map email to Contact Point Email DMO:
-  DLO field: email_addr ──────────────▶ ContactPointEmail.EmailAddress
-  DLO field: cust_id ─────────────────▶ ContactPointEmail.IndividualId
-  (the IndividualId FK links the email to the person record)
+```mermaid
+flowchart LR
+    SF["DLO: Salesforce_Contact\ncust_id\ncust_fname\ncust_lname"]
+    EC["DLO: EC_Customer\ncustomer_id\nfirst_name\nlast_name"]
+    LY["DLO: Loyalty_Member\nmbr_id\nfname"]
+    IND["DMO: Individual\n(standard schema)\nPartyId\nFirstName\nLastName"]
+    CPE["DMO: Contact Point Email\nEmailAddress\nIndividualId (FK)"]
+    SF -->|"field mapping"| IND
+    EC -->|"field mapping"| IND
+    LY -->|"field mapping"| IND
+    SF -->|"email_addr → EmailAddress\ncust_id → IndividualId"| CPE
 ```
 
 **Limitations:**
@@ -129,21 +89,19 @@ Standard DMOs are pre-built by Salesforce with fixed schemas — they cannot be 
 
 ### Field Mapping Rules Summary
 
-```
-  ✅  ALLOWED:
-      Multiple DLOs → same DMO       (consolidation from multiple sources)
-      One DLO → multiple DMOs        (if data covers multiple entity types)
-      Partial mapping                (not all DLO fields need to be mapped)
-      Formula transformation         (type conversion at mapping time)
+**Allowed:**
+- Multiple DLOs → same DMO (consolidation from multiple sources)
+- One DLO → multiple DMOs (if data covers multiple entity types)
+- Partial mapping (not all DLO fields need to be mapped)
+- Formula transformation (type conversion at mapping time)
 
-  ✗   NOT ALLOWED:
-      One DLO field → two different fields on the same DMO
-      Incompatible data types without formula transformation
-      Mapping to formula/calculated fields on DMOs
+**Not Allowed:**
+- One DLO field → two different fields on the same DMO
+- Incompatible data types without formula transformation
+- Mapping to formula/calculated fields on DMOs
 
-  ★   REQUIRED:
-      Primary Key field must always be mapped
-```
+**Required:**
+- Primary Key field must always be mapped
 
 ---
 

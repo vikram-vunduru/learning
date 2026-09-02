@@ -132,40 +132,16 @@ For enterprise implementations:
 ## Architecture
 
 ### Full Flex Template Invocation Flow (Agent Context)
-```
-User: "Can you give me a summary of my open case?"
-    │
-    ▼
-Atlas → Topic: Case Management
-    │
-    ▼
-Atlas → Action 1: Get Case Details (Flow Action)
-    Input: caseNumber (extracted from conversation)
-    Output: caseSubject, caseStatus, caseDescription, lastUpdateDate
-    │
-    ▼
-Atlas → Action 2: Case Summary Template (Prompt Template Action)
-    Input: {!caseSubject}, {!caseStatus}, {!caseDescription}
-    (passed from prior Action results in context window)
-    │
-    ▼
-Flex Template Invoked:
-    ┌──────────────────────────────────────────────────────┐
-    │ System Prompt: "You are a helpful service agent..."  │
-    │ Template Body:                                       │
-    │   Case Subject: {!caseSubject}                       │
-    │   Case Status: {!caseStatus}                         │
-    │   Case Description: {!caseDescription}               │
-    │   Generate a brief, empathetic status summary.       │
-    │ Grounding: Knowledge search for {!caseSubject}       │
-    └──────────────────────────────────────────────────────┘
-    │
-    ▼ Trust Layer pipeline (masking → LLM → filtering → audit)
-    │
-    ▼ Generated response text returned to Atlas
-    │
-    ▼
-Atlas observes result → Responds to user
+```mermaid
+flowchart TD
+    U["User: 'Can you give me a summary of my open case?'"]
+    U --> TOPIC["Atlas → Topic: Case Management"]
+    TOPIC --> A1["Action 1: Get Case Details (Flow Action)\nInput: caseNumber (from conversation)\nOutput: caseSubject, caseStatus, caseDescription, lastUpdateDate"]
+    A1 --> A2["Action 2: Case Summary Template (Prompt Template Action)\nInputs: caseSubject, caseStatus, caseDescription\n(from prior Action results in context window)"]
+    A2 --> FT["Flex Template Invoked\nSystem Prompt: 'You are a helpful service agent...'\nTemplate Body: Case Subject, Status, Description\nGrounding: Knowledge search for caseSubject"]
+    FT --> TL["Trust Layer pipeline\n(masking → LLM → filtering → audit)"]
+    TL --> RES["Generated response text returned to Atlas"]
+    RES --> RSP["Atlas observes result → Responds to user"]
 ```
 
 **Limitations:**
@@ -202,30 +178,16 @@ Date/time formatting (formula-style):
 - Null values in merge fields render as empty string — design template body to handle gracefully
 
 ### Sandbox-to-Prod Deployment Path
-```
-Sandbox Environment
-    │
-    [Build + Test Template]
-    [Activate in sandbox]
-    │
-    ▼
-Add to Change Set
-    │
-    ▼
-Deploy Change Set
-    │
-    ▼
-Production Environment
-    │
-    Template arrives as: INACTIVE  ← Expected! Not a bug!
-    │
-    ▼
-Manual Activation step (intentional safety gate)
-    │
-    ▼
-Template is ACTIVE in Production
-    │
-    [Post-activation: test with real record]
+```mermaid
+flowchart TD
+    SBX["Sandbox Environment\n(Build + Test Template)\n(Activate in sandbox)"]
+    SBX --> CS["Add to Change Set"]
+    CS --> DEPLOY["Deploy Change Set"]
+    DEPLOY --> PROD["Production Environment"]
+    PROD --> INACT["Template arrives as: INACTIVE\n← Expected! Not a bug!"]
+    INACT --> ACT["Manual Activation step\n(intentional safety gate)"]
+    ACT --> ACTIVE["Template is ACTIVE in Production"]
+    ACTIVE --> POSTTEST["Post-activation: test with real record"]
 ```
 
 **Limitations:**

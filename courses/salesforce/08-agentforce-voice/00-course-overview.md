@@ -6,27 +6,11 @@ Agentforce Voice extends the Agentforce autonomous agent platform to phone calls
 
 ## The Three-Layer Architecture (Memorize This First)
 
-```
-╔══════════════════════════════════════════════════════════════╗
-║  TIER 1 — TELEPHONY NETWORK                                  ║
-║  SIP/PSTN · Telephony Partner Cloud                          ║
-║  Amazon Connect │ Genesys Cloud CX │ NICE CXone              ║
-║  Owns: call transport, audio streaming, STT/transcription    ║
-╚══════════════════════════╤═══════════════════════════════════╝
-                           │ Transcript JSON + call events
-╔══════════════════════════╧═══════════════════════════════════╗
-║  TIER 2 — SERVICE CLOUD VOICE                                ║
-║  VoiceCall Record · Real-time Transcript                     ║
-║  Omni-Channel Routing · Named Credentials                    ║
-║  Owns: CRM record creation, routing, transcript storage      ║
-╚══════════════════════════╤═══════════════════════════════════╝
-                           │ Transcript text + CRM context
-╔══════════════════════════╧═══════════════════════════════════╗
-║  TIER 3 — AGENTFORCE PLATFORM                                ║
-║  Agentforce Agent · Atlas Reasoning Engine (LLM)             ║
-║  Einstein Trust Layer · Data Cloud (optional enrichment)     ║
-║  Owns: intent classification, actions, autonomous handling   ║
-╚══════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    T1["TIER 1 — TELEPHONY NETWORK\nSIP/PSTN · Telephony Partner Cloud\nAmazon Connect | Genesys Cloud CX | NICE CXone\nOwns: call transport, audio streaming, STT/transcription"]
+    T1 -->|"Transcript JSON + call events"| T2["TIER 2 — SERVICE CLOUD VOICE\nVoiceCall Record · Real-time Transcript\nOmni-Channel Routing · Named Credentials\nOwns: CRM record creation, routing, transcript storage"]
+    T2 -->|"Transcript text + CRM context"| T3["TIER 3 — AGENTFORCE PLATFORM\nAgentforce Agent · Atlas Reasoning Engine (LLM)\nEinstein Trust Layer · Data Cloud (optional enrichment)\nOwns: intent classification, actions, autonomous handling"]
 ```
 
 **Limitations:**

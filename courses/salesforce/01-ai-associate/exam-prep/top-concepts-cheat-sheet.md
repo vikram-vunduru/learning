@@ -135,10 +135,13 @@
 
 ### RAG Pipeline
 
-```
-User query → Embed query → Vector search (Einstein Vector Store) →
-Retrieve top-k relevant chunks → Augment prompt with chunks →
-LLM generates grounded response
+```mermaid
+flowchart LR
+    A["User Query"] --> B["Embed Query\n(embedding model)"]
+    B --> C["Vector Search\nEinstein Vector Store"]
+    C --> D["Retrieve top-k\nrelevant chunks"]
+    D --> E["Augment Prompt\nwith chunks"]
+    E --> F["LLM generates\ngrounded response"]
 ```
 
 **Fine-tuning vs. RAG:**

@@ -48,34 +48,13 @@
 
 ## Salesforce AI Architecture (Where Einstein Fits)
 
-```
-╔══════════════════════════════════════════════════════════════════╗
-║                    SALESFORCE AI STACK                           ║
-╠══════════════════════════════════════════════════════════════════╣
-║                                                                  ║
-║  ┌──────────────────────────────────────────────────────────┐    ║
-║  │          BUSINESS APPLICATIONS (CRM Layer)               │    ║
-║  │  Sales Cloud · Service Cloud · Marketing Cloud           │    ║
-║  └──────────────────────────┬───────────────────────────────┘    ║
-║                             │                                    ║
-║  ┌──────────────────────────▼───────────────────────────────┐    ║
-║  │              EINSTEIN AI LAYER                           │    ║
-║  │  Predictive: Lead Scoring, Opportunity Scoring           │    ║
-║  │  Generative: Prompt Builder, Copilot                     │    ║
-║  │  Agentic:    Agentforce                                   │    ║
-║  └──────────────────────────┬───────────────────────────────┘    ║
-║                             │                                    ║
-║  ┌──────────────────────────▼───────────────────────────────┐    ║
-║  │            EINSTEIN TRUST LAYER                          │    ║
-║  │  Data Masking · ZDR · Toxicity Scoring · Audit Trail     │    ║
-║  └──────────────────────────┬───────────────────────────────┘    ║
-║                             │                                    ║
-║  ┌──────────────────────────▼───────────────────────────────┐    ║
-║  │              DATA FOUNDATION                             │    ║
-║  │  Salesforce CRM Data · Data Cloud Unified Profiles       │    ║
-║  │  External Data Sources · Vector Store                    │    ║
-║  └──────────────────────────────────────────────────────────┘    ║
-╚══════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    A["Business Applications — CRM Layer\nSales Cloud · Service Cloud · Marketing Cloud"]
+    B["Einstein AI Layer\nPredictive: Lead Scoring, Opportunity Scoring\nGenerative: Prompt Builder, Copilot\nAgentic: Agentforce"]
+    C["Einstein Trust Layer\nData Masking · ZDR · Toxicity Scoring · Audit Trail"]
+    D["Data Foundation\nSalesforce CRM Data · Data Cloud Unified Profiles\nExternal Data Sources · Vector Store"]
+    A --> B --> C --> D
 ```
 
 **Limitations of this architecture:**

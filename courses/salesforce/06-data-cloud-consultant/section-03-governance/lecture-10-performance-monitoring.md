@@ -39,32 +39,12 @@ Build a formal operational playbook before go-live covering: (1) daily monitorin
 
 ### Ingestion Job Status Flow
 
-```
-  DATA STREAM triggers run (scheduled or manual)
-                   │
-                   ▼
-  ╔═══════════════════════════════════════════════════════╗
-  ║                 INGESTION JOB                         ║
-  ║                                                       ║
-  ║  Record 1  ──▶ Validate ──▶ ✅ PASS ──▶ Write to DLO ║
-  ║  Record 2  ──▶ Validate ──▶ ✅ PASS ──▶ Write to DLO ║
-  ║  Record 3  ──▶ Validate ──▶ ✗ FAIL ──▶ Rejected/Flag ║
-  ║  Record 4  ──▶ Validate ──▶ ✅ PASS ──▶ Write to DLO ║
-  ║  Record 5  ──▶ Validate ──▶ ✗ FAIL ──▶ Rejected/Flag ║
-  ╚═══════════════════════════════════════════════════════╝
-                   │
-                   ▼
-  ╔══════════════════════════════════╗
-  ║  JOB STATUS:                    ║
-  ║  3/5 succeeded → PARTIALLY      ║
-  ║                   SUCCEEDED     ║
-  ╚══════════════════════════════════╝
-          │ Where to investigate:
-          ▼
-  Data Cloud UI → Data Streams
-  → [Select Stream] → Job History
-  → [Failed Job] → Failed Records detail
-  → Download failed records + error messages
+```mermaid
+flowchart TD
+    DS["DATA STREAM triggers run\n(scheduled or manual)"]
+    DS --> JOB["INGESTION JOB\nRecord 1 → Validate → PASS → Write to DLO\nRecord 2 → Validate → PASS → Write to DLO\nRecord 3 → Validate → FAIL → Rejected/Flag\nRecord 4 → Validate → PASS → Write to DLO\nRecord 5 → Validate → FAIL → Rejected/Flag"]
+    JOB --> STATUS["JOB STATUS:\n3/5 succeeded → PARTIALLY SUCCEEDED"]
+    STATUS --> INV["Investigate:\nData Cloud UI → Data Streams\n→ Job History → Failed Job\n→ Failed Records detail\n→ Download records + error messages"]
 ```
 
 **Limitations:**
@@ -76,25 +56,13 @@ Build a formal operational playbook before go-live covering: (1) daily monitorin
 
 ### Data Quality Rules
 
-```
-  RULE TYPE │ BEHAVIOR                          │ USE WHEN
-  ══════════╪═══════════════════════════════════╪═════════════════════════════════
-  Flag      │ Record passes through to DLO      │ Identify problems without
-            │ but is tagged as a quality issue  │ dropping records; monitor first
-  ──────────┼───────────────────────────────────┼─────────────────────────────────
-  Reject    │ Record is dropped entirely        │ Strict quality gate — invalid
-            │ Does NOT land in DLO              │ records should never be ingested
-            │ Counts against job success %      │ e.g., missing required PK
-  ──────────┼───────────────────────────────────┼─────────────────────────────────
-  Transform │ Rule corrects the value on ingest │ Known, fixable formatting issues
-            │ Record lands in DLO cleaned       │ e.g., lowercase email, strip
-            │                                   │ special chars from phone
+| Rule Type | Behavior | Use When |
+|---|---|---|
+| **Flag** | Record passes through to DLO but is tagged as a quality issue | Identify problems without dropping records; monitor first |
+| **Reject** | Record is dropped entirely — does NOT land in DLO; counts against job success % | Strict quality gate — invalid records should never be ingested (e.g., missing required PK) |
+| **Transform** | Rule corrects the value on ingest — record lands in DLO cleaned | Known, fixable formatting issues (e.g., lowercase email, strip special chars from phone) |
 
-  Example Transform rules:
-  ▸ Phone: remove non-numeric chars → "(555) 123-4567" → "5551234567"
-  ▸ Email: auto-lowercase → "JOHN@CO.COM" → "john@co.com"
-  ▸ State: expand abbreviation → "CA" → "California"
-```
+**Example Transform rules:** Phone — remove non-numeric chars: "(555) 123-4567" → "5551234567". Email — auto-lowercase: "JOHN@CO.COM" → "john@co.com". State — expand abbreviation: "CA" → "California".
 
 **Limitations:**
 - Reject rules can cause significant data loss if incorrectly configured — test in a sandbox first
@@ -105,41 +73,15 @@ Build a formal operational playbook before go-live covering: (1) daily monitorin
 
 ### Job Scheduler and Dependency Chain
 
-```
-  WITHOUT CHAINING (bad):
-  ══════════════════════════════════════════════════
-  1:00 AM ─── CI refresh runs (DMO not yet updated)
-  2:00 AM ─── Data Stream runs → DMO updated
-  3:00 AM ─── Segment refresh runs (stale CI data)
+**Without chaining (bad):** 1:00 AM — CI refresh runs (DMO not yet updated). 2:00 AM — Data Stream runs → DMO updated. 3:00 AM — Segment refresh runs (stale CI data).
 
-  WITH CHAINING (correct):
-  ══════════════════════════════════════════════════
-  Job Scheduler config:
-  ┌──────────────────────────────────────────────────────────────┐
-  │  JOB A: Data Stream refresh                                  │
-  │  Schedule: 2:00 AM daily                                     │
-  │  On complete → trigger Job B                                 │
-  └──────────────────────────┬───────────────────────────────────┘
-                             │ (waits for completion)
-                             ▼
-  ┌──────────────────────────────────────────────────────────────┐
-  │  JOB B: CI refresh                                           │
-  │  Triggered by: Job A completion                              │
-  │  On complete → trigger Job C                                 │
-  └──────────────────────────┬───────────────────────────────────┘
-                             │
-                             ▼
-  ┌──────────────────────────────────────────────────────────────┐
-  │  JOB C: Segment refresh                                      │
-  │  Triggered by: Job B completion                              │
-  │  On complete → trigger Job D                                 │
-  └──────────────────────────┬───────────────────────────────────┘
-                             │
-                             ▼
-  ┌──────────────────────────────────────────────────────────────┐
-  │  JOB D: Activation publish                                   │
-  │  Triggered by: Job C completion                              │
-  └──────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    JA["JOB A: Data Stream refresh\nSchedule: 2:00 AM daily\nOn complete → trigger Job B"]
+    JB["JOB B: CI refresh\nTriggered by: Job A completion\nOn complete → trigger Job C"]
+    JC["JOB C: Segment refresh\nTriggered by: Job B completion\nOn complete → trigger Job D"]
+    JD["JOB D: Activation publish\nTriggered by: Job C completion"]
+    JA -->|"waits for completion"| JB --> JC --> JD
 ```
 
 **Limitations:**

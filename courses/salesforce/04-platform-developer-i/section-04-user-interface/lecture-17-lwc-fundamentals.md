@@ -122,34 +122,32 @@ errorCallback()      → catch errors from child components
 ## Architecture / How It Works
 
 ```
-LWC COMPONENT BUNDLE — FULL ANATOMY
+LWC COMPONENT BUNDLE -- FULL ANATOMY
 
-  myAccountTile/
-  │
-  ├── myAccountTile.html              (template)
-  │   <template>
-  │     <lightning-card title={title}>
-  │       <template lwc:if={account}>
-  │         <p>{account.Name}</p>
-  │       </template>
-  │     </lightning-card>
-  │   </template>
-  │
-  ├── myAccountTile.js                (controller)
-  │   import { LightningElement, api } from 'lwc';
-  │   export default class MyAccountTile extends LightningElement {
-  │       @api accountId;
-  │       account = null;
-  │       connectedCallback() { /* load data */ }
-  │   }
-  │
-  ├── myAccountTile.css               (scoped styles)
-  │   .card-header { font-weight: bold; }
-  │   /* only applies to elements in THIS component */
-  │
-  └── myAccountTile.js-meta.xml       (deployment config)
-      <isExposed>true</isExposed>
-      <targets><target>lightning__RecordPage</target></targets>
+myAccountTile/
+  myAccountTile.html           -- template
+    <template>
+      <lightning-card title={title}>
+        <template lwc:if={account}>
+          <p>{account.Name}</p>
+        </template>
+      </lightning-card>
+    </template>
+
+  myAccountTile.js             -- controller
+    import { LightningElement, api } from 'lwc';
+    export default class MyAccountTile extends LightningElement {
+        @api accountId;
+        account = null;
+        connectedCallback() { /* load data */ }
+    }
+
+  myAccountTile.css            -- scoped styles (only THIS component)
+    .card-header { font-weight: bold; }
+
+  myAccountTile.js-meta.xml    -- deployment config
+    <isExposed>true</isExposed>
+    <targets><target>lightning__RecordPage</target></targets>
 ```
 
 **Limitations:**
@@ -157,30 +155,18 @@ LWC COMPONENT BUNDLE — FULL ANATOMY
 - Template must have a single `<template>` root element — no `<div>` or other root
 - `@api` properties are reactive but cannot be mutated inside the component — they are owned by the parent
 
-```
-LIFECYCLE HOOK EXECUTION ORDER
-
-  Component created:
-  ┌────────────────────────────────────────────────────┐
-  │  constructor()                                     │
-  │  → call super() first; no DOM access here          │
-  │                                                    │
-  │  connectedCallback()                               │
-  │  → safe to access DOM; subscribe events here       │
-  │                                                    │
-  │  render() [automatic]                              │
-  │  → framework renders the template                  │
-  │                                                    │
-  │  renderedCallback()                                │
-  │  → DOM is painted; use for post-render DOM work    │
-  │  → DANGER: state changes here trigger re-render!   │
-  └────────────────────────────────────────────────────┘
-
-  Component removed:
-  ┌────────────────────────────────────────────────────┐
-  │  disconnectedCallback()                            │
-  │  → cleanup: unsubscribe LMS, remove event listeners│
-  └────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Created["Component Created"]
+        A["constructor()\ncall super() first; no DOM access here"]
+        B["connectedCallback()\nsafe to access DOM; subscribe events here"]
+        C["render() [automatic]\nframework renders the template"]
+        D["renderedCallback()\nDOM is painted; use for post-render DOM work\nDANGER: state changes here trigger re-render!"]
+        A --> B --> C --> D
+    end
+    subgraph Removed["Component Removed"]
+        E["disconnectedCallback()\ncleanup: unsubscribe LMS, remove event listeners"]
+    end
 ```
 
 **Limitations:**
@@ -188,23 +174,16 @@ LIFECYCLE HOOK EXECUTION ORDER
 - `renderedCallback()` can cause infinite loops if it changes state — use a guard flag
 - `@api` properties received from parent cannot be directly mutated in the child
 
-```
-CSS SHADOW DOM ENCAPSULATION
+**CSS Shadow DOM Encapsulation:**
 
-  parent-component.css:
-    .title { color: red; }       ← applies to parent ONLY
+`parent-component.css`: `.title { color: red; }` — applies to parent ONLY.
 
-  child-component (shadow boundary):
-    ╔══════════════════════════════════════════╗
-    ║  .title { color: blue; }                 ║
-    ║  ← parent's .title CANNOT reach here    ║
-    ╚══════════════════════════════════════════╝
+Child component is inside a shadow boundary — `parent-component.css` `.title` rule **cannot reach into** the child component's shadow DOM.
 
-  Cross-boundary styling options:
-  - SLDS utility classes (slds-text-heading_small, etc.)
-  - CSS custom properties (--my-color: red) can cross boundaries
-  - :host pseudo-class styles the component root from inside
-```
+Cross-boundary styling options:
+- SLDS utility classes (`slds-text-heading_small`, etc.) — work across shadow boundaries
+- CSS custom properties (`--my-color: red`) — can cross shadow boundaries
+- `:host` pseudo-class — styles the component root from inside
 
 **Limitations:**
 - Cannot use parent CSS classes to style child component internals

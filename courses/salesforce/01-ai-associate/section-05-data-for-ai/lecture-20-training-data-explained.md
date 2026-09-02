@@ -119,47 +119,14 @@ Diagnosis checklist:
 
 ## Training Data Architecture
 
-```
-╔═══════════════════════════════════════════════════════════════════════╗
-║              EINSTEIN MODEL TRAINING PIPELINE                          ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║                                                                       ║
-║  ORG HISTORICAL DATA                                                  ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ 10,000 Lead records (5 years)                                │    ║
-║  │   • 1,500 labeled Converted = True                           │    ║
-║  │   • 8,500 labeled Converted = False                          │    ║
-║  │ Features: Industry, AnnualRevenue, LeadSource, Title, etc.   │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                            ║
-║  DATA SPLIT                                                           ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Training Set (80%): 8,000 records  → model learns patterns   │    ║
-║  │ Validation Set (10%): 1,000 records → hyperparameter tuning  │    ║
-║  │ Test Set (10%): 1,000 records       → final accuracy report  │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                            ║
-║  MODEL TRAINING                                                       ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Salesforce Auto-ML tests multiple algorithms                 │    ║
-║  │ Selects best-performing on validation set                    │    ║
-║  │ No overfitting check: Train: 94% / Validation: 91% → OK      │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                            ║
-║  MODEL EVALUATION (Test Set)                                          ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Test accuracy: 89%                                           │    ║
-║  │ Top predictors: Annual Revenue, Lead Source, Industry        │    ║
-║  │ Accuracy dashboard shown to admin                            │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                            ║
-║  DEPLOYMENT (Ongoing scoring of new records)                          ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Each new Lead record scored automatically                    │    ║
-║  │ Scores update on schedule (not real-time)                    │    ║
-║  │ Model retrained periodically as new outcomes accumulate      │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-╚═══════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    A["Org Historical Data\n10,000 Lead records over 5 years\n1,500 Converted = True · 8,500 Converted = False\nFeatures: Industry · AnnualRevenue · LeadSource · Title"]
+    B["Data Split\nTraining Set 80%: 8,000 records — model learns patterns\nValidation Set 10%: 1,000 records — hyperparameter tuning\nTest Set 10%: 1,000 records — final accuracy report"]
+    C["Model Training\nSalesforce Auto-ML tests multiple algorithms\nSelects best-performing on validation set\nTrain: 94% · Validation: 91% — no overfitting"]
+    D["Model Evaluation — Test Set\nTest accuracy: 89%\nTop predictors: Annual Revenue · Lead Source · Industry\nAccuracy dashboard shown to admin"]
+    E["Deployment — ongoing scoring\nEach new Lead record scored automatically\nScores update on schedule, not real-time\nModel retrained periodically as new outcomes accumulate"]
+    A --> B --> C --> D --> E
 ```
 
 **Limitations:**

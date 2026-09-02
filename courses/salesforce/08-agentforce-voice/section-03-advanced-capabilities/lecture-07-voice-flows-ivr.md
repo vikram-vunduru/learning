@@ -7,21 +7,13 @@ Building for Voice / Advanced Configuration — Agentforce Specialist (CRT-271)
 
 ### Flow Types — What Works in Voice and What Doesn't
 
-```
-┌────────────────────────────┬────────────────────┬──────────────────────────────┐
-│ Flow Type                  │ Voice Context?     │ Why / Why Not                │
-├────────────────────────────┼────────────────────┼──────────────────────────────┤
-│ Screen Flow                │ NO                 │ Requires UI surface to render│
-│ Autolaunched Flow          │ YES                │ Headless, no UI dependency   │
-│ Scheduled Flow             │ NO                 │ Not triggered by real-time   │
-│                            │                    │ events                       │
-│ Record-Triggered Flow      │ LIMITED            │ Can react to VoiceCall       │
-│                            │                    │ creation, not direct voice   │
-│ Voice Call Flow (subtype)  │ YES ← use this     │ Purpose-built for voice;     │
-│                            │                    │ has Speak, Get Input,        │
-│                            │                    │ Transfer to Agent elements   │
-└────────────────────────────┴────────────────────┴──────────────────────────────┘
-```
+| Flow Type | Voice Context? | Why / Why Not |
+|---|---|---|
+| Screen Flow | NO | Requires UI surface to render |
+| Autolaunched Flow | YES | Headless, no UI dependency |
+| Scheduled Flow | NO | Not triggered by real-time events |
+| Record-Triggered Flow | LIMITED | Can react to VoiceCall creation, not direct voice |
+| Voice Call Flow (subtype) | YES — use this | Purpose-built for voice; has Speak, Get Input, Transfer to Agent elements |
 
 **The exam tests this constantly.** Screen Flows require a UI surface to render. There is no screen on a phone call.
 
@@ -34,27 +26,24 @@ The **Voice Call Flow** is an Autolaunched Flow subtype with voice-specific elem
 
 ### Voice Call Flow — Core Elements Reference
 
-```
-┌──────────────────────────────────────────────────────────┐
-│  Element          │ Purpose                              │
-├───────────────────┼──────────────────────────────────────┤
-│  Speak            │ TTS: play message to caller          │
-│  Get Input        │ Capture DTMF or speech input         │
-│  Transfer         │ Route to agent, queue, or number     │
-│  Pause            │ Wait N seconds (prevents VAD false   │
-│                   │ trigger; adds natural conversation   │
-│                   │ rhythm)                              │
-│  Decision         │ Branch on variable value             │
-│  Get Record       │ SOQL lookup (ANI → Contact/Account)  │
-│  Update Record    │ DML on VoiceCall or related object   │
-│  Subflow          │ Invoke another Flow                  │
-└──────────────────────────────────────────────────────────┘
+| Element | Purpose |
+|---|---|
+| Speak | TTS: play message to caller |
+| Get Input | Capture DTMF or speech input |
+| Transfer | Route to agent, queue, or number |
+| Pause | Wait N seconds (prevents VAD false trigger; adds natural conversation rhythm) |
+| Decision | Branch on variable value |
+| Get Record | SOQL lookup (ANI → Contact/Account) |
+| Update Record | DML on VoiceCall or related object |
+| Subflow | Invoke another Flow |
 
-IVR Replacement Pattern:
-Caller speaks → Get Input (speech) → NLP intent
-    ├── "billing"   → BillingTopic flow
-    ├── "support"   → TechSupportTopic flow
-    └── no match    → "Let me transfer you" → Transfer
+**IVR Replacement Pattern:**
+```mermaid
+flowchart TD
+    CS["Caller speaks"] --> GI["Get Input (speech) → NLP intent"]
+    GI -->|"billing"| BT["BillingTopic flow"]
+    GI -->|"support"| ST["TechSupportTopic flow"]
+    GI -->|"no match"| TR["'Let me transfer you' → Transfer"]
 ```
 
 **Limitations:**
@@ -64,21 +53,17 @@ Caller speaks → Get Input (speech) → NLP intent
 
 ### CRM-Driven Branching — The Power of ANI Lookup
 
+```mermaid
+flowchart TD
+    IC["Incoming Call\n(ANI: +1-555-234-5678)"]
+    IC --> RL["Record Lookup: Phone → Contact/Account\nSOQL: SELECT Id, Name, Tier__c FROM Account\nWHERE Phone = :ANI"]
+    RL --> DN{"Decision: branch on CRM data"}
+    DN -->|"VIP Account"| VIP["Skip menus\nRoute to priority queue"]
+    DN -->|"Open Case"| OC["Speak: 'We see open case #12345.\nPress 1 for status update,\nPress 2 to speak with an agent'"]
+    DN -->|"New Caller"| NC["General routing\n/ offer account creation"]
 ```
-Incoming Call (ANI: +1-555-234-5678)
-    ↓
-Record Lookup (Phone → Contact/Account)
-SOQL: SELECT Id, Name, Tier__c FROM Account WHERE Phone = :ANI
-    ↓
-Decision Node (branch on CRM data):
-    ├── VIP Account  → Skip menus, route to priority queue
-    ├── Open Case    → "We see open case #12345.
-    │                   Press 1 for status update,
-    │                   Press 2 to speak with an agent"
-    └── New Caller   → General routing / offer account creation
 
-ANI available as: {!$Record.CallerId}
-```
+ANI available in Flow as: `{!$Record.CallerId}`
 
 **This is the core value proposition of Voice Flows over legacy IVR.** A traditional IVR asks callers to identify themselves because it has no data. With a Voice Flow, you already know who is calling. This eliminates 2–4 IVR menu levels and dramatically reduces average handle time.
 
@@ -89,20 +74,19 @@ ANI available as: {!$Record.CallerId}
 
 ### DTMF Input Handling
 
+```mermaid
+flowchart LR
+    GI["Get Input Element\n(DTMF mode)"]
+    GI -->|"1"| BQ["Billing queue"]
+    GI -->|"2"| TSQ["Tech Support queue"]
+    GI -->|"3"| SQ["Sales queue"]
+    GI -->|"no input / timeout"| RETRY["Retry (×3 max)\n→ Transfer to Agent"]
 ```
-Phone Keypad                     Flow Branches
-┌───┬───┬───┐
-│ 1 │ 2 │ 3 │──── "1" ──▶ Billing queue
-├───┼───┼───┤
-│ 4 │ 5 │ 6 │──── "2" ──▶ Tech Support queue
-├───┼───┼───┤
-│ 7 │ 8 │ 9 │──── "3" ──▶ Sales queue
-├───┼───┼───┤
-│ * │ 0 │ # │──── no input / timeout ──▶ Retry (×3) → Transfer Agent
-└───┴───┴───┘
-Max Digits: configurable | Timeout between digits: configurable
-Retry count: configurable | PCI: pause recording during payment DTMF
-```
+
+- Max Digits: configurable
+- Timeout between digits: configurable
+- Retry count: configurable
+- PCI: pause recording in telephony Contact Flow before capturing payment DTMF
 
 **Limitations:**
 - DTMF and speech can be offered in the same Get Input element — design for both
@@ -111,32 +95,13 @@ Retry count: configurable | PCI: pause recording during payment DTMF
 
 ### Flow vs. Agentforce Agent — When to Use Which
 
-```
-VOICE AUTOMATION DECISION GUIDE
-
-Is caller intent structured and predictable?
-                ↓
-        ┌───────┴──────────┐
-       YES                 NO
-        ↓                   ↓
-    USE FLOW          USE AGENTFORCE AGENT
-    ──────────        ───────────────────
-    DTMF menus        Open-ended NLU
-    Known fields      Multi-turn dialogue
-    Deterministic     LLM reasoning
-    Lower cost        Higher capability
-    Audit-friendly    Flexible responses
-
-RECOMMENDED: HYBRID PATTERN (best for most real deployments)
-┌────────────────────────────────────────────────────────┐
-│  Flow: greeting + ANI lookup                           │
-│       ↓                                                │
-│  Agentforce Agent: intent resolution                   │
-│  + natural language conversation                       │
-│       ↓                                                │
-│  Flow action: Transfer / Record Update                 │
-│  / Subflow for structured steps                        │
-└────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Q{"Is caller intent structured\nand predictable?"}
+    Q -->|"YES"| FLOW["Use Flow\n• DTMF menus\n• Known fields\n• Deterministic\n• Lower cost\n• Audit-friendly"]
+    Q -->|"NO"| AA["Use Agentforce Agent\n• Open-ended NLU\n• Multi-turn dialogue\n• LLM reasoning\n• Higher capability\n• Flexible responses"]
+    FLOW --> HYB["RECOMMENDED: Hybrid Pattern\n1. Flow: greeting + ANI lookup\n2. Agentforce Agent: intent resolution\n   + natural language conversation\n3. Flow action: Transfer / Record Update\n   / Subflow for structured steps"]
+    AA --> HYB
 ```
 
 **Limitations:**
@@ -146,22 +111,23 @@ RECOMMENDED: HYBRID PATTERN (best for most real deployments)
 
 ### IVR Modernization Approach
 
-```
-BEFORE (Legacy IVR — 12 nodes, 4 levels deep)
-"Press 1 for Sales, 2 for Support, 3 for Billing, 4 for Hours..."
-    ├── Sales Sub:   "Press 1 New, 2 Renewal" → enter ID
-    ├── Support Sub: "Press 1 Tech, 2 Existing" → enter ID
-    └── Billing Sub: "Press 1 Balance, 2 Dispute" → enter ID
-Avg menu depth: 3-4 key presses | Abandonment: HIGH
+**Before (Legacy IVR — 12 nodes, 4 levels deep):**
+- "Press 1 for Sales, 2 for Support, 3 for Billing, 4 for Hours..."
+  - Sales: "Press 1 New, 2 Renewal" → enter ID
+  - Support: "Press 1 Tech, 2 Existing" → enter ID
+  - Billing: "Press 1 Balance, 2 Dispute" → enter ID
+- Avg menu depth: 3–4 key presses | Abandonment: HIGH
 
-AFTER (Voice Flow — 5 nodes, CRM-driven)
-ANI Lookup → Account Found?
-    ├── VIP / Known caller:
-    │   Open Case? → Yes → Self-serve status without menus
-    │             → No  → Agentforce Agent handles intent
-    └── New Caller: → Agentforce Agent handles intent
-Avg menu depth: 0-1 key press | Containment lift: 20–40%
+**After (Voice Flow — 5 nodes, CRM-driven):**
+```mermaid
+flowchart TD
+    ANI["ANI Lookup → Account Found?"]
+    ANI -->|"VIP/Known caller"| OC{"Open Case?"}
+    OC -->|"Yes"| SS["Self-serve status\nwithout menus"]
+    OC -->|"No"| AA["Agentforce Agent\nhandles intent"]
+    ANI -->|"New Caller"| AA
 ```
+Avg menu depth: 0–1 key press | Containment lift: 20–40%
 
 **Migration approach:**
 1. Audit current IVR — map all menu paths and call volumes per path

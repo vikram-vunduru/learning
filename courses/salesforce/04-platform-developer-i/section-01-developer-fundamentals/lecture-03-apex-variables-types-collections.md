@@ -82,34 +82,13 @@ Shorthand constructor from SOQL automatically keys by record `Id` — the most c
 
 ## Architecture / How It Works
 
-```
-BULKIFICATION PATTERN — THE CORE LOOP
-
-  Trigger fires with List<Contact> (up to 200 records)
-         │
-         ▼
-  ╔══════════════════════════════════════════════════════╗
-  ║  STEP 1: Collect IDs                                 ║
-  ║  Set<Id> accIds = new Set<Id>();                     ║
-  ║  for (Contact c : Trigger.new) {                     ║
-  ║      accIds.add(c.AccountId);                        ║
-  ║  }                                                   ║
-  ╠══════════════════════════════════════════════════════╣
-  ║  STEP 2: One SOQL query                              ║
-  ║  Map<Id, Account> accMap = new Map<Id, Account>(     ║
-  ║      [SELECT Id, Name FROM Account                  ║
-  ║       WHERE Id IN :accIds]                           ║
-  ║  );                          ← 1 query, any volume   ║
-  ╠══════════════════════════════════════════════════════╣
-  ║  STEP 3: Lookup by Id in loop (no extra SOQL)        ║
-  ║  for (Contact c : Trigger.new) {                     ║
-  ║      Account a = accMap.get(c.AccountId);            ║
-  ║      if (a != null) { c.Field__c = a.Name; }         ║
-  ║  }                                                   ║
-  ╚══════════════════════════════════════════════════════╝
-
-  Result: 1 SOQL query regardless of whether there are
-  1 or 200 records in the trigger batch.
+```mermaid
+flowchart TD
+    A["Trigger fires with List&lt;Contact&gt; (up to 200 records)"] --> B
+    B["STEP 1: Collect IDs\nSet&lt;Id&gt; accIds = new Set&lt;Id&gt;();\nfor (Contact c : Trigger.new) { accIds.add(c.AccountId); }"] --> C
+    C["STEP 2: One SOQL query\nMap&lt;Id, Account&gt; accMap = new Map&lt;Id, Account&gt;(\n  [SELECT Id, Name FROM Account WHERE Id IN :accIds]\n);\n-- 1 query, any volume"] --> D
+    D["STEP 3: Lookup by Id in loop (no extra SOQL)\nfor (Contact c : Trigger.new) {\n  Account a = accMap.get(c.AccountId);\n  if (a != null) { c.Field__c = a.Name; }\n}"] --> E
+    E["Result: 1 SOQL query regardless of 1 or 200 records"]
 ```
 
 **Limitations:**
@@ -117,23 +96,16 @@ BULKIFICATION PATTERN — THE CORE LOOP
 - Single SOQL query assigned directly to `sObject` variable (not List) throws `QueryException` if 0 or 2+ rows returned
 - `Set` has no index access — must iterate with for-each or convert to List first
 
-```
-COLLECTION COMPARISON
+| Collection | Ordered? | Duplicates? |
+|------------|----------|-------------|
+| `List` | Yes (indexed) | Yes |
+| `Set` | No | No (auto-deduped) |
+| `Map` | No (by key) | Keys: No; Values: Yes |
 
-  ┌──────────────┬─────────────────┬─────────────────────┐
-  │  Collection  │  Ordered?       │  Duplicates?        │
-  ├──────────────┼─────────────────┼─────────────────────┤
-  │  List        │  Yes (indexed)  │  Yes                │
-  │  Set         │  No             │  No (auto-deduped)  │
-  │  Map         │  No (by key)    │  Keys: No           │
-  │              │                 │  Values: Yes        │
-  └──────────────┴─────────────────┴─────────────────────┘
-
-  Conversions:
-  new Set<Id>(myList)    → deduplicate
-  new List<Id>(mySet)    → convert back (arbitrary order)
-  new Map<Id, Acct>(list)→ key by Id (requires Id field)
-```
+**Conversions:**
+- `new Set<Id>(myList)` — deduplicate
+- `new List<Id>(mySet)` — convert back (arbitrary order)
+- `new Map<Id, Acct>(list)` — key by Id (requires Id field)
 
 **Limitations:**
 - Map's `get()` returns `null` for missing keys — always check `containsKey()` before `get()` if null would cause issues

@@ -7,17 +7,13 @@ Setup & Configuration — Agentforce Specialist (CRT-271)
 
 ### Finding Service Cloud Voice in Setup
 
-```
 Salesforce Setup → Quick Find: "Voice"
-┌──────────────────────────────────────────────────────┐
-│  ▸ Voice Settings     ← global on/off + license check │
-│  ▸ Voice Call Centers ← START HERE: link org to       │
-│                          telephony partner instance   │
-│  ▸ Voice Channel      ← create Omni-Channel voice     │
-│                          channel for routing          │
-└──────────────────────────────────────────────────────┘
-Setup order: Voice Settings → Voice Call Centers → Voice Channel
-```
+
+- **Voice Settings** — global on/off + license check
+- **Voice Call Centers** — START HERE: link org to telephony partner instance
+- **Voice Channel** — create Omni-Channel voice channel for routing
+
+**Setup order:** Voice Settings → Voice Call Centers → Voice Channel
 
 **Two license layers required before setup (common exam trap):**
 1. **Org-level:** Service Cloud Voice feature license (Setup → Company Information)
@@ -27,18 +23,12 @@ Missing the per-user permission set is the #1 reason agents can't see the softph
 
 ### Creating a Voice Call Center
 
-```
-Setup → Voice Call Centers → New
-Step 1: Select Telephony Partner (Amazon Connect / Genesys / NICE CXone)
-    ↓
-Step 2: Enter Details
-    Name: [Your Call Center Name]
-    Amazon Connect Instance ARN: arn:aws:connect:us-east-1:123456789:instance/abc123
-                                  ↑ Retrieved from AWS Amazon Connect console — not a Salesforce value
-    ↓
-Step 3: Assign Users (one Call Center per user — cannot be in two at once)
-    ↓
-Step 4: Save → Salesforce establishes API linkage to telephony partner
+```mermaid
+flowchart TD
+    S1["Step 1: Select Telephony Partner\n(Amazon Connect / Genesys / NICE CXone)"]
+    S1 --> S2["Step 2: Enter Details\n• Name: Your Call Center Name\n• Amazon Connect Instance ARN\n  (retrieved from AWS console — not a Salesforce value)"]
+    S2 --> S3["Step 3: Assign Users\n(one Call Center per user — cannot be in two at once)"]
+    S3 --> S4["Step 4: Save\n→ Salesforce establishes API linkage to telephony partner"]
 ```
 
 **Limitations:**
@@ -49,18 +39,11 @@ Step 4: Save → Salesforce establishes API linkage to telephony partner
 
 ### Omni-Channel Voice Configuration (3 Objects Required)
 
-```
-┌──────────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
-│  1. VOICE CHANNEL    │────▶│  2. ROUTING CONFIG   │────▶│   3. VOICE QUEUE     │
-│  (Omni-Channel)      │     │                      │     │                      │
-├──────────────────────┤     ├──────────────────────┤     ├──────────────────────┤
-│ Type: Voice          │     │ Routing Model:       │     │ Assign Routing Config│
-│ Linked to: Voice     │     │ Most Available /     │     │ Add agents/groups    │
-│ Call Center          │     │ Least Active /       │     │ as queue members     │
-│ Label + API Name     │     │ Skills-Based         │     │                      │
-│                      │     │ Capacity units:      │     │ Calls wait here for  │
-│                      │     │ 1 (voice blocks all) │     │ an available agent   │
-└──────────────────────┘     └──────────────────────┘     └──────────────────────┘
+```mermaid
+flowchart LR
+    VC["1. Voice Channel\n(Omni-Channel)\n• Type: Voice\n• Linked to: Voice Call Center\n• Label + API Name"]
+    VC --> RC["2. Routing Config\n• Routing Model:\n  Most Available / Least Active\n  / Skills-Based\n• Capacity units: 1\n  (voice blocks all other work)"]
+    RC --> VQ["3. Voice Queue\n• Assign Routing Config\n• Add agents/groups\n  as queue members\n• Calls wait here for\n  an available agent"]
 ```
 
 **Limitations:**
@@ -71,21 +54,21 @@ Step 4: Save → Salesforce establishes API linkage to telephony partner
 
 ### Presence Statuses for Voice
 
+```mermaid
+flowchart LR
+    AV["Available"] -->|"Call arrives"| OC["On Call\n(auto)"]
+    OC -->|"Call ends"| WU["Wrap-Up\n(timer-based)"]
+    WU -->|"Timer expires"| AV
+    AV -->|"Manual"| OFF["Offline / Break\n/ Lunch / Training"]
+    OFF -->|"Manual"| AV
 ```
-Agent Status Lifecycle (automatic transitions):
-Available ──[call arrives]──▶ On Call ──[call ends]──▶ Wrap-Up ──[timer]──▶ Available
-   │                                                                              ▲
-   └──[manual]──▶ Offline / Break / Lunch / Training ──────────────────────────-┘
 
-┌──────────────────────┬───────────────────────┬────────────────────────────┐
-│ Status               │ Channel Availability  │ Purpose                    │
-├──────────────────────┼───────────────────────┼────────────────────────────┤
-│ Available for Voice  │ Voice channel — open  │ Agent ready for calls      │
-│ On Call (auto)       │ Voice — busy          │ Set when call is accepted  │
-│ Wrap-Up (timer-based)│ None                  │ After-call notes/review    │
-│ Offline              │ None                  │ Not working / break        │
-└──────────────────────┴───────────────────────┴────────────────────────────┘
-```
+| Status | Channel Availability | Purpose |
+|---|---|---|
+| Available for Voice | Voice channel — open | Agent ready for calls |
+| On Call (auto) | Voice — busy | Set when call is accepted |
+| Wrap-Up (timer-based) | None | After-call notes/review |
+| Offline | None | Not working / break |
 
 **Limitations:**
 - "On Call" is automatically set by the system — agents cannot override it mid-call without ending the call
@@ -94,27 +77,13 @@ Available ──[call arrives]──▶ On Call ──[call ends]──▶ Wrap-
 
 ### Call Center Lightning Page Layout
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  VOICE CALL RECORD PAGE (Lightning App Builder)                         │
-├─────────────────────────────────────┬───────────────────────────────────┤
-│  (1) CALL INFORMATION               │  (4) RELATED RECORDS              │
-│  Duration: 0:04:22                  │  Contact: Jane Smith              │
-│  Direction: Inbound                 │  Case: #00123456                  │
-│  Status: On Call                    │  Account: Acme Corp               │
-│  Caller: +1-555-867-5309            │  (screen pop auto-opens Contact)  │
-│                                     │                                   │
-│  (2) REAL-TIME TRANSCRIPT           │  (3) AGENTFORCE SUGGESTIONS       │
-│  Customer: Hi I need help...        │  Suggested response: "I can       │
-│  Agent: I can help with that...     │  help with that. Let me pull      │
-│  (live scrolling — requires         │  up your account..."              │
-│   Contact Lens)                     │  Knowledge: Related Article       │
-│                                     │  (requires Agentforce license)    │
-├─────────────────────────────────────┴───────────────────────────────────┤
-│  UTILITY BAR                                                             │
-│  [ (5) Softphone Widget ▲ ] [ Omni-Channel Widget ▲ ] [ ... ]           │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+**Voice Call Record Page (Lightning App Builder) — key components:**
+
+1. **Call Information** — Duration, Direction (inbound/outbound), Status, Caller phone number
+2. **Real-Time Transcript** — Live scrolling transcript (requires Contact Lens enabled on Amazon Connect instance)
+3. **Agentforce Suggestions** — Suggested responses, related Knowledge articles (requires Agentforce license)
+4. **Related Records** — Auto-matched Contact, Case, Account (screen pop auto-opens Contact when ANI matches)
+5. **Utility Bar** — Softphone Widget, Omni-Channel Widget (must be added via App Manager)
 
 Screen pop triggers automatically when caller's phone number matches a Contact's Phone field. No extra configuration needed beyond having phone number data in the org.
 
@@ -125,20 +94,15 @@ Screen pop triggers automatically when caller's phone number matches a Contact's
 
 ### Softphone Widget Configuration
 
-```
-App Manager → [App Name] → Utility Items → Add: Voice Softphone
-┌──────────────────────────────────────────────┐
-│  SOFTPHONE WIDGET (expanded)                 │
-│  Status: [ Available          ▼ ]            │
-│                                              │
-│  Active Call: Jane Smith +1-555-867-5309     │
-│  Duration: 0:02:14                           │
-│                                              │
-│  [ Mute ]  [ Hold ]  [ Transfer ]            │
-│  [ Dialpad ]  Wrap-Up: 0:00:45 remaining     │
-└──────────────────────────────────────────────┘
-Widget provided by Amazon Connect managed package — not a custom build
-```
+**To add:** App Manager → [App Name] → Utility Items → Add: Voice Softphone
+
+**Softphone Widget (expanded) — key controls:**
+- Status selector (Available / Wrap-Up / Offline / custom)
+- Active Call: caller name + phone number, duration timer
+- Controls: Mute, Hold, Transfer, Dialpad
+- Wrap-Up timer countdown after call ends
+
+Widget is provided by the Amazon Connect managed package — not a custom build.
 
 **If softphone widget is missing, check in this order:**
 1. Agent not assigned to a Voice Call Center
@@ -147,17 +111,11 @@ Widget provided by Amazon Connect managed package — not a custom build
 
 ### Test Call Verification Checklist
 
-```
-Step 1: Set agent status → Available in Omni-Channel widget
-Step 2: Dial the claimed Amazon Connect phone number from a mobile phone
-Step 3: Verify: call appears in softphone widget → accept it
-Step 4: Verify: real-time transcript populates during call
-Step 5: End call → Verify VoiceCall record shows:
-        Status = Completed
-        Full transcript = populated
-        AI summary = generated
-        Linked Contact = matched (if phone number exists in Salesforce)
-```
+1. Set agent status to Available in Omni-Channel widget
+2. Dial the claimed Amazon Connect phone number from a mobile phone
+3. Verify call appears in softphone widget → accept it
+4. Verify real-time transcript populates during the call
+5. End call → verify VoiceCall record shows: Status = Completed, full transcript populated, AI summary generated, linked Contact matched (if phone number exists in Salesforce)
 
 **Limitations:**
 - If transcript does not appear: check Named Credential validity and Contact Lens enabled status

@@ -38,72 +38,53 @@ Any component on a Lightning Record Page can have visibility rules that control 
 
 ## Architecture / How It Works
 
-```
-Three Page Types:
-┌──────────────────────────────────────────────────────────────────┐
-│  APP PAGE                                                        │
-│  • Full-screen, like a dashboard                                 │
-│  • Accessible from App Launcher or navigation tab               │
-│  • No record context (no single record displayed)               │
-│  • Uses: Landing pages, custom dashboards, utility pages        │
-├──────────────────────────────────────────────────────────────────┤
-│  RECORD PAGE                                                     │
-│  • The detail view for a specific object's records              │
-│  • Has record context (shows fields from the record)            │
-│  • Supports: Dynamic Forms, Dynamic Actions, Related Lists       │
-│  • Activated per: App, Profile, Record Type combination         │
-├──────────────────────────────────────────────────────────────────┤
-│  HOME PAGE                                                       │
-│  • The landing page for an app or org                           │
-│  • Can show: Report Charts, Dashboards, Tasks, News             │
-│  • Activated per: App or Org Default                            │
-└──────────────────────────────────────────────────────────────────┘
-```
+**Three Page Types**
+
+**App Page**
+- Full-screen, like a dashboard
+- Accessible from App Launcher or navigation tab
+- No record context (no single record displayed)
+- Uses: landing pages, custom dashboards, utility pages
+
+**Record Page**
+- The detail view for a specific object's records
+- Has record context (shows fields from the record)
+- Supports: Dynamic Forms, Dynamic Actions, Related Lists
+- Activated per: App, Profile, Record Type combination
+
+**Home Page**
+- The landing page for an app or org
+- Can show: Report Charts, Dashboards, Tasks, News
+- Activated per: App or Org Default
 
 **Limitations:**
 - App Pages do not have record context — components that require a record (like Related Lists) are not available
 - Home Pages do not have record context either
 - You cannot add custom Lightning Web Components to a page unless they have the correct `targetConfigs` metadata declaring which page types they support
 
+```mermaid
+flowchart TD
+    L1["1. Org Default\n(applies to all if no match)"]
+    L2["2. App Default\n(applies when accessed in specific app)"]
+    L3["3. Profile\n(applies to profile users)"]
+    L4["4. App + Profile + Record Type\n← MOST SPECIFIC"]
+    L1 -->|"more specific"| L2
+    L2 -->|"more specific"| L3
+    L3 -->|"more specific"| L4
 ```
-Record Page Activation Hierarchy (Most Specific Wins):
-                                                               
-  Least Specific                                              
-  ┌─────────────────────────────────────────────────────┐     
-  │  1. Org Default    (applies to all if no match)    │     
-  │  2. App Default    (applies when accessed in app)  │     
-  │  3. Profile        (applies to profile users)      │     
-  │  4. App + Profile + Record Type  ← MOST SPECIFIC   │     
-  └─────────────────────────────────────────────────────┘     
-  Most Specific                                               
-                                                               
-  "Most specific activation wins" means if a user has         
-  Profile A and Record Type B and is in App C, the           
-  App+Profile+RecordType activation wins over Org Default.    
-```
+Most specific activation wins. If a user has Profile A, Record Type B, and is in App C, the App + Profile + Record Type activation takes precedence over Org Default.
 
 **Limitations:**
 - You cannot assign a Lightning page at the Record Type level alone (must include App and Profile)
 - Page activations do not cascade — there's no inheritance from less-specific to more-specific
 - Deactivating a page with specific activations does NOT remove the activations — they must be manually removed first
 
-```
-Dynamic Forms vs. Standard Page Layout Fields:
-                                                               
-  STANDARD (old way):                                         
-  Multiple Page Layouts → each assigned to Profile + RecType  
-  Layout 1: Sales Rep view                                    
-  Layout 2: Manager view                                      
-  Layout 3: Customer view                                     
-  ... 20 layouts for 20 combinations                         
-                                                               
-  DYNAMIC FORMS (new way):                                    
-  ONE Lightning Page with field sections                      
-  Section A: Show to [Sales Rep profile]                      
-  Section B: Show when [Status = Closed]                      
-  Section C: Show on [Desktop only]                           
-  ... All controlled by visibility rules on one page          
-```
+**Dynamic Forms vs. Standard Page Layout Fields**
+
+| Approach | How it works |
+|---|---|
+| **Standard (old way)** | Multiple page layouts, each assigned to a Profile + Record Type combination. 20 layout combinations = 20 separate layouts to maintain. |
+| **Dynamic Forms (new way)** | ONE Lightning Page with field sections. Each section has visibility rules (by profile, field value, form factor, custom permission). All controlled in a single page. |
 
 **Limitations:**
 - Dynamic Forms are not yet available for all standard objects (Activity, Knowledge have limitations)

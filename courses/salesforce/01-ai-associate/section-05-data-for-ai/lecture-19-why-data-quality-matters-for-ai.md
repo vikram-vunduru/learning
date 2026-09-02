@@ -85,45 +85,13 @@ Before enabling Einstein features, assess data quality in 6 steps:
 
 ## Data Quality Architecture (Enterprise View)
 
-```
-╔══════════════════════════════════════════════════════════════════════╗
-║           DATA QUALITY LIFECYCLE FOR AI READINESS                    ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  DATA SOURCES                                                        ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Salesforce CRM (Leads, Accounts, Opportunities, Cases)       │    ║
-║  │ Marketing Automation (email engagement, campaign data)       │    ║
-║  │ External Data Enrichment (Dun & Bradstreet, Clearbit)        │    ║
-║  │ Customer Interactions (service tickets, call logs)           │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                           ║
-║  DATA QUALITY ASSESSMENT                                             ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Accuracy: % records with verified field values               │    ║
-║  │ Completeness: % records with key AI features populated       │    ║
-║  │ Consistency: deduplication analysis, format standardization  │    ║
-║  │ Timeliness: date field accuracy, last modified dates         │    ║
-║  │ Validity: field value distribution, out-of-range values      │    ║
-║  │ Uniqueness: duplicate detection score                        │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                           ║
-║  REMEDIATION                                                         ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Deduplication (Duplicate Rules + manual review)              │    ║
-║  │ Data enrichment (third-party services)                       │    ║
-║  │ Validation rules (prevent future invalid data)               │    ║
-║  │ Data cleanup flows (normalize inconsistent values)           │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                           ║
-║  AI-READY DATA                                                       ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Einstein Feature enabled                                     │    ║
-║  │ Sufficient records (2000+ for Prediction Builder recommended)│    ║
-║  │ >70% completion rate on key predictor fields                 │    ║
-║  │ Minimal duplicates (<5% duplication rate)                    │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-╚══════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    A["Data Sources\nSalesforce CRM: Leads · Accounts · Opportunities · Cases\nMarketing Automation · External Enrichment\nCustomer Interactions: service tickets · call logs"]
+    B["Data Quality Assessment\nAccuracy: verified field values\nCompleteness: key AI features populated\nConsistency: deduplication · format standardization\nTimeliness: date accuracy · last modified dates\nValidity: out-of-range value detection\nUniqueness: duplicate detection score"]
+    C["Remediation\nDeduplication via Duplicate Rules + manual review\nData enrichment via third-party services\nValidation rules to prevent future invalid data\nData cleanup flows to normalize inconsistent values"]
+    D["AI-Ready Data\nEinstein Feature enabled\n2000+ records recommended for Prediction Builder\n>70% completion rate on key predictor fields\n<5% duplication rate"]
+    A --> B --> C --> D
 ```
 
 **Limitations:**

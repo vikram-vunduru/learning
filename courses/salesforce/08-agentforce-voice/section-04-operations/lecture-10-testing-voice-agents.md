@@ -7,21 +7,14 @@ Deployment / Quality Assurance — Agentforce Specialist (CRT-271)
 
 ### Testing Challenges Unique to Voice
 
-```
-┌──────────────────────────────┬──────────────────────────────────────────┐
-│  CHAT AGENT TESTING          │  VOICE AGENT TESTING                     │
-├──────────────────────────────┼──────────────────────────────────────────┤
-│  Type text in a console      │  Must call a phone number                │
-│  Immediately see responses   │  Responses depend on TTS + STT           │
-│  Replay test cases easily    │  Cannot replay without re-calling        │
-│  No acoustic factors         │  Audio quality, background noise affect  │
-│                              │  test results                            │
-│  Format (markdown) visible   │  ALL output is audio — no visual check   │
-│  during test                 │                                          │
-│  No barge-in to test         │  Must test barge-in, silence handling,   │
-│                              │  DTMF fallback as separate scenarios     │
-└──────────────────────────────┴──────────────────────────────────────────┘
-```
+| | Chat Agent Testing | Voice Agent Testing |
+|---|---|---|
+| **Input method** | Type text in a console | Must call a phone number |
+| **Response visibility** | Immediately see responses | Responses depend on TTS + STT |
+| **Test replay** | Replay test cases easily | Cannot replay without re-calling |
+| **Acoustic factors** | None | Audio quality, background noise affect test results |
+| **Formatting** | Markdown visible during test | ALL output is audio — no visual check |
+| **Barge-in / DTMF** | No barge-in to test | Must test barge-in, silence handling, DTMF fallback as separate scenarios |
 
 Voice testing requires both functional testing (does the agent handle intents correctly?) and audio/experience testing (does it SOUND right? does barge-in work?). These are distinct test phases.
 
@@ -61,22 +54,15 @@ LAYER 5: Load Testing
 
 ### Agentforce Studio Test Tab — Pre-Voice Testing
 
-```
-Agentforce Studio → [Agent] → Test tab
-┌─────────────────────────────────────────────────────────────┐
-│  CHAT SIMULATION                                            │
-│                                                             │
-│  Type: "I want to cancel my subscription"                   │
-│  ─────────────────────────────────────────────────────────  │
-│  Agent: "I can help you with subscription cancellation.     │
-│          Could you please confirm your account email?"      │
-│                                                             │
-│  [Inspect] → shows which Topic was matched, which Action    │
-│             was invoked, confidence score, response text    │
-└─────────────────────────────────────────────────────────────┘
-Test tab tests Topic matching and action execution logic
-It does NOT test: STT accuracy, TTS quality, barge-in, DTMF, latency
-```
+**Path:** Agentforce Studio → [Agent] → Test tab
+
+The Test tab provides a chat-style simulation interface where you type utterances and inspect routing decisions:
+- Type an utterance → agent responds with matched Topic + Action + response text
+- "Inspect" panel shows: Topic matched, Action invoked, confidence score, response text
+
+**The Test tab DOES test:** Topic matching accuracy, action execution logic.
+
+**The Test tab DOES NOT test:** STT accuracy, TTS quality, barge-in, DTMF fallback, latency.
 
 **Always test Topics in text form first.** If Topics aren't matching correctly in text, they won't match in voice either (STT adds additional error on top of any topic matching issues).
 

@@ -125,29 +125,22 @@ static void testCallout() {
 
 ## Architecture / How It Works
 
-```
-INTEGRATION PATTERN — TRIGGER → @FUTURE → CALLOUT
-
-  Account inserted by user
-         │
-         ▼ (after insert trigger)
-  ┌──────────────────────────────────────────────────────┐
-  │  AccountTrigger (after insert)                       │
-  │  AccountCalloutService.callExternalApi(ids);  ← enqueue @future│
-  │  Transaction commits                                 │
-  └──────────────────────────────────────────────────────┘
-         │
-         │ (DML committed; @future runs in new transaction)
-         ▼
-  ┌──────────────────────────────────────────────────────┐
-  │  @future(callout=true) AccountCalloutService         │
-  │  Re-query Accounts by Id ← fresh data post-commit    │
-  │  HttpRequest → http.send() → HttpResponse            │
-  │  Check status code → parse JSON → DML if needed      │
-  └──────────────────────────────────────────────────────┘
-
-  Key: callout happens in a SEPARATE transaction from the trigger.
-  No uncommitted DML restriction applies.
+```mermaid
+flowchart TD
+    A["Account inserted by user"] --> B
+    subgraph Trigger["AccountTrigger (after insert) — synchronous transaction"]
+        B["AccountCalloutService.callExternalApi(ids); -- enqueue @future"]
+        C["Transaction commits"]
+        B --> C
+    end
+    C -->|"DML committed; @future runs in new transaction"| D
+    subgraph Future["@future(callout=true) AccountCalloutService — new async transaction"]
+        D["Re-query Accounts by Id (fresh data post-commit)"]
+        E["HttpRequest -> http.send() -> HttpResponse"]
+        F["Check status code -> parse JSON -> DML if needed"]
+        D --> E --> F
+    end
+    G["Key: callout happens in a SEPARATE transaction from the trigger.\nNo uncommitted DML restriction applies."]
 ```
 
 **Limitations:**
@@ -155,33 +148,30 @@ INTEGRATION PATTERN — TRIGGER → @FUTURE → CALLOUT
 - Cannot make a callout BEFORE DML in the same transaction — once DML occurs, callout blocked until new transaction
 - Callout timeout max: 120,000 ms per call
 
+**JSON Deserialization — Typed vs Untyped:**
+
+TYPED (known schema — preferred):
+
+```apex
+// JSON: {"status":"ok","count":5,"items":[{"id":"1"}]}
+
+public class ApiResponse {
+    public String status;   // must match JSON key
+    public Integer count;
+    public List<Item> items;
+    public class Item { public String id; }
+}
+
+ApiResponse r = (ApiResponse) JSON.deserialize(body, ApiResponse.class);
+System.debug(r.status);  // 'ok'
 ```
-JSON DESERIALIZATION — TYPED vs UNTYPED
 
-  TYPED (known schema — preferred):
-  ┌───────────────────────────────────────────────────────────┐
-  │  JSON: {"status":"ok","count":5,"items":[{"id":"1"}]}     │
-  │                                                           │
-  │  Apex class:                                              │
-  │  public class ApiResponse {                               │
-  │      public String status;   // must match JSON key       │
-  │      public Integer count;                                │
-  │      public List<Item> items;                             │
-  │      public class Item { public String id; }              │
-  │  }                                                        │
-  │                                                           │
-  │  ApiResponse r = (ApiResponse) JSON.deserialize(          │
-  │      body, ApiResponse.class);                            │
-  │  System.debug(r.status);  // 'ok'                         │
-  └───────────────────────────────────────────────────────────┘
+UNTYPED (dynamic schema — use when structure is unknown):
 
-  UNTYPED (dynamic schema — use when structure is unknown):
-  ┌───────────────────────────────────────────────────────────┐
-  │  Map<String, Object> raw =                                │
-  │      (Map<String, Object>) JSON.deserializeUntyped(body); │
-  │  String status = (String) raw.get('status');              │
-  │  List<Object> items = (List<Object>) raw.get('items');    │
-  └───────────────────────────────────────────────────────────┘
+```apex
+Map<String, Object> raw = (Map<String, Object>) JSON.deserializeUntyped(body);
+String status = (String) raw.get('status');
+List<Object> items = (List<Object>) raw.get('items');
 ```
 
 **Limitations:**
@@ -189,20 +179,15 @@ JSON DESERIALIZATION — TYPED vs UNTYPED
 - `JSON.deserialize` throws exception if JSON structure doesn't match the class — wrap in try/catch
 - Nested objects need nested Apex classes; primitive arrays map to `List<Type>`
 
-```
-CALLOUT LIMITS SUMMARY
+| Limit | Value |
+|-------|-------|
+| Callouts per transaction | 100 |
+| Timeout per callout (max) | 120,000 ms |
+| Response body size | 6 MB |
+| Concurrent @future callout jobs | 50 per transaction |
 
-  ┌────────────────────────────────────┬────────────┐
-  │  Limit                             │  Value     │
-  ├────────────────────────────────────┼────────────┤
-  │  Callouts per transaction          │  100       │
-  │  Timeout per callout (max)         │  120,000ms │
-  │  Response body size                │  6 MB      │
-  │  Concurrent @future callout jobs   │  50/tx     │
-  └────────────────────────────────────┴────────────┘
-  Named Credential syntax: callout:CredentialName/path
-  Test mock: Test.setMock(HttpCalloutMock.class, mockInstance)
-```
+Named Credential syntax: `callout:CredentialName/path`
+Test mock: `Test.setMock(HttpCalloutMock.class, mockInstance)`
 
 **Limitations:**
 - Callout limit (100) is separate from SOQL limit (100) — they don't share the same counter

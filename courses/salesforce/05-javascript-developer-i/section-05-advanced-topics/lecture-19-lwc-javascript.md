@@ -174,23 +174,24 @@ NOT ALLOWED / RESTRICTED:
 ## Architecture / How It Works
 
 ### LWC Component Architecture at Scale
-```
-App (Lightning Page)
-├── Header Component (@api: title, user)
-├── Main Content (dynamic)
-│     ├── Account Detail (wire: getRecord)
-│     │     └── Field Component (child, @api fields)
-│     ├── Contact List (wire: getContacts, $recordId)
-│     │     ├── Contact Row (for:each, @api contact)
-│     │     │     └── CustomEvent: 'select' bubbles up
-│     │     └── listens: onselect → handleSelect
-│     └── Activity Panel (LMS subscriber)
-└── Sidebar (LMS subscriber, different DOM branch)
 
-Parent → Child: @api properties (data down)
-Child → Parent: CustomEvent (events up)
-Cross-tree: Lightning Message Service (pub/sub)
+```mermaid
+flowchart TD
+    APP["App (Lightning Page)"]
+    APP --> HEADER["Header Component\n(@api: title, user)"]
+    APP --> MAIN["Main Content (dynamic)"]
+    APP --> SIDEBAR["Sidebar\n(LMS subscriber)"]
+    MAIN --> ACCT["Account Detail\n(wire: getRecord)"]
+    MAIN --> CLIST["Contact List\n(wire: getContacts, $recordId)"]
+    MAIN --> ACT["Activity Panel\n(LMS subscriber)"]
+    ACCT --> FIELD["Field Component\n(child, @api fields)"]
+    CLIST --> CROW["Contact Row\n(for:each, @api contact)"]
+    CROW -->|"CustomEvent: 'select' bubbles up"| CLIST
 ```
+
+- **Parent → Child:** `@api` properties (data down)
+- **Child → Parent:** `CustomEvent` (events up)
+- **Cross-tree:** Lightning Message Service (pub/sub)
 
 ### Shadow DOM & LWS (Lightning Web Security)
 ```

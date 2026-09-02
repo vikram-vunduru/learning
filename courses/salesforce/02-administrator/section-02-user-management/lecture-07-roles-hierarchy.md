@@ -45,36 +45,23 @@ Role hierarchy design is one of the most consequential decisions in a Salesforce
 
 ## Architecture / How It Works
 
+```mermaid
+flowchart TD
+    CEO --> VPS["VP Sales"]
+    CEO --> VPSVC["VP Service"]
+    VPS --> RM1["Regional Mgr 1 (RM1)"]
+    VPS --> RM2["Regional Mgr 2 (RM2)"]
+    VPSVC --> SM1["Service Mgr 1 (SM1)"]
+    VPSVC --> SM2["Service Mgr 2 (SM2)"]
+    RM1 --> SR1["Sales Rep 1 (SR1)\nowns Record A"]
+    SM1 --> SE1["Service Engineer 1 (SE1)"]
 ```
-Role Hierarchy — Visibility Model
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-          CEO
-          ║
-    ┌─────╩──────┐
-  VP Sales   VP Service
-    ║              ║
-  ┌─╩──┐        ┌──╩──┐
-  RM1  RM2    SM1   SM2
-  ║              ║
-  SR1           SE1
-
-  SR1 (Sales Rep) owns Record A
-  RM1 (Regional Manager) CAN SEE Record A ✓ (above SR1)
-  VP Sales CAN SEE Record A ✓ (above RM1)
-  CEO CAN SEE Record A ✓ (above VP Sales)
-  
-  SM1 (Service Manager) CANNOT SEE Record A ✗
-    (different branch — not above SR1)
-  SR2 (another Sales Rep) CANNOT SEE Record A ✗
-    (same level — no upward visibility to peers)
-
-  Visibility flows UPWARD only:
-  ──────────────────────────────
-  ↑ Manager sees subordinate records
-  ✗ Subordinate does NOT see manager's records
-  ✗ Peers do NOT see each other's records
-```
+**Visibility rules:**
+- SR1 owns Record A — RM1, VP Sales, and CEO can all see it (they are above SR1)
+- SM1 cannot see Record A — different branch, not above SR1
+- Peers at the same level cannot see each other's records
+- Visibility flows **upward only**: managers see subordinates' records, not the reverse
 
 **Limitations:**
 - Role hierarchy is bypassed if OWD is set to Public Read/Write (everyone sees everything anyway)

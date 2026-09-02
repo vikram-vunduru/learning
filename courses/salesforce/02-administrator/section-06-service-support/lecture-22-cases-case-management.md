@@ -51,33 +51,26 @@ Case management is where the ROI of Salesforce Service Cloud is measured. The ke
 
 ## Architecture / How It Works
 
-```
-Case Management Flow
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  CASE CREATION CHANNELS:
-  ┌──────────────────────────────────────────┐
-  │  Web-to-Case (web form) → 5,000/day      │
-  │  Email-to-Case (inbound email)           │
-  │  Manual (agent entry)                    │
-  │  API / Integration                       │
-  │  Social channels (Social Studio)         │
-  └─────────────────┬────────────────────────┘
-                    │ Assignment Rule
-                    ▼
-  CASE ASSIGNED TO USER OR QUEUE
-  ┌──────────────────────────────────────────┐
-  │  Status: New → Working → Escalated       │
-  │  Escalation Rule runs on timer           │
-  │  Auto-Response sends acknowledgment      │
-  └─────────────────┬────────────────────────┘
-                    │
-                    ▼
-  CASE CLOSED
-  ┌──────────────────────────────────────────┐
-  │  Status: Closed                          │
-  │  CSAT survey triggered (if configured)   │
-  └──────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Channels["CASE CREATION CHANNELS"]
+        C1["Web-to-Case (web form) — 5,000/day limit"]
+        C2["Email-to-Case (inbound email)"]
+        C3["Manual (agent entry)"]
+        C4["API / Integration"]
+        C5["Social channels"]
+    end
+    Channels -->|"Assignment Rule"| Assigned
+    subgraph Assigned["CASE ASSIGNED TO USER OR QUEUE"]
+        A1["Status: New → Working → Escalated"]
+        A2["Escalation Rule runs on timer"]
+        A3["Auto-Response sends acknowledgment"]
+    end
+    Assigned --> Closed
+    subgraph Closed["CASE CLOSED"]
+        CL1["Status: Closed"]
+        CL2["CSAT survey triggered (if configured)"]
+    end
 ```
 
 **Limitations:**

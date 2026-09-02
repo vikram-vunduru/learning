@@ -38,34 +38,13 @@ Advise customers to include AI data usage in their privacy notice and consent fr
 
 ### Agentforce Grounding Flow
 
-```
-  Service Agent starts interaction with customer
-                │
-                ▼
-  ╔══════════════════════════════════════════════════════╗
-  ║           AGENTFORCE ORCHESTRATION                   ║
-  ║  1. Identify customer (email, phone, CRM ID)         ║
-  ║  2. Retrieve grounding data from Data Cloud:         ║
-  ║     ▸ Unified Individual profile                     ║
-  ║     ▸ Selected Calculated Insights                   ║
-  ║     ▸ Open Cases, recent Orders                      ║
-  ║  3. Pass customer context to LLM as system prompt    ║
-  ╚══════════════════════════════════════════════════════╝
-                │
-                ▼
-  ╔══════════════════════════════════════════════════════╗
-  ║                     LLM                              ║
-  ║  Context: John Doe, Gold tier, purchased 3x this     ║
-  ║  year, open complaint #CR-5421 about delayed order   ║
-  ║                                                      ║
-  ║  Query: "Where is my order?"                         ║
-  ║                                                      ║
-  ║  Response: [Personalized, empathetic response        ║
-  ║  acknowledging the specific delayed order]           ║
-  ╚══════════════════════════════════════════════════════╝
-                │
-                ▼
-  Agent reviews (Copilot) or sends directly (Autonomous)
+```mermaid
+flowchart TD
+    START["Service Agent starts interaction with customer"]
+    ORCH["AGENTFORCE ORCHESTRATION\n1. Identify customer (email, phone, CRM ID)\n2. Retrieve grounding data from Data Cloud:\n   Unified Individual profile\n   Selected Calculated Insights\n   Open Cases, recent Orders\n3. Pass customer context to LLM as system prompt"]
+    LLM["LLM\nContext: John Doe, Gold tier,\npurchased 3x this year,\nopen complaint #CR-5421 about delayed order\n\nQuery: 'Where is my order?'\n\nResponse: personalized, empathetic response\nacknowledging the specific delayed order"]
+    OUT["Agent reviews (Copilot mode)\nOR sends directly (Autonomous mode)"]
+    START --> ORCH --> LLM --> OUT
 ```
 
 **Limitations:**
@@ -78,29 +57,16 @@ Advise customers to include AI data usage in their privacy notice and consent fr
 
 ### Vector Database: Semantic vs. Keyword Search
 
-```
-  KEYWORD SEARCH:
-  Query: "waterproof jacket"
-  Finds: documents containing exact words "waterproof" and "jacket"
-  Misses: "water resistant outerwear", "hydrophobic coat", "rain gear"
+| | Keyword Search | Semantic Search (Vector DB) |
+|---|---|---|
+| **Query** | "waterproof jacket" | "waterproof jacket" |
+| **Mechanism** | Matches exact words | Converts to vector embedding `[0.82, -0.31, 0.15, ...]`, finds all semantically similar content |
+| **Finds** | Only documents containing "waterproof" AND "jacket" | "water resistant outerwear", "hydrophobic breathable coat", "rain gear for outdoor activities", "waterproof jacket" (exact match also works) |
+| **Misses** | "water resistant outerwear", "hydrophobic coat", "rain gear" | Nothing semantically similar |
 
-  SEMANTIC SEARCH (vector database):
-  Query: "waterproof jacket"
-  Converts to vector embedding: [0.82, -0.31, 0.15, 0.67, ...]
-  Finds: ALL semantically similar content
-  ✅ "water resistant outerwear"
-  ✅ "hydrophobic breathable coat"
-  ✅ "rain gear for outdoor activities"
-  ✅ "waterproof jacket" (exact match also works)
+**Use cases in Data Cloud:** Agent searching knowledge base; finding similar product descriptions for recommendation; surfacing related case notes without exact keyword match; "What has this customer complained about before?" → semantic search over case text.
 
-  USE CASES IN DATA CLOUD:
-  ▸ Agent searching knowledge base for relevant answer
-  ▸ Finding similar product descriptions for recommendation
-  ▸ Surfacing related case notes without exact keyword match
-  ▸ "What has this customer complained about before?" → semantic search over case text
-
-  ★ Vector search = meaning-based, not keyword-based
-```
+**Vector search = meaning-based, not keyword-based.**
 
 **Limitations:**
 - Vector database stores embeddings — the unstructured content must first be embedded (processed into vectors) before it can be searched
@@ -111,28 +77,16 @@ Advise customers to include AI data usage in their privacy notice and consent fr
 
 ### Model Builder: Custom ML on DMO Data
 
+```mermaid
+flowchart LR
+    DATA["DMO DATA (training input)\nIndividual\nSalesOrder\nWeb Engagement\nEmail Engagement\nCalculated Insights"]
+    MB["MODEL BUILDER\n1. Select target variable (Churn = Yes/No)\n2. Select feature DMOs\n3. Train model\n4. Evaluate (AUC, accuracy)\n5. Deploy to Data Cloud"]
+    PRED["Prediction score\nwritten to DMO\n(e.g., ChurnScore field)"]
+    SEG["Segment by prediction score\n(ChurnScore > 0.7)"]
+    DATA -->|"train"| MB --> PRED --> SEG
 ```
-  DMO DATA (training input)           MODEL BUILDER
-  ═══════════════════════             ════════════════════════════════
-  ┌────────────────────┐              ┌──────────────────────────────┐
-  │  Individual        │              │  1. Select target variable   │
-  │  SalesOrder        │ ──train──▶  │     (Churn = Yes/No)         │
-  │  Web Engagement    │              │  2. Select feature DMOs      │
-  │  Email Engagement  │              │  3. Train model              │
-  │  Calculated        │              │  4. Evaluate (AUC, accuracy) │
-  │  Insights          │              │  5. Deploy to Data Cloud     │
-  └────────────────────┘              └──────────────────────────────┘
-                                                   │
-                                         ┌─────────┤
-                                         ▼         ▼
-                                  Prediction    Segment
-                                  written       by prediction
-                                  to DMO        score
-                                  (score field) (ChurnScore > 0.7)
 
-  ★ Model predictions stored back in Data Cloud as DMO fields
-  ★ Segment on ChurnScore, PersonalizationScore, CLV, etc.
-```
+Model predictions stored back in Data Cloud as DMO fields — segment on ChurnScore, PersonalizationScore, CLV, etc.
 
 **Limitations:**
 - Model Builder requires sufficient training data — sparse DMO data produces unreliable models

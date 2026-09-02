@@ -2,16 +2,19 @@
 
 ## Architecture in One Diagram
 
-```
-[PSTN] → [Telephony Partner] → [Service Cloud Voice] → [Agentforce Agent]
-          Amazon Connect          VoiceCall record         Topics / Actions
-          Genesys                 ConversationEntry         TTS via Amazon Polly
-          NICE CXone              Omni-Channel routing      Escalation → Human Queue
-
-Three-tier architecture:
-  Tier 1: Telephony Network (PSTN, SIP, carrier)
-  Tier 2: Service Cloud Voice (SCV) — Salesforce + Amazon Connect glue layer
-  Tier 3: Agentforce Platform (LLM, Topics, Actions, Einstein NLP)
+```mermaid
+flowchart LR
+    subgraph T1["Tier 1: Telephony Network\n(PSTN, SIP, carrier)"]
+        TP["Amazon Connect\nGenesys / NICE CXone"]
+    end
+    subgraph T2["Tier 2: Service Cloud Voice\n(Salesforce + Amazon Connect)"]
+        SCV["VoiceCall record\nConversationEntry\nOmni-Channel routing"]
+    end
+    subgraph T3["Tier 3: Agentforce Platform\n(LLM, Topics, Actions, Einstein NLP)"]
+        AG["Topics / Actions\nTTS via Amazon Polly\nEscalation to Human Queue"]
+    end
+    TP --> SCV
+    SCV --> AG
 ```
 
 ---
@@ -115,35 +118,44 @@ Rules:
 
 ## Transcription Pipeline
 
+```mermaid
+flowchart LR
+    AUD["Audio"] --> TEL["Telephony"]
+    TEL --> TRS["AWS Transcribe"]
+    TRS --> SF["Salesforce\n(consumer, not producer)"]
+    SF --> NLP["Einstein NLP"]
+    subgraph CF["Cascade Failure"]
+        BA["Bad audio"] --> LC["Low confidence"]
+        LC --> PN["Poor NLP"]
+        PN --> WT["Wrong Topic"]
+        WT --> BE["Bad experience"]
+    end
 ```
-Audio → Telephony → AWS Transcribe → Salesforce → Einstein NLP
 
-Salesforce = CONSUMER of transcript, NOT the producer
-
-is_partial: true  = streaming (incomplete) — don't act on this
-is_partial: false = finalized utterance — act on this
-
-Two-channel mode = near-100% speaker accuracy (default on Amazon Connect)
-Single-channel = ML diarization = less reliable
-Confidence ~0.75 threshold (default): below → DTMF fallback; above → process
-
-Cascade failure: bad audio → low confidence → poor NLP → wrong Topic → bad experience
-```
+- `is_partial: true` — streaming (incomplete); do not act on this
+- `is_partial: false` — finalized utterance; act on this
+- Two-channel mode: near-100% speaker accuracy (default on Amazon Connect)
+- Single-channel: ML diarization — less reliable
+- Confidence ~0.75 threshold (default): below → DTMF fallback; above → process
 
 ---
 
 ## VoiceCall Object Model
 
+```mermaid
+flowchart TD
+    VC["VoiceCall (parent)"]
+    VCR["VoiceCallRecording\n(URL to S3 recording)"]
+    CE["ConversationEntry\n(utterance: speaker, text,\nconfidence, timestamp)"]
+    RC["Contact / Case\n(via screen pop match)"]
+    VC --> VCR
+    VC --> CE
+    VC --> RC
 ```
-VoiceCall (parent)
-├── VoiceCallRecording (URL to S3 recording)
-├── ConversationEntry (each utterance: speaker, text, confidence, timestamp)
-└── related Contact / Case (via screen pop match)
 
-VoiceCall.Status values: Active, Completed, Abandoned, Error
-ConversationEntry.Speaker: CUSTOMER, AGENT, VOICE_BOT
-ANI lookup field: {!$Record.CallerId} (available in Voice Call Flow)
-```
+- `VoiceCall.Status` values: Active, Completed, Abandoned, Error
+- `ConversationEntry.Speaker`: CUSTOMER, AGENT, VOICE_BOT
+- ANI lookup field: `{!$Record.CallerId}` (available in Voice Call Flow)
 
 ---
 

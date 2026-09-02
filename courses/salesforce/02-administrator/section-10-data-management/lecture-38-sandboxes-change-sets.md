@@ -70,32 +70,21 @@ Change Sets are the "Phase 1" deployment tool in Salesforce. They work for small
 
 ## Architecture / How It Works
 
-```
-Change Set Deployment Flow
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart LR
+    subgraph Sandbox["SANDBOX (source)"]
+        OCS["Outbound Change Set\nComponents:\n- Custom Object\n- Field A\n- Flow B\n- Profile C"]
+    end
+    subgraph Production["PRODUCTION (target)"]
+        ICS["Inbound Change Set"]
+        Validate["Validate\n(runs tests, no changes applied)"]
+        Deploy["Deploy\n(applies all changes)"]
+        ICS --> Validate --> Deploy
+    end
+    Sandbox -->|"Upload"| Production
 
-  SANDBOX (source)                PRODUCTION (target)
-  ┌────────────────┐              ┌────────────────┐
-  │  Outbound      │              │  Inbound       │
-  │  Change Set    │   Upload     │  Change Set    │
-  │                │ ──────────► │                │
-  │  Components:   │              │  Validate →    │
-  │  - Custom Obj  │              │  (no changes,  │
-  │  - Field A     │              │  just testing) │
-  │  - Flow B      │              │                │
-  │  - Profile C   │              │  Deploy →      │
-  └────────────────┘              │  (applies all) │
-                                  └────────────────┘
-
-  Deployment Connection must be configured:
-  Production ←──── authorized ────► Sandbox
-  Sandbox    ←──── authorized ────► Sandbox
-
-  What CANNOT be moved in a Change Set:
-  ✗ Data (records)
-  ✗ Users
-  ✗ Schedules / automation logs
-  ✗ Some metadata types (not all metadata types supported)
+    Conn["Deployment Connection\nmust be pre-authorized\nbetween orgs"]
+    Cannot["Cannot move via Change Set:\nData (records)\nUsers\nSchedules / automation logs\nSome unsupported metadata types"]
 ```
 
 **Limitations:**

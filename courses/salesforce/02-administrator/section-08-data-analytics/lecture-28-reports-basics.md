@@ -60,35 +60,22 @@ Reports are the front line of analytics in every Salesforce org. Every business 
 
 ## Architecture / How It Works
 
-```
-Report Format Comparison
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  TABULAR (flat list):
-  Name         | Stage      | Amount
-  Acme Deal    | Proposal   | $50,000
-  Beta Corp    | Closed Won | $120,000
-
-  SUMMARY (grouped):
-  Stage: Proposal ───────────────── [subtotal]
-    Acme Deal       $50,000
-    Delta Inc       $30,000
-  Stage: Closed Won ─────────────── [subtotal]
-    Beta Corp       $120,000
-  TOTAL: $200,000
-
-  MATRIX (rows + columns):
-               Q1        Q2        Q3
-  East Region  $150K     $200K     $180K
-  West Region  $130K     $160K     $175K
-  TOTAL        $280K     $360K     $355K
-
-  JOINED (multiple blocks):
-  ┌───────────────┬────────────────────────┐
-  │ Block 1:      │ Block 2:               │
-  │ New Leads     │ New Opportunities      │
-  │ (this month)  │ (this month)           │
-  └───────────────┴────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Tabular["TABULAR — flat list"]
+        T1["Flat rows with columns\nNo grouping, no subtotals\nNo charts — Table dashboard only"]
+    end
+    subgraph Summary["SUMMARY — grouped rows"]
+        S1["Rows grouped by up to 3 fields\nSubtotals per group + grand total\nSupports charts and all dashboard types"]
+    end
+    subgraph Matrix["MATRIX — rows and columns"]
+        M1["Two-dimensional grouping\nUp to 2 row groups + 2 column groups\nSupports charts and all dashboard types"]
+    end
+    subgraph Joined["JOINED — multiple blocks"]
+        J1["Block 1: New Leads (this month)"]
+        J2["Block 2: New Opportunities (this month)"]
+        J3["Up to 5 blocks\nCan show unrelated objects side-by-side"]
+    end
 ```
 
 **Limitations:**

@@ -101,26 +101,17 @@ for (Database.SaveResult sr : results) {
 
 ## Architecture / How It Works
 
-```
-DML OPERATION DECISION TREE
-
-  Need to write data?
-        │
-  ┌─────┴──────┐
-  New record?  Existing?  Don't know?
-       │            │           │
-    insert       update       upsert
-    (Id auto-    (Id must    (External ID
-     populated)   be set)    or Salesforce Id)
-        │            │           │
-        └────────────┴───────────┘
-                     │
-           All-or-nothing needed?
-           ┌─────────┴──────────┐
-          Yes                   No
-     DML statement         Database.insert(list, false)
-    insert myList          → partial success allowed
-    (throws DmlException)  → returns SaveResult[]
+```mermaid
+flowchart TD
+    A{"Need to write data?"} --> B{"Record state?"}
+    B -->|"New record"| C["insert\n(Id auto-populated after)"]
+    B -->|"Existing record"| D["update\n(Id must be set)"]
+    B -->|"Don't know"| E["upsert\n(External ID or Salesforce Id)"]
+    C --> F{"All-or-nothing needed?"}
+    D --> F
+    E --> F
+    F -->|"Yes"| G["DML statement: insert myList\n(throws DmlException on any failure)"]
+    F -->|"No"| H["Database.insert(list, false)\n-> partial success allowed\n-> returns SaveResult[]"]
 ```
 
 **Limitations:**
@@ -129,48 +120,23 @@ DML OPERATION DECISION TREE
 - One bulk DML call counts as 1 statement regardless of list size
 - Upsert external ID field must be marked as External ID in field settings
 
-```
-allOrNone BEHAVIOR
+**allOrNone Behavior:**
 
-  allOrNone = true (default DML statement):
-  ┌──────────────────────────────────────────────────┐
-  │  Records: [Valid, Valid, INVALID, Valid, Valid]   │
-  │                           ↑                      │
-  │  Result: ALL ROLLED BACK ─┘                      │
-  │          DmlException thrown                     │
-  │          0 records committed                     │
-  └──────────────────────────────────────────────────┘
-
-  allOrNone = false (Database.insert with false):
-  ┌──────────────────────────────────────────────────┐
-  │  Records: [Valid, Valid, INVALID, Valid, Valid]   │
-  │                           ↑                      │
-  │  Result: 4 committed      │  1 failed             │
-  │          No exception thrown                     │
-  │          SaveResult[2].isSuccess() = false        │
-  └──────────────────────────────────────────────────┘
-```
+| | `allOrNone = true` (default `insert myList`) | `allOrNone = false` (`Database.insert(list, false)`) |
+|---|---|---|
+| Input | [Valid, Valid, **INVALID**, Valid, Valid] | [Valid, Valid, **INVALID**, Valid, Valid] |
+| Result | ALL rolled back — 0 records committed | 4 records committed, 1 failed |
+| Exception | `DmlException` thrown | No exception thrown |
+| How to check failures | Catch `DmlException` | `SaveResult[2].isSuccess() = false` |
 
 **Limitations:**
 - With `allOrNone = false`, failed records are NOT rolled back — they simply aren't committed; successful records ARE saved even if others fail
 - `merge` only: no Database.merge() method — always all-or-nothing
 
-```
-POST-INSERT Id POPULATION
-
-  Before insert:
-  ┌──────────────────────────────────────┐
-  │  Account a = new Account();          │
-  │  a.Name = 'Acme';                    │
-  │  System.debug(a.Id);  // → null      │
-  └──────────────────────────────────────┘
-        │
-        ▼ insert a;
-  ┌──────────────────────────────────────┐
-  │  System.debug(a.Id);  // → 001xx...  │
-  │  ← Id populated in memory by DML     │
-  │  ← No re-query required              │
-  └──────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["Before insert:\nAccount a = new Account();\na.Name = 'Acme';\nSystem.debug(a.Id); // null"] --> B["insert a;"]
+    B --> C["After insert:\nSystem.debug(a.Id); // 001xx...\nId populated in memory by DML\nNo re-query required"]
 ```
 
 **Limitations:**

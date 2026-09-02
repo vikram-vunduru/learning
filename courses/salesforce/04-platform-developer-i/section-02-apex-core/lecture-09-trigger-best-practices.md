@@ -112,74 +112,61 @@ static void testPhoneFormatting() {
 
 ## Architecture / How It Works
 
-```
-HANDLER CLASS PATTERN — FULL STRUCTURE
+**Handler Class Pattern — Full Structure:**
 
-  AccountTrigger.trigger          AccountTriggerHandler.cls
-  ─────────────────────────       ────────────────────────────────────────
-  trigger AccountTrigger on       public class AccountTriggerHandler {
-    Account (                         
-    before insert,                    public void onBeforeInsert(
-    before update,                        List<Account> newAccs) {
-    after insert,                         // business logic here
-    after update,                         validateAccountNames(newAccs);
-    after delete) {                   }
-                                      
-    AccountTriggerHandler h =         public void onBeforeUpdate(
-        new AccountTriggerHandler();      List<Account> newAccs,
-                                          Map<Id,Account> oldMap) {
-    if (Trigger.isBefore) {               // field change checks here
-        if (Trigger.isInsert)         }
-            h.onBeforeInsert(         
-                Trigger.new);         public void onAfterInsert(
-        if (Trigger.isUpdate)             List<Account> newAccs) {
-            h.onBeforeUpdate(             // related record creation
-                Trigger.new,          }
-                Trigger.oldMap);  }
-    }                           
-    if (Trigger.isAfter) {        AccountTriggerHandlerTest.cls
-        if (Trigger.isInsert)     ─────────────────────────────────
-            h.onAfterInsert(      @isTest class AccountTriggerHandlerTest {
-                Trigger.new);         @isTest static void testBeforeInsert() {
-        if (Trigger.isUpdate)             // test handler directly OR
-            h.onAfterUpdate(              // insert records to fire trigger
-                Trigger.new,          }
-                Trigger.oldMap);  }
+`AccountTrigger.trigger` (thin — routing only):
+
+```apex
+trigger AccountTrigger on Account (
+    before insert, before update,
+    after insert, after update, after delete) {
+
+    AccountTriggerHandler h = new AccountTriggerHandler();
+
+    if (Trigger.isBefore) {
+        if (Trigger.isInsert)  h.onBeforeInsert(Trigger.new);
+        if (Trigger.isUpdate)  h.onBeforeUpdate(Trigger.new, Trigger.oldMap);
     }
-  }
+    if (Trigger.isAfter) {
+        if (Trigger.isInsert)  h.onAfterInsert(Trigger.new);
+        if (Trigger.isUpdate)  h.onAfterUpdate(Trigger.new, Trigger.oldMap);
+    }
+}
 ```
+
+`AccountTriggerHandler.cls` (business logic):
+
+```apex
+public class AccountTriggerHandler {
+    public void onBeforeInsert(List<Account> newAccs) {
+        // business logic here
+        validateAccountNames(newAccs);
+    }
+    public void onBeforeUpdate(List<Account> newAccs, Map<Id,Account> oldMap) {
+        // field change checks here
+    }
+    public void onAfterInsert(List<Account> newAccs) {
+        // related record creation
+    }
+}
+```
+
+`AccountTriggerHandlerTest.cls` — tests call the handler directly or insert records to fire the trigger.
 
 **Limitations:**
 - One handler class per trigger; handler is NOT static (instantiated per trigger call)
 - Static Boolean flag must be in a SEPARATE utility class — not in the handler
 - Cannot have static methods that maintain state across re-instantiation in handler class (it's a new instance each call)
 
-```
-RECURSIVE PREVENTION — HOW THE STATIC FLAG WORKS
-
-  Transaction begins
-       │
-       ▼
-  TriggerHelper.isFirstRun = true   ← static var in utility class
-
-  First trigger invocation:
-  ┌──────────────────────────────────────┐
-  │  if (TriggerHelper.isFirstRun) {     │
-  │      isFirstRun = false;             │
-  │      handler.onAfterUpdate(...);     │  ← runs; does DML
-  │  }                                   │
-  └──────────────────────────────────────┘
-          │
-          │  DML fires trigger again (same transaction)
-          ▼
-  Second trigger invocation:
-  ┌──────────────────────────────────────┐
-  │  if (TriggerHelper.isFirstRun) {     │  ← isFirstRun is STILL false
-  │      ...                             │     (static var persisted)
-  │  }                                   │  ← skipped entirely
-  └──────────────────────────────────────┘
-
-  Result: logic runs ONCE per transaction, not infinitely
+```mermaid
+flowchart TD
+    A["Transaction begins\nTriggerHelper.isFirstRun = true (static var in utility class)"] --> B
+    B{"First trigger invocation:\nif (TriggerHelper.isFirstRun)?"}
+    B -->|"true"| C["isFirstRun = false;\nhandler.onAfterUpdate(...); -- runs; does DML"]
+    C --> D["DML fires trigger again (same transaction)"]
+    D --> E{"Second trigger invocation:\nif (TriggerHelper.isFirstRun)?"}
+    E -->|"false (static var persisted)"| F["Skipped entirely"]
+    F --> G["Result: logic runs ONCE per transaction, not infinitely"]
 ```
 
 **Limitations:**
@@ -187,23 +174,17 @@ RECURSIVE PREVENTION — HOW THE STATIC FLAG WORKS
 - If you need to process DIFFERENT records in the second invocation (not just the same ones), this pattern may be too aggressive — consider tracking processed record Ids instead
 - Workflow field updates also cause a second trigger invocation — the static flag prevents double-processing of workflow-triggered re-saves too
 
-```
-TRIGGER BEST PRACTICES CHECKLIST
+**Trigger Code Review Checklist:**
 
-  ┌─────────────────────────────────────────────────────┐
-  │  TRIGGER CODE REVIEW CHECKLIST                      │
-  ├─────────────────────────────────────────────────────┤
-  │  ✓ One trigger per object (handler class pattern)   │
-  │  ✓ No SOQL inside any loop                          │
-  │  ✓ No DML inside any loop                           │
-  │  ✓ Static Boolean recursion flag in utility class   │
-  │  ✓ Field change detection before expensive logic    │
-  │  ✓ Null checks before Map.get() results             │
-  │  ✓ Test with 200 records (bulk scenario)            │
-  │  ✓ Assert results (not just coverage)               │
-  │  ✓ No hardcoded IDs                                 │
-  └─────────────────────────────────────────────────────┘
-```
+- One trigger per object (handler class pattern)
+- No SOQL inside any loop
+- No DML inside any loop
+- Static Boolean recursion flag in utility class
+- Field change detection before expensive logic
+- Null checks before Map.get() results
+- Test with 200 records (bulk scenario)
+- Assert results (not just coverage)
+- No hardcoded IDs
 
 **Limitations:**
 - 75% code coverage required for deployment to production (org-wide average, not per class)

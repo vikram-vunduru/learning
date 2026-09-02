@@ -39,33 +39,12 @@ Advise customers to treat consent as a first-class data stream, not an afterthou
 
 ### Consent Fields Reference Diagram
 
-```
-  GDPR — Right to Stop All Processing:
-  ┌────────────────────────────────────────────────────┐
-  │  Individual DMO                                    │
-  │  ├─ DoNotProcess = true  (GDPR erasure/stop proc.) │
-  │  └─ HasOptedOutOfSharing = true  (CCPA no-sell)    │
-  └────────────────────────────────────────────────────┘
-
-  Email Opt-Out:
-  ┌────────────────────────────────────────────────────┐
-  │  Contact Point Email DMO                           │
-  │  ├─ EmailAddress = "john@example.com"              │
-  │  └─ HasOptedOutOfEmail = true  (email unsubscribe) │
-  └────────────────────────────────────────────────────┘
-
-  Phone Opt-Out:
-  ┌────────────────────────────────────────────────────┐
-  │  Contact Point Phone DMO                           │
-  │  ├─ TelephoneNumber = "+15551234567"               │
-  │  └─ HasSmsOptedOut = true  (SMS unsubscribe)       │
-  └────────────────────────────────────────────────────┘
-
-  FIELD → LAW MAPPING:
-  HasOptedOutOfEmail   = Email unsubscribe (CAN-SPAM, CASL)
-  DoNotProcess         = GDPR stop-all-processing
-  HasOptedOutOfSharing = CCPA do-not-sell / do-not-share
-```
+| DMO | Consent Field | Law | Meaning |
+|---|---|---|---|
+| **Individual DMO** | `DoNotProcess = true` | GDPR | Stop all processing / right to erasure |
+| **Individual DMO** | `HasOptedOutOfSharing = true` | CCPA | Do not sell / do not share with third parties |
+| **Contact Point Email DMO** | `HasOptedOutOfEmail = true` | CAN-SPAM, CASL | Email unsubscribe |
+| **Contact Point Phone DMO** | `HasSmsOptedOut = true` | TCPA | SMS unsubscribe |
 
 **Limitations:**
 - Consent flags on the WRONG DMO are NOT automatically enforced at activation — the mapping must be exact
@@ -76,67 +55,38 @@ Advise customers to treat consent as a first-class data stream, not an afterthou
 
 ### Consent in the Activation Flow
 
+```mermaid
+flowchart TD
+    SEG["SEGMENT: 'Gold Tier Customers'\n+\nACTIVATION TARGET: 'Email Campaign Q4'"]
+    SEG --> CE["CONSENT EVALUATION (for each member)"]
+    CE --> Q1{"HasOptedOutOfEmail = true?"}
+    Q1 -->|YES| EXC["EXCLUDED from activation"]
+    Q1 -->|NO| Q2{"DoNotProcess = true?"}
+    Q2 -->|YES| EXC
+    Q2 -->|NO| Q3{"Required Consent Category present?"}
+    Q3 -->|NO| EXC
+    Q3 -->|YES| INC["INCLUDED in activation output"]
 ```
-  SEGMENT                       ACTIVATION TARGET
-  "Gold Tier Customers"         "Email Campaign - Q4"
-       │                               │
-       ▼                               ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │           CONSENT EVALUATION (at activation)                │
-  │                                                             │
-  │  For each segment member:                                   │
-  │  ┌───────────────────────────────────────────────────────┐  │
-  │  │ Contact Point Email.HasOptedOutOfEmail = true? ── NO  │  │
-  │  │         ↓                                             │  │
-  │  │ Individual.DoNotProcess = true? ─────────────── NO   │  │
-  │  │         ↓                                             │  │
-  │  │ Required Consent Category present? ─────────── YES   │  │
-  │  │         ↓                                             │  │
-  │  │         ✅ INCLUDE in activation output               │  │
-  │  └───────────────────────────────────────────────────────┘  │
-  │                                                             │
-  │  Any "YES" or missing category → exclude from activation    │
-  └─────────────────────────────────────────────────────────────┘
 
-  Result: Segment members ≥ Activation members (consent exclusion reduces count)
-```
+Result: Segment members ≥ Activation members (consent exclusion reduces count).
 
 ---
 
 ### GDPR Right to Erasure Workflow
 
-```
-  Customer Request: "Delete my data"
-  ════════════════════════════════════════════
-       │
-       ▼
-  1. Set Individual.DoNotProcess = true
-     (stops further processing immediately)
-       │
-       ▼
-  2. Delete Unified Individual record
-     (removes unified profile)
-       │
-       ▼
-  3. Delete Individual DMO records
-       │
-       ▼
-  4. Delete Contact Point DMO records
-       │
-       ▼
-  5. Delete or suppress DLO raw records
-     (prevents re-ingestion recreating the profile)
-       │
-       ▼
-  6. Delete related DMO records (SalesOrder, etc.)
-     if required by law / regulation
-       │
-       ▼
-  7. Verify: next IR run does NOT recreate a
-     Unified Individual for this person
-  ════════════════════════════════════════════
-  ★ Steps 5–7 are commonly missed in implementations
-  ★ Without DLO suppression, record reappears on next Data Stream run
+```mermaid
+flowchart TD
+    REQ["Customer Request: 'Delete my data'"]
+    S1["1. Set Individual.DoNotProcess = true\n(stops further processing immediately)"]
+    S2["2. Delete Unified Individual record\n(removes unified profile)"]
+    S3["3. Delete Individual DMO records"]
+    S4["4. Delete Contact Point DMO records"]
+    S5["5. Delete or suppress DLO raw records\n(prevents re-ingestion recreating the profile)"]
+    S6["6. Delete related DMO records\n(SalesOrder, etc.) if required by law"]
+    S7["7. Verify: next IR run does NOT recreate\na Unified Individual for this person"]
+    REQ --> S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
+    WARN["Steps 5–7 commonly missed.\nWithout DLO suppression, record reappears\non next Data Stream run."]
+    style WARN fill:#ffffcc
 ```
 
 **Limitations:**

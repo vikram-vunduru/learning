@@ -11,15 +11,12 @@
 
 AI deployments exist on a spectrum from fully automated to fully human-controlled:
 
-```
-FULLY AUTOMATED ◄──────────────────────────────────► FULLY HUMAN
-        │                                                   │
-   AI decides,               AI recommends,            Human decides,
-   acts, reports            human approves             AI just informs
-        │                         │                         │
-  [Risk: AI wrong         [Best for most         [Low AI value add
-   with no check]          Salesforce            for routine tasks]
-                           use cases]
+```mermaid
+flowchart LR
+    FA["Fully Automated\nAI decides, acts, reports\nRisk: AI wrong with no check"]
+    HL["Human-in-the-Loop\nAI recommends, human approves\nBest for most Salesforce use cases"]
+    FH["Fully Human\nHuman decides, AI just informs\nLow AI value add for routine tasks"]
+    FA --> HL --> FH
 ```
 
 **Salesforce's position:** For consequential decisions, humans must remain in the loop. AI augments — it does not replace — human judgment for high-stakes outcomes.
@@ -78,16 +75,13 @@ Salesforce's AI Acceptable Use Policy prohibits using Einstein/Agentforce for:
 
 When AI-assisted decisions cause harm, who is accountable?
 
-```
-ACCOUNTABILITY CHAIN:
-
-Salesforce (LLM Provider Contracts, Trust Layer, Acceptable Use Policy)
-    │
-    └──▶ Organization deploying Einstein (AI governance, use case design)
-              │
-              └──▶ Salesforce Admin (configuration, template design, testing)
-                        │
-                        └──▶ End User (final action/decision)
+```mermaid
+flowchart TD
+    S["Salesforce\nLLM Provider Contracts · Trust Layer · Acceptable Use Policy"]
+    O["Organization deploying Einstein\nAI governance · use case design"]
+    A["Salesforce Admin\nConfiguration · template design · testing"]
+    U["End User\nFinal action/decision"]
+    S --> O --> A --> U
 ```
 
 **Key principle:** Salesforce provides the platform and safeguards. The customer organization is accountable for how they deploy AI. Admins are accountable for configurations. Users are accountable for actions they take based on AI recommendations.
@@ -133,37 +127,26 @@ HIGH RISK (human approval mandatory):
 
 ## Human Oversight Architecture
 
-```
-╔═══════════════════════════════════════════════════════════════════════╗
-║             HUMAN OVERSIGHT DESIGN PATTERNS                            ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║                                                                       ║
-║  PATTERN 1: AI DRAFT → HUMAN REVIEW → SEND (for content generation)  ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Prompt Builder generates email draft                         │    ║
-║  │         → Rep reviews and edits if needed                    │    ║
-║  │         → Rep clicks Send (human action required)            │    ║
-║  │ No email ever goes to customer without human touchpoint      │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                                                                       ║
-║  PATTERN 2: AI SCORES → HUMAN DECIDES (for predictive AI)            ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Einstein Prediction Builder scores account churn risk: 84    │    ║
-║  │ NBA surfaces "At Risk — Schedule Executive Review" rec       │    ║
-║  │         → CSM reviews score + driving factors                │    ║
-║  │         → CSM decides to accept or dismiss recommendation    │    ║
-║  │ AI informs; human decides                                    │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                                                                       ║
-║  PATTERN 3: AGENTFORCE → ESCALATION (for autonomous agents)          ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Agentforce handles: order status, standard returns           │    ║
-║  │ Escalation triggers: customer requests human, billing         │    ║
-║  │ dispute > $1000, complaint about AI itself, sensitive topic  │    ║
-║  │ Escalation: Omni-Channel routing to human agent              │    ║
-║  │ Context transfer: full conversation + data retrieved         │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-╚═══════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    subgraph P1["Pattern 1 — AI Draft to Human Review to Send\nFor content generation"]
+        P1A["Prompt Builder generates email draft"]
+        P1B["Rep reviews and edits if needed"]
+        P1C["Rep clicks Send — human action required\nNo email goes to customer without human touchpoint"]
+        P1A --> P1B --> P1C
+    end
+    subgraph P2["Pattern 2 — AI Scores to Human Decides\nFor predictive AI"]
+        P2A["Einstein Prediction Builder scores churn risk: 84\nNBA surfaces At Risk — Schedule Executive Review"]
+        P2B["CSM reviews score and driving factors"]
+        P2C["CSM accepts or dismisses recommendation\nAI informs; human decides"]
+        P2A --> P2B --> P2C
+    end
+    subgraph P3["Pattern 3 — Agentforce to Escalation\nFor autonomous agents"]
+        P3A["Agentforce handles: order status · standard returns"]
+        P3B["Escalation triggers: customer requests human\nbilling dispute > $1000 · sensitive topic"]
+        P3C["Escalation: Omni-Channel routing to human agent\nContext transfer: full conversation + data retrieved"]
+        P3A --> P3B --> P3C
+    end
 ```
 
 **Limitations:**

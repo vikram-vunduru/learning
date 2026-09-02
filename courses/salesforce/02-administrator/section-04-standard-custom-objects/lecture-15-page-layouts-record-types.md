@@ -50,36 +50,28 @@ Record Types are one of the most over-used features in Salesforce. A common anti
 
 ## Architecture / How It Works
 
+```mermaid
+flowchart TD
+    Obj["OBJECT (e.g., Opportunity)"]
+    Obj --> RT1["Record Type: Software Sale\n(uses Business Process A)"]
+    Obj --> RT2["Record Type: Hardware Sale\n(uses Business Process B)"]
+    RT1 --> PLA["Page Layout Assignment Matrix\n(Profile × Record Type)"]
+    RT2 --> PLA
+    PLA --> BP["Business Process\nDefines which Stage/Status values\nare available for that Record Type"]
 ```
-Record Types & Page Layout Assignment
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  OBJECT (e.g., Opportunity)
-  ┌────────────────────────────────────────────┐
-  │  Record Types:                             │
-  │    - Software Sale (uses Business Process) │
-  │    - Hardware Sale (uses Business Process) │
-  └─────────────────┬──────────────────────────┘
-                    │
-                    ▼
-  Page Layout Assignment Matrix:
-  ┌────────────────────────────────────────────┐
-  │              │ Software Sale │ Hardware Sale│
-  │  Sales Rep   │  Layout A     │  Layout B    │
-  │  Manager     │  Layout C     │  Layout C    │
-  │  System Admin│  Admin Layout │  Admin Layout│
-  └────────────────────────────────────────────┘
+**Page Layout Assignment Matrix** (Profile × Record Type → Layout):
 
-  Business Process:
-  ┌────────────────────────────────────────────┐
-  │  Enterprise Process: Prospect→Qual→Propose │
-  │     →Negotiate→Closed Won/Lost             │
-  │  SMB Process: Lead→Propose→Closed Won/Lost │
-  │                                            │
-  │  Opp Record Type "Enterprise" uses         │
-  │    Enterprise Process (those stage values) │
-  └────────────────────────────────────────────┘
-```
+| Profile | Software Sale | Hardware Sale |
+|---|---|---|
+| Sales Rep | Layout A | Layout B |
+| Manager | Layout C | Layout C |
+| System Admin | Admin Layout | Admin Layout |
+
+**Business Processes** (available for Lead, Opportunity, Case, Solution):
+- Enterprise Process: Prospect → Qualify → Propose → Negotiate → Closed Won/Lost
+- SMB Process: Lead → Propose → Closed Won/Lost
+- Each Opportunity Record Type is linked to a Business Process that defines its Stage values
 
 **Limitations:**
 - Page layouts are UI-only — they don't enforce security

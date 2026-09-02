@@ -39,27 +39,15 @@ Data Cloud's ability to activate one segment to multiple destinations simultaneo
 
 ### Activation Flow: Segment to Destinations
 
+```mermaid
+flowchart TD
+    SEG["SEGMENT\n'High-Value Customers Q4'\n15,000 members (Published)"]
+    SEG --> MC["Marketing Cloud (Email)\n13,800 activated\n(1,200 no valid email or opted out)"]
+    SEG --> CRM["CRM Salesforce (Tasks)\n14,200 activated\n(800 no CRM match or record)"]
+    SEG --> ADS["Ad Platform\n(Meta/Google/LinkedIn)\n~9,800 matched\n(40–70% platform match rate)"]
 ```
-  ╔══════════════════════════════╗
-  ║         SEGMENT              ║
-  ║  "High-Value Customers Q4"   ║
-  ║  15,000 members (Published)  ║
-  ╚══════════════╤═══════════════╝
-                 │
-        ┌────────┼────────┐
-        ▼        ▼        ▼
-  ╔══════════╗ ╔═══════╗ ╔══════════════╗
-  ║Marketing ║ ║  CRM  ║ ║  Ad Platform ║
-  ║  Cloud   ║ ║ Salerf║ ║ (Meta/Google/║
-  ║ (Email)  ║ ║(Tasks)║ ║  LinkedIn)   ║
-  ╚══════════╝ ╚═══════╝ ╚══════════════╝
-  13,800 act.   14,200   ~9,800 matched
-  (1,200 no     (800 no  (40-70% match
-   valid email   CRM match  rate on platform)
-   or opted out) or record)
 
-  One Published segment → multiple Activation Targets simultaneously
-```
+One Published segment activates to multiple Activation Targets simultaneously.
 
 **Limitations:**
 - Advertising platform match rates are 40–70% of uploaded records — not all activated members are identifiable on the platform
@@ -70,26 +58,15 @@ Data Cloud's ability to activate one segment to multiple destinations simultaneo
 
 ### Marketing Cloud Activation — Critical Details
 
+```mermaid
+flowchart LR
+    DC["DATA CLOUD\nSegment Members\n+ Contact Points\n+ Activation Attributes:\n  LoyaltyTier\n  TotalSpend90d"]
+    DE["MARKETING CLOUD\nData Extension\n(auto-created/updated)\nEmailAddress\nSubscriberKey ← CRITICAL\nLoyaltyTier\nTotalSpend90d"]
+    JB["Journey Builder / Sends\nPersonalize using attributes"]
+    DC -->|"Activation"| DE --> JB
 ```
-  DATA CLOUD                          MARKETING CLOUD
-  ══════════════                      ═══════════════════════════════════
-  ╔═══════════════════╗               ╔══════════════════════════════╗
-  ║  SEGMENT MEMBERS  ║               ║  DATA EXTENSION              ║
-  ║  + Contact Points ║ ═Activation═▶ ║  (auto-created/updated)      ║
-  ║  + Activation     ║               ║  EmailAddress                ║
-  ║    Attributes:    ║               ║  SubscriberKey  ← CRITICAL   ║
-  ║  ▸ LoyaltyTier   ║               ║  LoyaltyTier                 ║
-  ║  ▸ TotalSpend90d ║               ║  TotalSpend90d               ║
-  ╚═══════════════════╝               ╚══════════════════════════════╝
-                                               │
-                                               ▼
-                                      Journey Builder / Sends
-                                      Personalize using attributes
 
-  ★ SUBSCRIBER KEY MAPPING IS REQUIRED ★
-  Maps Data Cloud contact identifier → MC Subscriber Key
-  Wrong mapping = duplicate MC subscriber records
-```
+**Subscriber Key mapping is required.** It maps the Data Cloud contact identifier to the MC Subscriber Key. Wrong mapping creates duplicate MC subscriber records.
 
 **Limitations:**
 - Subscriber Key mapping is required and must be correct — incorrect mapping creates duplicate subscribers in MC
@@ -100,27 +77,20 @@ Data Cloud's ability to activate one segment to multiple destinations simultaneo
 
 ### Advertising Platform Activation — Privacy Model
 
+```mermaid
+flowchart LR
+    DC["DATA CLOUD\nSegment Members\nEmail: john@co.com\nPhone: 555-123-4567\n\nPrivacy rule: raw PII\nNEVER sent to ad platforms"]
+    HASH["SHA-256 Hash\n(one-way — cannot reverse\nto recover PII)"]
+    FB["Facebook\nCustom Audience"]
+    GG["Google\nCustomer Match"]
+    LI["LinkedIn\nMatched Audience"]
+    DC -->|"hash"| HASH
+    HASH --> FB
+    HASH --> GG
+    HASH --> LI
 ```
-  DATA CLOUD                     AD PLATFORMS
-  ═══════════════                ════════════════════════════════
-  Segment Members                SHA-256 hash (one-way)
-  Email: john@co.com ─── hash ──▶ 5d41402abc4b... ──▶ Facebook
-  Phone: 555-123-4567             Cannot reverse                Custom
-                                  to recover PII               Audience
-                                             │
-  ╔══════════════════╗           ─── hash ──▶ Google Customer Match
-  ║  PRIVACY RULE:   ║
-  ║  Raw PII NEVER   ║           ─── hash ──▶ LinkedIn Matched
-  ║  sent to ad      ║                        Audience
-  ║  platforms       ║
-  ╚══════════════════╝           Match rate: 40–70% (not all users
-                                  identifiable on platform)
 
-  Use cases:
-  ▸ Suppression: don't show ads to existing customers
-  ▸ Lookalike: find users similar to this audience
-  ▸ Retargeting: re-engage browsed-but-didn't-buy customers
-```
+Match rate: 40–70% (not all users identifiable on platform). Use cases: Suppression (don't show ads to existing customers), Lookalike (find similar users), Retargeting (re-engage browsed-but-didn't-buy).
 
 **Limitations:**
 - SHA-256 hashing is one-way — ad platforms cannot reverse it to obtain PII
@@ -131,22 +101,17 @@ Data Cloud's ability to activate one segment to multiple destinations simultaneo
 
 ### Publish Schedule and Full Chain
 
-```
-  PUBLISH SCHEDULE OPTIONS:
-  ══════════════════════════════════════════════════════════
-  Continuous ─── activates changes as soon as segment refreshes
-  12 hours   ─── publishes twice daily
-  24 hours   ─── publishes once daily
-  Manual     ─── triggered by admin action only
+**Publish Schedule Options:**
+- **Continuous** — activates changes as soon as segment refreshes
+- **12 hours** — publishes twice daily
+- **24 hours** — publishes once daily
+- **Manual** — triggered by admin action only
 
-  FULL CHAIN (every step has its own schedule):
-  Data Stream ──▶ DMO update ──▶ CI refresh ──▶ Segment refresh ──▶ Activation publish
+**Full Chain (every step has its own schedule):**
 
-  New customer qualifies for segment at 8 PM.
-  With daily schedules (Data Stream 2AM, CI 4AM, Segment 6AM, Publish 7AM):
-  Customer appears in destination at 7 AM THE NEXT DAY — 11-hour lag.
-  This is expected and must be communicated to stakeholders.
-```
+Data Stream → DMO update → CI refresh → Segment refresh → Activation publish
+
+**End-to-end lag example:** New customer qualifies at 8 PM. With daily schedules (Data Stream 2 AM, CI 4 AM, Segment 6 AM, Publish 7 AM) — customer appears in destination at 7 AM the next day: **11-hour lag**. This is expected and must be communicated to stakeholders.
 
 ---
 

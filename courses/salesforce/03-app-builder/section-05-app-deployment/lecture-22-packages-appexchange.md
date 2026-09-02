@@ -38,22 +38,15 @@ Uninstalling a managed or unmanaged package removes ALL package components, incl
 
 ## Architecture / How It Works
 
-```
-Package Type Comparison:
-┌──────────────────────┬─────────────┬─────────────┬─────────────┐
-│ Property             │ Unmanaged   │ Managed     │ Unlocked    │
-├──────────────────────┼─────────────┼─────────────┼─────────────┤
-│ Source visibility    │ Full        │ Obfuscated  │ Full        │
-│ Apex protection      │ No          │ Yes         │ No          │
-│ Upgradeable          │ No          │ Yes         │ Yes         │
-│ Namespace required   │ No          │ Yes         │ Optional    │
-│ AppExchange eligible │ No          │ Yes         │ No          │
-│ Use case             │ Templates,  │ Commercial  │ Enterprise  │
-│                      │ demos       │ ISV apps    │ modules     │
-│ Source control       │ No (native) │ 1GP: no     │ Yes (DX)    │
-│                      │             │ 2GP: yes    │             │
-└──────────────────────┴─────────────┴─────────────┴─────────────┘
-```
+| Property | Unmanaged | Managed | Unlocked |
+|---|---|---|---|
+| Source visibility | Full | Obfuscated | Full |
+| Apex protection | No | Yes | No |
+| Upgradeable | No | Yes | Yes |
+| Namespace required | No | Yes | Optional |
+| AppExchange eligible | No | Yes | No |
+| Use case | Templates, demos | Commercial ISV apps | Enterprise modules |
+| Source control | No (native) | 1GP: No; 2GP: Yes | Yes (DX) |
 
 **Limitations:**
 - Unmanaged packages have no upgrade path — new version requires uninstall + reinstall (data loss risk)
@@ -61,46 +54,28 @@ Package Type Comparison:
 - Unlocked packages require Salesforce DX tooling and developer skills
 - Namespace registration is permanent — you cannot change or reassign a namespace once registered
 
-```
-Namespace Prefix Behavior:
-                                                               
-  Package namespace: "myns"                                    
-                                                               
-  Custom Object in package:     Project__c                    
-  After installation:           myns__Project__c              
-                                                               
-  Apex class in package:        ProjectHelper                 
-  After installation:           myns.ProjectHelper            
-                                                               
-  Customer's own Object:        Project__c                    
-  No conflict — different names:                               
-  ┌──────────────────┬───────────────────────────────────┐    
-  │ Customer's       │ myns__Project__c (package)        │    
-  │ Project__c       │ Project__c (customer's own)       │    
-  └──────────────────┴───────────────────────────────────┘    
-  Both coexist without conflict.                               
-```
+**Namespace Prefix Behavior** (package namespace: `myns`)
+
+| Component | In Package | After Installation |
+|---|---|---|
+| Custom Object | `Project__c` | `myns__Project__c` |
+| Apex class | `ProjectHelper` | `myns.ProjectHelper` |
+| Customer's own object | `Project__c` | `Project__c` (no conflict — both coexist) |
 
 **Limitations:**
 - All Apex, objects, fields, and flows in the package get the namespace prefix — EVERY component
 - Namespace cannot be changed after registration — choose carefully
 - References within the package must use fully namespaced names in code
 
-```
-AppExchange Listing Types:
-┌────────────────────────────────────────────────────────────────┐
-│  AppExchange (appexchange.salesforce.com) contains:            │
-│                                                                │
-│  • Apps (managed packages) — full applications                 │
-│  • Components — LWC/Aura components                            │
-│  • Flows — pre-built automation flows                          │
-│  • Bolt Solutions — industry templates                         │
-│  • Consultants — partner service listings                      │
-│                                                                │
-│  All PUBLIC listings require Salesforce Security Review.       │
-│  Security review is mandatory — not optional.                  │
-└────────────────────────────────────────────────────────────────┘
-```
+**AppExchange (appexchange.salesforce.com) contains:**
+
+- **Apps** (managed packages) — full applications
+- **Components** — LWC/Aura components
+- **Flows** — pre-built automation flows
+- **Bolt Solutions** — industry templates
+- **Consultants** — partner service listings
+
+All public listings require Salesforce Security Review. Security review is mandatory — not optional.
 
 **Limitations:**
 - Security review takes weeks and requires the package to pass Salesforce's security scanner

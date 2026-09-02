@@ -143,24 +143,11 @@ public class TestDataFactory {
 
 ## Architecture / How It Works
 
-```
-TEST EXECUTION FLOW
-
-  test class loaded
-         │
-         ▼
-  @testSetup runs ONCE
-  (data inserted, available to all methods)
-         │
-         ├─────────────────────────────────────────┐
-         │                                         │
-         ▼                                         ▼
-  testMethod1()                             testMethod2()
-  ─────────────                             ─────────────
-  sees @testSetup data                      sees @testSetup data
-  makes changes                             sees ORIGINAL @testSetup data
-  (rolled back after)                       (prev method changes rolled back)
-  asserts                                   asserts
+```mermaid
+flowchart TD
+    A["Test class loaded"] --> B["@testSetup runs ONCE\n(data inserted, available to all methods)"]
+    B --> C["testMethod1()\n- sees @testSetup data\n- makes changes (rolled back after)\n- asserts"]
+    B --> D["testMethod2()\n- sees ORIGINAL @testSetup data\n  (previous method changes rolled back)\n- asserts"]
 ```
 
 **Limitations:**
@@ -168,28 +155,13 @@ TEST EXECUTION FLOW
 - Data created in `@testSetup` is only accessible via SOQL queries in test methods — in-memory references are reset
 - `@testSetup` cannot make callouts
 
-```
-GOVERNOR LIMIT RESET WITH startTest/stopTest
-
-  Test method execution:
-  ┌────────────────────────────────────────────────────────────┐
-  │  [Before startTest]                                        │
-  │  Setup code runs — consumes limits from "setup pool"       │
-  │  insert 200 accounts (DML, SOQL)                           │
-  │                                                            │
-  │  Test.startTest();  ← FRESH governor limits from here      │
-  │  ─────────────────────────────────────────────────────     │
-  │  Your business logic runs with full fresh limits           │
-  │  SOQL count resets to 0                                    │
-  │  DML count resets to 0                                     │
-  │  CPU time resets                                           │
-  │                                                            │
-  │  Test.stopTest();   ← Async queue flushes synchronously    │
-  │  ─────────────────────────────────────────────────────     │
-  │  [After stopTest]                                          │
-  │  All @future, Batch, Queueable have completed              │
-  │  Assert results here                                       │
-  └────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["[Before startTest]\nSetup code runs — consumes limits from setup pool\ninsert 200 accounts (DML, SOQL)"] --> B
+    B["Test.startTest()\nFRESH governor limits from here:\nSOQL count resets to 0\nDML count resets to 0\nCPU time resets"] --> C
+    C["Business logic runs with full fresh limits\n@future / Batch / Queueable are queued (not yet run)"] --> D
+    D["Test.stopTest()\nAsync queue flushes synchronously\nAll @future, Batch, Queueable have completed"] --> E
+    E["[After stopTest]\nAssert results here"]
 ```
 
 **Limitations:**

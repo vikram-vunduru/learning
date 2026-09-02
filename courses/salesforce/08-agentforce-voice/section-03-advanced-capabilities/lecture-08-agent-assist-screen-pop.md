@@ -7,23 +7,11 @@ Agent Configuration / Use Cases & Business Value — Agentforce Specialist (CRT-
 
 ### Two Operating Modes in Service Cloud Voice
 
-```
-┌─────────────────────────────────────┬─────────────────────────────────────┐
-│  AUTONOMOUS VOICE BOT               │  AGENT ASSIST MODE                  │
-├─────────────────────────────────────┼─────────────────────────────────────┤
-│  No human agent in the loop         │  Human agent handles the call       │
-│  Agentforce agent IS the contact    │  Agentforce assists from the side   │
-│                                     │                                     │
-│  Call flow:                         │  Call flow:                         │
-│  Customer → Agentforce → (escalate  │  Customer → Human Agent             │
-│            if needed) → Human       │             ↑ AI Suggestions        │
-│                                     │             ↑ Real-time transcript  │
-│  Best for: high volume, predictable │             ↑ Knowledge articles    │
-│  intent, self-service use cases     │                                     │
-│                                     │  Best for: complex calls, empathy   │
-│                                     │  required, judgment calls           │
-└─────────────────────────────────────┴─────────────────────────────────────┘
-```
+| | Autonomous Voice Bot | Agent Assist Mode |
+|---|---|---|
+| **Human in loop?** | No — Agentforce agent IS the contact | Yes — human agent handles the call; AI assists from the side |
+| **Call flow** | Customer → Agentforce → (escalate if needed) → Human | Customer → Human Agent (with AI Suggestions, real-time transcript, Knowledge articles surfaced) |
+| **Best for** | High volume, predictable intent, self-service use cases | Complex calls, empathy required, judgment calls |
 
 **The exam tests the boundary.** Autonomous mode = the AI handles the call end-to-end. Agent Assist = a human is on the call and the AI provides real-time help to that human. These are separate capabilities, separately licensed, and separately configured.
 
@@ -34,28 +22,15 @@ Agent Configuration / Use Cases & Business Value — Agentforce Specialist (CRT-
 
 ### Agent Assist Components
 
-```
-WHAT AGENT ASSIST SHOWS A HUMAN AGENT (Service Console)
+**Service Console — Voice Call Page (Agent Assist layout):**
 
-┌─────────────────────────────────────────────────────────────┐
-│  SERVICE CONSOLE — VOICE CALL PAGE                          │
-├──────────────────────────────┬──────────────────────────────┤
-│  REAL-TIME TRANSCRIPT        │  AI SUGGESTIONS PANEL        │
-│  ─────────────────────       │  ──────────────────────────  │
-│  Customer: "I've been        │  Detected Intent:            │
-│  charged twice this month"   │  Billing Dispute             │
-│                              │                              │
-│  Agent: "I can see that,     │  Suggested Response:         │
-│  let me check your account"  │  "I can see the duplicate    │
-│                              │   charge on 08/15..."        │
-│  Customer: "Also my plan     │                              │
-│  was supposed to renew       │  Knowledge Article:          │
-│  automatically"              │  "Duplicate Charge Process"  │
-│                              │                              │
-│  (scrolls in real-time       │  Next Best Action:           │
-│   while on the call)         │  Issue Refund (Flow action)  │
-└──────────────────────────────┴──────────────────────────────┘
-```
+**Left panel — Real-Time Transcript:** Live scrolling transcript with speaker labels (Customer / Agent) while on the call.
+
+**Right panel — AI Suggestions:**
+- Detected Intent: e.g., Billing Dispute
+- Suggested Response: AI-generated reply suggestion
+- Knowledge Article: related article recommendation
+- Next Best Action: recommended Flow action (e.g., Issue Refund)
 
 **What Agent Assist surfaces:**
 1. Real-time transcript (scrolling, speaker-labeled)
@@ -73,27 +48,16 @@ WHAT AGENT ASSIST SHOWS A HUMAN AGENT (Service Console)
 
 ### Screen Pop — How It Works
 
-```
-Inbound Call Arrives
-    ↓
-ANI (Caller's Phone Number) captured by telephony provider
-    ↓
-Service Cloud Voice passes ANI to Salesforce
-    ↓
-Salesforce queries for ANI match:
-    Priority order:
-    1. Contact.Phone
-    2. Contact.MobilePhone
-    3. Account.Phone
-    ↓
-         Found? → YES → Open Contact / Account record (screen pop)
-                          Case sub-tab if open case exists
-         Found? → NO  → New Case / Contact creation prompt
-                          (configurable: auto-create or manual)
-    ↓
-Human agent's Service Console opens the matched record
-    ↓
-Human agent sees full CRM context before speaking a word
+```mermaid
+flowchart TD
+    IC["Inbound Call Arrives"]
+    IC --> ANI["ANI (Caller's Phone Number)\ncaptured by telephony provider"]
+    ANI --> SCV["Service Cloud Voice passes ANI to Salesforce"]
+    SCV --> QUERY["Salesforce queries for ANI match\nPriority: 1. Contact.Phone\n2. Contact.MobilePhone\n3. Account.Phone"]
+    QUERY --> FOUND{"Found?"}
+    FOUND -->|"YES"| POP["Open Contact/Account record (screen pop)\nCase sub-tab if open case exists"]
+    FOUND -->|"NO"| NOPOP["New Case / Contact creation prompt\n(configurable: auto-create or manual)"]
+    POP --> CTX["Human agent sees full CRM context\nbefore speaking a word"]
 ```
 
 **Limitations:**
@@ -104,21 +68,15 @@ Human agent sees full CRM context before speaking a word
 
 ### Screen Pop — Configuration
 
-```
-Setup → Voice Call Centers → [Call Center] → Screen Pop Settings
-┌─────────────────────────────────────────────────────┐
-│  Match Priority:    Contact > Account > Lead         │
-│  On No Match:       [ Show New Contact Form  ▼ ]     │
-│  On Multiple Match: [ Show Match List        ▼ ]     │
-│  Default Screen Pop: Contact Record                  │
-│  Open Sub-Tab: Open Cases                            │
-│                                                      │
-│  Additionally:                                       │
-│  Record Page: configure which Lightning page         │
-│  layout opens — design Agent Voice Call page         │
-│  layout with Transcript + AI Suggestions components  │
-└─────────────────────────────────────────────────────┘
-```
+**Path:** Setup → Voice Call Centers → [Call Center] → Screen Pop Settings
+
+**Screen Pop Settings:**
+- Match Priority: Contact > Account > Lead
+- On No Match: Show New Contact Form (configurable)
+- On Multiple Match: Show Match List (configurable)
+- Default Screen Pop: Contact Record
+- Open Sub-Tab: Open Cases
+- Record Page: configure which Lightning page layout opens — design Agent Voice Call page layout with Transcript + AI Suggestions components
 
 **Limitations:**
 - Screen pop configuration is at the Call Center level, not per-queue — all calls through that Call Center use the same pop behavior
@@ -126,20 +84,21 @@ Setup → Voice Call Centers → [Call Center] → Screen Pop Settings
 
 ### Einstein Conversation Insights for Agent Assist
 
-```
-REAL-TIME                          POST-CALL
-──────────────────────────         ──────────────────────────────────
-  Intent detection                   Conversation summary
-  Keyword alerts (product mentions,  Topic classification
-  escalation language, competitor    Sentiment trend (whole call)
-  names)                             Coaching flags (missed steps,
-  Suggested responses                non-compliance phrases)
-  Knowledge article links            Talk ratio (agent vs. customer)
-  Next best action prompts
+**Real-Time:**
+- Intent detection
+- Keyword alerts (product mentions, escalation language, competitor names)
+- Suggested responses
+- Knowledge article links
+- Next best action prompts
 
-SUPERVISOR VIEW (real-time monitoring):
-  Listen (silent monitor) + Barge (join) + Whisper (coach agent only)
-```
+**Post-Call:**
+- Conversation summary
+- Topic classification
+- Sentiment trend (whole call)
+- Coaching flags (missed steps, non-compliance phrases)
+- Talk ratio (agent vs. customer)
+
+**Supervisor View (real-time monitoring):** Listen (silent monitor), Barge (join call), Whisper (coach agent only — caller cannot hear)
 
 **Limitations:**
 - Einstein Conversation Insights (ECI) is a separate license feature — not included with base Service Cloud Voice
@@ -149,20 +108,15 @@ SUPERVISOR VIEW (real-time monitoring):
 
 ### Agent Assist vs. Autonomous — Feature Comparison
 
-```
-┌──────────────────────────────────┬────────────────────┬────────────────────┐
-│ Feature                          │ Autonomous Mode    │ Agent Assist Mode  │
-├──────────────────────────────────┼────────────────────┼────────────────────┤
-│ Handles call without human       │ YES                │ NO                 │
-│ Real-time transcript visible     │ N/A (no human)     │ YES                │
-│ AI suggested responses           │ N/A                │ YES                │
-│ Knowledge article suggestions    │ N/A                │ YES                │
-│ Post-call summary                │ YES (for records)  │ YES (for agent)    │
-│ Escalate to human with context   │ YES                │ N/A (already human)│
-│ Works with Screen Flow           │ NO                 │ YES (screen pop    │
-│                                  │                    │ is screen, not bot)│
-└──────────────────────────────────┴────────────────────┴────────────────────┘
-```
+| Feature | Autonomous Mode | Agent Assist Mode |
+|---|---|---|
+| Handles call without human | YES | NO |
+| Real-time transcript visible | N/A (no human) | YES |
+| AI suggested responses | N/A | YES |
+| Knowledge article suggestions | N/A | YES |
+| Post-call summary | YES (for records) | YES (for agent) |
+| Escalate to human with context | YES | N/A (already human) |
+| Works with Screen Flow | NO | YES (screen pop is a screen; caller has no screen) |
 
 **Key distinction:** Screen Flows are incompatible with autonomous voice bots (no screen on a phone call), but Screen Flows ARE usable in Agent Assist workflows where the human agent has a screen. The screen pop IS a screen pop — it opens a Lightning page, not a Screen Flow interaction for the caller.
 

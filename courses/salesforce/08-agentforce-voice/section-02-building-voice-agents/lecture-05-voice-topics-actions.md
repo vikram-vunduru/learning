@@ -9,20 +9,11 @@ Agent Configuration / Building Agents — Agentforce Specialist (CRT-271)
 
 Topic descriptions are the semantic matching guide the LLM uses. Chat inputs are typed and often formal. Voice inputs are spontaneous and fragmented.
 
-```
-CHAT TOPIC DESCRIPTION                    VOICE TOPIC DESCRIPTION
-──────────────────────────────            ──────────────────────────────────────────
-"This topic handles customer              "Customer asks where their order is,
- requests about order status,              when it will arrive, or wants a
- shipping updates, tracking                tracking update. Common phrases:
- numbers, and delivery ETAs."              'where's my order,' 'when does it
-                                           arrive,' 'track my package.'"
-        │                                               │
-        ▼                                               ▼
-  Formal / noun-heavy               Conversational / first-person phrases
-  Works poorly with:                Matches well with:
-  "hey so where's my stuff?"        "hey so where's my stuff?"
-```
+| | Chat Topic Description | Voice Topic Description |
+|---|---|---|
+| **Example** | "This topic handles customer requests about order status, shipping updates, tracking numbers, and delivery ETAs." | "Customer asks where their order is, when it will arrive, or wants a tracking update. Common phrases: 'where's my order,' 'when does it arrive,' 'track my package.'" |
+| **Style** | Formal / noun-heavy | Conversational / first-person phrases |
+| **Matches "hey so where's my stuff?"** | Poorly | Well |
 
 **Rule:** Write voice Topic descriptions in the first person, the way a caller would actually say it. Include example spoken phrases. The more your Topic description sounds like a real caller, the more accurately the LLM matches voice utterances.
 
@@ -33,25 +24,14 @@ CHAT TOPIC DESCRIPTION                    VOICE TOPIC DESCRIPTION
 
 ### Voice-Compatible Action Types
 
-```
-┌───────────────────────────┬───────────────────────────┬───────────────────────────┐
-│   WORKS IN VOICE ✓        │  LIMITED / CONDITIONAL    │  NOT COMPATIBLE ✗         │
-├───────────────────────────┼───────────────────────────┼───────────────────────────┤
-│ Flow Action               │ Prompt Template           │ Screen Flow               │
-│ (autolaunched ONLY)       │ (text-only, no rendered   │ (renders UI — no screen   │
-│                           │  format)                  │  on a phone call)         │
-│ Apex Action               │                           │                           │
-│ (complex logic, returns   │ External Service Callout  │ Lightning Component       │
-│  text for TTS)            │ (if response is plain     │ Actions (no browser DOM)  │
-│                           │  text only)               │                           │
-│ Knowledge Article         │                           │ Email Send Actions        │
-│ Retrieval (summarize as   │                           │ (output is visual)        │
-│  text — avoid HTML)       │                           │                           │
-│ Data Cloud Query          │                           │                           │
-│ (text results only)       │                           │                           │
-└───────────────────────────┴───────────────────────────┴───────────────────────────┘
-Rule of thumb: if the action produces VISUAL output, it cannot work in voice
-```
+| Works in Voice | Limited / Conditional | Not Compatible |
+|---|---|---|
+| Flow Action (autolaunched ONLY) | Prompt Template (text-only, no rendered format) | Screen Flow (renders UI — no screen on a phone call) |
+| Apex Action (complex logic, returns text for TTS) | External Service Callout (if response is plain text only) | Lightning Component Actions (no browser DOM) |
+| Knowledge Article Retrieval (summarize as text — avoid HTML) | | Email Send Actions (output is visual) |
+| Data Cloud Query (text results only) | | |
+
+Rule of thumb: if the action produces VISUAL output, it cannot work in voice.
 
 **Key incompatibility to memorize:** Screen Flows are the #1 exam trap. Screen Flows render UI elements — there is no UI surface on a phone call. Replace Screen Flows with autolaunched Flows using voice-specific elements (Speak, Pause, Get Input).
 
@@ -61,29 +41,18 @@ Rule of thumb: if the action produces VISUAL output, it cannot work in voice
 
 ### DTMF Fallback Actions
 
-```
-Agent asks question (TTS plays to caller)
-    ↓
-Speech Recognition attempts to capture response
-    ↓
-┌─────────────────────────┐
-│ Confidence ≥ threshold? │
-└──────────┬──────────────┘
-           ├── YES → Process response via matched Topic
-           │
-           └── NO (low confidence or no speech detected)
-                ↓
-           DTMF Fallback Prompt (TTS):
-           "I didn't catch that.
-            Press 1 for Yes, Press 2 for No,
-            Press 0 to speak with an agent"
-                ↓
-           Telephony Provider captures DTMF tone
-           (Amazon Connect / Genesys / NICE CXone)
-                ↓ Digit value sent to Salesforce
-           Process digit → route accordingly
-
-Max 3 DTMF retries recommended before escalating to human agent
+```mermaid
+flowchart TD
+    Q["Agent asks question\n(TTS plays to caller)"]
+    Q --> SR["Speech Recognition\nattempts to capture response"]
+    SR --> CONF{"Confidence ≥ threshold?"}
+    CONF -->|"YES"| PROC["Process response\nvia matched Topic"]
+    CONF -->|"NO (low confidence\nor no speech)"| DTMF["DTMF Fallback Prompt (TTS)\n'I didn't catch that.\nPress 1 for Yes, Press 2 for No,\nPress 0 to speak with an agent'"]
+    DTMF --> TP["Telephony Provider captures DTMF tone\n(Amazon Connect / Genesys / NICE CXone)"]
+    TP --> DIGIT["Digit value sent to Salesforce\n→ process digit → route accordingly"]
+    DIGIT --> RETRY{"Max 3 retries exceeded?"}
+    RETRY -->|"Yes"| ESC["Escalate to human agent"]
+    RETRY -->|"No"| DTMF
 ```
 
 **DTMF (Dual-Tone Multi-Frequency):** Touch-tone keypad input — the tones generated when pressing phone keys. DTMF is essential for:
@@ -98,21 +67,11 @@ Max 3 DTMF retries recommended before escalating to human agent
 
 ### Voice-Specific Flow Elements
 
-```
-┌────────────────────────────┐  ┌────────────────────────────┐  ┌────────────────────────────┐
-│  SPEAK element             │  │  PAUSE element             │  │  TRANSFER element          │
-├────────────────────────────┤  ├────────────────────────────┤  ├────────────────────────────┤
-│  Injects specific TTS      │  │  Inserts timed silence     │  │  Warm transfer: transcript │
-│  message at Flow point,    │  │  Use AFTER asking a        │  │  passed to human agent     │
-│  bypassing LLM response    │  │  question — gives VAD      │  │                            │
-│  generation for that step  │  │  time to recognize end     │  │  Cold transfer: no context │
-│                            │  │  of speech before          │  │  passed (not recommended)  │
-│  Use for wait messages:    │  │  recording begins          │  │                            │
-│  "Let me look that up..."  │  │                            │  │  Target Queue required     │
-│  (prevents dead silence    │  │  Also adds natural         │  │  Must be autolaunched Flow │
-│   during record queries)   │  │  rhythm to conversation    │  │                            │
-└────────────────────────────┘  └────────────────────────────┘  └────────────────────────────┘
-```
+| Element | Purpose | Notes |
+|---|---|---|
+| **Speak** | Injects specific TTS message at Flow point, bypassing LLM response generation | Use for wait messages like "Let me look that up..." — prevents dead silence during record queries |
+| **Pause** | Inserts timed silence — use after asking a question | Gives VAD time to recognize end of speech; also adds natural rhythm |
+| **Transfer** | Escalates call to human agent | Warm transfer: transcript passed (recommended); Cold transfer: no context passed (not recommended); Target Queue required |
 
 **Hold music ≠ Wait messages:**
 - Hold music: configured in telephony provider's Contact Flow — plays during explicit hold states
@@ -126,27 +85,15 @@ This distinction is an exam favorite. If a question asks where to configure hold
 
 ### Speech Recognition Confidence Threshold
 
-```
-Confidence Score Distribution (0.0 → 1.0)
+Confidence score range: 0.0 (no confidence) → 1.0 (certain). Below threshold: re-prompt / DTMF fallback. Above threshold: process input.
 
-← Re-prompt / DTMF Fallback ─────────┤────── Process Input ──────────→
-0.0     0.25     0.50     0.75    1.0
-                           ↑
-               Default Threshold (~0.75)
+| Threshold Setting | Effect on Callers | Effect on Accuracy |
+|---|---|---|
+| Too HIGH (e.g. 0.90) | Frequent re-prompts; frustrated callers | High — rare misheard inputs processed |
+| Default (~0.75) | Balanced experience | Balanced accuracy |
+| Too LOW (e.g. 0.50) | Fewer re-prompts; smoother experience | Low — misheard input processed incorrectly |
 
-┌─────────────────────┬────────────────────────┬───────────────────────┐
-│ Threshold Setting   │ Effect on Callers       │ Effect on Accuracy    │
-├─────────────────────┼────────────────────────┼───────────────────────┤
-│ Too HIGH (e.g. 0.90)│ Frequent re-prompts    │ High — rare misheard  │
-│                     │ Frustrated callers     │ inputs processed      │
-├─────────────────────┼────────────────────────┼───────────────────────┤
-│ Default (~0.75)     │ Balanced experience    │ Balanced accuracy     │
-├─────────────────────┼────────────────────────┼───────────────────────┤
-│ Too LOW (e.g. 0.50) │ Fewer re-prompts       │ Low — misheard input  │
-│                     │ Smoother experience    │ processed incorrectly │
-└─────────────────────┴────────────────────────┴───────────────────────┘
-Best practice: start at 0.75, analyze call recordings, tune in 0.05 increments
-```
+Best practice: start at 0.75, analyze call recordings, tune in 0.05 increments.
 
 **Limitations:**
 - Default threshold varies by implementation — don't cite a precise number on the exam; know the trade-off concept
@@ -154,27 +101,18 @@ Best practice: start at 0.75, analyze call recordings, tune in 0.05 increments
 
 ### Out-of-Scope Handling
 
-```
-Caller Utterance
-    ↓
-Einstein NLP: attempt Topic match
-    ↓
-    ├── MATCHED → Process via Topic Actions
-    │
-    └── NO MATCH
-            ↓
-        Confidence score?
-            ├── < threshold → Low confidence (MISHEARD)
-            │       ↓ Re-prompt (max 2x) → DTMF Fallback → Escalate
-            │
-            └── ≥ threshold → Out-of-scope (UNDERSTOOD BUT UNSUPPORTED)
-                    ↓
-                Speak: "I'm not set up for that, but here's what I can do"
-                    ↓
-                ┌────────────────┐  ┌──────────────────────┐
-                │ Transfer Queue │  │ Speak & Re-menu       │
-                └────────────────┘  │ (list available opts) │
-                                    └──────────────────────┘
+```mermaid
+flowchart TD
+    U["Caller Utterance"]
+    U --> NLP["Einstein NLP: attempt Topic match"]
+    NLP -->|"Matched"| PROC["Process via Topic Actions"]
+    NLP -->|"No match"| CONF{"Confidence score?"}
+    CONF -->|"Below threshold\n(MISHEARD)"| REPR["Re-prompt (max 2x)"]
+    REPR --> DTMF["DTMF Fallback"]
+    DTMF --> ESC["Escalate to human"]
+    CONF -->|"Above threshold\n(UNDERSTOOD BUT UNSUPPORTED)"| OOS["Speak: 'I'm not set up for that,\nbut here's what I can do'"]
+    OOS --> TQ["Transfer Queue"]
+    OOS --> MENU["Speak and Re-menu\n(list available options)"]
 ```
 
 **Critical distinction:**

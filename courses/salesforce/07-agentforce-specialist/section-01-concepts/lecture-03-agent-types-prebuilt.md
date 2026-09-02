@@ -145,36 +145,16 @@ Each agent is scoped tightly. Better routing accuracy. Simpler Topics. Easier to
 ## Architecture
 
 ### Agent Template Decision Tree
-```
-Who is the target user?
-        │
-        ├── External customer ──────────────────────────────────────────┐
-        │                                                                │
-        ├── External prospect (inbound lead)                            │
-        │           │                                                   │
-        │           ▼                                                   ▼
-        │     SDR Agent                                        Primary goal?
-        │     • BANT qualification                                      │
-        │     • Meeting booking                          ┌──────────────┼───────────────┐
-        │     • Email channel                            │              │               │
-        │                                         Resolve           Qualify        Custom need
-        │                                         service issue     prospects
-        │                                                │              │
-        │                                               ▼              (use SDR Agent)
-        │                                          Service Agent
-        │                                          • Case deflection
-        │                                          • Order lookup
-        │                                          • Knowledge search
-        │                                          • Escalation
-        │
-        ├── Internal rep (coaching) ──▶ Sales Coach Agent
-        │                               • Call analysis
-        │                               • Coaching feedback
-        │
-        └── Internal employee ──────▶ Custom Agent
-                                       • HR, IT, Field Service
-                                       • Slack channel
-                                       • Build Topics from scratch
+```mermaid
+flowchart TD
+    Q["Who is the target user?"]
+    Q -->|"External prospect\n(inbound lead)"| SDR["SDR Agent\n• BANT qualification\n• Meeting booking\n• Email channel"]
+    Q -->|"External customer"| PG{"Primary goal?"}
+    PG -->|"Resolve service issue"| SVC["Service Agent\n• Case deflection\n• Order lookup\n• Knowledge search\n• Escalation"]
+    PG -->|"Qualify prospects"| SDR
+    PG -->|"Custom need"| CA["Custom Agent"]
+    Q -->|"Internal rep (coaching)"| SC["Sales Coach Agent\n• Call analysis\n• Coaching feedback"]
+    Q -->|"Internal employee"| CA2["Custom Agent\n• HR, IT, Field Service\n• Slack channel\n• Build Topics from scratch"]
 ```
 
 **Limitations:**
@@ -184,39 +164,15 @@ Who is the target user?
 - Custom Agent has no guardrails or defaults — full responsibility on builder for Instructions quality
 
 ### Service Agent Setup Flow
-```
-Agentforce Studio → New Agent → Service Agent
-         │
-         ▼
-[Wizard Step 1] Select Data Sources
-    • Link Einstein Knowledge bases
-    • (optional) Connect Data Cloud data
-         │
-         ▼
-[Wizard Step 2] Configure Topics
-    • Choose from pre-built Topic templates
-    • Enabled topics: Billing, Order Status, Product Info, etc.
-    • Each template comes with default Actions
-         │
-         ▼
-[Wizard Step 3] Set Escalation
-    • Select Omni-Channel queue for human handoff
-    • Configure escalation trigger conditions
-         │
-         ▼
-[Wizard Step 4] Deploy
-    • Choose channel: Embedded Chat / API / Mobile
-    • Test in simulator
-    • Activate
-         │
-         ▼
-    Service Agent LIVE
-         │
-    Post-launch customization:
-    • Add Actions to Topics
-    • Edit Instructions for persona
-    • Add additional Topics
-    • Adjust Knowledge relevance thresholds
+```mermaid
+flowchart TD
+    START["Agentforce Studio → New Agent → Service Agent"]
+    START --> S1["Wizard Step 1: Select Data Sources\n• Link Einstein Knowledge bases\n• (optional) Connect Data Cloud data"]
+    S1 --> S2["Wizard Step 2: Configure Topics\n• Choose pre-built Topic templates\n• Billing, Order Status, Product Info, etc.\n• Each template includes default Actions"]
+    S2 --> S3["Wizard Step 3: Set Escalation\n• Select Omni-Channel queue for human handoff\n• Configure escalation trigger conditions"]
+    S3 --> S4["Wizard Step 4: Deploy\n• Choose channel: Embedded Chat / API / Mobile\n• Test in simulator\n• Activate"]
+    S4 --> LIVE["Service Agent LIVE"]
+    LIVE --> POST["Post-launch customization:\n• Add Actions to Topics\n• Edit Instructions for persona\n• Add additional Topics\n• Adjust Knowledge relevance thresholds"]
 ```
 
 **Limitations:**
@@ -226,28 +182,12 @@ Agentforce Studio → New Agent → Service Agent
 - Embedded Chat requires a Site/Experience Cloud or external web page to embed the code snippet
 
 ### Agent Lifecycle State Transitions
-```
-       Configure
-          │
-          ▼
-       ┌─────┐
-       │Draft│ ◀── Default state for new agents
-       └──┬──┘
-          │  Activate (manual in Studio)
-          ▼
-       ┌──────┐
-       │Active│ ◀── Live, billable, visible to users
-       └──┬───┘
-          │  Deactivate
-          ▼
-    ┌────────────┐
-    │Deactivated │ ◀── No new conversations; can reactivate
-    └────────────┘
-          │  Reactivate
-          ▼
-       ┌──────┐
-       │Active│
-       └──────┘
+```mermaid
+flowchart TD
+    CFG["Configure"] --> D["Draft\n(default state for new agents)"]
+    D -->|"Activate (manual in Studio)"| A["Active\n(live, billable, visible to users)"]
+    A -->|"Deactivate"| DV["Deactivated\n(no new conversations; can reactivate)"]
+    DV -->|"Reactivate"| A
 ```
 
 **Limitations:**

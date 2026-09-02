@@ -38,31 +38,14 @@ Flow Builder has a built-in **Debug** button that lets you run a Flow step-by-st
 
 ## Architecture / How It Works
 
-```
-Flow Types — Trigger and Use Case Overview:
-┌─────────────────────┬───────────────────────────────────────────┐
-│ Flow Type           │ When it runs / Use case                   │
-├─────────────────────┼───────────────────────────────────────────┤
-│ Screen Flow         │ User manually launches; has UI screens    │
-│                     │ → Guided wizards, data entry processes    │
-├─────────────────────┼───────────────────────────────────────────┤
-│ Record-Triggered    │ Record insert / update / delete           │
-│ (Before Save)       │ → Set field values on triggering record   │
-│ (After Save)        │ → Create/update related records, emails   │
-├─────────────────────┼───────────────────────────────────────────┤
-│ Schedule-Triggered  │ Runs on a schedule (daily, hourly, etc.)  │
-│                     │ against a batch of records                │
-│                     │ → Nightly batch updates, reminders        │
-├─────────────────────┼───────────────────────────────────────────┤
-│ Platform Event      │ Triggered by receipt of a Platform Event  │
-│ -Triggered          │ message                                   │
-│                     │ → Integration event processing            │
-├─────────────────────┼───────────────────────────────────────────┤
-│ Auto-launched Flow  │ No trigger; called by Apex, other Flows,  │
-│                     │ or REST API                               │
-│                     │ → Reusable logic, API-callable processes  │
-└─────────────────────┴───────────────────────────────────────────┘
-```
+| Flow Type | When it runs / Use case |
+|---|---|
+| Screen Flow | User manually launches; has UI screens → Guided wizards, data entry processes |
+| Record-Triggered (Before Save) | Record insert/update/delete → Set field values on triggering record |
+| Record-Triggered (After Save) | Record insert/update/delete → Create/update related records, send emails |
+| Schedule-Triggered | Runs on a schedule (daily, hourly, etc.) against a batch of records → Nightly batch updates, reminders |
+| Platform Event-Triggered | Triggered by receipt of a Platform Event message → Integration event processing |
+| Auto-launched Flow | No trigger; called by Apex, other Flows, or REST API → Reusable logic, API-callable processes |
 
 **Limitations:**
 - Screen Flows cannot be directly triggered by record changes — only by user action or embedded launch
@@ -70,48 +53,40 @@ Flow Types — Trigger and Use Case Overview:
 - Auto-launched Flows cannot contain Screen elements (no UI)
 - Schedule-Triggered Flows run in batches of up to 2,000 records per batch (API limit)
 
-```
-Flow Builder Canvas Elements Reference:
-┌───────────────────────────────────────────────────────────────────┐
-│ DATA ELEMENTS:                                                    │
-│  Get Records     — Query records (like SOQL SELECT)               │
-│  Create Records  — Insert new records                             │
-│  Update Records  — Update existing records                        │
-│  Delete Records  — Delete records                                 │
-│                                                                   │
-│ LOGIC ELEMENTS:                                                   │
-│  Decision        — Branch the flow (like IF/ELSE)                 │
-│  Assignment      — Set or modify variable values                  │
-│  Loop            — Iterate over a collection                      │
-│                                                                   │
-│ SCREEN ELEMENTS (Screen Flows only):                              │
-│  Screen          — Display UI to the user                         │
-│                                                                   │
-│ CALL ELEMENTS:                                                    │
-│  Subflow         — Call another Flow                              │
-│  Action          — Call an Invocable Action (Apex, email, etc.)   │
-└───────────────────────────────────────────────────────────────────┘
-```
+**Flow Builder Canvas Elements**
+
+**Data Elements:**
+- **Get Records** — Query records (like SOQL SELECT)
+- **Create Records** — Insert new records
+- **Update Records** — Update existing records
+- **Delete Records** — Delete records
+
+**Logic Elements:**
+- **Decision** — Branch the flow (like IF/ELSE)
+- **Assignment** — Set or modify variable values
+- **Loop** — Iterate over a collection
+
+**Screen Elements** (Screen Flows only):
+- **Screen** — Display UI to the user
+
+**Call Elements:**
+- **Subflow** — Call another Flow
+- **Action** — Call an Invocable Action (Apex, email, etc.)
 
 **Limitations:**
 - Loops cannot be nested (a Loop inside a Loop) in the same Flow
 - Get Records inside a Loop = one SOQL query per iteration → governor limit risk
 - Delete Records element cannot be used in Before-Save Record-Triggered Flows
 
+```mermaid
+flowchart TD
+    subgraph FD["Flow Definition: Update_Account_Status"]
+        V1["Version 1 — Inactive\n(previously active)"]
+        V2["Version 2 — Inactive\n(replaced by v3)"]
+        V3["Version 3 — ACTIVE\n(currently running version)"]
+    end
 ```
-Flow Versioning Model:
-                                                               
-  Flow Definition: "Update_Account_Status"                    
-  ┌────────────────────────────────────────────────────────┐  
-  │  Version 1  [Inactive]  ← previously active            │  
-  │  Version 2  [Inactive]  ← replaced by v3               │  
-  │  Version 3  [ACTIVE]    ← currently running version    │  
-  └────────────────────────────────────────────────────────┘  
-                                                               
-  New executions always use the ACTIVE version.               
-  Flows in progress when version changes complete on          
-  the version they started on.                                
-```
+New executions always use the ACTIVE version. Flows in progress when a version changes complete on the version they started on.
 
 **Limitations:**
 - You cannot have 2 active versions of the same Flow simultaneously

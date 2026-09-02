@@ -337,6 +337,36 @@ body {
   }
 }
 
+/* ── Mermaid diagrams ───────────────────────────────────── */
+/* Hide raw code before mermaid renders */
+.prose pre:has(code.language-mermaid) {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 1.5rem 0;
+  overflow: visible;
+}
+.prose code.language-mermaid {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  overflow: visible;
+  white-space: normal;
+}
+/* After mermaid renders, SVG replaces the code element */
+.prose svg[id^="mermaid-"] {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: 16px;
+  background: var(--surface);
+}
+
 /* ── Dashboard responsive grids ─────────────────────────── */
 .dashboard-page { padding: clamp(16px, 5vw, 32px); }
 .stats-grid     { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }

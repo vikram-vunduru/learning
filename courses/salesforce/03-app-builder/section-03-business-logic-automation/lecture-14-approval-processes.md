@@ -38,37 +38,20 @@ Approvers can approve or reject directly from email without logging into Salesfo
 
 ## Architecture / How It Works
 
-```
-Approval Process Flow:
-                                                               
-  Record meets Entry Criteria                                  
-         │                                                     
-         ▼                                                     
-  User clicks [Submit for Approval]                           
-         │                                                     
-         ▼                                                     
-  Submission Actions execute                                  
-  (e.g., Status = "Pending Approval", record locked)          
-         │                                                     
-         ▼                                                     
-  ┌──────────────────────────────────────────────────┐         
-  │  Step 1: Manager Approval                        │         
-  │  Approver: {!Manager__c} (Related User field)    │         
-  │  ┌─────────────────┐  ┌──────────────────────┐   │         
-  │  │ APPROVED ──────►│  │ REJECTED ─────────── │   │         
-  │  │ Step Actions     │  │ Step Reject Actions  │   │         
-  │  └──────────────┬──┘  └──────────────────────┘   │         
-  └─────────────────│────────────────────────────────┘         
-                    │                                           
-                    ▼                                           
-  ┌──────────────────────────────────────────────────┐         
-  │  Step 2: Finance Review (Sequential)             │         
-  │  Approver: Finance Queue                         │         
-  └──────────────────────────────────────────────────┘         
-                    │                                           
-                    ▼                                           
-  Final Approval Actions execute                              
-  (e.g., Status = "Approved", record unlocked, email sent)   
+```mermaid
+flowchart TD
+    EC["Record meets Entry Criteria"]
+    Submit["User clicks Submit for Approval"]
+    SubActions["Submission Actions execute\n(e.g., Status = Pending Approval, record locked)"]
+    Step1["Step 1: Manager Approval\nApprover: Manager__c (Related User field)"]
+    Step1A["Step 1 Approve Actions"]
+    Step1R["Step 1 Reject Actions"]
+    Step2["Step 2: Finance Review (Sequential)\nApprover: Finance Queue"]
+    FinalA["Final Approval Actions\n(Status = Approved, record unlocked, email sent)"]
+    EC --> Submit --> SubActions --> Step1
+    Step1 -->|"Approved"| Step1A
+    Step1 -->|"Rejected"| Step1R
+    Step1A --> Step2 --> FinalA
 ```
 
 **Limitations:**
@@ -77,49 +60,27 @@ Approval Process Flow:
 - Approval Processes do not support complex branching logic without Apex
 - Rejected records are not re-submitted automatically — submitter must fix and re-submit manually
 
-```
-Approval Step Configuration:
-┌───────────────────────────────────────────────────────────────────┐
-│  Per Step Configuration:                                          │
-│  • Approver: Assigned User / Related User / Queue / Apex          │
-│  • Approval Order: Sequential (one at a time) or Parallel         │
-│  • Parallel Vote: Unanimous (all must approve) OR                 │
-│                   First Response (first one drives outcome)       │
-│  • Step Actions: Approve Actions / Reject Actions                 │
-│    (field updates, emails, tasks, chatter posts)                  │
-│  • Allow Approver to Delegate: Yes/No                             │
-└───────────────────────────────────────────────────────────────────┘
-```
+**Approval Step Configuration (per step)**
+
+- **Approver:** Assigned User / Related User / Queue / Apex
+- **Approval Order:** Sequential (one at a time) or Parallel
+- **Parallel Vote:** Unanimous (all must approve) OR First Response (first vote drives outcome)
+- **Step Actions:** Approve Actions / Reject Actions (field updates, emails, tasks, Chatter posts)
+- **Allow Approver to Delegate:** Yes / No
 
 **Limitations:**
 - An approval step cannot route to a flow or trigger a record-triggered flow directly
 - Steps cannot dynamically determine the approver count at runtime (must be pre-configured)
 - Recall actions only fire if the submitter explicitly recalls — rejection by approver goes through Reject actions
 
-```
-Approval Process Actions Summary:
-┌──────────────────────┬────────────────────────────────────────────┐
-│ Action Type          │ When Triggered                             │
-├──────────────────────┼────────────────────────────────────────────┤
-│ Initial Submission   │ User submits record for first time         │
-│ Actions              │ → Typically: lock record, set Status field │
-├──────────────────────┼────────────────────────────────────────────┤
-│ Step Approval Actions│ This step is approved (not all steps)      │
-│                      │ → Notify next approver, update fields      │
-├──────────────────────┼────────────────────────────────────────────┤
-│ Step Rejection       │ This step is rejected                      │
-│ Actions              │ → Notify submitter, unlock record          │
-├──────────────────────┼────────────────────────────────────────────┤
-│ Final Approval       │ ALL steps approved (process complete)      │
-│ Actions              │ → Update status, unlock, send notification │
-├──────────────────────┼────────────────────────────────────────────┤
-│ Final Rejection      │ Any step rejected (if configured to end)   │
-│ Actions              │ → Set status to Rejected, unlock record    │
-├──────────────────────┼────────────────────────────────────────────┤
-│ Recall Actions       │ Submitter withdraws the request            │
-│                      │ → Unlock record, reset status              │
-└──────────────────────┴────────────────────────────────────────────┘
-```
+| Action Type | When Triggered |
+|---|---|
+| Initial Submission Actions | User submits record for first time — typically: lock record, set Status field |
+| Step Approval Actions | This specific step is approved (not all steps) — notify next approver, update fields |
+| Step Rejection Actions | This specific step is rejected — notify submitter, unlock record |
+| Final Approval Actions | ALL steps approved (entire process complete) — update status, unlock, send notification |
+| Final Rejection Actions | Any step rejected (if configured to end process) — set status to Rejected, unlock |
+| Recall Actions | Submitter withdraws the request — unlock record, reset status |
 
 **Limitations:**
 - Per-step actions (Approve/Reject) are different from Final Actions — a per-step approval only means that individual step was approved, not the entire process

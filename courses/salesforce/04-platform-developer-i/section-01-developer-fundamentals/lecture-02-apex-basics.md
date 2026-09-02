@@ -61,74 +61,56 @@ Apex supports single inheritance only (one `extends`); multiple interfaces allow
 
 ## Architecture / How It Works
 
-```
-ACCESS MODIFIER SCOPE (nested rings)
+**Access Modifier Scope (widest to narrowest):**
 
-  ╔══════════════════════════════════════════════════════════════════╗
-  ║  global  — all namespaces, managed packages, web services        ║
-  ║  ╔════════════════════════════════════════════════════════╗      ║
-  ║  ║  public  — same org / namespace                        ║      ║
-  ║  ║  ╔══════════════════════════════════════════════╗      ║      ║
-  ║  ║  ║  protected  — class + subclasses only        ║      ║      ║
-  ║  ║  ║  ╔════════════════════════════════════╗      ║      ║      ║
-  ║  ║  ║  ║  private  — defining class only    ║      ║      ║      ║
-  ║  ║  ║  ╚════════════════════════════════════╝      ║      ║      ║
-  ║  ║  ╚══════════════════════════════════════════════╝      ║      ║
-  ║  ╚════════════════════════════════════════════════════════╝      ║
-  ╚══════════════════════════════════════════════════════════════════╝
+- **`global`** — all namespaces, managed packages, web services
+  - **`public`** — same org / namespace
+    - **`protected`** — class + subclasses only
+      - **`private`** — defining class only (default for methods/variables if no modifier)
 
-  Top-level class: must be public or global
-  Methods/variables: default to private if no modifier
-```
+Top-level class: must be `public` or `global`. Methods/variables: default to `private` if no modifier.
 
 **Limitations:**
 - `global` methods in managed packages cannot have their signature changed after distribution
 - Top-level Apex classes CANNOT be `private` or `protected`
 
-```
-STATIC VARIABLE TRANSACTION SCOPE
+**Static Variable Transaction Scope:**
 
-  INSTANCE (per object)             STATIC (per transaction, shared)
-  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────┐
-  │  Counter     │  │  Counter     │  │  Counter (class level)     │
-  │  obj1        │  │  obj2        │  │  callCount = 3 ◄── shared  │
-  │  id = 1      │  │  id = 2      │  │  by ALL instances in this  │
-  └──────────────┘  └──────────────┘  │  transaction               │
-                                      └────────────────────────────┘
+| Scope | Behavior |
+|-------|----------|
+| Instance variable | Belongs to one object instance (`obj1.id = 1`, `obj2.id = 2` are separate) |
+| Static variable | Shared across ALL instances in the same transaction (`callCount = 3` is the same value everywhere) |
 
-  Recursive trigger prevention pattern:
-  ┌─────────────────────────────────────────────────┐
-  │  public class TriggerHelper {                   │
-  │      public static Boolean isFirstRun = true;  │
-  │  }                                              │
-  │                                                 │
-  │  Trigger fires (1st time) → isFirstRun = true  │
-  │  → set isFirstRun = false → run logic          │
-  │  Trigger fires (2nd time) → isFirstRun = false │
-  │  → SKIP logic → prevents infinite loop         │
-  └─────────────────────────────────────────────────┘
+**Recursive trigger prevention pattern:**
+
+```apex
+public class TriggerHelper {
+    public static Boolean isFirstRun = true;
+}
+
+// Trigger fires (1st time) -> isFirstRun = true
+// -> set isFirstRun = false -> run logic
+// Trigger fires (2nd time) -> isFirstRun = false
+// -> SKIP logic -> prevents infinite loop
 ```
 
 **Limitations:**
 - Static variables reset between transactions — cannot persist data across requests
 - Static variables DO persist across multiple trigger invocations within the SAME transaction (this is the feature used for recursion prevention)
 
-```
-GOVERNOR LIMITS — SYNCHRONOUS vs ASYNCHRONOUS
+**Governor Limits — Synchronous vs Asynchronous:**
 
-  ┌────────────────────┬──────────────┬───────────────┐
-  │  Resource          │  Synchronous │  Asynchronous │
-  ├────────────────────┼──────────────┼───────────────┤
-  │  SOQL queries      │     100      │      200      │
-  │  DML statements    │     150      │      150      │
-  │  DML rows          │   10,000     │    10,000     │
-  │  CPU time          │  10,000 ms   │   60,000 ms   │
-  │  Heap size         │    6 MB      │     12 MB     │
-  │  HTTP callouts     │     100      │      100      │
-  │  SOSL queries      │      20      │       20      │
-  └────────────────────┴──────────────┴───────────────┘
-  LimitException: NOT catchable — always rolls back the transaction
-```
+| Resource | Synchronous | Asynchronous |
+|----------|-------------|--------------|
+| SOQL queries | 100 | 200 |
+| DML statements | 150 | 150 |
+| DML rows | 10,000 | 10,000 |
+| CPU time | 10,000 ms | 60,000 ms |
+| Heap size | 6 MB | 12 MB |
+| HTTP callouts | 100 | 100 |
+| SOSL queries | 20 | 20 |
+
+`LimitException`: NOT catchable — always rolls back the transaction.
 
 **Limitations:**
 - `LimitException` cannot be caught with try/catch — the only defense is staying under limits by design

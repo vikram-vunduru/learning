@@ -143,26 +143,11 @@ Each test method should test one behavior. Method names should be descriptive: `
 
 ## Architecture / How It Works
 
-```
-TEST DATA FACTORY PATTERN
-
-  ┌─────────────────────┐     ┌─────────────────────────────┐
-  │  AccountTriggerTest  │     │  ContactServiceTest          │
-  │  ─────────────────  │     │  ───────────────────────     │
-  │  TestDataFactory     │     │  TestDataFactory             │
-  │  .createAccount(true)│     │  .createAccount(false)       │
-  └──────────┬──────────┘     └───────────────┬─────────────┘
-             │                                 │
-             ▼                                 ▼
-  ┌──────────────────────────────────────────────┐
-  │              TestDataFactory                  │
-  │  ─────────────────────────────────────────   │
-  │  createAccount(Boolean doInsert)              │
-  │  createContact(Id accountId, Integer count)   │
-  │  createOpportunity(Id accountId)              │
-  │                                               │
-  │  ONE change here → ALL test classes updated   │
-  └──────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["AccountTriggerTest\nTestDataFactory.createAccount(true)"] --> C
+    B["ContactServiceTest\nTestDataFactory.createAccount(false)"] --> C
+    C["TestDataFactory\ncreateAccount(Boolean doInsert)\ncreateContact(Id accountId, Integer count)\ncreateOpportunity(Id accountId)\n\nONE change here -> ALL test classes updated"]
 ```
 
 **Limitations:**
@@ -170,25 +155,13 @@ TEST DATA FACTORY PATTERN
 - Factory methods cannot make callouts — use mock patterns for integration setup
 - `@testSetup` and TestDataFactory are complementary: factory creates the records, `@testSetup` calls the factory once per class
 
-```
-ASYNC TEST EXECUTION TIMELINE
-
-  Test method:
-  ┌──────────────────────────────────────────────────────────┐
-  │  @testSetup data inserted                                 │
-  │                                                          │
-  │  Test.startTest()  ←── governor limits RESET here        │
-  │  ─────────────────────────────────────────────────────   │
-  │  Database.executeBatch(new MyBatch()) ← queued, NOT run   │
-  │  System.enqueueJob(new MyQueueable()) ← queued, NOT run   │
-  │                                                          │
-  │  Test.stopTest()   ←── ALL queued async runs NOW          │
-  │  ─────────────────────────────────────────────────────   │
-  │  Batch start/execute/finish have COMPLETED                │
-  │  Queueable has COMPLETED                                  │
-  │                                                          │
-  │  ← assert results here (after stopTest)                  │
-  └──────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["@testSetup data inserted"] --> B
+    B["Test.startTest() -- governor limits RESET here"] --> C
+    C["Database.executeBatch(new MyBatch()) -- queued, NOT run yet\nSystem.enqueueJob(new MyQueueable()) -- queued, NOT run yet"] --> D
+    D["Test.stopTest() -- ALL queued async runs NOW\nBatch start/execute/finish COMPLETED\nQueueable COMPLETED"] --> E
+    E["Assert results here (after stopTest)"]
 ```
 
 **Limitations:**
@@ -196,20 +169,17 @@ ASYNC TEST EXECUTION TIMELINE
 - Batch `start()` in test context uses `Database.getQueryLocator` normally, but the execute chunk size may differ
 - `@future` methods queued outside `startTest/stopTest` may not run before assertions
 
-```
-HTTPCALLOUTMOCK INTERCEPTION FLOW
-
-  Test method                  Platform
-  ─────────────                ────────────────────────────────
-  Test.setMock(...)     ──►   Mock registered in test context
-  Test.startTest()
-  MyService.execute()
-    → Http.send(req)   ──►   Platform checks: mock registered?
-                              └── YES → call mock.respond(req)
-                                      → return mock HttpResponse
-                              └── NO  → throw CalloutException
-  Test.stopTest()
-  assert result
+```mermaid
+flowchart TD
+    A["Test.setMock(HttpCalloutMock.class, new MockCallout())"] --> B["Mock registered in test context"]
+    B --> C["Test.startTest()"]
+    C --> D["MyService.execute()"]
+    D --> E["Http.send(req)"]
+    E --> F{"Platform checks:\nmock registered?"}
+    F -->|"YES"| G["call mock.respond(req)\nreturn mock HttpResponse"]
+    F -->|"NO"| H["throw CalloutException"]
+    G --> I["Test.stopTest()"]
+    I --> J["assert result"]
 ```
 
 **Limitations:**

@@ -148,43 +148,28 @@ Rule: NEVER directly render untrusted data as HTML
 ## Architecture / How It Works
 
 ### LWC Performance Model
-```
-State change (property assignment or @wire update)
-    │
-    ▼
-LWC Reactivity Engine
-    ├── Schedules a render (batches multiple changes)
-    │
-    ▼
-Virtual DOM diff
-    │
-    ▼
-Minimal DOM update (only changed nodes)
 
-Performance considerations:
-  - Avoid updating large arrays element-by-element (triggers re-render per update)
-  - Use spread to create new array reference: this.records = [...this.records, newRecord]
-  - Avoid deeply nested reactive state — keep flat
+```mermaid
+flowchart TD
+    SC["State change\n(property assignment or @wire update)"] --> RE["LWC Reactivity Engine\n(batches multiple changes)"]
+    RE --> VDOM["Virtual DOM diff"]
+    VDOM --> DOM["Minimal DOM update\n(only changed nodes)"]
 ```
+
+**Performance considerations:**
+- Avoid updating large arrays element-by-element (triggers re-render per update)
+- Use spread to create new array reference: `this.records = [...this.records, newRecord]`
+- Avoid deeply nested reactive state — keep flat
 
 ### Security Layers in Salesforce LWC
-```
-Page Request
-    │
-    ▼
-Salesforce Server (HTTPS, authentication, CRUD FLS)
-    │
-    ▼
-LWC Compiler (validates module imports, no eval)
-    │
-    ▼
-Lightning Web Security (LWS) — sandboxes component execution
-    │
-    ▼
-Browser CSP — restricts script sources and inline execution
-    │
-    ▼
-Shadow DOM — isolates component DOM trees
+
+```mermaid
+flowchart TD
+    A["Page Request"] --> B["Salesforce Server\n(HTTPS, authentication, CRUD FLS)"]
+    B --> C["LWC Compiler\n(validates module imports, no eval)"]
+    C --> D["Lightning Web Security (LWS)\n— sandboxes component execution"]
+    D --> E["Browser CSP\n— restricts script sources and inline execution"]
+    E --> F["Shadow DOM\n— isolates component DOM trees"]
 ```
 
 **Limitations:**

@@ -21,6 +21,52 @@ export function CoursePageClient({ sections, track, mod, prev, next, trackId }: 
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
+  // Render mermaid diagrams after HTML is injected
+  useEffect(() => {
+    if (!mounted) return;
+    let cancelled = false;
+    import('mermaid').then(({ default: mermaid }) => {
+      if (cancelled) return;
+      const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: isDark ? 'dark' : 'base',
+        fontFamily: 'Inter Tight, system-ui, sans-serif',
+        flowchart: { curve: 'basis', padding: 24, useMaxWidth: true },
+        themeVariables: isDark ? {
+          background: '#1C2335',
+          primaryColor: '#1C2335',
+          primaryTextColor: '#E9EDF5',
+          primaryBorderColor: '#3A4664',
+          lineColor: '#5B95F5',
+          secondaryColor: '#151B29',
+          tertiaryColor: '#0F1420',
+          edgeLabelBackground: '#1C2335',
+          clusterBkg: '#151B29',
+          clusterBorder: '#3A4664',
+          titleColor: '#E9EDF5',
+          nodeTextColor: '#E9EDF5',
+        } : {
+          background: '#FFFFFF',
+          primaryColor: '#EFF6FF',
+          primaryTextColor: '#161B26',
+          primaryBorderColor: '#C9CED8',
+          lineColor: '#2563EB',
+          secondaryColor: '#F4F5F7',
+          tertiaryColor: '#F4F5F7',
+          edgeLabelBackground: '#FFFFFF',
+          clusterBkg: '#F4F5F7',
+          clusterBorder: '#E1E4EA',
+          titleColor: '#161B26',
+          nodeTextColor: '#161B26',
+        },
+      });
+      const nodes = document.querySelectorAll('code.language-mermaid');
+      if (nodes.length > 0) mermaid.run({ nodes: Array.from(nodes) as HTMLElement[] });
+    });
+    return () => { cancelled = true; };
+  }, [mounted, sections.fullHtml]);
+
   const courseMods = track.modules.filter(m => m.course === mod.course);
   const certTotal = courseMods.length;
 

@@ -142,40 +142,24 @@ export default class AccountDetail extends LightningElement {
 
 ## Architecture / How It Works
 
-```
-COMPONENT COMMUNICATION PATTERNS
-
-  PARENT → CHILD:
-  ┌─────────────────────────────────────────────────────────┐
-  │  Parent template: <c-child record-id={myId}>            │
-  │                                                         │
-  │  Child JS: @api recordId;  ← receives myId              │
-  │                                                         │
-  │  Parent can also call: child.reset()                    │
-  │  Child must have: @api reset() { ... }                  │
-  └─────────────────────────────────────────────────────────┘
-
-  CHILD → PARENT:
-  ┌─────────────────────────────────────────────────────────┐
-  │  Child JS: this.dispatchEvent(                          │
-  │                new CustomEvent('valuechange',           │
-  │                    { detail: { value: 42 } }))          │
-  │                                                         │
-  │  Parent template: <c-child onvaluechange={handler}>     │
-  │  Parent JS: handler(event) { event.detail.value }       │
-  └─────────────────────────────────────────────────────────┘
-
-  SIBLING → SIBLING (LMS):
-  ┌─────────────────────────────────────────────────────────┐
-  │  Component A (publisher):                               │
-  │    publish(ctx, MY_CHANNEL, { data: value });           │
-  │                                                         │
-  │        [MY_CHANNEL]  ← LightningMessageChannel metadata │
-  │                                                         │
-  │  Component B (subscriber):                              │
-  │    subscribe(ctx, MY_CHANNEL, msg => { ... });          │
-  │    // Always unsubscribe in disconnectedCallback!       │
-  └─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph ParentChild["Parent to Child — @api properties / @api methods"]
+        A["Parent template:\n&lt;c-child record-id={myId}&gt;"]
+        B["Child JS:\n@api recordId; -- receives myId\n@api reset() { ... } -- callable from parent"]
+        A -->|"passes myId"| B
+    end
+    subgraph ChildParent["Child to Parent — CustomEvent"]
+        C["Child JS:\nthis.dispatchEvent(\n  new CustomEvent('valuechange', { detail: { value: 42 } }))"]
+        D["Parent template:\n&lt;c-child onvaluechange={handler}&gt;\nParent JS: handler(event) { event.detail.value }"]
+        C -->|"dispatches event"| D
+    end
+    subgraph SiblingLMS["Sibling to Sibling — Lightning Message Service (LMS)"]
+        E["Component A (publisher):\npublish(ctx, MY_CHANNEL, { data: value })"]
+        F["LightningMessageChannel metadata\n[MY_CHANNEL]"]
+        G["Component B (subscriber):\nsubscribe(ctx, MY_CHANNEL, msg => { ... })\nAlways unsubscribe in disconnectedCallback!"]
+        E --> F --> G
+    end
 ```
 
 **Limitations:**
@@ -183,23 +167,20 @@ COMPONENT COMMUNICATION PATTERNS
 - LMS requires a LightningMessageChannel custom metadata type to be deployed first
 - CustomEvent with `bubbles: false` (default) can only be caught by a direct parent via child tag attribute
 
-```
-ATTRIBUTE NAMING CONVENTION (CRITICAL)
+**Attribute Naming Convention (CRITICAL):**
 
-  Parent template HTML          Child JS property
-  ─────────────────────         ─────────────────────────
-  record-id={...}        →      @api recordId
-  account-name={...}     →      @api accountName
-  is-active={...}        →      @api isActive
-  my-custom-prop={...}   →      @api myCustomProp
+| Parent template HTML | Child JS property |
+|---|---|
+| `record-id={...}` | `@api recordId` |
+| `account-name={...}` | `@api accountName` |
+| `is-active={...}` | `@api isActive` |
+| `my-custom-prop={...}` | `@api myCustomProp` |
 
-  Rule: HTML uses kebab-case; JS uses camelCase.
-  Framework converts automatically — but you must follow the convention.
+Rule: HTML uses kebab-case; JS uses camelCase. Framework converts automatically — but you must follow the convention.
 
-  WRONG (won't receive value):
-  Parent: <c-child accountId={...}>   ← should be account-id
-  Child:  @api account-id            ← invalid JS (hyphen in identifier)
-```
+WRONG (won't receive value):
+- Parent: `<c-child accountId={...}>` — should be `account-id`
+- Child: `@api account-id` — invalid JS (hyphen in identifier)
 
 **Limitations:**
 - @api property names cannot start with `on` (reserved for event handlers)

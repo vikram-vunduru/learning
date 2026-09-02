@@ -48,36 +48,27 @@ Workflow Rules are in every legacy Salesforce org. In your role as a PTA:
 
 ## Architecture / How It Works
 
-```
-Workflow Rule Execution Model
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Record Save
-       ↓
-  WORKFLOW RULE EVALUATION
-  ┌─────────────────────────────────────────┐
-  │  Trigger: Created, and every time edited│
-  │  Criteria: Status = "Closed"            │
-  └─────────────────┬───────────────────────┘
-                    │ Criteria met?
-                    ▼ YES
-  IMMEDIATE ACTIONS (run now)
-  ┌─────────────────────────────────────────┐
-  │  → Field Update: Set Closed_Date = TODAY│
-  │  → Email Alert: Notify manager          │
-  └─────────────────────────────────────────┘
-                    +
-  TIME-BASED ACTIONS (queue for later)
-  ┌─────────────────────────────────────────┐
-  │  → 7 days before Close Date: Send Warn  │
-  │  → 1 day after Status = Closed: Survey  │
-  └─────────────────────────────────────────┘
-
-  4 Action Types:
-  1. Field Update
-  2. Email Alert (uses Email Template)
-  3. Task (creates Task record)
-  4. Outbound Message (SOAP XML to endpoint)
+```mermaid
+flowchart TD
+    Save["Record Save"]
+    Save --> WR
+    subgraph WR["WORKFLOW RULE EVALUATION\n(LEGACY — no new rules post Feb 2023)"]
+        Trigger["Trigger: Created, and every time edited"]
+        Criteria{"Criteria:\nStatus = Closed?"}
+        Trigger --> Criteria
+    end
+    Criteria -->|"No"| Skip["Skip — no action"]
+    Criteria -->|"Yes"| Immediate
+    subgraph Immediate["IMMEDIATE ACTIONS (run now)"]
+        IA1["Field Update: Set Closed_Date = TODAY"]
+        IA2["Email Alert: Notify manager"]
+    end
+    Immediate --> TimeBased
+    subgraph TimeBased["TIME-BASED ACTIONS (queued)"]
+        TB1["7 days before Close Date: Send warning"]
+        TB2["1 day after Status = Closed: Send survey"]
+    end
+    Note["4 action types: Field Update, Email Alert, Task, Outbound Message\nCannot create/delete records — use Flow for that"]
 ```
 
 **Limitations:**

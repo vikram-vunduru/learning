@@ -48,49 +48,32 @@ This is a critical security architecture point. If sensitive data must be hidden
 
 ## Architecture / How It Works
 
+```mermaid
+flowchart TD
+    Q["Can the user see field value X on record R?"]
+    Q --> L1
+    subgraph L1["LAYER 1 — Object-Level Security (OLS)"]
+        OLS{"Profile/Permission Set:\nREAD on Object?"}
+    end
+    OLS -->|"No"| Deny1["Access denied\n(cannot even see the object)"]
+    OLS -->|"Yes"| L2
+    subgraph L2["LAYER 2 — Record-Level Security"]
+        RLS{"OWD + Role Hierarchy + Sharing:\nCan user access this specific record?"}
+    end
+    RLS -->|"No"| Deny2["Cannot see the record at all"]
+    RLS -->|"Yes"| L3
+    subgraph L3["LAYER 3 — Field-Level Security (FLS)"]
+        FLS{"Profile/Permission Set:\nField visible?"}
+    end
+    FLS -->|"Visible + Editable"| Allow1["See and edit the field"]
+    FLS -->|"Visible, Read Only"| Allow2["See field, cannot edit"]
+    FLS -->|"Not Visible"| Deny3["Field hidden everywhere\n(UI, API, reports)"]
 ```
-Three-Layer Access Model
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  Can the user see field value X on record R?
-
-  LAYER 1: Object-Level Security (OLS)
-  ┌──────────────────────────────────────────┐
-  │  Profile/Permission Set: READ on Object? │
-  │  NO → Access denied (can't even see the  │
-  │        object)                           │
-  │  YES → Continue to Layer 2               │
-  └──────────────────────────────────────────┘
-                    ↓ YES
-  LAYER 2: Record-Level Security
-  ┌──────────────────────────────────────────┐
-  │  OWD + Role Hierarchy + Sharing:         │
-  │  Can user access this specific record?   │
-  │  NO → Cannot see the record at all       │
-  │  YES → Continue to Layer 3               │
-  └──────────────────────────────────────────┘
-                    ↓ YES
-  LAYER 3: Field-Level Security (FLS)
-  ┌──────────────────────────────────────────┐
-  │  Profile/Permission Set: Field visible?  │
-  │  VISIBLE + EDITABLE → See and edit ✓     │
-  │  VISIBLE, READ ONLY  → See only ✓        │
-  │  NOT VISIBLE         → Field hidden ✗    │
-  └──────────────────────────────────────────┘
-
-  FLS vs Page Layout Priority:
-  ┌──────────────────────────────────────────┐
-  │  FLS: Visible  + Page Layout: Hidden     │
-  │    → Field HIDDEN (page layout wins on   │
-  │      UI layout, but FLS still allows API)│
-  │                                          │
-  │  FLS: Not Visible + Page Layout: Visible │
-  │    → Field HIDDEN (FLS always wins)      │
-  │                                          │
-  │  FLS: Read Only + Page Layout: Required  │
-  │    → Field is NOT required (FLS wins)    │
-  └──────────────────────────────────────────┘
-```
+**FLS vs Page Layout priority:**
+- FLS: Visible + Page Layout: Hidden → Field hidden in UI, but accessible via API (FLS still allows it)
+- FLS: Not Visible + Page Layout: Visible → Field hidden everywhere (FLS always wins)
+- FLS: Read Only + Page Layout: Required → Field is NOT enforced as required (FLS wins)
 
 **Limitations:**
 - FLS set to "Not Visible" hides data everywhere — UI, API, reports, list views

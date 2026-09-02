@@ -38,24 +38,13 @@ Every object you create adds UI complexity, security configuration overhead, and
 
 ## Architecture / How It Works
 
-```
-Data Model Hierarchy:
-┌──────────────────────────────────────────┐
-│  OBJECT (blueprint)                       │
-│  e.g., Account                           │
-│  ┌──────────┬──────────┬──────────┐      │
-│  │ Field 1  │ Field 2  │ Field 3  │      │  ← object definition = metadata
-│  │  Name    │Industry  │Revenue   │      │
-│  └──────────┴──────────┴──────────┘      │
-└──────────────────────────────────────────┘
-           │   creates instances  │
-           ▼                      ▼
-┌──────────────────┐  ┌──────────────────┐
-│ RECORD (instance)│  │ RECORD (instance)│
-│  Acme Corp       │  │  BetaCo Inc      │  ← records = data
-│  Technology      │  │  Healthcare      │
-│  $50M            │  │  $12M            │
-└──────────────────┘  └──────────────────┘
+```mermaid
+flowchart TD
+    A["OBJECT (blueprint)\ne.g., Account\nFields: Name · Industry · Revenue\n(object definition = metadata)"]
+    B["RECORD: Acme Corp\nTechnology · $50M\n(records = data)"]
+    C["RECORD: BetaCo Inc\nHealthcare · $12M\n(records = data)"]
+    A -->|"creates instances"| B
+    A -->|"creates instances"| C
 ```
 
 **Limitations:**
@@ -63,46 +52,29 @@ Data Model Hierarchy:
 - Custom objects cannot be renamed after creation without losing all references
 - Object API names are permanent once created (label can change, not the API name)
 
-```
-Standard vs. Custom: API Name Rules
-┌──────────────────────────────────────────────────┐
-│ Standard object API name:   Account              │
-│ Standard field API name:    Account.Name         │
-│                                                  │
-│ Custom object API name:     Job__c               │
-│ Custom field API name:      Job__c.Title__c      │
-│                                                  │
-│ Relationship field (Lookup):  Account__c         │
-│ Relationship traversal:       Account__r.Name    │
-│                                (__r = relationship)
-└──────────────────────────────────────────────────┘
-```
+**Standard vs. Custom: API Name Rules**
+
+| Type | API Name Example |
+|---|---|
+| Standard object | `Account` |
+| Standard field | `Account.Name` |
+| Custom object | `Job__c` |
+| Custom field | `Job__c.Title__c` |
+| Relationship field (Lookup) | `Account__c` |
+| Relationship traversal | `Account__r.Name` (`__r` = relationship) |
 
 **Limitations:**
 - `__c` suffix is permanent — you cannot remove it from a custom component API name
 - `__r` notation only works in SOQL and formula cross-object references, not in direct field queries
 
-```
-Three-Question Decision Framework:
-"Should I create a new object?"
-        │
-        ▼
-1. Does it have its own lifecycle 
-   (create/edit/delete independently)?
-        │
-        ├─ NO → It's a field or a picklist value
-        │
-        └─ YES ──────────────────────────────────┐
-                                                 │
-2. Does it need its own reports?                 │
-        │                                        │
-        ├─ NO → Probably a related field          │
-        │                                        │
-        └─ YES ──────────────────────────────────┤
-                                                 │
-3. Does it relate to other entities?             │
-        │                                        │
-        └─ YES → Create the custom object ◄──────┘
+```mermaid
+flowchart TD
+    A{"1. Does it have its own lifecycle\n(create/edit/delete independently)?"}
+    A -->|"No"| B["It's a field or a picklist value"]
+    A -->|"Yes"| C{"2. Does it need\nits own reports?"}
+    C -->|"No"| D["Probably a related field"]
+    C -->|"Yes"| E{"3. Does it relate\nto other entities?"}
+    E -->|"Yes"| F["Create the custom object"]
 ```
 
 **Limitations:**

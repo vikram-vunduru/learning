@@ -38,63 +38,46 @@ Salesforce has built-in duplicate management using **Matching Rules** (how to id
 
 ## Architecture / How It Works
 
-```
-Data Import Wizard vs. Data Loader Comparison:
-┌──────────────────────────┬──────────────────┬──────────────────────┐
-│ Feature                  │ Data Import Wiz. │ Data Loader          │
-├──────────────────────────┼──────────────────┼──────────────────────┤
-│ Interface                │ Browser (UI)     │ Desktop app          │
-│ Max Records              │ 50,000           │ 5,000,000            │
-│ Supported Objects        │ Select standard  │ ALL objects          │
-│                          │ + custom objects │                      │
-│ Delete Records?          │ No               │ Yes (+ hard delete)  │
-│ Bypass Duplicate Rules?  │ No               │ Yes                  │
-│ Upsert via External ID?  │ Yes              │ Yes                  │
-│ Schedule Imports?        │ No               │ With CLI/script      │
-│ Field Mapping            │ Auto + manual    │ Manual CSV column map│
-│ Export Records?          │ No               │ Yes                  │
-└──────────────────────────┴──────────────────┴──────────────────────┘
-```
+| Feature | Data Import Wizard | Data Loader |
+|---|---|---|
+| Interface | Browser (UI) | Desktop app |
+| Max Records | 50,000 | 5,000,000 |
+| Supported Objects | Select standard + custom objects | ALL objects |
+| Delete Records? | No | Yes (+ hard delete) |
+| Bypass Duplicate Rules? | No | Yes |
+| Upsert via External ID? | Yes | Yes |
+| Schedule Imports? | No | With CLI/script |
+| Field Mapping | Auto + manual | Manual CSV column map |
+| Export Records? | No | Yes |
 
 **Limitations:**
 - Data Import Wizard does not support: Products, Events, Tasks, Opportunity Product — use Data Loader for these
 - Data Loader requires Java installation and can be complex to configure for non-technical users
 - Neither tool bypasses validation rules — validation rules always fire on all inserts/updates
 
+```mermaid
+flowchart TD
+    A["Incoming Record\nExternalCRM_ID__c = 'EXT-001'"]
+    B{"Does a Salesforce record exist\nwhere ExternalCRM_ID__c = 'EXT-001'?"}
+    C["INSERT new record\n(creates new Salesforce record)"]
+    D["UPDATE existing record\n(updates matched record)"]
+    A --> B
+    B -->|"No"| C
+    B -->|"Yes"| D
 ```
-Upsert Operation Flow (External ID):
-┌────────────────────────────────────────────────────────────────────┐
-│  Incoming Record (from external system):                           │
-│  ExternalCRM_ID__c = "EXT-001"                                     │
-│                                                                    │
-│  Upsert checks: Does a Salesforce record exist                     │
-│  where ExternalCRM_ID__c = "EXT-001"?                              │
-│                                                                    │
-│  ├─ NO  ──► INSERT new record (creates new Salesforce record)      │
-│  └─ YES ──► UPDATE existing record (updates matched record)        │
-│                                                                    │
-│  Result: Safe to run the same load twice — no duplicate creation   │
-└────────────────────────────────────────────────────────────────────┘
-```
+Result: Safe to run the same load twice — no duplicate creation.
 
 **Limitations:**
 - Upsert via External ID only works with fields that have the "External ID" checkbox enabled
 - If multiple Salesforce records match the same External ID value, upsert throws a duplicate key error
 - External IDs are case-insensitive by default for matching purposes
 
-```
-Data Export Schedule Options:
-┌────────────────────────────────────────────────────┐
-│  Setup → Data → Data Export                        │
-│                                                    │
-│  Export Now: immediate one-time export             │
-│  Schedule Export: Weekly or Monthly (by edition)  │
-│                                                    │
-│  Output: ZIP file containing CSV files            │
-│          One CSV per object                        │
-│          Available for download for 48 hours       │
-└────────────────────────────────────────────────────┘
-```
+**Data Export (Setup → Data → Data Export)**
+
+- **Export Now** — immediate one-time export
+- **Schedule Export** — Weekly or Monthly (depending on org edition)
+- **Output** — ZIP file containing CSV files; one CSV per object
+- **Download window** — available for 48 hours after generation
 
 **Limitations:**
 - Scheduled export does not back up document/file attachments (separate Salesforce Files export needed)

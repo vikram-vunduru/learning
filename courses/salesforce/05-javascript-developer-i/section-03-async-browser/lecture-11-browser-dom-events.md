@@ -59,17 +59,18 @@ el.nextElementSibling;
 ### Events — Bubbling, Capturing & Delegation
 
 **Event phases:**
-```
-1. CAPTURING phase — event travels DOWN from window to target
-2. TARGET phase — event at the target element
-3. BUBBLING phase — event travels UP from target to window
 
-window
-  └── document
-        └── body
-              └── div.container      (capturing: window→document→body→div)
-                    └── button ◄───── click event TARGET
-                          ↑  (bubbling: button→div→body→document→window)
+```mermaid
+flowchart TD
+    W["window"] -->|"1. CAPTURING (down)"| D["document"]
+    D --> B["body"]
+    B --> DIV["div.container"]
+    DIV --> BTN["button — click event TARGET"]
+    BTN -->|"2. TARGET"| BTN
+    BTN -->|"3. BUBBLING (up)"| DIV2["div.container"]
+    DIV2 --> B2["body"]
+    B2 --> D2["document"]
+    D2 --> W2["window"]
 ```
 
 ```javascript
@@ -132,25 +133,24 @@ element.addEventListener('contactselected', (e) => {
 ## Architecture / How It Works
 
 ### LWC Shadow DOM vs Browser DOM
-```
-Standard Browser DOM:
-  document
-    └── body
-          └── my-component  ← can be reached with document.querySelector
 
-LWC Shadow DOM:
-  document
-    └── body
-          └── c-my-component
-                └── #shadow-root  ← boundary
-                      └── div.inner  ← NOT reachable from outside
-                            └── c-child-component
-                                  └── #shadow-root
-                                        └── button  ← deeply nested
-
-  this.template.querySelector('.inner')  ← correct: search within own shadow
-  document.querySelector('.inner')       ← WRONG: cannot cross shadow boundary
+```mermaid
+flowchart TD
+    subgraph STD["Standard Browser DOM"]
+        SD["document"] --> SB["body"] --> MC["my-component\n← reachable with document.querySelector"]
+    end
+    subgraph LWC["LWC Shadow DOM"]
+        LD["document"] --> LB["body"] --> CMC["c-my-component"]
+        CMC --> SR1["#shadow-root ← boundary"]
+        SR1 --> DI["div.inner ← NOT reachable from outside"]
+        DI --> CCC["c-child-component"]
+        CCC --> SR2["#shadow-root"]
+        SR2 --> BTN["button (deeply nested)"]
+    end
 ```
+
+- `this.template.querySelector('.inner')` — correct: search within own shadow
+- `document.querySelector('.inner')` — WRONG: cannot cross shadow boundary
 
 **Event bubbling in LWC shadow DOM:**
 ```

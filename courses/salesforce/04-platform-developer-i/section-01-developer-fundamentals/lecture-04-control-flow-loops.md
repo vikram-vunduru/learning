@@ -55,30 +55,18 @@ for (Account a : [SELECT Id, Name FROM Account WHERE IsActive__c = true]) {
 
 ## Architecture / How It Works
 
-```
-SOQL FOR LOOP vs STANDARD LIST QUERY — HEAP COMPARISON
-
-  Standard Query (dangerous for large sets):
-  ┌──────────────────────────────────────────────────────────────┐
-  │  List<Account> all = [SELECT Id, Name FROM Account];         │
-  │  ↑ Loads ALL 50,000 records into heap simultaneously         │
-  │                                                              │
-  │  Heap usage: ████████████████████░ ← approaching 6 MB        │
-  └──────────────────────────────────────────────────────────────┘
-
-  SOQL for Loop (heap-safe):
-  ┌──────────────────────────────────────────────────────────────┐
-  │  for (Account a : [SELECT Id, Name FROM Account]) {          │
-  │      // processes 200 at a time                              │
-  │  }                                                           │
-  │                                                              │
-  │  Batch 1:  [200 records] → process → GC → free memory       │
-  │  Batch 2:  [200 records] → process → GC → free memory       │
-  │  Batch 3:  [200 records] → process → GC → free memory       │
-  │  ...                                                         │
-  │  Heap usage: ███░░░░░░░░░░░░░░░░░░ ← stays low               │
-  └──────────────────────────────────────────────────────────────┘
-  Both count as 1 SOQL query against the 100-query limit.
+```mermaid
+flowchart TD
+    subgraph Standard["Standard Query (dangerous for large sets)"]
+        A["List&lt;Account&gt; all = [SELECT Id, Name FROM Account];\nLoads ALL 50,000 records into heap simultaneously\nHeap usage: approaching 6 MB limit"]
+    end
+    subgraph SOQLFor["SOQL For Loop (heap-safe)"]
+        B["for (Account a : [SELECT Id, Name FROM Account])\nprocesses 200 records at a time"]
+        B --> C["Batch 1: [200 records] -> process -> GC -> free memory"]
+        C --> D["Batch 2: [200 records] -> process -> GC -> free memory"]
+        D --> E["Batch N: ... Heap usage stays low"]
+    end
+    F["Both count as 1 SOQL query against the 100-query limit"]
 ```
 
 **Limitations:**
@@ -86,29 +74,39 @@ SOQL FOR LOOP vs STANDARD LIST QUERY — HEAP COMPARISON
 - DML inside a SOQL for loop still violates the no-DML-in-loop rule — collect into a List and DML after
 - For 50M+ records, use Batch Apex (QueryLocator), not SOQL for loop
 
+**No-SOQL-in-Loops / No-DML-in-Loops Pattern:**
+
+BAD — SOQL in loop (200 contacts = 200 SOQL queries, LimitException at record 101):
+
+```apex
+for (Contact c : contacts) {
+    Account a = [SELECT Id FROM Account WHERE Id = :c.AccountId]; // SOQL inside loop!
+    c.Description = a.Name;
+}
 ```
-NO-SOQL-IN-LOOPS / NO-DML-IN-LOOPS PATTERN
 
-  BAD — SOQL in loop:                   GOOD — collect then query:
-  ────────────────────────────────       ─────────────────────────────────────
-  for (Contact c : contacts) {           Set<Id> accIds = new Set<Id>();
-      Account a = [SELECT Id              for (Contact c : contacts) {
-        FROM Account                          accIds.add(c.AccountId);
-        WHERE Id = :c.AccountId]; ← SOQL  }
-      c.Description = a.Name;             Map<Id,Account> accMap =
-  }                                           new Map<Id,Account>(
-  200 contacts = 200 SOQL queries!            [SELECT Id, Name
-  LimitException at record 101!               FROM Account
-                                              WHERE Id IN :accIds]);  ← 1 query
+GOOD — collect then query (1 SOQL regardless of volume):
 
-  BAD — DML in loop:                    for (Contact c : contacts) {
-  ─────────────────────────              Account a = accMap.get(c.AccountId);
-  for (Contact c : contacts) {           c.Description = a?.Name;
-      c.Title = 'Updated';           }
-      update c;  ← DML each time
-  }                                     List<Contact> toUpdate =
-  200 contacts = 200 DML!               new List<Contact>(contacts);
-  LimitException at record 151!         update toUpdate;  ← 1 DML statement
+```apex
+Set<Id> accIds = new Set<Id>();
+for (Contact c : contacts) { accIds.add(c.AccountId); }
+Map<Id,Account> accMap = new Map<Id,Account>(
+    [SELECT Id, Name FROM Account WHERE Id IN :accIds]); // 1 query
+for (Contact c : contacts) {
+    Account a = accMap.get(c.AccountId);
+    c.Description = a?.Name;
+}
+List<Contact> toUpdate = new List<Contact>(contacts);
+update toUpdate; // 1 DML statement
+```
+
+BAD — DML in loop (200 contacts = 200 DML statements, LimitException at record 151):
+
+```apex
+for (Contact c : contacts) {
+    c.Title = 'Updated';
+    update c; // DML each time
+}
 ```
 
 **Limitations:**

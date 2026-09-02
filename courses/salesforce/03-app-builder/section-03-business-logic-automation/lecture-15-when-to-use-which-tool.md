@@ -33,52 +33,37 @@ Process Builder and Workflow Rules are both deprecated/legacy. Any exam scenario
 
 ## Architecture / How It Works
 
-```
-Master Automation Decision Matrix:
-╔══════════════════════════════════════════════════════════════════════╗
-║  REQUIREMENT                          BEST TOOL                     ║
-╠══════════════════════════════════════════════════════════════════════╣
-║  Display calculated value (read-only) Formula Field                 ║
-║  Aggregate child records (MD)         Roll-Up Summary Field         ║
-║  Prevent bad data on save             Validation Rule               ║
-║  Update field on same record (save)   Before-Save Record-Triggered  ║
-║  Update related record (save)         After-Save Record-Triggered   ║
-║  Create related record (save)         After-Save Record-Triggered   ║
-║  User-guided multi-step wizard        Screen Flow                   ║
-║  Formal human approval workflow       Approval Process              ║
-║  Nightly/scheduled batch processing   Schedule-Triggered Flow       ║
-║  Process integration event message    Platform Event-Triggered Flow ║
-║  Reusable logic called from many places Auto-launched Flow          ║
-║  Complex multi-object transaction     Apex                          ║
-║  HTTP callout (sync, same transaction) Apex                         ║
-╚══════════════════════════════════════════════════════════════════════╝
-```
+| Requirement | Best Tool |
+|---|---|
+| Display calculated value (read-only) | Formula Field |
+| Aggregate child records (Master-Detail) | Roll-Up Summary Field |
+| Prevent bad data on save | Validation Rule |
+| Update field on same record (on save) | Before-Save Record-Triggered Flow |
+| Update related record (on save) | After-Save Record-Triggered Flow |
+| Create related record (on save) | After-Save Record-Triggered Flow |
+| User-guided multi-step wizard | Screen Flow |
+| Formal human approval workflow | Approval Process |
+| Nightly/scheduled batch processing | Schedule-Triggered Flow |
+| Process integration event message | Platform Event-Triggered Flow |
+| Reusable logic called from many places | Auto-launched Flow |
+| Complex multi-object transaction | Apex |
+| HTTP callout (sync, same transaction) | Apex |
 
 **Limitations:**
 - This matrix shows "best" tool — multiple tools are often technically possible
 - Flows have governor limits too — they're not infinitely scalable
 - Apex has a test coverage requirement (75%) that Flows don't — factor in maintenance cost
 
-```
-Flow Type Selection (Within Flow Builder):
-                                                               
-What triggers the flow?                                        
-   │                                                           
-   ├─ User manually starts it → Screen Flow                    
-   │                                                           
-   ├─ Record is saved (insert/update/delete) → Record-Triggered
-   │     │                                                     
-   │     ├─ Needs to update triggering record fields only      
-   │     │  → Before-Save RTF                                  
-   │     └─ Needs to touch other records / send emails         
-   │        → After-Save RTF                                   
-   │                                                           
-   ├─ Time-based / schedule → Schedule-Triggered Flow          
-   │                                                           
-   ├─ Platform Event received → Platform Event-Triggered Flow  
-   │                                                           
-   └─ Called by another process (Apex / Flow / API)            
-      → Auto-launched Flow                                     
+```mermaid
+flowchart TD
+    A{"What triggers\nthe flow?"}
+    A -->|"User manually starts it"| B["Screen Flow"]
+    A -->|"Record is saved\n(insert/update/delete)"| C{"What does it\nneed to do?"}
+    C -->|"Update triggering record\nfields only"| C1["Before-Save RTF"]
+    C -->|"Touch other records\nor send emails"| C2["After-Save RTF"]
+    A -->|"Time-based / schedule"| D["Schedule-Triggered Flow"]
+    A -->|"Platform Event received"| E["Platform Event-Triggered Flow"]
+    A -->|"Called by Apex / Flow / API"| F["Auto-launched Flow"]
 ```
 
 **Limitations:**
@@ -87,24 +72,15 @@ What triggers the flow?
 - An Auto-launched Flow cannot have Screen elements
 - Only Screen Flows can pause
 
-```
-Exam Trap Table — Common Wrong Answers:
-┌────────────────────────────────────────────────────────────────────┐
-│  Scenario                              Wrong        Right          │
-├────────────────────────────────────────────────────────────────────┤
-│  Auto-update related record on save    Workflow Rule RTF After-Save│
-│  SUM child records (Lookup rel.)       Roll-Up Summ  Flow/Apex     │
-│  Enforce data quality on save          Flow          Validation    │
-│                                                      Rule          │
-│  Formal approve/reject with record     Flow          Approval      │
-│  locking                                             Process       │
-│  Time-delayed action from record save  Apex          RTF Scheduled │
-│                                                      Path          │
-│  User fills out form to create record  Validation    Screen Flow   │
-│                                        Rule                        │
-│  Display total of child records (MD)   Flow          Roll-Up Summ  │
-└────────────────────────────────────────────────────────────────────┘
-```
+| Scenario | Wrong Answer | Right Answer |
+|---|---|---|
+| Auto-update related record on save | Workflow Rule | RTF After-Save |
+| SUM child records (Lookup relationship) | Roll-Up Summary | Flow / Apex |
+| Enforce data quality on save | Flow | Validation Rule |
+| Formal approve/reject with record locking | Flow | Approval Process |
+| Time-delayed action from record save | Apex | RTF Scheduled Path |
+| User fills out form to create record | Validation Rule | Screen Flow |
+| Display total of child records (Master-Detail) | Flow | Roll-Up Summary |
 
 ---
 

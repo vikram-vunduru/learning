@@ -47,37 +47,24 @@
 
 ## The Salesforce AI Feature Map
 
-```
-╔══════════════════════════════════════════════════════════════════╗
-║               SALESFORCE AI FEATURE TAXONOMY                     ║
-╠══════════════════════════════════════════════════════════════════╣
-║                                                                  ║
-║  PREDICTIVE AI                                                   ║
-║  ┌─────────────────────────────────────────────────────────┐     ║
-║  │ Einstein Lead Scoring      → probability score 0-99    │     ║
-║  │ Einstein Opportunity Score → close probability score   │     ║
-║  │ Einstein Case Classification → field value prediction  │     ║
-║  │ Einstein Prediction Builder → custom binary/numeric    │     ║
-║  │ Einstein Next Best Action  → rule+ML recommendations   │     ║
-║  └─────────────────────────────────────────────────────────┘     ║
-║                                                                  ║
-║  GENERATIVE AI                                                   ║
-║  ┌─────────────────────────────────────────────────────────┐     ║
-║  │ Prompt Builder             → reusable prompt templates  │     ║
-║  │ Einstein Copilot           → AI assistant in CRM        │     ║
-║  │ Case Summarization         → narrative case summaries   │     ║
-║  │ Sales Email Generation     → personalized email drafts  │     ║
-║  └─────────────────────────────────────────────────────────┘     ║
-║                                                                  ║
-║  AGENTIC AI                                                      ║
-║  ┌─────────────────────────────────────────────────────────┐     ║
-║  │ Agentforce                 → autonomous multi-step      │     ║
-║  │   Service Agent            → resolves service issues   │     ║
-║  │   SDR Agent                → qualifies inbound leads   │     ║
-║  │   Sales Coach Agent        → advises reps (no actions) │     ║
-║  └─────────────────────────────────────────────────────────┘     ║
-╚══════════════════════════════════════════════════════════════════╝
-```
+**Predictive AI**
+- Einstein Lead Scoring — probability score 0-99
+- Einstein Opportunity Score — close probability score
+- Einstein Case Classification — field value prediction
+- Einstein Prediction Builder — custom binary/numeric predictions
+- Einstein Next Best Action — rule + ML recommendations
+
+**Generative AI**
+- Prompt Builder — reusable prompt templates
+- Einstein Copilot — AI assistant in CRM
+- Case Summarization — narrative case summaries
+- Sales Email Generation — personalized email drafts
+
+**Agentic AI**
+- Agentforce — autonomous multi-step task execution
+  - Service Agent — resolves service issues
+  - SDR Agent — qualifies inbound leads
+  - Sales Coach Agent — advises reps (no CRM actions)
 
 **Limitations of this taxonomy:**
 - Agentforce agents USE generative AI (LLMs) under the hood for reasoning — they are generative at the model level, agentic at the product level
@@ -89,18 +76,15 @@
 
 ## Combined Pipeline (Enterprise Pattern)
 
-```
-CUSTOMER DATA (Data Cloud)
-        │
-        ├──▶ PREDICTIVE AI ──▶ Churn risk: 87% ──▶ trigger alert
-        │                                              │
-        │                                              ▼
-        └──▶ GENERATIVE AI ◀── AGENTFORCE takes action
-                  │            (drafts outreach, creates task)
-                  ▼
-          Draft email personalized to customer's full
-          360° profile: purchase history, support history,
-          loyalty status, risk score
+```mermaid
+flowchart TD
+    DC["Customer Data — Data Cloud"]
+    DC --> PA["Predictive AI"]
+    PA --> CR["Churn risk: 87% — trigger alert"]
+    CR --> AF["Agentforce takes action\ndrafts outreach · creates task"]
+    DC --> GA["Generative AI"]
+    AF --> GA
+    GA --> DE["Draft email personalized to\ncustomer#quot;s full 360° profile:\npurchase history · support history\nloyalty status · risk score"]
 ```
 
 **Limitations of this combined pattern:**

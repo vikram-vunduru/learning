@@ -39,23 +39,18 @@ CIs eliminate the need for a separate data warehouse or ETL pipeline just to get
 
 ### What CIs Do: Raw Data to Summary
 
-```
-  SALES ORDER DMO (record level)           CI OUTPUT (summary per customer)
-  ═══════════════════════════              ════════════════════════════════════
-  OrderId  │ IndivId │ Amount              Customer_Purchase_Stats CI
-  ─────────┼─────────┼───────              ──────────────────────────────────────
-  SO-001   │ 00U-001 │ $120                IndividualId │ TotalOrders │ TotalRev
-  SO-002   │ 00U-001 │ $340   ──SQL──▶     00U-001      │     14      │ $3,240
-  SO-003   │ 00U-001 │ $85    GROUP BY     ──────────────────────────────────────
-  SO-004   │ 00U-001 │ $210                One row per customer
-  ...
-  SO-101   │ 00U-002 │ $500   ──SQL──▶     00U-002      │      3      │ $1,100
-  SO-102   │ 00U-002 │ $300
-  SO-103   │ 00U-002 │ $300
+**Sales Order DMO (record level)** → CI SQL (GROUP BY IndividualId) → **CI Output (summary per customer)**
 
-  Many rows per customer                   One summary row per customer
-  Cannot filter in Segment Builder         Can filter: TotalRev >= 1000
-```
+| Source: Sales Order DMO | | CI Output: Customer_Purchase_Stats |
+|---|---|---|
+| SO-001, 00U-001, $120 | | IndividualId: 00U-001 |
+| SO-002, 00U-001, $340 | SQL → GROUP BY | TotalOrders: 14 |
+| SO-003, 00U-001, $85 | | TotalRev: $3,240 |
+| SO-004, 00U-001, $210 ... | | |
+| SO-101, 00U-002, $500 | SQL → GROUP BY | IndividualId: 00U-002 |
+| SO-102, 00U-002, $300 | | TotalOrders: 3, TotalRev: $1,100 |
+
+Many rows per customer → One summary row per customer. Cannot filter on raw order rows in Segment Builder → Can filter: `TotalRev >= 1000`.
 
 **Limitations:**
 - CIs are NOT real-time — they're as fresh as the last scheduled refresh
@@ -96,53 +91,34 @@ GROUP BY i.Id                       -- ★ Required — defines dimension
 
 ### Aggregation Functions Reference
 
-```
-  ┌────────────────────┬───────────────────────────────┬───────────────────────────┐
-  │ Function           │ Example                       │ Use For                   │
-  ├────────────────────┼───────────────────────────────┼───────────────────────────┤
-  │ COUNT(field)       │ COUNT(so.Id) AS Orders        │ # of orders, sessions     │
-  │ COUNT(DISTINCT f)  │ COUNT(DISTINCT ProductCat)    │ Unique product categories │
-  │ SUM(field)         │ SUM(TotalAmount) AS Revenue   │ Total spend, quantity     │
-  │ AVG(field)         │ AVG(TotalAmount) AS AvgOrder  │ Average order value       │
-  │ MAX(field)         │ MAX(OrderDate) AS LastPurchase│ Most recent purchase date │
-  │ MIN(field)         │ MIN(OrderDate) AS FirstPurchas│ First purchase date       │
-  └────────────────────┴───────────────────────────────┴───────────────────────────┘
-  All functions IGNORE NULL values (standard SQL behavior)
+| Function | Example | Use For |
+|---|---|---|
+| `COUNT(field)` | `COUNT(so.Id) AS Orders` | Number of orders, sessions |
+| `COUNT(DISTINCT f)` | `COUNT(DISTINCT ProductCat)` | Unique product categories |
+| `SUM(field)` | `SUM(TotalAmount) AS Revenue` | Total spend, quantity |
+| `AVG(field)` | `AVG(TotalAmount) AS AvgOrder` | Average order value |
+| `MAX(field)` | `MAX(OrderDate) AS LastPurchase` | Most recent purchase date |
+| `MIN(field)` | `MIN(OrderDate) AS FirstPurchase` | First purchase date |
 
-  Business need → Function mapping:
-  "How many purchases?" → COUNT
-  "Total spent?" → SUM
-  "Average basket size?" → AVG
-  "When did they last buy?" → MAX on date field
-  "When did they first buy?" → MIN on date field
-  "How many different categories?" → COUNT(DISTINCT)
-```
+All functions ignore NULL values (standard SQL behavior).
+
+**Business need → Function:** "How many purchases?" → COUNT | "Total spent?" → SUM | "Average basket size?" → AVG | "When did they last buy?" → MAX on date | "When did they first buy?" → MIN on date | "How many different categories?" → COUNT(DISTINCT)
 
 ---
 
 ### CI Refresh Dependency Chain
 
-```
-  CORRECT ORDER (must run in this sequence):
-  ════════════════════════════════════════════════════════
-  2:00 AM ── Data Stream refresh ──▶ DLO + DMO updated
-                     │
-                     │ (job chaining — waits for completion)
-                     ▼
-  4:00 AM ── CI refresh ───────────▶ CI values computed from
-                     │               fresh DMO data
-                     │ (job chaining)
-                     ▼
-  6:00 AM ── Segment refresh ──────▶ Segment membership updated
-                     │               using fresh CI values
-                     │ (job chaining)
-                     ▼
-  7:00 AM ── Activation publish ───▶ Destinations updated
-
-  WITHOUT chaining: CI runs at 1 AM before Data Stream finishes
-  → CI computes yesterday's data
-  → Segments reflect stale metrics
-  → Marketing activates wrong audience
+```mermaid
+flowchart TD
+    DS["2:00 AM — Data Stream refresh\nDLO + DMO updated"]
+    CI["4:00 AM — CI refresh\nCI values computed from fresh DMO data"]
+    SEG["6:00 AM — Segment refresh\nSegment membership updated using fresh CI values"]
+    ACT["7:00 AM — Activation publish\nDestinations updated"]
+    DS -->|"job chaining — waits for completion"| CI
+    CI -->|"job chaining"| SEG
+    SEG -->|"job chaining"| ACT
+    WARN["WITHOUT chaining: CI runs at 1 AM before\nData Stream finishes → CI computes yesterday's\ndata → Segments reflect stale metrics →\nMarketing activates wrong audience"]
+    style WARN fill:#ffffcc
 ```
 
 **Limitations:**

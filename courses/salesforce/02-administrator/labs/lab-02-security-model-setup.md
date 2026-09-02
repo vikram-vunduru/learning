@@ -7,18 +7,18 @@ This lab covers the full security model stack. Work through each section to buil
 ### Build a Role Hierarchy
 - [ ] Navigate to Setup → Users → Roles
 - [ ] Create the following hierarchy:
-  ```
-  CEO
-  ├── VP Sales
-  │   ├── Regional Manager — East
-  │   │   ├── Sales Rep — East 1
-  │   │   └── Sales Rep — East 2
-  │   └── Regional Manager — West
-  │       ├── Sales Rep — West 1
-  │       └── Sales Rep — West 2
-  └── VP Service
-      └── Support Manager
-          └── Support Agent 1
+  ```mermaid
+  flowchart TD
+      CEO --> VPS["VP Sales"]
+      CEO --> VPSVC["VP Service"]
+      VPS --> RME["Regional Manager — East"]
+      VPS --> RMW["Regional Manager — West"]
+      RME --> SRE1["Sales Rep — East 1"]
+      RME --> SRE2["Sales Rep — East 2"]
+      RMW --> SRW1["Sales Rep — West 1"]
+      RMW --> SRW2["Sales Rep — West 2"]
+      VPSVC --> SM["Support Manager"]
+      SM --> SA1["Support Agent 1"]
   ```
 - [ ] Understand: can VP Sales see Sales Rep East 1's records? YES (above in hierarchy)
 - [ ] Understand: can Sales Rep East 1 see VP Sales's records? NO (below in hierarchy)

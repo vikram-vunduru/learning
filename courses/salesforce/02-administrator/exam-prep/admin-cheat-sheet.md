@@ -6,18 +6,12 @@ This is the everything-in-one-place reference. Read this the day before the exam
 
 ## 1. Security Stack (The Floor-to-Ceiling Model)
 
-```
-WHAT YOU CAN DO (object/field access):
-  Profile (1 per user, required) → Permission Sets (0+, additive only)
-  Controls: Object CRUD, FLS, Apps, Login Hours, IP Ranges
-
-WHAT YOU CAN SEE (record access):
-  1. OWD (floor — most restrictive baseline)
-  2. Role Hierarchy (managers see subordinates' records)
-  3. Sharing Rules (criteria/owner-based groups, max 300/object)
-  4. Manual Sharing (per-record grants by users)
-  
-  These only OPEN access, never RESTRICT below OWD.
+```mermaid
+flowchart TD
+    A["WHAT YOU CAN DO — object/field access\nProfile (1 per user, required)\n+ Permission Sets (0+, additive only)\nControls: Object CRUD, FLS, Apps,\nLogin Hours, IP Ranges"]
+    B["WHAT YOU CAN SEE — record access\n1. OWD — floor, most restrictive baseline\n2. Role Hierarchy — managers see subordinates\n3. Sharing Rules — criteria/owner-based, max 300/object\n4. Manual Sharing — per-record grants by users"]
+    A --> B
+    Note["These only OPEN access, never RESTRICT below OWD"]
 ```
 
 **Limitations:** Permission Sets = additive only (can't remove Profile grants). Role hierarchy visibility = upward only. Manual shares persist after ownership changes.

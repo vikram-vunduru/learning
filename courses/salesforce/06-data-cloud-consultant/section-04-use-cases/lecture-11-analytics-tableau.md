@@ -38,30 +38,20 @@ The most compelling analytics story for a CDO: "Your BI team and marketing team 
 
 ### Analytics Data Access Diagram
 
-```
-  DATA CLOUD                      ANALYTICS TOOLS
-  ═════════════════════════════   ════════════════════════════
-  ┌─────────────────────────────┐
-  │  DLOs (raw source data)     │ ✗ NOT accessible by Tableau
-  │  cust_fname, order_dt, etc. │   or CRM Analytics
-  └─────────────────────────────┘
-                                                 OAuth 2.0
-  ┌─────────────────────────────┐ ════════════▶ ┌──────────────┐
-  │  DMOs (modeled data)        │               │   Tableau    │
-  │  Individual, SalesOrder,    │               │  Dashboards  │
-  │  ContactPoint, etc.         │               │  Ad-hoc Q&A  │
-  └─────────────────────────────┘               └──────────────┘
-                                                        │
-  ┌─────────────────────────────┐ ════════════▶ ┌──────────────┐
-  │  Calculated Insights        │               │    CRM       │
-  │  TotalSpend90d, OrderCount, │               │  Analytics   │
-  │  AvgOrderValue, LastOrder   │               │  Einstein    │
-  └─────────────────────────────┘               └──────────────┘
-                                                        │
-  ┌─────────────────────────────┐ ════════════▶ Both tools also
-  │  Unified Individual         │               get Unified
-  │  (merged, resolved profiles)│               Individual data
-  └─────────────────────────────┘
+```mermaid
+flowchart LR
+    DLO["DLOs (raw source data)\ncust_fname, order_dt, etc.\nNOT accessible by analytics tools"]
+    DMO["DMOs (modeled data)\nIndividual, SalesOrder,\nContactPoint, etc."]
+    CI["Calculated Insights\nTotalSpend90d, OrderCount,\nAvgOrderValue, LastOrder"]
+    UI["Unified Individual\n(merged, resolved profiles)"]
+    TAB["Tableau\nDashboards\nAd-hoc Q&A"]
+    CRMA["CRM Analytics\n(Einstein)"]
+    DMO -->|"OAuth 2.0"| TAB
+    CI -->|"OAuth 2.0"| TAB
+    UI -->|"OAuth 2.0"| TAB
+    DMO --> CRMA
+    CI --> CRMA
+    UI --> CRMA
 ```
 
 **Limitations:**
@@ -74,25 +64,21 @@ The most compelling analytics story for a CDO: "Your BI team and marketing team 
 
 ### CI as Dual-Purpose: Segments + Analytics
 
-```
-  CALCULATED INSIGHT: Customer_Revenue_90d
-  ────────────────────────────────────────────────────────────
-  SQL definition (written once):
-  SELECT IndividualId, SUM(Amount) AS TotalRev90d,
-         COUNT(OrderId) AS OrderCount90d
-  FROM SalesOrder__dlm
-  WHERE OrderDate >= DATEADD(day, -90, CURRENT_DATE)
-  GROUP BY IndividualId
+**Calculated Insight: Customer_Revenue_90d** — SQL defined once, consumed by both teams:
 
-  ─────────────────────────────────────
-  USED BY: Segment Builder             USED BY: Analytics Tools
-  "TotalRev90d >= $1,000"              Tableau: chart TotalRev90d
-  filters segment population           by region / loyalty tier
-
-  RESULT: Marketing team and BI team
-  always work with the same metric
-  definition — no discrepancies
+```sql
+SELECT IndividualId, SUM(Amount) AS TotalRev90d, COUNT(OrderId) AS OrderCount90d
+FROM SalesOrder__dlm
+WHERE OrderDate >= DATEADD(day, -90, CURRENT_DATE)
+GROUP BY IndividualId
 ```
+
+| Consumer | How It's Used |
+|---|---|
+| **Segment Builder** | `TotalRev90d >= $1,000` filters segment population |
+| **Tableau / Analytics** | Chart TotalRev90d by region / loyalty tier |
+
+**Result:** Marketing team and BI team always work from the same metric definition — no discrepancies.
 
 **Limitations:**
 - CI is pre-computed — Tableau sees the cached value at last CI refresh, not live transactional data
@@ -103,28 +89,18 @@ The most compelling analytics story for a CDO: "Your BI team and marketing team 
 
 ### Tableau OAuth 2.0 Connection Setup
 
-```
-  PREREQUISITES:
-  ┌────────────────────────────────────────────────────────────┐
-  │  1. Create Connected App in Salesforce Org                 │
-  │  2. Enable OAuth scopes:                                   │
-  │     ▸ Perform requests on your behalf (api)                │
-  │     ▸ Access and manage your data (full)                   │
-  │     ▸ cdp_query_api (Data Cloud query scope)               │
-  │  3. Obtain Consumer Key + Consumer Secret                  │
-  │  4. In Tableau Desktop:                                    │
-  │     Data → Connect → Salesforce Data Cloud                 │
-  │     Enter Consumer Key + Consumer Secret                   │
-  │     Authorize via OAuth browser redirect                   │
-  └────────────────────────────────────────────────────────────┘
+**Prerequisites:**
+1. Create Connected App in Salesforce Org
+2. Enable OAuth scopes: `api` (perform requests), `full` (access and manage data), `cdp_query_api` (Data Cloud query scope — required)
+3. Obtain Consumer Key + Consumer Secret
+4. In Tableau Desktop: Data → Connect → Salesforce Data Cloud → Enter Consumer Key + Consumer Secret → Authorize via OAuth browser redirect
 
-  WHAT YOU CAN QUERY:
-  ✅  DMOs (Individual, SalesOrder, ContactPointEmail, etc.)
-  ✅  Calculated Insights (all published CIs)
-  ✅  Unified Individual
-  ✗   DLOs (Data Lake Objects — raw source data)
-  ✗   Drafts, unpublished objects
-```
+**What you can query:**
+- DMOs (Individual, SalesOrder, ContactPointEmail, etc.)
+- Calculated Insights (all published CIs)
+- Unified Individual
+- NOT DLOs (raw source data)
+- NOT Draft or unpublished objects
 
 ---
 

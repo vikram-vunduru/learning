@@ -39,27 +39,18 @@ Customers often ask whether they should use multiple Salesforce Orgs (each with 
 
 ### Data Spaces: Access Control Model
 
-```
-  ╔═══════════════════════════════════════════════════════════════╗
-  ║              DATA CLOUD INSTANCE                              ║
-  ║   (One org — shared underlying storage)                      ║
-  ║                                                               ║
-  ║  ┌────────────────────────────┐  ┌────────────────────────┐  ║
-  ║  │    DATA SPACE: Brand A     │  │  DATA SPACE: Brand B   │  ║
-  ║  │    ─────────────────────── │  │  ─────────────────────  │  ║
-  ║  │    Data Streams (Brand A)  │  │  Data Streams (Brand B)│  ║
-  ║  │    DMOs (Brand A only)     │  │  DMOs (Brand B only)   │  ║
-  ║  │    Segments (Brand A only) │  │  Segments (Brand B)    │  ║
-  ║  │    Activation Targets      │  │  Activation Targets    │  ║
-  ║  │                            │  │                        │  ║
-  ║  │  Users: Brand A team only  │  │  Users: Brand B team   │  ║
-  ║  └────────────────────────────┘  └────────────────────────┘  ║
-  ║                                                               ║
-  ║  ┌────────────────────────────────────────────────────────┐  ║
-  ║  │           DEFAULT DATA SPACE                           │  ║
-  ║  │   All DC Admin users can see shared/global objects    │  ║
-  ║  └────────────────────────────────────────────────────────┘  ║
-  ╚═══════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    subgraph DC["DATA CLOUD INSTANCE\n(One org — shared underlying storage)"]
+        subgraph BA["DATA SPACE: Brand A\nUsers: Brand A team only"]
+            BA1["Data Streams (Brand A)\nDMOs (Brand A only)\nSegments (Brand A only)\nActivation Targets"]
+        end
+        subgraph BB["DATA SPACE: Brand B\nUsers: Brand B team only"]
+            BB1["Data Streams (Brand B)\nDMOs (Brand B only)\nSegments (Brand B)\nActivation Targets"]
+        end
+        subgraph DEF["DEFAULT DATA SPACE\nAll DC Admin users can see\nshared/global objects"]
+        end
+    end
 ```
 
 **Limitations:**
@@ -72,30 +63,14 @@ Customers often ask whether they should use multiple Salesforce Orgs (each with 
 
 ### Permission Set Reference
 
-```
-  PERMISSION SET                  │ CAN DO                        │ CANNOT DO
-  ════════════════════════════════╪═══════════════════════════════╪══════════════════════════
-  Data Cloud Admin                │ Everything — connectors,      │ N/A — full access
-                                  │ data streams, DMOs, IR,       │
-                                  │ segments, ATs, CI, admin UI   │
-  ────────────────────────────────┼───────────────────────────────┼──────────────────────────
-  Data Cloud Data Aware           │ Work with data models,        │ Configure connectors,
-  Specialist                      │ field mapping, segmentation,  │ create Activation Targets
-                                  │ view CI                       │
-  ────────────────────────────────┼───────────────────────────────┼──────────────────────────
-  Data Cloud Marketing            │ Build and publish segments,   │ Modify data model,
-  Specialist                      │ configure activations (if AT  │ create IR rulesets,
-                                  │ already exists)               │ admin configuration
-  ────────────────────────────────┼───────────────────────────────┼──────────────────────────
-  Data Cloud for                  │ Configure Marketing Cloud     │ General DC administration
-  Marketing Cloud                 │ Connector and related objects │ outside MC integration
-  ════════════════════════════════╧═══════════════════════════════╧══════════════════════════
+| Permission Set | Can Do | Cannot Do |
+|---|---|---|
+| **Data Cloud Admin** | Everything — connectors, data streams, DMOs, IR, segments, ATs, CI, admin UI | N/A — full access |
+| **Data Cloud Data Aware Specialist** | Work with data models, field mapping, segmentation, view CI | Configure connectors, create Activation Targets |
+| **Data Cloud Marketing Specialist** | Build and publish segments, configure activations (if AT already exists) | Modify data model, create IR rulesets, admin configuration |
+| **Data Cloud for Marketing Cloud** | Configure Marketing Cloud Connector and related objects | General DC administration outside MC integration |
 
-  ★ Always assign minimum required permission set
-  ★ Campaign manager → Data Cloud Marketing Specialist
-  ★ Data engineer/admin → Data Cloud Admin
-  ★ Analytics user → Data Cloud Data Aware Specialist
-```
+**Assign minimum required permission set.** Campaign manager → Marketing Specialist. Data engineer/admin → Data Cloud Admin. Analytics user → Data Aware Specialist.
 
 **Limitations:**
 - Permission Sets layer on top of standard Salesforce profile-based access — the profile must also grant access to the Data Cloud app and tabs
@@ -106,21 +81,19 @@ Customers often ask whether they should use multiple Salesforce Orgs (each with 
 
 ### User Access Decision Tree
 
-```
-  What does this user need to do?
-              │
-  ┌───────────┴─────────────┐
-  ▼                         ▼
-  Configure infra?          Only segment/activate?
-  (connectors, DLOs,        │
-   IR rulesets)             ├── Also configure ATs?
-  │                         │   → Data Aware Specialist
-  ▼                         │
-  Data Cloud Admin          └── Build/run segments only?
-                                → Marketing Specialist
-
-  Also needs MC connector?
-  → + "Data Cloud for Marketing Cloud"
+```mermaid
+flowchart TD
+    Q["What does this user need to do?"]
+    Q --> INFRA{"Configure infrastructure?\n(connectors, DLOs, IR rulesets)"}
+    INFRA -->|YES| ADMIN["Data Cloud Admin"]
+    INFRA -->|NO| SEGONLY{"Only segment/activate?"}
+    SEGONLY --> Q2{"Also configure\nnew Activation Targets?"}
+    Q2 -->|YES| DAS["Data Cloud Data Aware Specialist"]
+    Q2 -->|NO| MKTS["Data Cloud Marketing Specialist\n(build/run segments only)"]
+    ADMIN --> MC{"Also needs MC connector?"}
+    DAS --> MC
+    MKTS --> MC
+    MC -->|YES| ADDMC["+ Data Cloud for Marketing Cloud\npermission set"]
 ```
 
 ---

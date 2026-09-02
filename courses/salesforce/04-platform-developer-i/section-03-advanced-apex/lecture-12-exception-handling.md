@@ -110,78 +110,57 @@ for (Database.SaveResult sr : results) {
 
 ## Architecture / How It Works
 
-```
-EXCEPTION CLASS HIERARCHY (relevant subset)
+**Exception Class Hierarchy (relevant subset):**
 
-  Exception (base)
-  ├── System.LimitException       ← NOT catchable — rolls back TX
-  ├── System.NullPointerException ← dereference null
-  ├── System.DmlException         ← DML failure; getDmlMessage(i)
-  ├── System.QueryException       ← 0 or 2+ rows in single-row query
-  ├── System.CalloutException     ← HTTP callout failure
-  ├── System.TypeException        ← invalid cast
-  ├── System.ListException        ← index out of bounds
-  └── MyCustomException           ← extends Exception (user-defined)
+- `Exception` (base)
+  - `System.LimitException` — NOT catchable; rolls back TX
+  - `System.NullPointerException` — dereference null
+  - `System.DmlException` — DML failure; use `getDmlMessage(i)`
+  - `System.QueryException` — 0 or 2+ rows in single-row query
+  - `System.CalloutException` — HTTP callout failure
+  - `System.TypeException` — invalid cast
+  - `System.ListException` — index out of bounds
+  - `MyCustomException` — extends Exception (user-defined)
 
-  Key rule: LimitException cannot be in any catch block (uncatchable).
-```
+Key rule: `LimitException` cannot be in any catch block — it is uncatchable.
 
 **Limitations:**
 - `LimitException` is thrown by the platform and bypasses all catch blocks
 - Custom exceptions must extend `Exception` — interfaces and other base classes are not allowed
 
-```
-DML allOrNone BEHAVIOR
-
-  allOrNone = true (insert myList):
-  ┌──────────────────────────────────────────────────┐
-  │  [Valid] [Valid] [INVALID] [Valid]                │
-  │                    ↑                              │
-  │  Any failure → DmlException thrown                │
-  │  → ALL records rolled back (0 committed)          │
-  │  → Catch DmlException to handle                   │
-  └──────────────────────────────────────────────────┘
-
-  allOrNone = false (Database.insert(list, false)):
-  ┌──────────────────────────────────────────────────┐
-  │  [Valid] [Valid] [INVALID] [Valid]                │
-  │                    ↑                              │
-  │  No exception thrown                              │
-  │  3 records committed; 1 failed                    │
-  │  → SaveResult[2].isSuccess() = false              │
-  │  → SaveResult[2].getErrors() = [error details]    │
-  └──────────────────────────────────────────────────┘
-```
+| | `allOrNone = true` (`insert myList`) | `allOrNone = false` (`Database.insert(list, false)`) |
+|---|---|---|
+| Input | [Valid] [Valid] [**INVALID**] [Valid] | [Valid] [Valid] [**INVALID**] [Valid] |
+| On failure | `DmlException` thrown; ALL records rolled back (0 committed) | No exception; 3 committed, 1 failed |
+| Check errors via | `catch (DmlException e)` | `SaveResult[2].isSuccess() = false`; `SaveResult[2].getErrors()` |
 
 **Limitations:**
 - `Database.insert(list, false)` does NOT roll back successful records when others fail — successes are permanent even if some fail
 - `DmlException.getDmlMessage(i)` only works with DML statement exceptions, not Database.insert() partial failures (use SaveResult for those)
 
-```
-CUSTOM EXCEPTION PATTERN — SERVICE LAYER
+**Custom Exception Pattern — Service Layer:**
 
-  ┌─────────────────────────────────────────────────────────┐
-  │  public class OrderService {                             │
-  │                                                         │
-  │    public class OrderException extends Exception {}     │
-  │                                                         │
-  │    public static void processOrder(Order__c o) {        │
-  │        if (o.Quantity__c <= 0) {                        │
-  │            throw new OrderException('Qty must be > 0'); │
-  │        }                                                │
-  │        // ... process                                   │
-  │    }                                                    │
-  │  }                                                      │
-  │                                                         │
-  │  // Caller:                                             │
-  │  try {                                                  │
-  │      OrderService.processOrder(order);                  │
-  │  } catch (OrderService.OrderException e) {              │
-  │      // type-safe; won't catch generic exceptions       │
-  │      ApexPages.addMessage(new ApexPages.Message(        │
-  │          ApexPages.Severity.ERROR, e.getMessage()));    │
-  │  }                                                      │
-  └─────────────────────────────────────────────────────────┘
+```apex
+public class OrderService {
+
+    public class OrderException extends Exception {}
+
+    public static void processOrder(Order__c o) {
+        if (o.Quantity__c <= 0) {
+            throw new OrderException('Qty must be > 0');
+        }
+        // ... process
+    }
+}
+
+// Caller:
+try {
+    OrderService.processOrder(order);
+} catch (OrderService.OrderException e) {
+    // type-safe; won't catch generic exceptions
+    ApexPages.addMessage(new ApexPages.Message(
+        ApexPages.Severity.ERROR, e.getMessage()));
+}
 ```
 
 **Limitations:**

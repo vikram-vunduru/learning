@@ -36,37 +36,28 @@ Tracks the old value, new value, date/time, and user for field changes. Up to **
 
 ## Architecture / How It Works
 
-```
-Custom Object Field Type Decision Tree:
-                                                               
-Is the value user-typed text?                                 
-  ├─ Short (≤255 chars) ──────────────────► Text              
-  ├─ Long prose (no formatting) ──────────► Text Area (Long)  
-  └─ Long prose with formatting/images ──► Rich Text Area     
-                                                               
-Is the value a number?                                        
-  ├─ Dollar amount ────────────────────────► Currency         
-  ├─ Percentage ───────────────────────────► Percent          
-  └─ Plain number ─────────────────────────► Number           
-                                                               
-Is the value constrained to a set of options?                 
-  ├─ One selection allowed ────────────────► Picklist         
-  └─ Multiple selections allowed ─────────► Multi-Select Picklist
-                                                               
-Is the value a date or time?                                  
-  ├─ Date only ────────────────────────────► Date             
-  └─ Date + Time ──────────────────────────► Date/Time        
-                                                               
-Is the value true/false?
-  └─ ─────────────────────────────────────► Checkbox         
-                                                               
-Is it a relationship to another object?                       
-  ├─ Loose link (both objects independent) ► Lookup           
-  └─ Tight parent-child (child depends on parent)             
-                                     ────► Master-Detail      
-                                                               
-Is it calculated from other fields?
-  └─ ─────────────────────────────────────► Formula           
+```mermaid
+flowchart TD
+    A{"What type of value?"}
+    A -->|"User-typed text"| B{"Text length?"}
+    B -->|"Short ≤255 chars"| B1["Text"]
+    B -->|"Long, no formatting"| B2["Text Area (Long)"]
+    B -->|"Long with formatting/images"| B3["Rich Text Area"]
+    A -->|"Number"| C{"Number type?"}
+    C -->|"Dollar amount"| C1["Currency"]
+    C -->|"Percentage"| C2["Percent"]
+    C -->|"Plain number"| C3["Number"]
+    A -->|"Constrained options"| D{"Selections?"}
+    D -->|"One only"| D1["Picklist"]
+    D -->|"Multiple allowed"| D2["Multi-Select Picklist"]
+    A -->|"Date or time"| E{"Date type?"}
+    E -->|"Date only"| E1["Date"]
+    E -->|"Date + Time"| E2["Date/Time"]
+    A -->|"True/false"| F["Checkbox"]
+    A -->|"Relationship"| G{"Coupling?"}
+    G -->|"Loose, both independent"| G1["Lookup"]
+    G -->|"Tight, child depends on parent"| G2["Master-Detail"]
+    A -->|"Calculated from other fields"| H["Formula"]
 ```
 
 **Limitations:**
@@ -75,19 +66,15 @@ Is it calculated from other fields?
 - Formula fields are read-only — users cannot edit them
 - Checkbox fields cannot be blank/null — they are always true or false
 
-```
-Field-Level Security Flow for New Custom Fields:
-┌──────────────────────────────────────────────────────────────────┐
-│  Field Created ──► Default State: Hidden for all profiles        │
-│                    EXCEPT System Administrator                   │
-│                                                                  │
-│  To make visible:                                                │
-│  Setup → Object Manager → [Object] → Fields → [Field]           │
-│       → Set Field-Level Security → Edit = ✓ or Read-Only = ✓    │
-│                                                                  │
-│  OR: Setup → Profiles → [Profile] → Field-Level Security        │
-│       → Find field → Set to Visible or Read-Only                │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["Field Created"]
+    B["Default State: Hidden for all profiles\nEXCEPT System Administrator"]
+    C["To make visible — Option 1:\nSetup → Object Manager → Object\n→ Fields → Field\n→ Set Field-Level Security\n→ Edit ✓ or Read-Only ✓"]
+    D["To make visible — Option 2:\nSetup → Profiles → Profile\n→ Field-Level Security\n→ Set to Visible or Read-Only"]
+    A --> B
+    B --> C
+    B --> D
 ```
 
 **Limitations:**

@@ -46,43 +46,27 @@ The Account model decision is fundamental: B2B (Account + Contact model) vs B2C 
 
 ## Architecture / How It Works
 
-```
-Account-Contact Model
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    subgraph B2B["B2B MODEL — Standard"]
+        Acct["Account (Organization)\ne.g., ACME Corp"]
+        Alice["Contact: Alice"]
+        Bob["Contact: Bob"]
+        Acct -->|"Lookup (optional)"| Alice
+        Acct -->|"Lookup (optional)"| Bob
+    end
 
-  B2B MODEL (Standard):
-  ┌─────────────────┐
-  │ Account         │ ← Organization
-  │ (ACME Corp)     │
-  └────────┬────────┘
-           │ (Lookup, optional)
-    ┌──────┴──────────┐
-    │                 │
-  ┌─┴───────┐   ┌─────┴──────┐
-  │ Contact │   │ Contact    │
-  │ (Alice) │   │ (Bob)      │
-  └─────────┘   └────────────┘
+    subgraph B2C["B2C MODEL — Person Accounts"]
+        PA["Person Account\n(combines Account + Contact)\nName, Email, Phone (Contact fields)\nAnnual Revenue (Account fields)"]
+    end
 
-  B2C MODEL (Person Accounts):
-  ┌─────────────────────────────────┐
-  │ Person Account                  │
-  │ (combines Account + Contact)    │
-  │ Name: John Smith                │
-  │ Email, Phone (Contact fields)   │
-  │ Annual Revenue (Account fields) │
-  └─────────────────────────────────┘
-
-  Account Hierarchy:
-  ┌─────────────────────┐
-  │ Alphabet Inc (top)  │
-  └──────────┬──────────┘
-             │ Parent Account
-    ┌─────────┴──────────┐
-    │                    │
-  ┌─┴───────┐    ┌───────┴───┐
-  │ Google  │    │ Waymo     │
-  │ LLC     │    │ LLC       │
-  └─────────┘    └───────────┘
+    subgraph Hierarchy["Account Hierarchy"]
+        Top["Alphabet Inc (parent)"]
+        G["Google LLC"]
+        W["Waymo LLC"]
+        Top -->|"Parent Account"| G
+        Top -->|"Parent Account"| W
+    end
 ```
 
 **Limitations:**

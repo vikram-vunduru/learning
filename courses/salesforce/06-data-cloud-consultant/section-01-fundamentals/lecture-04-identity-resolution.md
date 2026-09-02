@@ -39,38 +39,15 @@ Don't configure complex multi-field fuzzy match rules for a B2B account-based im
 
 ### Identity Resolution Flow
 
-```
-  Individual DMO Records (from multiple source DLOs)
-  ═════════════════════════════════════════════════════
-  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-  │ Individual   │   │ Individual   │   │ Individual   │
-  │ (from CRM)   │   │ (from EC)    │   │ (from Loyal) │
-  │ + CPEmail    │   │ + CPEmail    │   │ + CPEmail    │
-  └──────┬───────┘   └──────┬───────┘   └──────┬───────┘
-         └──────────────────┬┘──────────────────┘
-                            ▼
-               ╔════════════════════════════╗
-               ║  IDENTITY RESOLUTION       ║
-               ║      RULESET               ║
-               ║  ──────────────────────    ║
-               ║  Match Rules               ║
-               ║  ▸ Exact: Email            ║
-               ║  ▸ Fuzzy: FirstName+Last   ║
-               ║  ▸ Normalized: Phone       ║
-               ║  ──────────────────────    ║
-               ║  Reconciliation Rules      ║
-               ║  ▸ Source Priority: Name   ║
-               ║  ▸ Most Recent: Address    ║
-               ║  ▸ Most Occurred: Tier     ║
-               ╚════════════╤═══════════════╝
-                            ▼
-               ╔════════════════════════════╗
-               ║  UNIFIED INDIVIDUAL        ║
-               ║  One per real person       ║
-               ║  ▸ Reconciled attributes   ║
-               ║  ▸ ALL contact points      ║
-               ║  ▸ Source record links     ║
-               ╚════════════════════════════╝
+```mermaid
+flowchart TD
+    subgraph SRC["Individual DMO Records (from multiple source DLOs)"]
+        CRM["Individual (from CRM)\n+ CPEmail"]
+        EC["Individual (from EC)\n+ CPEmail"]
+        LOY["Individual (from Loyalty)\n+ CPEmail"]
+    end
+    SRC --> IR["IDENTITY RESOLUTION RULESET\nMatch Rules:\n  Exact: Email\n  Fuzzy: FirstName+Last\n  Normalized: Phone\nReconciliation Rules:\n  Source Priority: Name\n  Most Recent: Address\n  Most Occurred: Tier"]
+    IR --> UI["UNIFIED INDIVIDUAL\nOne per real person\nReconciled attributes\nALL contact points (additive)\nSource record links"]
 ```
 
 **Limitations:**
@@ -83,23 +60,13 @@ Don't configure complex multi-field fuzzy match rules for a B2B account-based im
 
 ### Match Rules — Type Comparison
 
-```
-  MATCH TYPE    │ USE FOR               │ HOW IT WORKS
-  ══════════════╪═══════════════════════╪══════════════════════════════════════
-  Exact         │ Email, Loyalty ID,    │ Character-for-character match
-                │ Government ID         │ (email auto-lowercased before compare)
-  ──────────────┼───────────────────────┼──────────────────────────────────────
-  Fuzzy         │ First name, Last name │ Similarity algorithm (Levenshtein)
-                │ (typos, nicknames)    │ Threshold % = minimum similarity
-                │                       │ Higher % = fewer matches, fewer errors
-  ──────────────┼───────────────────────┼──────────────────────────────────────
-  Normalized    │ Phone numbers,        │ Strip formatting → exact compare
-                │ Addresses             │ "(555) 123-4567" = "5551234567"
-                │                       │ Removes dashes, spaces, country codes
+| Match Type | Use For | How It Works |
+|---|---|---|
+| **Exact** | Email, Loyalty ID, Government ID | Character-for-character match (email auto-lowercased before compare) |
+| **Fuzzy** | First name, Last name (typos, nicknames) | Similarity algorithm (Levenshtein). Threshold % = minimum similarity. Higher % = fewer matches, fewer errors |
+| **Normalized** | Phone numbers, Addresses | Strip formatting → exact compare. "(555) 123-4567" = "5551234567". Removes dashes, spaces, country codes |
 
-  ★ NEVER use Fuzzy for email — would match "john@co.com" with "jane@co.com"
-  ★ ALWAYS use Exact or Normalized for email and phone
-```
+**NEVER** use Fuzzy for email — would match "john@co.com" with "jane@co.com". **ALWAYS** use Exact or Normalized for email and phone.
 
 **Limitations:**
 - Fuzzy matching is computationally more expensive than exact matching — use sparingly at enterprise scale
@@ -110,29 +77,15 @@ Don't configure complex multi-field fuzzy match rules for a B2B account-based im
 
 ### Reconciliation Rules
 
-```
-  Two matched source records — conflicting FirstName:
-  Source A (CRM):      "Jon"   Updated: 2022-01-15
-  Source B (Loyalty):  "John"  Updated: 2024-06-20
+Example: Source A (CRM) has FirstName "Jon" (updated 2022-01-15); Source B (Loyalty) has "John" (updated 2024-06-20).
 
-  STRATEGY OPTIONS:
-  ┌──────────────────────┬───────────────────────────────────────────────┐
-  │ Source Priority      │ Manually ranked trust order:                  │
-  │                      │ CRM = rank 1 → "Jon" wins                     │
-  │                      │ Best when one source is the system of record  │
-  ├──────────────────────┼───────────────────────────────────────────────┤
-  │ Most Occurred        │ Democratic — value in most sources wins:      │
-  │                      │ "John" appears in 2/3 sources → "John" wins   │
-  │                      │ Best when no single source is authoritative   │
-  ├──────────────────────┼───────────────────────────────────────────────┤
-  │ Most Recent          │ Newest update wins:                           │
-  │                      │ Loyalty updated 2024 → "John" wins            │
-  │                      │ Best for frequently changing data (address)   │
-  └──────────────────────┴───────────────────────────────────────────────┘
+| Strategy | How It Works | Winner in Example | Best For |
+|---|---|---|---|
+| **Source Priority** | Manually ranked trust order | CRM = rank 1 → "Jon" wins | When one source is the definitive system of record |
+| **Most Occurred** | Value appearing in most sources wins | "John" in 2/3 sources → "John" wins | When no single source is authoritative |
+| **Most Recent** | Newest update wins | Loyalty updated 2024 → "John" wins | Frequently changing data (address, preferences) |
 
-  REMEMBER: Reconciliation = attribute fields only. Contact Points = additive.
-  The Unified Individual gets ALL emails from ALL sources regardless of reconciliation.
-```
+**REMEMBER:** Reconciliation applies to attribute fields only. Contact Points are additive — the Unified Individual gets ALL emails from ALL sources regardless of reconciliation.
 
 **Limitations:**
 - Source Priority requires you to know and rank all source systems at configuration time — hard to maintain as new sources are added
@@ -143,26 +96,15 @@ Don't configure complex multi-field fuzzy match rules for a B2B account-based im
 
 ### IR Troubleshooting Quick Reference
 
-```
-  SYMPTOM                  │ MOST LIKELY CAUSE          │ FIX
-  ═════════════════════════╪════════════════════════════╪═══════════════════════════
-  0 match groups           │ Contact Point DMOs empty   │ Fix field mapping for
-                           │                            │ ContactPointEmail DMO
-  ─────────────────────────┼────────────────────────────┼───────────────────────────
-  Too many merges          │ Fuzzy threshold too low    │ Increase threshold
-  (false positives)        │                            │ Add qualifying criteria
-  ─────────────────────────┼────────────────────────────┼───────────────────────────
-  Too few merges           │ CPEmail not populated      │ Map email to CPEmail DMO
-  (false negatives)        │ Threshold too high         │ Lower threshold slightly
-  ─────────────────────────┼────────────────────────────┼───────────────────────────
-  No Unified Individuals   │ Individual DMO is empty    │ Check field mapping saved
-  at all                   │ Ruleset not active         │ Activate the ruleset
-  ─────────────────────────┼────────────────────────────┼───────────────────────────
-  Wrong field on Unified   │ Reconciliation rule        │ Review + fix rule;
-  Individual               │ misconfigured              │ re-run ruleset
-  ─────────────────────────┴────────────────────────────┴───────────────────────────
-  Review tool: Data Cloud UI → Identity Resolution → Match Groups
-```
+| Symptom | Most Likely Cause | Fix |
+|---|---|---|
+| 0 match groups | Contact Point DMOs empty | Fix field mapping for ContactPointEmail DMO |
+| Too many merges (false positives) | Fuzzy threshold too low | Increase threshold; add qualifying criteria |
+| Too few merges (false negatives) | CPEmail not populated; threshold too high | Map email to CPEmail DMO; lower threshold slightly |
+| No Unified Individuals at all | Individual DMO is empty; Ruleset not active | Check field mapping saved; activate the ruleset |
+| Wrong field value on Unified Individual | Reconciliation rule misconfigured | Review + fix rule; re-run ruleset |
+
+**Review tool:** Data Cloud UI → Identity Resolution → Match Groups
 
 ---
 

@@ -38,31 +38,23 @@ Change sets have no rollback mechanism. Once deployed, changes are live in the t
 
 ## Architecture / How It Works
 
+```mermaid
+flowchart TD
+    subgraph Source["SOURCE ORG (Dev Sandbox)"]
+        OB["Setup → Outbound Change Sets\nCreate New → Add components → Upload"]
+    end
+    subgraph Target["TARGET ORG (Production)"]
+        IB["Setup → Inbound Change Sets\nFind the uploaded change set"]
+        V["VALIDATE\n(dry run — no changes made)"]
+        QD["QUICK DEPLOY\n(within 10-day window)"]
+        D["DEPLOY\n(validate + commit in one step)"]
+        IB --> V
+        V -->|"Passes"| QD
+        IB --> D
+    end
+    OB -->|"Upload"| IB
 ```
-Change Set Deployment Pipeline:
-                                                               
-  SOURCE ORG (Dev Sandbox)                                    
-  ┌────────────────────────────────────────────────┐          
-  │  Setup → Outbound Change Sets                  │          
-  │  → Create New → Add components                 │          
-  │  → Upload  ──────────────────────────────────► │          
-  └────────────────────────────────────────────────┘          
-                                                               
-  ▼ change set travels to target org                          
-                                                               
-  TARGET ORG (Production)                                     
-  ┌────────────────────────────────────────────────┐          
-  │  Setup → Inbound Change Sets                   │          
-  │  → Find the uploaded change set                │          
-  │  → VALIDATE (dry run — no changes made)        │          
-  │       │ If passes ──────────────────────────── │          
-  │       └──► QUICK DEPLOY (within 10 days)       │          
-  │       OR                                       │          
-  │  → DEPLOY (validate + commit in one step)      │          
-  └────────────────────────────────────────────────┘          
-                                                               
-  Deployment Connection: MUST be authorized in TARGET ORG     
-```
+Deployment Connection: MUST be authorized in the TARGET org (not the source).
 
 **Limitations:**
 - No rollback — once deployed, changes must be manually reversed
@@ -71,42 +63,22 @@ Change Set Deployment Pipeline:
 - Not all metadata types are supported by change sets
 - Change sets cannot be scheduled — deployment is always manual
 
-```
-Validate vs. Deploy vs. Quick Deploy:
-┌──────────────────┬───────────────────────────────────────────┐
-│ Action           │ What Happens                              │
-├──────────────────┼───────────────────────────────────────────┤
-│ Validate         │ Checks all components; runs Apex tests    │
-│                  │ if Apex included; NO changes committed    │
-│                  │ → Opens 10-day Quick Deploy window        │
-├──────────────────┼───────────────────────────────────────────┤
-│ Quick Deploy     │ Deploys same set without re-running tests │
-│                  │ → Available within 10 days of validation  │
-│                  │ → Faster than full deploy                 │
-├──────────────────┼───────────────────────────────────────────┤
-│ Deploy           │ Validates + commits in one step           │
-│                  │ → Full test run if Apex included          │
-│                  │ → Slower but simpler                      │
-└──────────────────┴───────────────────────────────────────────┘
-```
+| Action | What Happens |
+|---|---|
+| Validate | Checks all components; runs Apex tests if Apex included; NO changes committed — opens 10-day Quick Deploy window |
+| Quick Deploy | Deploys same change set without re-running tests; available within 10 days of successful validation; faster than full deploy |
+| Deploy | Validates + commits in one step; full test run if Apex included; slower but simpler |
 
 **Limitations:**
 - Quick Deploy window is exactly 10 days — missing it requires re-validation
 - Quick Deploy may be invalidated if new code has been added to the org since validation
 - Validation failures report all errors at once — all must be fixed before re-validation
 
-```
-75% Apex Coverage Rule:
-┌─────────────────────────────────────────────────────────────────┐
-│  Change set contains Apex code?                                 │
-│      │                                                          │
-│      ├─ YES → Must have 75%+ coverage across ALL org Apex      │
-│      │        + at least 1 test per trigger in the org         │
-│      │        (Not just the Apex in the change set)            │
-│      │                                                          │
-│      └─ NO  → No Apex coverage requirement                     │
-│               (Flow-only, config-only deploys don't need 75%) │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A{"Does the change set\ncontain Apex code?"}
+    A -->|"Yes"| B["Must have 75%+ code coverage\nacross ALL org Apex\n+ at least 1 test per trigger in the org\n(not just the Apex in the change set)"]
+    A -->|"No"| C["No Apex coverage requirement\n(Flow-only, config-only deploys\ndon't need 75%)"]
 ```
 
 **Limitations:**

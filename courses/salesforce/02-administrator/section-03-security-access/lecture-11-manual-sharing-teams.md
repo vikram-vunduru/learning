@@ -45,40 +45,36 @@ Teams are a middle ground between pure OWD/sharing rules and full Manual Sharing
 
 ## Architecture / How It Works
 
-```
-Manual Sharing & Teams in the Sharing Stack
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    Stack["OWD → Role Hierarchy → Sharing Rules → Manual Sharing / Teams"]
 
-  OWD → Role Hierarchy → Sharing Rules → MANUAL SHARING/TEAMS
+    subgraph ManualShare["Manual Share"]
+        MS1["Record Owner\nor user with Read/Write access"]
+        MS2["Share with: User / Role / Group\nAccess: Read Only or Read/Write"]
+        MS3["Persists even after ownership change"]
+        MS1 --> MS2 --> MS3
+    end
 
-  Manual Share:
-  ┌──────────────────────────────────────────┐
-  │  Record Owner (or user with R/W access)  │
-  │     │                                    │
-  │     └── Share with: User / Role / Group  │
-  │         Access: Read Only | Read/Write   │
-  │                                          │
-  │  Persists even after ownership change    │
-  └──────────────────────────────────────────┘
+    subgraph AcctTeam["Account Team"]
+        AT1["Account"]
+        AT2["Team Member 1 (Exec Sponsor, R/W)"]
+        AT3["Team Member 2 (Sales Rep, Read Only)"]
+        AT4["Access cascades to:\nRelated Contacts\nRelated Opportunities\nRelated Cases"]
+        AT1 --> AT2
+        AT1 --> AT3
+        AT1 --> AT4
+    end
 
-  Account Team:
-  ┌──────────────────────────────────────────┐
-  │  Account                                 │
-  │  ├── Team Member 1 (Exec Sponsor, R/W)   │
-  │  ├── Team Member 2 (Sales Rep, RO)       │
-  │  └── Access cascades to:                 │
-  │       - Related Contacts                 │
-  │       - Related Opportunities            │
-  │       - Related Cases                    │
-  └──────────────────────────────────────────┘
-
-  Opportunity Team:
-  ┌──────────────────────────────────────────┐
-  │  Opportunity                             │
-  │  ├── Team Member 1 (Deal Lead, R/W)      │
-  │  ├── Team Member 2 (SE, Read Only)       │
-  │  Does NOT auto-cascade to Account        │
-  └──────────────────────────────────────────┘
+    subgraph OppTeam["Opportunity Team"]
+        OT1["Opportunity"]
+        OT2["Team Member 1 (Deal Lead, R/W)"]
+        OT3["Team Member 2 (SE, Read Only)"]
+        OT4["Does NOT auto-cascade to Account"]
+        OT1 --> OT2
+        OT1 --> OT3
+        OT1 --> OT4
+    end
 ```
 
 **Limitations:**

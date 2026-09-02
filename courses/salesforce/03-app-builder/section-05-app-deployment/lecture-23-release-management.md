@@ -38,38 +38,30 @@ The standard release pipeline: Developer Sandboxes → Integration/QA Sandbox (P
 
 ## Architecture / How It Works
 
-```
-Salesforce Release Calendar:
-┌─────────────────────────────────────────────────────────────────┐
-│  SPRING    (Jan–Feb)    3 releases/year total                   │
-│  SUMMER    (May–Jun)    Automatic — cannot opt out              │
-│  WINTER    (Sep–Oct)    Sandbox preview ~4–6 weeks before prod  │
-│                                                                 │
-│  Each release:                                                  │
-│  - Release Notes published in advance                          │
-│  - Critical Updates listed with auto-activation dates          │
-│  - Sandbox preview instances updated first                     │
-│  - Production instances updated on a rolling schedule          │
-└─────────────────────────────────────────────────────────────────┘
-```
+**Salesforce Release Calendar** (3 releases/year — automatic, cannot opt out)
+
+| Release | Timeframe | Sandbox Preview |
+|---|---|---|
+| Spring | January–February | ~4–6 weeks before production |
+| Summer | May–June | ~4–6 weeks before production |
+| Winter | September–October | ~4–6 weeks before production |
+
+Each release: Release Notes published in advance, Critical Updates listed with auto-activation dates, sandbox preview instances updated first, production updated on a rolling schedule.
 
 **Limitations:**
 - You cannot delay, skip, or opt out of Salesforce releases
 - The exact date your production org is updated varies (Salesforce schedules instances in batches)
 - Critical Updates that you don't manually activate will auto-activate by a deadline
 
-```
-Release Pipeline (Standard Enterprise):
-                                                               
-  Dev                  QA/Integration      UAT          Production
-  Sandbox ──────────► Partial Copy  ────► Full    ────► Prod
-  (Dev work)          Sandbox             Sandbox       (go-live)
-  ↑ Unit test         ↑ Integration test  ↑ UAT         ↑ Business
-    on Dev org          cross-feature       with real     sign-off
-                        testing             data          required
-                                                               
-  Deployment path:                                             
-  Dev → Outbound CS → QA Inbound CS → Full Inbound CS → Prod  
+```mermaid
+flowchart LR
+    Dev["Dev Sandbox\n(Unit test on Dev org)"]
+    QA["QA/Integration\nPartial Copy Sandbox\n(Integration test,\ncross-feature)"]
+    UAT["UAT\nFull Sandbox\n(UAT with real data)"]
+    Prod["Production\n(go-live,\nbusiness sign-off)"]
+    Dev -->|"Outbound CS"| QA
+    QA -->|"Inbound CS"| UAT
+    UAT -->|"Inbound CS"| Prod
 ```
 
 **Limitations:**
@@ -77,43 +69,27 @@ Release Pipeline (Standard Enterprise):
 - Full sandbox refresh (29-day minimum) means UAT sandbox data can be stale
 - Not all orgs have Full sandbox licenses — budget constraints may limit the pipeline
 
-```
-Sandbox Type Reference:
-┌──────────────────┬────────────┬───────────┬────────────────────────┐
-│ Type             │ Storage    │ Refresh   │ Data                   │
-├──────────────────┼────────────┼───────────┼────────────────────────┤
-│ Developer        │ 200MB      │ Daily     │ No production data     │
-│ Developer Pro    │ 1GB        │ Daily     │ No production data     │
-│ Partial Copy     │ 5GB        │ 5 days    │ Sample of prod data    │
-│ Full             │ Full copy  │ 29 days   │ Full copy of prod data │
-└──────────────────┴────────────┴───────────┴────────────────────────┘
-```
+| Type | Storage | Refresh | Data |
+|---|---|---|---|
+| Developer | 200MB | Daily | No production data |
+| Developer Pro | 1GB | Daily | No production data |
+| Partial Copy | 5GB | 5 days | Sample of production data |
+| Full | Full copy | 29 days | Full copy of production data |
 
 **Limitations:**
 - Sandbox refresh wipes all sandbox-specific customizations — coordinate with teams before refreshing
 - Partial Copy: you don't choose which records are sampled — Salesforce selects a representative sample
 - Sandbox contacts and leads have email addresses obfuscated by default (sandbox email opt-out prevention)
 
+```mermaid
+flowchart TD
+    Org["Org-level default\nNew_UI_Enabled__c = FALSE\n(feature off for everyone)"]
+    Prof["Profile override: Pilot Users\nNew_UI_Enabled__c = TRUE\n(feature on for pilot group)"]
+    User["User override: john@company.com\nNew_UI_Enabled__c = TRUE\n(feature on for this specific user)"]
+    Org -->|"overridden by"| Prof
+    Prof -->|"overridden by"| User
 ```
-Custom Settings as Feature Flags:
-                                                               
-  Hierarchy Custom Setting: Release_Features__c                
-  Field: New_UI_Enabled__c (Checkbox)                          
-                                                               
-  ┌─────────────────────────────────────────────────────────┐  
-  │  Org-level default: New_UI_Enabled__c = FALSE           │  
-  │  (feature off for everyone)                             │  
-  │        │                                                │  
-  │        ├─ Override for Profile "Pilot Users"            │  
-  │        │  New_UI_Enabled__c = TRUE                      │  
-  │        │  (feature on for pilot group)                  │  
-  │        │                                                │  
-  │        └─ Override for User "john@company.com"          │  
-  │           New_UI_Enabled__c = TRUE                      │  
-  │           (feature on for this specific user)           │  
-  └─────────────────────────────────────────────────────────┘  
-  Most specific level wins: User > Profile > Org             
-```
+Most specific level wins: User > Profile > Org.
 
 **Limitations:**
 - Hierarchy Custom Settings must be read in code/formula at runtime — they don't apply automatically

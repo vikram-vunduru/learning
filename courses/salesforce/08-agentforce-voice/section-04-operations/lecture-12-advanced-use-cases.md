@@ -7,42 +7,28 @@ Use Cases & Business Value / Architecture — Agentforce Specialist (CRT-271)
 
 ### Use Case Portfolio — From Simple to Advanced
 
-```
-COMPLEXITY SPECTRUM
-
-SIMPLE (Flow-based)                    ADVANCED (Agent + Integration)
-──────────────────────────────────     ──────────────────────────────────────
-Case status self-service               Outbound proactive notifications
-Store hours / location                 Data Cloud real-time enrichment
-Order status lookup                    Multi-system authenticated transactions
-Appointment confirmation (DTMF)        Predictive routing + intent pre-classification
-Password reset (account verification)  Compliance monitoring (GDPR/PCI)
-Account balance inquiry                Complex multi-topic single calls
-```
+| Simple (Flow-based) | Advanced (Agent + Integration) |
+|---|---|
+| Case status self-service | Outbound proactive notifications |
+| Store hours / location | Data Cloud real-time enrichment |
+| Order status lookup | Multi-system authenticated transactions |
+| Appointment confirmation (DTMF) | Predictive routing + intent pre-classification |
+| Password reset (account verification) | Compliance monitoring (GDPR/PCI) |
+| Account balance inquiry | Complex multi-topic single calls |
 
 The architecture for each use case differs significantly. Know which tier of complexity requires which components.
 
 ### Use Case 1 — Data Cloud Real-Time Caller Enrichment
 
-```
-Caller dials in (ANI: +1-555-234-5678)
-    ↓
-ANI lookup → Salesforce Contact (standard)
-    ↓
-Data Cloud Query Action:
-    Query unified profile for additional context:
-    - Purchase propensity score (from ML model in Data Cloud)
-    - Recent product interactions (cross-channel)
-    - Churn risk score
-    - Last marketing email opened
-    ↓
-Voice agent personalization:
-    "Hi Jane, I see you recently looked at our Pro plan.
-     Are you calling about upgrading today?"
-    ↓
-Routing enrichment:
-    Churn risk > 80% → route to Retention specialist queue
-    Purchase propensity > 85% → route to Sales + flag for upsell
+```mermaid
+flowchart TD
+    DIAL["Caller dials in (ANI: +1-555-234-5678)"]
+    DIAL --> ANI["ANI lookup → Salesforce Contact"]
+    ANI --> DC["Data Cloud Query Action\n• Purchase propensity score\n• Recent product interactions\n• Churn risk score\n• Last marketing email opened"]
+    DC --> PERS["Voice agent personalization\n'Hi Jane, I see you recently looked at our Pro plan.\n Are you calling about upgrading today?'"]
+    DC --> ROUTE{"Routing enrichment"}
+    ROUTE -->|"Churn risk > 80%"| RET["Route to Retention specialist queue"]
+    ROUTE -->|"Purchase propensity > 85%"| SALES["Route to Sales + flag for upsell"]
 ```
 
 **This is the differentiator between Agentforce Voice and a generic voice bot.** The Data Cloud integration brings cross-channel customer context into the voice interaction in real-time.
@@ -54,36 +40,28 @@ Routing enrichment:
 
 ### Use Case 2 — Outbound Proactive Voice Notifications
 
+**Inbound:** Customer calls in → Agentforce Voice handles.
+**Outbound:** Salesforce triggers a call → Agent speaks to customer.
+
+**Outbound Voice Use Cases:**
+- Appointment reminders (healthcare, field service)
+- Payment due / overdue notifications
+- Fraud alerts (financial services)
+- Delivery notifications (retail)
+- Prescription refill reminders (pharmacy)
+
+```mermaid
+flowchart TD
+    SF["Salesforce Scheduled Flow / Trigger"]
+    SF --> API["Service Cloud Voice Outbound API call"]
+    API --> AC["Amazon Connect places outbound call\nto customer number"]
+    AC --> CA["Customer answers\n→ Agentforce Voice agent speaks first"]
+    CA --> CR["Customer responds\n→ agent handles\n→ resolves or routes"]
 ```
-INBOUND vs. OUTBOUND
 
-Inbound: Customer calls in → Agentforce Voice handles
-Outbound: Salesforce triggers a call → Agent speaks to customer
-
-Outbound Voice Use Cases:
-  ┌─────────────────────────────────────────────────────────────────┐
-  │  Appointment reminders (healthcare, field service)              │
-  │  Payment due / overdue notifications                            │
-  │  Fraud alerts (financial services)                              │
-  │  Delivery notifications (retail)                                │
-  │  Prescription refill reminders (pharmacy)                       │
-  └─────────────────────────────────────────────────────────────────┘
-
-Outbound Architecture:
-Salesforce Scheduled Flow / Trigger
-    ↓
-Service Cloud Voice Outbound API call
-    ↓
-Amazon Connect places outbound call to customer number
-    ↓
-Customer answers → Agentforce Voice agent speaks first
-    ↓
-Customer responds → agent handles → resolves or routes
-
-Outbound dialing modes:
-  Progressive: one call placed per available agent (no abandonment risk)
-  Predictive: dials ahead of agent availability (higher efficiency, higher abandonment risk)
-```
+**Outbound dialing modes:**
+- **Progressive:** one call placed per available agent (no abandonment risk)
+- **Predictive:** dials ahead of agent availability (higher efficiency, higher abandonment risk)
 
 **Limitations:**
 - Outbound calling requires specific telephony configuration (outbound caller ID, compliance setup) separate from inbound
@@ -92,27 +70,23 @@ Outbound dialing modes:
 
 ### Use Case 3 — Complex Multi-Intent Call Handling
 
+```mermaid
+flowchart TD
+    START["Caller: 'I want to pay my bill,\nand then update my address'"]
+    START --> T1["Agent: Handles Billing Topic\n(payment action)"]
+    T1 --> T1DONE["Payment action completes"]
+    T1DONE --> NEXT["Agent: 'Is there anything else\nI can help you with?'"]
+    NEXT --> T2["Caller: 'Yes, I need to update my address'\n→ Agent: Handles Account Management Topic\n(address update action)"]
+    T2 --> T2DONE["Address update action completes"]
+    T2DONE --> END["Agent: 'Done! Anything else?' → 'No'\n→ Call ends cleanly"]
 ```
-Single call, multiple intents (common in enterprise call centers):
 
-Caller: "I want to pay my bill, and then update my address"
-    ↓
-Agent: Handles Billing Topic (payment) first
-    ↓ (payment action completes)
-Agent: "Is there anything else I can help you with?"
-Caller: "Yes, I need to update my address"
-    ↓
-Agent: Handles Account Management Topic (address update)
-    ↓ (address update action completes)
-Agent: "Done! Anything else?" → "No" → Call ends cleanly
+Multi-turn conversation: same session, multiple Topics resolved.
 
-Multi-turn conversation: same session, multiple Topics resolved
-
-Design requirement:
+**Design requirements:**
 - Each Topic must have a clean completion state
 - Agent system prompt must include instructions for handling "anything else" transitions
 - Max turns limit must account for multi-topic calls (set higher than single-intent assumption)
-```
 
 **Limitations:**
 - Multi-intent calls are longer → higher max turns requirement → configure accordingly
@@ -121,30 +95,23 @@ Design requirement:
 
 ### Use Case 4 — PCI-Compliant Payment Processing
 
+```mermaid
+flowchart TD
+    A1["Agent: 'I can process your payment today.\nLet me prepare the payment screen.'"]
+    A1 --> A2["Amazon Connect Contact Flow:\nPAUSE RECORDING"]
+    A2 --> A3["Agent (Voice): 'Please enter your 16-digit\ncard number using your keypad'"]
+    A3 --> A4["Caller: DTMF tones entered\n(card number)"]
+    A4 --> A5["Telephony layer: DTMF tones captured\nNOT transcribed, NOT recorded"]
+    A5 --> A6["Payment API call (external service):\ncard processing"]
+    A6 --> A7["Amazon Connect Contact Flow:\nRESUME RECORDING"]
+    A7 --> A8["Agent: 'Payment of $XX.XX confirmed.\nYour confirmation number is XXXX'"]
 ```
-VOICE PAYMENT FLOW (PCI-DSS Compliant)
 
-Agent: "I can process your payment today. Let me prepare the payment screen."
-    ↓
-Amazon Connect Contact Flow: PAUSE RECORDING
-    ↓
-Agent (Voice): "Please enter your 16-digit card number using your keypad"
-Caller: [DTMF tones — card number entered]
-    ↓
-Telephony layer: DTMF tones captured, NOT transcribed, NOT recorded
-    ↓
-Payment API call (external service): card processing
-    ↓
-Amazon Connect Contact Flow: RESUME RECORDING
-    ↓
-Agent: "Payment of $XX.XX confirmed. Your confirmation number is [XXXX]"
-
-Key PCI design decisions:
-  1. Recording pause: Amazon Connect layer (not Salesforce)
-  2. DTMF for card entry: no STT, no transcript of card number
-  3. AWS Transcribe PII redaction: backup layer if speech is used
-  4. Zero data retention: card number never stored in Salesforce
-```
+**Key PCI design decisions:**
+1. Recording pause: Amazon Connect layer (not Salesforce)
+2. DTMF for card entry: no STT, no transcript of card number
+3. AWS Transcribe PII redaction: backup layer if speech is used
+4. Zero data retention: card number never stored in Salesforce
 
 **Limitations:**
 - Recording pause must be configured in the telephony Contact Flow — if configured in a Salesforce autolaunched Flow, it only affects the transcript, not the audio recording
@@ -153,26 +120,18 @@ Key PCI design decisions:
 
 ### Use Case 5 — Multilingual Voice Agent
 
+```mermaid
+flowchart TD
+    IVR["Telephony IVR:\n'For English, press 1.\nPara Español, oprima 2.\nPour le français, appuyez sur 3.'"]
+    IVR --> ROUTE["DNIS or menu choice\n→ Amazon Connect routes to language-specific queue"]
+    ROUTE --> EN["English Channel\nTTS: Amazon Polly 'Joanna' (US English)\nTopics: English descriptions"]
+    ROUTE --> ES["Spanish Channel\nTTS: Amazon Polly 'Lupe' (US Spanish)\nTopics: Spanish descriptions"]
+    ROUTE --> FR["French Channel\nTTS: Amazon Polly 'Léa' (French)\nTopics: French descriptions"]
 ```
-LANGUAGE ROUTING ARCHITECTURE
 
-Telephony IVR:
-"For English, press 1. Para Español, oprima 2. Pour le français, appuyez sur 3."
-    ↓
-[DNIS or menu choice → Amazon Connect routes to language-specific queue]
-    ↓
-Language-specific Voice Channel:
-    English:  TTS = Amazon Polly "Joanna" (US English)
-              Topics = English descriptions
-    Spanish:  TTS = Amazon Polly "Lupe" (US Spanish)
-              Topics = Spanish descriptions (written in Spanish)
-    French:   TTS = Amazon Polly "Léa" (French)
-              Topics = French descriptions (written in French)
-
-Configuration:
-  One Agentforce agent per language (cleanest design)
-  OR one agent with language-detection branching (complex)
-```
+**Configuration options:**
+- One Agentforce agent per language (cleanest design)
+- One agent with language-detection branching (complex)
 
 **Limitations:**
 - Topic descriptions must be written in the same language as the caller utterances — an English Topic description will not match a Spanish utterance accurately
@@ -181,24 +140,13 @@ Configuration:
 
 ### Use Case 6 — Agent Assist with Guided Resolution
 
-```
-GUIDED RESOLUTION (Agent Assist mode)
-
-Call arrives → Human agent answers → AI assists
-    ↓
-AI detects Topic: "Complex technical escalation"
-    ↓
-AI Suggestions Panel shows guided steps:
-  Step 1: Verify account (Account Lookup action)
-  Step 2: Check open cases (Case SOQL)
-  Step 3: Run diagnostic Flow (Diagnostic Autolaunched Flow)
-  Step 4: If unresolved → escalate to Tier 2 (Transfer)
-    ↓
-Human agent follows AI guidance
-+ AI narrows the knowledge base articles to relevant results
-+ AI drafts call summary in real-time
-    ↓
-Call ends → AI summary pre-populated → Agent edits + saves
+```mermaid
+flowchart TD
+    CALL["Call arrives → Human agent answers → AI assists"]
+    CALL --> DETECT["AI detects Topic:\n'Complex technical escalation'"]
+    DETECT --> GUIDE["AI Suggestions Panel — guided steps:\n1. Verify account (Account Lookup action)\n2. Check open cases (Case SOQL)\n3. Run diagnostic Flow\n4. If unresolved → escalate to Tier 2 (Transfer)"]
+    GUIDE --> AGENT["Human agent follows AI guidance\n+ AI narrows knowledge base articles\n+ AI drafts call summary in real-time"]
+    AGENT --> END["Call ends\n→ AI summary pre-populated\n→ Agent edits + saves"]
 ```
 
 **This use case demonstrates Agent Assist value beyond simple suggestions.** The AI acts as a structured guide through complex resolution paths — especially valuable for new agents handling escalations.
@@ -209,30 +157,27 @@ Call ends → AI summary pre-populated → Agent edits + saves
 
 ### Use Case 7 — Voice + CRM Integration at Enterprise Scale
 
+```mermaid
+flowchart TD
+    DC["Data Cloud\nReal-time profiles"]
+    TN["Telephony Network\n(Amazon Connect / Partner Telephony)"]
+    SCV["Service Cloud Voice\nVoiceCall record + ConversationEntry"]
+    AV["Agentforce Voice Agent\nMulti-Topic autonomous\n+ Agent Assist escalation"]
+    OC["Omni-Channel\nSkills-Based routing\nHuman Agent queues"]
+    CRM["CRM Analytics\nECI + ECM + reports\nBusiness intelligence"]
+
+    DC --> SCV
+    TN --> SCV
+    SCV --> AV
+    AV --> OC
+    OC --> CRM
 ```
-ENTERPRISE CONTACT CENTER REFERENCE ARCHITECTURE
 
-                        [Data Cloud]
-                       Real-time profiles
-                             │
-[Telephony Network] ─────▶ [Service Cloud Voice] ─────▶ [Agentforce Voice Agent]
-Amazon Connect              VoiceCall record               Multi-Topic autonomous
-Partner Telephony           ConversationEntry              + Agent Assist escalation
-                             │
-                        [Omni-Channel]
-                       Skills-Based routing
-                        Human Agent queues
-                             │
-                        [CRM Analytics]
-                       ECI + ECM + reports
-                        Business intelligence
-
-At 10,000+ concurrent calls:
+**At 10,000+ concurrent calls:**
 - Request Amazon Connect stream quota increase (pre-provisioned)
 - Validate Salesforce API limits for VoiceCall record creation rate
 - Design monitoring alerting at 80% of quota thresholds
 - Performance test full stack before launch
-```
 
 **Limitations at enterprise scale:**
 - VoiceCall record creation rate is subject to Salesforce API limits — high-volume contact centers must validate API throughput capacity

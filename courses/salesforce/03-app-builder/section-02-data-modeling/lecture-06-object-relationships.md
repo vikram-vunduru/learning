@@ -38,66 +38,49 @@ To reference a parent field from a child record's formula, use `__r` (relationsh
 
 ## Architecture / How It Works
 
-```
-Lookup vs. Master-Detail Comparison:
-┌─────────────────────────┬──────────────────┬──────────────────────┐
-│ Characteristic          │ Lookup           │ Master-Detail        │
-├─────────────────────────┼──────────────────┼──────────────────────┤
-│ Parent required?        │ No (optional)    │ Yes (mandatory)      │
-│ Cascade delete?         │ No               │ Yes                  │
-│ Roll-Up Summary?        │ No               │ Yes (on master)      │
-│ Sharing inheritance?    │ No               │ Yes (detail inherits)│
-│ OWD for detail?         │ Separate         │ Controlled by Parent │
-│ Max per object          │ ~40              │ 2 (primary limit)    │
-│ Child exists without    │ Yes              │ No                   │
-│ parent?                 │                  │                      │
-└─────────────────────────┴──────────────────┴──────────────────────┘
-```
+| Characteristic | Lookup | Master-Detail |
+|---|---|---|
+| Parent required? | No (optional) | Yes (mandatory) |
+| Cascade delete? | No | Yes |
+| Roll-Up Summary? | No | Yes (on master) |
+| Sharing inheritance? | No | Yes (detail inherits) |
+| OWD for detail? | Separate | Controlled by Parent |
+| Max per object | ~40 | 2 (primary limit) |
+| Child exists without parent? | Yes | No |
 
 **Limitations:**
 - An object can have at most 2 Master-Detail relationships (it can be a detail to at most 2 masters)
 - You cannot convert a Lookup to Master-Detail if existing records have a blank (null) lookup value — all records must have a parent first
 - The first Master-Detail on an object controls sharing; the second is secondary
 
+```mermaid
+flowchart TD
+    Student["Student__c"]
+    Course["Course__c"]
+    Enrollment["Enrollment__c\n(Junction Object)"]
+    Student -->|"Master-Detail"| Enrollment
+    Course -->|"Master-Detail"| Enrollment
 ```
-Junction Object (Many-to-Many Pattern):
-                                                            
-  Student__c ◄────────────────────────────► Course__c     
-       │                                        │          
-       │ Master-Detail                Master-Detail │       
-       │                                        │          
-       └──────────► Enrollment__c ◄─────────────┘          
-                   (Junction Object)                       
-                                                           
-Rules:                                                     
-- Deleting Student__c → deletes all Enrollment__c records  
-- Deleting Course__c  → deletes all Enrollment__c records  
-- Enrollment__c OWD = Controlled by Parent (both masters)  
-- Can have Roll-Up Summary on BOTH Student and Course      
-```
+- Deleting Student__c cascades to all Enrollment__c records
+- Deleting Course__c cascades to all Enrollment__c records
+- Enrollment__c OWD = Controlled by Parent (both masters)
+- Can have Roll-Up Summary fields on BOTH Student and Course
 
 **Limitations:**
 - Junction objects can only have 2 Master-Detail relationships (not more)
 - You cannot create a Roll-Up Summary on the junction object itself (it's the detail, not the master)
 - The junction object inherits the MORE RESTRICTIVE of the two parent objects' OWD settings
 
-```
-Cross-Object Formula Notation:
-                                                            
-Child Object Formula accessing parent fields:              
-                                                           
-Custom relationship field: Account__c                      
-Relationship name:         Account__r                      
-Formula:                   Account__r.Industry             
-                                                           
-Standard relationship (Contact.AccountId):                 
-Formula:                   Account.BillingCity             
-(no __r suffix needed for standard relationship names)     
-                                                           
-2 levels deep:                                             
-Child__r.Parent__r.GrandParent__c.Field__c                
-(up to 5 levels deep)                                      
-```
+**Cross-Object Formula Notation**
+
+| Scenario | Field/Name | Formula Example |
+|---|---|---|
+| Custom relationship field | `Account__c` | — |
+| Custom relationship name | `Account__r` | `Account__r.Industry` |
+| Standard relationship (Contact → Account) | `AccountId` | `Account.BillingCity` (no `__r` needed) |
+| Two levels deep | — | `Child__r.Parent__r.Field__c` |
+
+Maximum 5 levels deep in a single formula.
 
 **Limitations:**
 - Cross-object formula fields are read-only — they cannot write back to the parent

@@ -74,19 +74,16 @@ import { add } from './utils.js';
 Dynamic imports and CommonJS (`require()`) cannot be tree-shaken — the bundler can't know at compile time which exports will be used.
 
 ### CommonJS vs ES Modules
-```
-┌───────────────────┬──────────────────────────┬──────────────────────────┐
-│ Feature           │ CommonJS (CJS)           │ ES Modules (ESM)         │
-├───────────────────┼──────────────────────────┼──────────────────────────┤
-│ Syntax            │ require() / module.exports│ import / export          │
-│ Evaluation        │ synchronous / runtime    │ static / parse time      │
-│ Live bindings     │ No (value copies)        │ Yes (live view)          │
-│ Tree shaking      │ No                       │ Yes                      │
-│ Strict mode       │ No (opt-in)              │ Yes (automatic)          │
-│ Used in           │ Node.js (legacy/default) │ Browsers + modern Node   │
-│ File extension    │ .js / .cjs               │ .js / .mjs               │
-└───────────────────┴──────────────────────────┴──────────────────────────┘
-```
+
+| Feature | CommonJS (CJS) | ES Modules (ESM) |
+|---------|----------------|------------------|
+| Syntax | `require()` / `module.exports` | `import` / `export` |
+| Evaluation | Synchronous / runtime | Static / parse time |
+| Live bindings | No (value copies) | Yes (live view) |
+| Tree shaking | No | Yes |
+| Strict mode | No (opt-in) | Yes (automatic) |
+| Used in | Node.js (legacy/default) | Browsers + modern Node |
+| File extension | `.js` / `.cjs` | `.js` / `.mjs` |
 
 ### LWC Module System
 LWC uses ES modules with Salesforce-specific import paths:
@@ -105,19 +102,19 @@ import userId from '@salesforce/user/Id';
 ## Architecture / How It Works
 
 ### Module Loading Sequence
-```
-Browser parses HTML / Salesforce compiles LWC:
-  1. Parse: find all static import statements
-  2. Fetch: download each module file
-  3. Link: wire up live bindings between modules
-  4. Evaluate: run module code (ONCE per module, cached)
 
-Import graph (acyclic):
-  app.js
-    ├── import utils.js     (evaluated first)
-    ├── import service.js
-    │     └── import utils.js  (already cached — NOT re-evaluated)
-    └── (rest of app.js evaluates)
+**Browser parses HTML / Salesforce compiles LWC — four phases:**
+1. **Parse** — find all static import statements
+2. **Fetch** — download each module file
+3. **Link** — wire up live bindings between modules
+4. **Evaluate** — run module code (ONCE per module, cached)
+
+```mermaid
+flowchart TD
+    APP["app.js"] -->|"import"| UTILS["utils.js\n(evaluated first)"]
+    APP -->|"import"| SVC["service.js"]
+    SVC -->|"import utils.js"| UTILS2["utils.js\n(already cached — NOT re-evaluated)"]
+    APP --> REST["rest of app.js evaluates"]
 ```
 
 ### LWC Module Resolution

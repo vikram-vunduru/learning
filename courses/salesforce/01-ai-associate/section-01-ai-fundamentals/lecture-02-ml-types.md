@@ -49,38 +49,18 @@ Three types of machine learning. Know all three cold — the exam gives you a bu
 
 ## ML Types Architecture
 
-```
-╔═══════════════════════════════════════════════════════════════════╗
-║              MACHINE LEARNING TAXONOMY                            ║
-╠═══════════════════════════════════════════════════════════════════╣
-║                                                                   ║
-║   ARTIFICIAL INTELLIGENCE                                         ║
-║   ┌───────────────────────────────────────────────────────────┐   ║
-║   │   MACHINE LEARNING                                        │   ║
-║   │   ┌─────────────────────────────────────────────────┐    │   ║
-║   │   │   SUPERVISED LEARNING                           │    │   ║
-║   │   │   Input: Labeled data (features + labels)       │    │   ║
-║   │   │   ┌──────────────┐   ┌────────────────────┐     │    │   ║
-║   │   │   │Classification│   │    Regression      │     │    │   ║
-║   │   │   │ Cat/Dog      │   │  Price prediction  │     │    │   ║
-║   │   │   │ Yes/No       │   │  Sales forecast    │     │    │   ║
-║   │   │   └──────────────┘   └────────────────────┘     │    │   ║
-║   │   └─────────────────────────────────────────────────┘    │   ║
-║   │   ┌─────────────────────────────────────────────────┐    │   ║
-║   │   │   UNSUPERVISED LEARNING                         │    │   ║
-║   │   │   Input: Unlabeled data                         │    │   ║
-║   │   │   ┌──────────────┐   ┌────────────────────┐     │    │   ║
-║   │   │   │  Clustering  │   │ Dimensionality Red.│     │    │   ║
-║   │   │   │ Segmentation │   │  PCA, t-SNE        │     │    │   ║
-║   │   │   └──────────────┘   └────────────────────┘     │    │   ║
-║   │   └─────────────────────────────────────────────────┘    │   ║
-║   │   ┌─────────────────────────────────────────────────┐    │   ║
-║   │   │   REINFORCEMENT LEARNING                        │    │   ║
-║   │   │   Agent → Action → Environment → Reward/Penalty │    │   ║
-║   │   │   Example: RLHF for LLM alignment               │    │   ║
-║   │   └─────────────────────────────────────────────────┘    │   ║
-║   └───────────────────────────────────────────────────────────┘   ║
-╚═══════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    AI["Artificial Intelligence"]
+    ML["Machine Learning"]
+    AI --> ML
+    ML --> SL["Supervised Learning\nInput: Labeled data (features + labels)"]
+    ML --> UL["Unsupervised Learning\nInput: Unlabeled data"]
+    ML --> RL["Reinforcement Learning\nAgent → Action → Environment → Reward/Penalty\nExample: RLHF for LLM alignment"]
+    SL --> C["Classification\nCat/Dog · Yes/No"]
+    SL --> R["Regression\nPrice prediction · Sales forecast"]
+    UL --> CL["Clustering\nSegmentation"]
+    UL --> DR["Dimensionality Reduction\nPCA · t-SNE"]
 ```
 
 **Limitations of ML approaches:**
@@ -92,19 +72,16 @@ Three types of machine learning. Know all three cold — the exam gives you a bu
 
 ## Decision Guide: Which ML Type Is Described?
 
-```
-SCENARIO → ML TYPE IDENTIFICATION
-
-Is there labeled training data with known outcomes?
-    YES → SUPERVISED LEARNING
-         ↓
-         Is the output a category (yes/no, type)?
-             YES → CLASSIFICATION (Einstein Lead Scoring, Case Classification)
-             NO  → REGRESSION (deal size prediction, numeric output)
-    NO  → ↓
-         Does an agent learn through trial-and-error with rewards?
-             YES → REINFORCEMENT LEARNING (RLHF, game AI)
-             NO  → UNSUPERVISED LEARNING (customer segmentation)
+```mermaid
+flowchart TD
+    A{"Labeled training data\nwith known outcomes?"}
+    A -->|"YES"| SL["Supervised Learning"]
+    A -->|"NO"| B{"Agent learns through\ntrial-and-error with rewards?"}
+    SL --> C{"Output is a category\n(yes/no, type)?"}
+    C -->|"YES"| CL["Classification\nEinstein Lead Scoring · Case Classification"]
+    C -->|"NO"| Reg["Regression\nDeal size prediction · numeric output"]
+    B -->|"YES"| RL["Reinforcement Learning\nRLHF · game AI"]
+    B -->|"NO"| UL["Unsupervised Learning\nCustomer segmentation"]
 ```
 
 ---

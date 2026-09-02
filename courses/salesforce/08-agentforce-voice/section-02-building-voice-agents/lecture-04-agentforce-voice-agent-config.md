@@ -7,24 +7,17 @@ Agent Configuration / Setup & Configuration — Agentforce Specialist (CRT-271)
 
 ### What Changes When You Add Voice to an Agent
 
-```
-┌─────────────────────┬────────────────────────────┬────────────────────────────┐
-│ Behavior            │ Chat Agent                 │ Voice Agent                │
-├─────────────────────┼────────────────────────────┼────────────────────────────┤
-│ Input method        │ Typed text (keyboard)      │ Transcribed speech (STT)   │
-│ Response length     │ Long-form OK               │ Short, conversational only │
-│ Latency expectation │ Seconds acceptable         │ Near-real-time (<1s ideal) │
-│ Error recovery      │ Ask to rephrase via text   │ Re-prompt or DTMF fallback │
-│ Markdown/formatting │ Supported                  │ NOT supported — all output │
-│                     │                            │ becomes spoken audio       │
-│ Silence handling    │ Not applicable             │ Detects ~3s silence, re-   │
-│                     │                            │ prompts or disconnects     │
-│ Interruption        │ Not applicable             │ Barge-in: caller speaks    │
-│ (barge-in)          │                            │ over agent, agent pauses   │
-└─────────────────────┴────────────────────────────┴────────────────────────────┘
-The underlying Atlas reasoning engine (LLM + Topics/Actions) does NOT change.
-Only the input/output modality and behavioral guardrails change.
-```
+| Behavior | Chat Agent | Voice Agent |
+|---|---|---|
+| Input method | Typed text (keyboard) | Transcribed speech (STT) |
+| Response length | Long-form OK | Short, conversational only |
+| Latency expectation | Seconds acceptable | Near-real-time (<1s ideal) |
+| Error recovery | Ask to rephrase via text | Re-prompt or DTMF fallback |
+| Markdown/formatting | Supported | NOT supported — all output becomes spoken audio |
+| Silence handling | Not applicable | Detects ~3s silence, re-prompts or disconnects |
+| Interruption (barge-in) | Not applicable | Barge-in: caller speaks over agent, agent pauses |
+
+The underlying Atlas reasoning engine (LLM + Topics/Actions) does NOT change. Only the input/output modality and behavioral guardrails change.
 
 **Limitations:**
 - Voice agents cannot render hyperlinks, images, tables, or formatted lists
@@ -33,16 +26,12 @@ Only the input/output modality and behavioral guardrails change.
 
 ### Adding the Voice Channel in Agentforce Studio
 
-```
-Agentforce Studio → [Agent Name] → Channels tab → Add Channel → Voice
-┌─────────────────────────────────────────────────────────────────┐
-│  VOICE CHANNEL CONFIGURATION                                    │
-│  Connected Telephony:  [ Amazon Connect               ▼ ]      │
-│  Omni-Channel Flow:    [ VoiceAgentFlow                  ]      │
-│  Enable Agentforce Voice:  [ ON ●──────── ]                     │
-│    (must be ON for calls to route here)                         │
-└─────────────────────────────────────────────────────────────────┘
-```
+**Path:** Agentforce Studio → [Agent Name] → Channels tab → Add Channel → Voice
+
+**Voice Channel Configuration fields:**
+- Connected Telephony: select telephony integration (e.g., Amazon Connect)
+- Omni-Channel Flow: select the Omni-Channel flow (e.g., VoiceAgentFlow)
+- Enable Agentforce Voice: must be ON for calls to route to this agent
 
 Configuration location: **Agentforce Studio** only — NOT in Service Cloud Voice Setup, NOT in Omni-Channel directly.
 
@@ -53,21 +42,14 @@ Configuration location: **Agentforce Studio** only — NOT in Service Cloud Voic
 
 ### Voice Persona Configuration
 
-```
-Voice Channel card → Persona Settings
-┌────────────────────────────────────────────────────────────┐
-│  Persona Name:   [ Aria              ]                     │
-│                    ↑ Must match the name used in the       │
-│                      agent's LLM system prompt instructions│
-│                                                            │
-│  TTS Provider:   [ Amazon Polly             ▼ ]            │
-│                   (options depend on telephony partner)    │
-│  TTS Voice:      [ Joanna (US English, Female) ▼ ]         │
-│  Speech Rate:    0.8x ────●──── 1.2x  (default: 1.0x)     │
-│  Pitch:          Low ─────────●── High  (default: Normal)  │
-│                       [ Play Sample ]                      │
-└────────────────────────────────────────────────────────────┘
-```
+**Path:** Voice Channel card → Persona Settings
+
+**Persona Settings fields:**
+- **Persona Name** — must match the name used in the agent's LLM system prompt instructions (e.g., "Aria")
+- **TTS Provider** — depends on telephony partner (Amazon Connect uses Amazon Polly)
+- **TTS Voice** — select voice (e.g., Joanna — US English, Female)
+- **Speech Rate** — 0.8x to 1.2x (default: 1.0x)
+- **Pitch** — Low to High (default: Normal)
 
 **Critical:** Persona Name in the Voice channel card AND the agent's LLM system prompt must be CONSISTENT. If the card says "Aria" but the system prompt says "I am Max," the LLM will introduce itself as Max while the channel config says Aria — caller confusion.
 
@@ -78,19 +60,14 @@ Voice Channel card → Persona Settings
 
 ### Omni-Channel Routing for Voice Agents
 
-```
-Inbound Call (PSTN)
-    ↓
-Telephony Provider (Amazon Connect / Genesys / NICE)
-    ↓
-Salesforce Omni-Channel
-    Routing type: Agent (bot) ← for autonomous voice agents
-    Bot capacity unit consumed ← NOT a human agent license
-    ↓
-Agentforce Voice Agent (handles call)
-    ↓
-    ├── Resolved → call ends
-    └── Escalate → Omni-Channel Human Queue (warm transfer with transcript)
+```mermaid
+flowchart TD
+    IC["Inbound Call (PSTN)"]
+    IC --> TP["Telephony Provider\n(Amazon Connect / Genesys / NICE)"]
+    TP --> OC["Salesforce Omni-Channel\nRouting type: Agent (bot)\nBot capacity unit consumed — NOT a human agent license"]
+    OC --> AVA["Agentforce Voice Agent\n(handles call)"]
+    AVA -->|"Resolved"| END["Call ends"]
+    AVA -->|"Escalate"| HQ["Omni-Channel Human Queue\n(warm transfer with transcript)"]
 ```
 
 **Key distinction:** Voice agents consume **bot capacity units**, not human agent slots. A single Salesforce org can handle large numbers of simultaneous autonomous calls without consuming human agent capacity.
@@ -102,38 +79,21 @@ Agentforce Voice Agent (handles call)
 
 ### Configuring Human Agent Fallback
 
+```mermaid
+flowchart TD
+    AVA["Agentforce Voice Agent\n(handling call)"]
+    AVA -->|"Caller: speak to an agent"| ESC["Omni-Channel Human Queue\n(Fallback Queue)"]
+    AVA -->|"Max turns exceeded"| ESC
+    AVA -->|"Out-of-scope intent"| ESC
+    ESC --> WT["Warm transfer: transcript\npassed to human agent (recommended)"]
+    ESC -.->|"NOT recommended"| CT["Cold transfer: no context passed"]
 ```
-┌──────────────────────────────────────────────┐
-│         Agentforce Voice Agent                │
-│         (handling call)                       │
-└──────────────────────────────────────────────┘
-    │               │                  │
-    ▼               ▼                  ▼
-(1) "speak to   (2) Max turns       (3) Out-of-scope
-  an agent"     limit exceeded          intent
-    │               │                  │
-    └───────────────┴──────────────────┘
-                    ↓
-       ┌────────────────────────────┐
-       │  Omni-Channel Human Queue  │
-       │  (Fallback Queue)          │
-       │                            │
-       │  WARM transfer: transcript │
-       │  passed to human agent ✓   │
-       │                            │
-       │  COLD transfer: no context │
-       │  passed ✗ (not recommended)│
-       └────────────────────────────┘
 
-Voice Channel card → Escalation Settings:
-┌─────────────────────────────────────────────────────┐
-│  Max Conversation Turns:   [ 20         ]           │
-│  Fallback Queue:           [ Voice Human Queue  ]   │
-│  Transfer Type:            [ Warm       ▼ ]         │
-│  Escalation Trigger Phrases:                        │
-│  [ "speak to an agent", "transfer me", "human" ]    │
-└─────────────────────────────────────────────────────┘
-```
+**Voice Channel card → Escalation Settings:**
+- Max Conversation Turns: 20 (default)
+- Fallback Queue: Voice Human Queue (mandatory — warnings if empty)
+- Transfer Type: Warm (recommended)
+- Escalation Trigger Phrases: "speak to an agent", "transfer me", "human"
 
 **Limitations:**
 - Fallback Queue is a MANDATORY configuration — Salesforce warns if it is empty
@@ -143,22 +103,18 @@ Voice Channel card → Escalation Settings:
 
 ### Agent-Level Voice Settings Reference
 
-```
-┌────────────────────────────────────┬────────────────────────────────────────────────┐
-│ Setting                            │ Where Configured                               │
-├────────────────────────────────────┼────────────────────────────────────────────────┤
-│ Voice Channel (add channel type)   │ Agentforce Studio → agent → Channels tab       │
-│ Telephony Integration link         │ Service Cloud Voice Setup (prerequisite)        │
-│ TTS Persona (name + voice)         │ Voice Channel card → Persona Settings           │
-│ Omni-Channel Routing               │ Omni-Channel Setup → Routing Configuration      │
-│ Fallback Queue                     │ Voice Channel card → Escalation section         │
-│ Max Conversation Turns             │ Voice Channel card → Escalation section         │
-│ Barge-in Enabled                   │ Voice Channel card → Behavioral Settings        │
-│ Silence Timeout (default ~3s)      │ Voice Channel card → Behavioral Settings        │
-└────────────────────────────────────┴────────────────────────────────────────────────┘
-Note: All voice settings are agent-version-specific.
-Changes create a new DRAFT version that must be published before taking effect.
-```
+| Setting | Where Configured |
+|---|---|
+| Voice Channel (add channel type) | Agentforce Studio → agent → Channels tab |
+| Telephony Integration link | Service Cloud Voice Setup (prerequisite) |
+| TTS Persona (name + voice) | Voice Channel card → Persona Settings |
+| Omni-Channel Routing | Omni-Channel Setup → Routing Configuration |
+| Fallback Queue | Voice Channel card → Escalation section |
+| Max Conversation Turns | Voice Channel card → Escalation section |
+| Barge-in Enabled | Voice Channel card → Behavioral Settings |
+| Silence Timeout (default ~3s) | Voice Channel card → Behavioral Settings |
+
+Note: All voice settings are agent-version-specific. Changes create a new DRAFT version that must be published before taking effect.
 
 ## PTA / SA Relevance
 

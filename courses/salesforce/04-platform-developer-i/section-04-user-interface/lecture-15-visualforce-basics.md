@@ -79,31 +79,27 @@ View state stores controller property values between server round trips (hidden 
 
 ## Architecture / How It Works
 
-```
-VISUALFORCE REQUEST CYCLE
-
-  User loads page / clicks button
-         │
-         ▼
-  Salesforce server
-  ┌───────────────────────────────────────────────────────┐
-  │  1. Instantiate controller (constructor runs)         │
-  │  2. Evaluate {!expression} in VF markup               │
-  │  3. Call getter methods for bound properties          │
-  │  4. Render HTML                                       │
-  │  5. Serialize view state into hidden form field       │
-  └───────────────────────────────────────────────────────┘
-         │
-         ▼  HTML sent to browser
-
-  User submits form (clicks commandButton):
-  ┌───────────────────────────────────────────────────────┐
-  │  1. Browser POSTs form + view state to server         │
-  │  2. Server deserializes view state → controller state │
-  │  3. Setter methods called with form field values      │
-  │  4. Action method invoked (save(), etc.)              │
-  │  5. Re-render or navigate (PageReference)             │
-  └───────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["User loads page / clicks button"] --> B
+    subgraph PageLoad["Page Load — Salesforce Server"]
+        B["1. Instantiate controller (constructor runs)"]
+        C["2. Evaluate {!expression} in VF markup"]
+        D["3. Call getter methods for bound properties"]
+        E["4. Render HTML"]
+        F["5. Serialize view state into hidden form field"]
+        B --> C --> D --> E --> F
+    end
+    F --> G["HTML sent to browser"]
+    G -->|"User submits form"| H
+    subgraph FormSubmit["Form Submit — Salesforce Server"]
+        H["1. Browser POSTs form + view state to server"]
+        I["2. Server deserializes view state -> controller state"]
+        J["3. Setter methods called with form field values"]
+        K["4. Action method invoked (save(), etc.)"]
+        L["5. Re-render or navigate (PageReference)"]
+        H --> I --> J --> K --> L
+    end
 ```
 
 **Limitations:**
@@ -111,26 +107,15 @@ VISUALFORCE REQUEST CYCLE
 - Server-side rendering = every user interaction is an HTTP round trip (slower than LWC)
 - View state only exists for pages with `<apex:form>` — read-only pages have no view state
 
-```
-CONTROLLER TYPE COMPARISON
+| | Standard Controller | Custom Controller |
+|---|---|---|
+| Declaration | `standardController="Account"` | `controller="MyCtrl"` |
+| Built-in methods | `save()`, `delete()`, `edit()`, `cancel()`, `getRecord()` | None — write all logic yourself |
+| Custom logic | Add via Extension class | Write directly in controller |
+| Best for | Simple single-record CRUD pages | Complex multi-object pages |
 
-  STANDARD CONTROLLER:            CUSTOM CONTROLLER:
-  ┌──────────────────────────┐    ┌──────────────────────────────┐
-  │  <apex:page              │    │  <apex:page                  │
-  │    standardController    │    │    controller="MyCtrl">      │
-  │    ="Account">           │    │                              │
-  │                          │    │  Apex class: MyCtrl          │
-  │  Built-in: save(),       │    │  Write ALL logic yourself:   │
-  │  delete(), edit(),       │    │  - query data (constructor)  │
-  │  cancel(), getRecord()   │    │  - save() method             │
-  │                          │    │  - navigation                │
-  │  EXTENSION adds custom   │    │  - error handling            │
-  │  methods on top          │    └──────────────────────────────┘
-  └──────────────────────────┘
-  
-  Extension constructor signature (REQUIRED):
-  public MyExtension(ApexPages.StandardController stdCtrl) { }
-```
+Extension constructor signature (REQUIRED):
+`public MyExtension(ApexPages.StandardController stdCtrl) { }`
 
 **Limitations:**
 - `standardController` and `controller` cannot both appear on the same `apex:page` tag

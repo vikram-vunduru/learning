@@ -45,32 +45,27 @@ App Builder is a no-code architecture tool. When customers ask "how do we custom
 
 ## Architecture / How It Works
 
-```
-Lightning Experience Architecture
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  LIGHTNING APP (configured in App Manager)
-  ┌────────────────────────────────────────┐
-  │  App Name + Logo + Color               │
-  │  Navigation Bar Items (tabs/objects)   │
-  │  Utility Bar (quick actions, phone)    │
-  │  Assigned User Profiles                │
-  └──────────────────┬─────────────────────┘
-                     │
-                     ▼
-  LIGHTNING PAGES (built in App Builder)
-  ┌────────────────────────────────────────┐
-  │  App Page   │ Record Page │ Home Page  │
-  │  (tab)      │ (object)    │ (homepage) │
-  │             │             │            │
-  │  Components dragged onto regions       │
-  │  Standard + Custom Lightning Comps     │
-  └──────────────────┬─────────────────────┘
-                     │ Activated for:
-                     ▼
-  ┌─────────────────────────────────────────┐
-  │  App assignment   │  Profile assignment  │
-  └─────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph App["LIGHTNING APP — configured in App Manager"]
+        A1["App Name + Logo + Color"]
+        A2["Navigation Bar Items (tabs/objects)"]
+        A3["Utility Bar (quick actions, phone)"]
+        A4["Assigned User Profiles"]
+    end
+    App --> Pages
+    subgraph Pages["LIGHTNING PAGES — built in App Builder"]
+        P1["App Page\n(standalone tab)"]
+        P2["Record Page\n(object record detail)"]
+        P3["Home Page\n(user homepage)"]
+        Note["Components dragged onto regions\nStandard + Custom Lightning Components"]
+    end
+    Pages -->|"Activated for"| Assign
+    subgraph Assign["Page Activation"]
+        AS1["App Assignment"]
+        AS2["Profile Assignment"]
+        AS3["App + Profile Combination"]
+    end
 ```
 
 **Limitations:**

@@ -38,27 +38,14 @@ Roll-Up Summary fields aggregate values from **detail records** in a Master-Deta
 
 ## Architecture / How It Works
 
-```
-Formula Field vs. Roll-Up Summary — Decision Guide:
-                                                             
-What are you trying to calculate?                           
-         │                                                   
-         ├─ Calculation using fields on THIS record         
-         │  (same record, no aggregation)                   
-         │           └──► Formula Field                     
-         │                                                   
-         ├─ Display a field from the PARENT record          
-         │  (cross-object reference up the chain)           
-         │           └──► Cross-Object Formula Field        
-         │                                                   
-         └─ Aggregate values from CHILD records             
-                    │                                        
-                    ├─ Master-Detail relationship?           
-                    │       └──► Roll-Up Summary Field       
-                    │                                        
-                    └─ Lookup relationship?                  
-                            └──► Flow (RTF on child         
-                                 updates parent field)      
+```mermaid
+flowchart TD
+    A{"What are you trying\nto calculate?"}
+    A -->|"Fields on THIS record\n(same record, no aggregation)"| B["Formula Field"]
+    A -->|"Display a field from\nthe PARENT record"| C["Cross-Object Formula Field"]
+    A -->|"Aggregate values from\nCHILD records"| D{"Relationship type?"}
+    D -->|"Master-Detail"| E["Roll-Up Summary Field"]
+    D -->|"Lookup"| F["Flow (RTF on child\nupdates parent field)"]
 ```
 
 **Limitations:**
@@ -66,24 +53,19 @@ What are you trying to calculate?
 - Roll-Up Summary requires Master-Detail — cannot be used with Lookup relationships
 - Cross-object formulas can only traverse UP (parent direction), never DOWN (child direction)
 
-```
-Key Formula Functions Reference:
-┌───────────────────────────────────────────────────────────────────┐
-│ Function        │ Use Case                                        │
-├─────────────────┼─────────────────────────────────────────────────┤
-│ IF(c, t, f)     │ Two-branch conditional logic                    │
-│ CASE(v,v1,r1,e) │ Switch — matches discrete values               │
-│ BLANKVALUE(f,d) │ Return field or default if blank/null           │
-│ ISBLANK(f)      │ True if field is blank — ALL types (use this)  │
-│ ISNULL(f)       │ True if field is null — numbers/dates only     │
-│ TEXT(v)         │ Convert non-text to text (for concatenation)   │
-│ VALUE(t)        │ Convert text to number                          │
-│ TODAY()         │ Returns today as Date                           │
-│ NOW()           │ Returns current date+time as DateTime           │
-│ DATEVALUE(dt)   │ Strip time from DateTime → Date                 │
-│ &               │ String concatenation operator (NOT +)           │
-└───────────────────────────────────────────────────────────────────┘
-```
+| Function | Use Case |
+|---|---|
+| `IF(c, t, f)` | Two-branch conditional logic |
+| `CASE(v, v1, r1, else)` | Switch — matches discrete values |
+| `BLANKVALUE(f, d)` | Return field or default if blank/null |
+| `ISBLANK(f)` | True if field is blank — ALL types (use this) |
+| `ISNULL(f)` | True if field is null — numbers/dates only |
+| `TEXT(v)` | Convert non-text to text (for concatenation) |
+| `VALUE(t)` | Convert text to number |
+| `TODAY()` | Returns today as Date |
+| `NOW()` | Returns current date+time as DateTime |
+| `DATEVALUE(dt)` | Strip time from DateTime to Date |
+| `&` | String concatenation operator (NOT `+`) |
 
 **Limitations:**
 - `+` operator is for numeric addition — it will NOT concatenate text strings
@@ -91,25 +73,17 @@ Key Formula Functions Reference:
 - ISNULL on a text field is unreliable — a field can have an empty string that isn't technically null
 - Circular formula references are not allowed and will cause a compile error
 
+```mermaid
+flowchart TD
+    Master["Account (Master)\nTotal_Revenue__c\n= SUM(Invoice__c.Amount__c)\nWHERE Status__c = 'Paid'\n← Roll-Up Summary field with filter"]
+    I1["Invoice: $500\nStatus: Paid\n(included)"]
+    I2["Invoice: $300\nStatus: Unpaid\n(skipped)"]
+    I3["Invoice: $200\nStatus: Paid\n(included)"]
+    Master -->|"1"| I1
+    Master -->|"Many"| I2
+    Master --> I3
 ```
-Roll-Up Summary Field Configuration:
-                                                              
-Master Object                                                 
-(e.g., Account)                                              
-┌──────────────────────────────┐                             
-│ Total_Revenue__c             │                             
-│ = SUM(Invoice__c.Amount__c)  │ ◄── Roll-Up Summary field   
-│   WHERE Status__c = 'Paid'   │     (filter criteria)       
-└──────────────────────────────┘                             
-         ▲  1                                                 
-         │                                                    
-         │  Many                                              
-┌────────┴──────────┐   ┌────────────────┐   ┌─────────────┐ 
-│Invoice: $500 Paid │   │Invoice: $300   │   │Invoice: $200│ 
-│                   │   │ Unpaid (skip)  │   │ Paid        │ 
-└───────────────────┘   └────────────────┘   └─────────────┘ 
-Result: $500 + $200 = $700 (only Paid invoices included)     
-```
+Result: $500 + $200 = $700 — only Paid invoices are included in the sum.
 
 **Limitations:**
 - Roll-Up Summary with filter criteria only counts/sums records matching the filter — unmatched records are excluded entirely

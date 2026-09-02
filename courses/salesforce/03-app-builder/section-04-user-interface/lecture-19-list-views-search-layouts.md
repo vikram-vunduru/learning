@@ -38,21 +38,11 @@ Search Layouts control what fields appear in different search and list contexts.
 
 ## Architecture / How It Works
 
-```
-List View Sharing Options:
-┌──────────────────────────────────────────────────────────────┐
-│  WHO CAN SEE THIS LIST VIEW?                                 │
-│                                                              │
-│  Option 1: Only I can see this list view                     │
-│  → Private list view, only the creator sees it              │
-│                                                              │
-│  Option 2: All users can see this list view                  │
-│  → Public — all users with object read access see it        │
-│                                                              │
-│  Option 3: Share list view with groups of users              │
-│  → Roles, Role+Subordinates, Public Groups — targeted       │
-└──────────────────────────────────────────────────────────────┘
-```
+**List View Sharing Options**
+
+- **Only I can see this list view** — Private; only the creator sees it
+- **All users can see this list view** — Public; all users with object read access see it
+- **Share list view with groups of users** — Targeted; Roles, Role + Subordinates, or Public Groups
 
 **Limitations:**
 - Admins can create/edit/delete any list view; non-admin users can only create/edit/delete their own
@@ -60,48 +50,23 @@ List View Sharing Options:
 - List views cannot filter by formula fields in complex ways (filter logic is limited to standard field comparisons)
 - Maximum of 2,000 records displayed in a list view at once (use reports for larger data sets)
 
-```
-List View Options:
-┌──────────────────────────────────────────────────────────────┐
-│  Views available in Lightning Experience:                    │
-│                                                              │
-│  Table (default): Row/column display with sort              │
-│                                                              │
-│  Kanban: Card-based, grouped by picklist field              │
-│     → Card content from Compact Layout                      │
-│     → Drag card to change picklist value                    │
-│                                                              │
-│  Split: List on left, record detail on right                │
-│     → Available for Console apps and Lightning Tabs         │
-└──────────────────────────────────────────────────────────────┘
-```
+**List View Display Options (Lightning Experience)**
+
+- **Table** (default) — Row/column display with sortable columns
+- **Kanban** — Card-based, grouped by a picklist field; card content from Compact Layout; drag a card to change its picklist value
+- **Split** — List on left, record detail on right; available for Console apps and Lightning Tabs
 
 **Limitations:**
 - Kanban view is not available for all objects — the grouping field must be a picklist
 - Kanban requires a picklist field with no more than a certain number of values to display columns
 - Inline editing on list views requires FLS edit access on the specific field being edited
 
-```
-Four Search Layout Types:
-┌──────────────────────────────────────────────────────────────────┐
-│  1. SEARCH RESULTS LAYOUT                                        │
-│     Fields shown in search results table when user searches     │
-│     for records of this object                                  │
-│                                                                  │
-│  2. LOOKUP DIALOGS                                               │
-│     Fields shown when a user opens a lookup dialog to search    │
-│     for a related record (e.g., looking up an Account from a    │
-│     Contact)                                                    │
-│                                                                  │
-│  3. RECENT RECORDS                                               │
-│     Fields shown when a user opens an empty lookup field and    │
-│     sees recently viewed records as suggestions                 │
-│                                                                  │
-│  4. LIST VIEW (default columns)                                  │
-│     Default columns shown when users first create a list view   │
-│     or see the default All [Objects] list view                  │
-└──────────────────────────────────────────────────────────────────┘
-```
+**Four Search Layout Types** (Object Manager → [Object] → Search Layouts)
+
+1. **Search Results Layout** — Fields shown in the search results table when a user searches for records of this object
+2. **Lookup Dialogs** — Fields shown when a user opens a lookup dialog to search for a related record (e.g., looking up an Account from a Contact)
+3. **Recent Records** — Fields shown when a user opens an empty lookup field and sees recently viewed records as suggestions
+4. **List View** (default columns) — Default columns shown when users first create a list view or see the default All [Objects] list view
 
 **Limitations:**
 - Search Layouts are configured per object in Object Manager → Search Layouts

@@ -80,44 +80,27 @@ Flow is the no-code automation platform. In enterprise implementations, Flow rep
 
 ## Architecture / How It Works
 
+```mermaid
+flowchart TD
+    Q{"What triggers\nthe automation?"}
+    Q -->|"User clicks button/component"| SF["Screen Flow (with UI)\nor Auto-launched Flow (no UI)"]
+    Q -->|"Record is created or updated"| RTF["Record-Triggered Flow"]
+    RTF --> BS{"Only updating\nthis record?"}
+    BS -->|"Yes"| BeforeSave["Before Save\n(faster, no extra DML)"]
+    BS -->|"No — creating/updating\nother records"| AfterSave["After Save\n(extra DML cost)"]
+    Q -->|"Scheduled time"| SchedFlow["Scheduled Flow"]
+    Q -->|"External Platform Event"| PEFlow["Platform Event-Triggered Flow"]
 ```
-Flow Types Decision Tree
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  What triggers the automation?
-  │
-  ├── User clicks a button/component
-  │   → Screen Flow (with UI) or
-  │     Auto-launched Flow (no UI)
-  │
-  ├── Record is created or updated
-  │   → Record-Triggered Flow
-  │       ├── Only updating this record?
-  │       │   → Before Save (faster)
-  │       └── Creating/updating other records?
-  │           → After Save
-  │
-  ├── Scheduled time (daily at midnight, etc.)
-  │   → Scheduled Flow
-  │
-  └── External event (Platform Event)
-      → Platform Event-Triggered Flow
+**Before Save vs After Save:**
 
-  Before Save vs After Save:
-  ┌────────────────────────────────────────────┐
-  │  BEFORE SAVE:                              │
-  │  Triggering Record fields → UPDATE ✓       │
-  │  Other records → NOT ALLOWED ✗             │
-  │  Create records → NOT ALLOWED ✗            │
-  │  Governor limit DML → NOT consumed         │
-  │                                            │
-  │  AFTER SAVE:                               │
-  │  Triggering Record → UPDATE ✓ (DML cost)   │
-  │  Other records → UPDATE ✓                  │
-  │  Create records → ✓                        │
-  │  Apex actions → ✓                          │
-  └────────────────────────────────────────────┘
-```
+| | Before Save | After Save |
+|---|---|---|
+| Update triggering record fields | Yes (no extra DML) | Yes (extra DML cost) |
+| Update other records | No | Yes |
+| Create records | No | Yes |
+| Call Apex actions | Limited | Yes |
+| Performance | Faster | Standard |
 
 **Limitations:**
 - Before Save flows: cannot create or update related records, cannot call most Apex actions

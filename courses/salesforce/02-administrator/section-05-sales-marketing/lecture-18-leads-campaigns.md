@@ -51,40 +51,32 @@ Campaigns and Lead management are where marketing automation integrations land. 
 
 ## Architecture / How It Works
 
-```
-Lead-to-Opportunity Pipeline
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    subgraph Capture["LEAD CAPTURE"]
+        C1["Web-to-Lead form (website)"]
+        C2["Manual entry"]
+        C3["Import (Data Import Wizard)"]
+        C4["API / Integration"]
+    end
+    Capture -->|"Assignment Rule"| Lead
+    subgraph Lead["LEAD RECORD — unqualified"]
+        L1["Status: New → Working → Qualified/Junk"]
+        L2["Assigned to User or Queue"]
+    end
+    Lead -->|"Convert (when qualified)"| Conversion
+    subgraph Conversion["CONVERSION CREATES"]
+        AC["Account\n(new or existing)"]
+        CO["Contact\n(new or existing)"]
+        OP["Opportunity\n(optional)"]
+    end
 
-  LEAD CAPTURE
-  ┌──────────────────────────────────────────┐
-  │  Web-to-Lead form (website)              │
-  │  Manual entry                            │
-  │  Import (Data Import Wizard)             │
-  │  API / Integration                       │
-  └─────────────────┬────────────────────────┘
-                    │ Assignment Rule
-                    ▼
-  LEAD RECORD (unqualified)
-  ┌──────────────────────────────────────────┐
-  │  Status: New → Working → Qualified/Junk  │
-  │  Assigned to User or Queue               │
-  └─────────────────┬────────────────────────┘
-                    │ Convert (when qualified)
-                    ▼
-  CONVERSION CREATES:
-  ┌──────────────┐  ┌──────────┐  ┌──────────────┐
-  │  Account     │  │ Contact  │  │ Opportunity  │
-  │  (new or     │  │ (new or  │  │ (optional)   │
-  │   existing)  │  │existing) │  │              │
-  └──────────────┘  └──────────┘  └──────────────┘
-
-  CAMPAIGN → CAMPAIGN MEMBERS
-  ┌──────────────────────────────────────────┐
-  │  Campaign (trade show, email blast, etc) │
-  │    ├── Member: Lead A (Sent)             │
-  │    ├── Member: Contact B (Responded)     │
-  │    └── Member: Lead C (Sent)             │
-  └──────────────────────────────────────────┘
+    subgraph Campaign["CAMPAIGN"]
+        CP["Campaign\n(trade show, email blast, etc.)"]
+        CP --> M1["Member: Lead A (Sent)"]
+        CP --> M2["Member: Contact B (Responded)"]
+        CP --> M3["Member: Lead C (Sent)"]
+    end
 ```
 
 **Limitations:**

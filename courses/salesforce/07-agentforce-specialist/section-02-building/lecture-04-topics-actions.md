@@ -54,10 +54,18 @@ Same three-component format as Topics, but at the Action level:
 The required inputs line is how Atlas knows to extract a parameter from conversation or ask a clarifying question if it's missing.
 
 ### The Two-Stage Routing Summary
-```
-Stage 1: User message → Atlas → reads all Topic descriptions → selects Topic
-Stage 2: Selected Topic → Atlas → reads all Action descriptions in Topic → selects Action
-         → checks for required inputs → acts
+```mermaid
+flowchart LR
+    subgraph S1["Stage 1: Topic Selection"]
+        UM["User Message"] --> ATL1["Atlas reads all\nTopic descriptions"]
+        ATL1 --> ST["Selects Topic"]
+    end
+    subgraph S2["Stage 2: Action Selection"]
+        ST --> ATL2["Atlas reads all Action\ndescriptions in Topic"]
+        ATL2 --> SA["Selects Action"]
+        SA --> PC["Checks required inputs"]
+        PC --> ACT["Acts"]
+    end
 ```
 
 This two-stage architecture means you can have many total Actions across the agent without congesting any single routing decision. Each Topic acts as a namespace.
@@ -111,40 +119,20 @@ A common design question: should you build one big Flow that does everything, or
 ## Architecture
 
 ### Topic-Action Hierarchy in Practice
-```
-Agent: Aria (Service Agent)
-│
-├── Topic: Order Management
-│   Description: Handles order status, shipping, delivery questions
-│   │
-│   ├── Action: Get Order Status (Flow)
-│   │   Description: Gets current order status and ETA for a specific order
-│   │   Required input: Order Number
-│   │
-│   ├── Action: Get Order Line Items (Flow)
-│   │   Description: Lists items in a specific order
-│   │   Required input: Order Number
-│   │
-│   └── Action: Knowledge Search
-│       Description: Searches for shipping policy and general order FAQs
-│
-├── Topic: Product Information
-│   Description: Handles questions about product specs, availability, pricing
-│   │
-│   ├── Action: Get Product Details (Apex)
-│   │   Description: Retrieves specifications and pricing for a product
-│   │   Required input: Product name or SKU
-│   │
-│   └── Action: Knowledge Search
-│       Description: Searches product documentation and FAQs
-│
-└── Topic: Returns & Refunds
-    Description: Handles return requests and refund status inquiries
-    NOT for: order status, shipping, product info
-    │
-    ├── Action: Initiate Return (Flow)
-    ├── Action: Check Refund Status (Flow)
-    └── Action: Knowledge Search
+```mermaid
+flowchart TD
+    AG["Agent: Aria (Service Agent)"]
+    AG --> TOM["Topic: Order Management\nHandles order status, shipping, delivery questions"]
+    AG --> TPI["Topic: Product Information\nHandles questions about product specs, availability, pricing"]
+    AG --> TRR["Topic: Returns & Refunds\nHandles return requests and refund status"]
+    TOM --> GOS["Action: Get Order Status (Flow)\nRequired input: Order Number"]
+    TOM --> GOL["Action: Get Order Line Items (Flow)\nRequired input: Order Number"]
+    TOM --> KS1["Action: Knowledge Search\nShipping policy and order FAQs"]
+    TPI --> GPD["Action: Get Product Details (Apex)\nRequired input: Product name or SKU"]
+    TPI --> KS2["Action: Knowledge Search\nProduct documentation and FAQs"]
+    TRR --> IR["Action: Initiate Return (Flow)"]
+    TRR --> CRS["Action: Check Refund Status (Flow)"]
+    TRR --> KS3["Action: Knowledge Search"]
 ```
 
 **Limitations:**
@@ -154,27 +142,13 @@ Agent: Aria (Service Agent)
 - Actions must be in a Topic to be callable — standalone Actions not visible to Atlas
 
 ### Action Type Requirements Matrix
-```
-Action Type          | Required Config
-──────────────────────────────────────────────────────────────────────
-Flow Action          | • Autolaunched Flow (NOT Screen Flow)
-                     | • Flow status: Active
-                     | • Input vars: "Available for Input" = checked
-                     | • Output vars: "Available for Output" = checked
-──────────────────────────────────────────────────────────────────────
-Apex Action          | • @InvocableMethod annotation
-                     | • @InvocableVariable for each input/output
-                     | • inputs: required=true or required=false
-                     | • Method accessible to agent's running user
-──────────────────────────────────────────────────────────────────────
-Prompt Template      | • Template type: Flex (not Field Gen, not Record Summary)
-Action               | • Template status: Active
-                     | • Template exposed as Agentforce Action in Builder
-──────────────────────────────────────────────────────────────────────
-Knowledge Search     | • Einstein Knowledge enabled
-Action               | • At least one Knowledge base active
-                     | • Relevance threshold configured (0.5–0.6 recommended)
-```
+
+| Action Type | Required Config |
+|---|---|
+| **Flow Action** | Autolaunched Flow (NOT Screen Flow); Flow status: Active; Input vars: "Available for Input" checked; Output vars: "Available for Output" checked |
+| **Apex Action** | @InvocableMethod annotation; @InvocableVariable for each input/output; required=true or required=false; Method accessible to agent's running user |
+| **Prompt Template Action** | Template type: Flex (not Field Gen, not Record Summary); Template status: Active; Template exposed as Agentforce Action in Builder |
+| **Knowledge Search Action** | Einstein Knowledge enabled; At least one Knowledge base active; Relevance threshold configured (0.5–0.6 recommended) |
 
 **Limitations:**
 - Screen Flows CANNOT be Agent Actions — most common implementation blocker
@@ -183,34 +157,19 @@ Action               | • At least one Knowledge base active
 - Knowledge Search result count is bounded — typically max 3 articles returned per search (configurable)
 
 ### Atlas Two-Stage Routing Detail
-```
-         User: "Where is order #12345?"
-                     │
-                     ▼
-         ┌───────────────────────┐
-         │  Topic Routing        │
-         │                       │
-         │  "Order Management"   │ ◀── HIGH match (order, order number mentioned)
-         │  "Product Info"       │ ◀── LOW match
-         │  "Returns & Refunds"  │ ◀── LOW match
-         └───────────┬───────────┘
-                     │ Selected: Order Management
-                     ▼
-         ┌───────────────────────┐
-         │  Action Routing       │
-         │  (within Topic)       │
-         │                       │
-         │  Get Order Status     │ ◀── HIGH match (status, ETA)
-         │  Get Order Line Items │ ◀── LOW match
-         │  Knowledge Search     │ ◀── LOW match
-         └───────────┬───────────┘
-                     │ Selected: Get Order Status
-                     ▼
-         Parameter Check: needs orderNumber
-              │
-              ▼ Found in message: "order #12345"
-              │
-              ▼ Invoke Get Order Status with orderNumber=12345
+```mermaid
+flowchart TD
+    UM["User: 'Where is order #12345?'"]
+    UM --> TR["Topic Routing"]
+    TR -->|"HIGH match\n(order number mentioned)"| TOM["Order Management ✓ SELECTED"]
+    TR -->|"LOW match"| TPI["Product Info"]
+    TR -->|"LOW match"| TRR["Returns & Refunds"]
+    TOM --> AR["Action Routing\n(within Topic)"]
+    AR -->|"HIGH match\n(status, ETA)"| GOS["Get Order Status ✓ SELECTED"]
+    AR -->|"LOW match"| GOL["Get Order Line Items"]
+    AR -->|"LOW match"| KS["Knowledge Search"]
+    GOS --> PC{"Parameter Check:\nneeds orderNumber"}
+    PC -->|"Found in message:\n'order #12345'"| INV["Invoke Get Order Status\nwith orderNumber=12345"]
 ```
 
 ## Key Facts to Memorize

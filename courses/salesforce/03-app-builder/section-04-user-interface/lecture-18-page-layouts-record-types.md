@@ -38,86 +38,45 @@ A field can be marked required in two places: (1) **Required on the Page Layout*
 
 ## Architecture / How It Works
 
-```
-Record Type Control Matrix:
-┌──────────────────────────────────────────────────────────────────┐
-│  RECORD TYPE controls 3 things:                                  │
-│                                                                  │
-│  1. BUSINESS PROCESS                                             │
-│     "Which picklist values are valid for Stage/Status?"         │
-│     → Different teams see different pipeline stages             │
-│                                                                  │
-│  2. PAGE LAYOUT ASSIGNMENT                                       │
-│     "Which layout do users see when viewing this record type?"  │
-│     → Different fields visible per segment                      │
-│                                                                  │
-│  3. PICKLIST VALUE FILTERING                                     │
-│     "Which picklist values (other than Stage/Status) are        │
-│      available for this record type?"                           │
-│     → Different option sets for different segments              │
-└──────────────────────────────────────────────────────────────────┘
-```
+**A Record Type controls 3 things:**
+
+1. **Business Process** — Which picklist values are valid for Stage/Status? Different teams see different pipeline stages.
+2. **Page Layout Assignment** — Which layout do users see when viewing this record type? Different fields visible per segment.
+3. **Picklist Value Filtering** — Which picklist values (other than Stage/Status) are available for this record type? Different option sets for different segments.
 
 **Limitations:**
 - Record Types only exist for Stage/Status picklists via Business Process — all other piclist filtering is done directly in the Record Type picklist value configuration
 - Deleting a Record Type is destructive — existing records must be reassigned first
 - A profile must have at least one Record Type assigned per object to create records of that object
 
-```
-Business Process Objects (4 Only):
-┌────────────────────────────────────────────────────────────────┐
-│  Object         │ Business Process Type  │ Controls            │
-├─────────────────┼────────────────────────┼─────────────────────┤
-│  Opportunity    │ Sales Process          │ Stage values        │
-│  Lead           │ Lead Process           │ Status values       │
-│  Case           │ Support Process        │ Status values       │
-│  Solution       │ Solution Process       │ Status values       │
-└────────────────────────────────────────────────────────────────┘
-  No other objects support Business Processes.
-  Account, Contact, Campaign etc. use Record Types with picklist
-  value filtering only (no Business Process).
-```
+| Object | Business Process Type | Controls |
+|---|---|---|
+| Opportunity | Sales Process | Stage values |
+| Lead | Lead Process | Status values |
+| Case | Support Process | Status values |
+| Solution | Solution Process | Status values |
+
+No other objects support Business Processes. Account, Contact, Campaign, etc. use Record Types with picklist value filtering only (no Business Process).
 
 **Limitations:**
 - You cannot create a Business Process for any object other than these four
 - A Business Process must be linked to a Record Type — it cannot exist independently
 
-```
-Page Layout vs. Field Required Setting:
-┌──────────────────────┬──────────────────────┬────────────────────┐
-│ Setting              │ Where Enforced       │ API Bypass?        │
-├──────────────────────┼──────────────────────┼────────────────────┤
-│ Required on Layout   │ UI only (Lightning   │ YES — Data Loader, │
-│                      │ Edit page)           │ Apex can skip      │
-├──────────────────────┼──────────────────────┼────────────────────┤
-│ Required on Field    │ Everywhere: UI,      │ NO — enforced in   │
-│ Definition           │ API, Data Loader,    │ all contexts       │
-│                      │ Apex                 │                    │
-└──────────────────────┴──────────────────────┴────────────────────┘
-```
+| Setting | Where Enforced | API Bypass? |
+|---|---|---|
+| Required on Layout | UI only (Lightning edit page) | YES — Data Loader and Apex can skip |
+| Required on Field Definition | Everywhere: UI, API, Data Loader, Apex | NO — enforced in all contexts |
 
 **Limitations:**
 - Setting a field required at the field definition level is a one-way risk — existing records with null values in that field will violate the constraint and fail to save
 - Making a field required on a field definition is permanent until you remove the checkbox — test thoroughly in a sandbox first
 
-```
-Compact Layout Surfaces:
-┌─────────────────────────────────────────────────────────────────┐
-│  4 Surfaces where Compact Layout fields appear:                 │
-│                                                                 │
-│  1. Highlights Panel (top of Record page)                       │
-│     → First ~5 fields from compact layout                      │
-│                                                                 │
-│  2. Kanban View cards                                           │
-│     → Fields shown on each card in a Kanban board              │
-│                                                                 │
-│  3. Lookup Hover Cards                                          │
-│     → Fields shown when user hovers over a related record link  │
-│                                                                 │
-│  4. Mobile App record summaries                                 │
-│     → Fields shown in mobile list views and record headers      │
-└─────────────────────────────────────────────────────────────────┘
-```
+**4 Surfaces Where Compact Layout Fields Appear**
+
+1. **Highlights Panel** (top of Record page) — first ~5 fields from the compact layout
+2. **Kanban View cards** — fields shown on each card in a Kanban board
+3. **Lookup Hover Cards** — fields shown when a user hovers over a related record link
+4. **Mobile App record summaries** — fields shown in mobile list views and record headers
 
 **Limitations:**
 - Compact Layout fields cannot include formula fields that reference other records (cross-object)

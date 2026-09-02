@@ -62,37 +62,19 @@ Approval Processes are business governance tools. Every enterprise has approval 
 
 ## Architecture / How It Works
 
-```
-Approval Process Flow
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Record created/edited
-         ↓
-  Submit for Approval (button or auto)
-         ↓
-  INITIAL SUBMISSION ACTIONS run
-  Record is LOCKED (no edits while pending)
-         ↓
-  STEP 1: Approver is notified
-  ┌──────────────────────────────────────┐
-  │  Approver reviews record             │
-  │  APPROVE ──────────────────────────► │ (go to Step 2 or Final Approval)
-  │  REJECT ───────────────────────────► │ (Rejection Actions + process ends)
-  │  RECALL ───────────────────────────► │ (Recall Actions + back to Draft)
-  └──────────────────────────────────────┘
-         ↓ (if approved, multi-step)
-  STEP 2: Next approver notified
-         ↓ (if approved at all steps)
-  FINAL APPROVAL ACTIONS run
-  Record UNLOCKED
-
-  Action Sets:
-  ┌────────────────────────────────────────┐
-  │  Initial Submission │ on submit        │
-  │  Approval Actions   │ on approve       │
-  │  Rejection Actions  │ on reject        │
-  │  Recall Actions     │ on recall/recall │
-  └────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Start["Record created/edited"]
+    Start --> Submit["Submit for Approval\n(button or auto-submit)"]
+    Submit --> ISA["INITIAL SUBMISSION ACTIONS run\nRecord is LOCKED\n(no edits while pending)"]
+    ISA --> Step1["STEP 1: Approver is notified"]
+    Step1 --> Decision1{"Approver decision?"}
+    Decision1 -->|"Approve"| Step2["STEP 2: Next approver\n(if multi-step)"]
+    Decision1 -->|"Reject"| Reject["REJECTION ACTIONS run\nProcess ends\nRecord may be unlocked"]
+    Decision1 -->|"Recall\n(submitter withdraws)"| Recall["RECALL ACTIONS run\nRecord unlocked\nBack to editable state"]
+    Step2 --> Decision2{"All steps approved?"}
+    Decision2 -->|"Yes"| Final["FINAL APPROVAL ACTIONS run\nRecord UNLOCKED"]
+    Decision2 -->|"Rejected at any step"| Reject
 ```
 
 **Limitations:**

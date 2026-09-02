@@ -59,34 +59,28 @@ Object Manager is where you see the data model of a Salesforce org. In an archit
 
 ## Architecture / How It Works
 
-```
-Object Architecture in Salesforce
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    subgraph Standard["STANDARD OBJECTS — pre-built"]
+        S1["Account, Contact, Lead, Opportunity"]
+        S2["Case, Campaign, User, Task, Event"]
+        S3["Cannot delete; can customize"]
+    end
 
-  STANDARD OBJECTS (pre-built)
-  ┌────────────────────────────────────────┐
-  │  Account, Contact, Lead, Opportunity  │
-  │  Case, Campaign, User, Task, Event    │
-  │  (cannot delete; can customize)       │
-  └────────────────────────────────────────┘
+    subgraph Custom["CUSTOM OBJECTS — admin-created"]
+        C1["API name ends in __c\n(e.g., Project__c, Invoice__c)"]
+        C2["Can delete with data loss warning\n(15-day Recycle Bin recovery)"]
+    end
 
-  CUSTOM OBJECTS (admin-created)
-  ┌────────────────────────────────────────┐
-  │  [Name]__c (API name ends in __c)      │
-  │  Project__c, Invoice__c, etc.          │
-  │  (can delete with data loss warning)   │
-  └────────────────────────────────────────┘
-
-  Object Manager per object:
-  ┌────────────────────────────────────────┐
-  │  Details        → Object properties   │
-  │  Fields & Rel.  → Schema definition   │
-  │  Page Layouts   → UI configuration    │
-  │  Validation Rules → Save conditions   │
-  │  Record Types   → Process segments    │
-  │  Triggers       → Apex code           │
-  │  Buttons/Links  → Custom actions      │
-  └────────────────────────────────────────┘
+    subgraph ObjMgr["Object Manager — per object"]
+        OM1["Details — object properties"]
+        OM2["Fields & Relationships — schema"]
+        OM3["Page Layouts — UI configuration"]
+        OM4["Validation Rules — save conditions"]
+        OM5["Record Types — process segments"]
+        OM6["Triggers — Apex code"]
+        OM7["Buttons/Links — custom actions"]
+    end
 ```
 
 **Limitations:**

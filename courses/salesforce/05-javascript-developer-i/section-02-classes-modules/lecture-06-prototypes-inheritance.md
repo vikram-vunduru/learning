@@ -8,17 +8,13 @@ Objects, Arrays & Prototypes — ~25% of exam weight
 ### The Prototype Chain
 Every JavaScript object has an internal `[[Prototype]]` slot pointing to another object (or `null`). Property lookup walks up this chain.
 
-```
-dog instance
-  ├── name: 'Rex'          (own property)
-  ├── [[Prototype]] ──────► Dog.prototype
-  │                            ├── speak()
-  │                            ├── [[Prototype]] ──► Animal.prototype
-  │                            │                        ├── eat()
-  │                            │                        ├── [[Prototype]] ──► Object.prototype
-  │                            │                        │                       ├── toString()
-  │                            │                        │                       ├── hasOwnProperty()
-  │                            │                        │                       └── [[Prototype]] ──► null
+```mermaid
+flowchart TD
+    DOG["dog instance\nname: 'Rex' (own property)"]
+    DOG -->|"[[Prototype]]"| DP["Dog.prototype\nspeak()"]
+    DP -->|"[[Prototype]]"| AP["Animal.prototype\neat()"]
+    AP -->|"[[Prototype]]"| OP["Object.prototype\ntoString()\nhasOwnProperty()"]
+    OP -->|"[[Prototype]]"| NULL["null"]
 ```
 
 ```javascript

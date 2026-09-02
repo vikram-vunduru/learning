@@ -127,25 +127,21 @@ For standard single-record CRUD, use base components:
 
 ## Architecture / How It Works
 
-```
-WIRE SERVICE DATA FLOW
-
-  1. Component renders → @wire fires
-  2. Wire service checks client cache
-     ├─ Cache hit → returns cached data immediately
-     └─ Cache miss → calls Apex / LDS adapter → stores in cache → returns data
-  3. Reactive parameter changes → repeat step 1
-
-  @wire(getAccounts)  ←─────────────────────────────────────────────────┐
-       │                                                                 │
-       ▼                                                                 │
-  { data: [...accounts], error: undefined }                             │
-       │                                                                 │
-       ▼  user performs DML via imperative Apex                         │
-  cache is STALE                                                        │
-       │                                                                 │
-       ▼ refreshApex(this.wiredAccountsResult)  ──────────────────────► │
-  cache invalidated → wire re-fetches
+```mermaid
+flowchart TD
+    A["Component renders"] --> B["@wire fires"]
+    B --> C{"Wire service checks client cache"}
+    C -->|"Cache hit"| D["Returns cached data immediately"]
+    C -->|"Cache miss"| E["Calls Apex / LDS adapter"]
+    E --> F["Stores result in cache"]
+    F --> G["Returns data: { data: [...], error: undefined }"]
+    D --> H["Component displays data"]
+    G --> H
+    H --> I{"User performs DML\nvia imperative Apex"}
+    I --> J["Cache is STALE"]
+    J --> K["refreshApex(this.wiredAccountsResult)"]
+    K --> L["Cache invalidated"]
+    L --> B
 ```
 
 **Limitations:**
@@ -153,21 +149,14 @@ WIRE SERVICE DATA FLOW
 - `refreshApex()` requires the stored wired result reference — if not stored, cannot refresh
 - `@wire` adapters fetch on every component render — use reactive parameters wisely
 
-```
-IMPERATIVE vs @WIRE — DECISION MATRIX
-
-  ┌────────────────────────────────┬──────────────┬──────────────┐
-  │  Scenario                      │  Use @wire   │  Imperative  │
-  ├────────────────────────────────┼──────────────┼──────────────┤
-  │  Load data on component render │     YES      │    Maybe     │
-  │  Reactive re-load on ID change │     YES      │     No       │
-  │  DML (insert/update/delete)    │     No       │    YES       │
-  │  Load on button click          │     No       │    YES       │
-  │  Conditional load              │     No       │    YES       │
-  │  Load with complex params      │     YES *    │    YES       │
-  └────────────────────────────────┴──────────────┴──────────────┘
-  * reactive params with $ prefix
-```
+| Scenario | Use `@wire` | Imperative |
+|----------|-------------|------------|
+| Load data on component render | YES | Maybe |
+| Reactive re-load on ID change | YES | No |
+| DML (insert/update/delete) | No | YES |
+| Load on button click | No | YES |
+| Conditional load | No | YES |
+| Load with complex params | YES (reactive `$` params) | YES |
 
 **Limitations:**
 - Wire cannot be conditionally prevented — it fires when the component renders

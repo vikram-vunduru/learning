@@ -105,49 +105,27 @@
 
 ## Structured vs. Unstructured Architecture
 
-```
-╔═════════════════════════════════════════════════════════════════════════╗
-║         STRUCTURED + UNSTRUCTURED DATA IN SALESFORCE AI                 ║
-╠═════════════════════════════════════════════════════════════════════════╣
-║                                                                         ║
-║  STRUCTURED DATA FLOW (Predictive AI)                                   ║
-║  ┌───────────────────────────────────────────────────────────────────┐  ║
-║  │ Salesforce CRM Fields                                             │  ║
-║  │ (Lead: Industry=Tech, AnnualRevenue=$5M, LeadSource=Web)          │  ║
-║  │          │                                                        │  ║
-║  │          ▼                                                        │  ║
-║  │ Einstein Predictive Model                                         │  ║
-║  │ → Lead Score: 84 / Top Factors: Revenue (positive), Source (pos) │  ║
-║  └───────────────────────────────────────────────────────────────────┘  ║
-║                                                                         ║
-║  UNSTRUCTURED DATA FLOW (Generative AI + RAG)                           ║
-║  ┌───────────────────────────────────────────────────────────────────┐  ║
-║  │ Documents/Emails/PDFs                                             │  ║
-║  │ "Our refund policy for enterprise accounts allows 90-day returns" │  ║
-║  │          │                                                        │  ║
-║  │          ▼ (Embedding model)                                      │  ║
-║  │ Vector Embeddings stored in Einstein Vector Store                 │  ║
-║  │ [0.23, -0.41, 0.87, 0.12, ...] (1536 dimensions)                 │  ║
-║  │          │                                                        │  ║
-║  │  User query: "What's the return policy for enterprise customers?" │  ║
-║  │          │  → embed query → similarity search → retrieve chunks   │  ║
-║  │          ▼                                                        │  ║
-║  │ Retrieved: "refund policy for enterprise accounts allows 90-day  │  ║
-║  │            returns..." (relevant chunk found)                     │  ║
-║  │          │                                                        │  ║
-║  │          ▼ (injected into prompt → LLM → answer)                 │  ║
-║  │ Agent response: "Enterprise account returns are eligible within  │  ║
-║  │                  90 days of purchase per our return policy."      │  ║
-║  └───────────────────────────────────────────────────────────────────┘  ║
-║                                                                         ║
-║  HYBRID FLOW (Structured + Unstructured combined)                       ║
-║  ┌───────────────────────────────────────────────────────────────────┐  ║
-║  │ Structured: Account tier = Enterprise, Account ID = 001xx...     │  ║
-║  │ Unstructured: Retrieved: "enterprise refund policy chunk"        │  ║
-║  │ Both injected into Prompt Builder template                        │  ║
-║  │ → LLM generates personalized response referencing both           │  ║
-║  └───────────────────────────────────────────────────────────────────┘  ║
-╚═════════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    subgraph Struct["Structured Data Flow — Predictive AI"]
+        SF["Salesforce CRM Fields\nLead: Industry=Tech · AnnualRevenue=$5M · LeadSource=Web"]
+        PM["Einstein Predictive Model\nLead Score: 84\nTop Factors: Revenue positive · Lead Source positive"]
+        SF --> PM
+    end
+    subgraph Unstruct["Unstructured Data Flow — Generative AI + RAG"]
+        DOC["Documents / Emails / PDFs\n#quot;Refund policy for enterprise accounts allows 90-day returns#quot;"]
+        EMB["Embedding Model\nVector stored in Einstein Vector Store\n[0.23, -0.41, 0.87, ...] 1536 dimensions"]
+        QRY["User Query: What is the return policy for enterprise customers?\nEmbed query → similarity search → retrieve relevant chunks"]
+        ANS["Agent Response\n#quot;Enterprise account returns are eligible within 90 days#quot;"]
+        DOC --> EMB --> QRY --> ANS
+    end
+    subgraph Hybrid["Hybrid Flow — Structured + Unstructured"]
+        H1["Structured: Account tier = Enterprise, Account ID"]
+        H2["Unstructured: Retrieved enterprise refund policy chunk"]
+        H3["Both injected into Prompt Builder template\nLLM generates personalized response referencing both"]
+        H1 --> H3
+        H2 --> H3
+    end
 ```
 
 **Limitations:**

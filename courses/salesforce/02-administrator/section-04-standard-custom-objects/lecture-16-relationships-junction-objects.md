@@ -56,32 +56,30 @@ Relationship design is schema design. The decisions made here affect:
 
 ## Architecture / How It Works
 
-```
-Relationship Types
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    subgraph Lookup["LOOKUP — loose relationship"]
+        LA["Account (parent)"]
+        LC["Contact (child)"]
+        LA -->|"0..1 lookup\n(optional)"| LC
+        LN1["Parent deleted: lookup field nulled\nRoll-Up: No\nChild OWD: Independent"]
+    end
 
-  LOOKUP (loose)                 MASTER-DETAIL (tight)
-  ┌────────────┐                 ┌────────────┐
-  │  Account   │                 │  Account   │
-  └──────┬─────┘                 └──────┬─────┘
-         │ 0..1                         │ 1 (required)
-         │ lookup                       │ master-detail
-         ▼                              ▼
-  ┌────────────┐                 ┌────────────┐
-  │  Contact   │                 │  Case      │
-  └────────────┘                 └────────────┘
-  Parent deleted? → null field   Parent deleted? → Children deleted
-  Roll-Up? No                    Roll-Up? YES (on Account)
-  Child OWD? Independent         Child OWD? Controlled by Parent
+    subgraph MD["MASTER-DETAIL — tight relationship"]
+        MA["Account (master)"]
+        MC["Case (detail)"]
+        MA -->|"1 required\nmaster-detail"| MC
+        MN1["Parent deleted: children cascade-deleted\nRoll-Up: YES on parent\nChild OWD: Controlled by Parent"]
+    end
 
-  MANY-TO-MANY via Junction Object:
-  ┌───────────┐   ┌─────────────────┐   ┌──────────┐
-  │ Student   │   │  Enrollment__c  │   │ Course   │
-  │ (object)  ◄───┤ Student__c (M-D)│   │ (object) │
-  └───────────┘   │ Course__c  (M-D)├───►          │
-                  └─────────────────┘   └──────────┘
-  Delete Student → deletes their Enrollment records
-  Delete Course  → deletes all Enrollment records for that course
+    subgraph Junction["MANY-TO-MANY via Junction Object"]
+        Student["Student (object)"]
+        Course["Course (object)"]
+        Enrollment["Enrollment__c (junction)"]
+        Student -->|"M-D"| Enrollment
+        Course -->|"M-D"| Enrollment
+        JN1["Delete Student: deletes Enrollment records\nDelete Course: deletes all Enrollment records"]
+    end
 ```
 
 **Limitations:**

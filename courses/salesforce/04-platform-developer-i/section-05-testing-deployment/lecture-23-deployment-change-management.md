@@ -146,32 +146,14 @@ Connected App must have a pre-authorized certificate. Secret `server.key` (priva
 
 ## Architecture / How It Works
 
-```
-ENTERPRISE DEPLOYMENT PIPELINE
-
-  Developer                    CI/CD Pipeline                 Production
-  ─────────                    ──────────────                 ──────────
-  feature branch
-       │
-       ├─ scratch org          PR opened →
-       │  (dev/test locally)   ┌─────────────────────────────┐
-       │                       │ 1. Checkout code             │
-       ▼                       │ 2. sf org login jwt          │
-  git push                ──►  │ 3. sf project deploy start   │
-  pull request                 │    --dry-run RunLocalTests   │
-                               │ 4. Report pass/fail to PR    │
-                               └─────────────────────────────┘
-                                        │ merge to main
-                                        ▼
-                               ┌─────────────────────────────┐
-                               │ 1. Deploy to QA Sandbox      │
-                               │ 2. Run integration tests     │
-                               │ 3. Approval gate (manual)    │
-                               │ 4. Deploy to UAT Sandbox     │
-                               │ 5. Approval gate (manual)    │
-                               │ 6. Deploy to Production      │  ──► Production
-                               │    RunAllTestsInOrg           │     ✓ 75% coverage
-                               └─────────────────────────────┘     ✓ 0 test failures
+```mermaid
+flowchart TD
+    A["Developer: feature branch\n(scratch org for dev/test)"] --> B["git push / pull request"]
+    B --> C["CI/CD: PR Validation\n1. Checkout code\n2. sf org login jwt\n3. sf project deploy start --dry-run RunLocalTests\n4. Report pass/fail to PR"]
+    C --> D{"merge to main?"}
+    D -->|"YES"| E["Deploy to QA Sandbox\nRun integration tests\nApproval gate (manual)"]
+    E --> F["Deploy to UAT Sandbox\nApproval gate (manual)"]
+    F --> G["Deploy to Production\nRunAllTestsInOrg\n75% coverage + 0 test failures required"]
 ```
 
 **Limitations:**
@@ -179,43 +161,28 @@ ENTERPRISE DEPLOYMENT PIPELINE
 - 75% coverage is org-wide: one class at 0% can block deployment if org average drops below threshold
 - Scratch orgs expire after maximum 30 days — don't build long-lived environments on them
 
-```
-CHANGE SET vs CLI DEPLOYMENT COMPARISON
-
-  Change Set                       CLI (Source Format)
-  ──────────────────────────────   ────────────────────────────────
-  GUI-only, no version control     Files in git — full history
-  Manual component selection       Entire directory or specific files
-  No diff view — blind addition    Git diff before deployment
-  Validate before deploy available Deploy dry-run available
-  No rollback                      Git revert + redeploy
-  Works out of the box             Requires CLI setup + auth
-  Fine for 1-2 person teams        Required for 3+ person teams
-```
+| Dimension | Change Set | CLI (Source Format) |
+|---|---|---|
+| Version control | None (GUI-only) | Files in git — full history |
+| Component selection | Manual, per-item | Entire directory or specific files |
+| Diff view | None — blind addition | Git diff before deployment |
+| Dry run | Validate available | `--dry-run` available |
+| Rollback | None | Git revert + redeploy |
+| Setup required | Works out of the box | CLI setup + auth |
+| Team size fit | Fine for 1–2 person teams | Required for 3+ person teams |
 
 **Limitations:**
 - Change sets cannot deploy data (records) — metadata only
 - Change sets require a pre-configured Deployment Connection between orgs
 - CLI requires SFDX project structure (`sfdx-project.json`, `force-app/` directory)
 
-```
-TEST LEVEL DECISION TREE
+**Test Level Decision Guide:**
 
-  Deploying to sandbox via CI pipeline?
-    └── RunLocalTests (fast, catches your code, skips managed package tests)
-
-  Validating before production deployment?
-    └── RunLocalTests or RunAllTestsInOrg (prefer RunAll for final validation)
-
-  Deploying to production via CLI/API?
-    └── RunAllTestsInOrg (required for 75% coverage check across entire org)
-
-  Quick metadata-only change in sandbox (no Apex)?
-    └── NoTestRun (ONLY valid for sandboxes, not production)
-
-  Deploying a hotfix and want fast targeted coverage check?
-    └── RunSpecifiedTests (list the test classes that cover your change)
-```
+- **Deploying to sandbox via CI pipeline** — `RunLocalTests` (fast, catches your code, skips managed package tests)
+- **Validating before production deployment** — `RunLocalTests` or `RunAllTestsInOrg` (prefer RunAll for final validation)
+- **Deploying to production via CLI/API** — `RunAllTestsInOrg` (required for 75% coverage check across entire org)
+- **Quick metadata-only change in sandbox (no Apex)** — `NoTestRun` (ONLY valid for sandboxes, never production)
+- **Deploying a hotfix with targeted coverage check** — `RunSpecifiedTests` (list the test classes that cover your change)
 
 **Limitations:**
 - `NoTestRun` is never valid for production — the platform rejects it

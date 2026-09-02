@@ -36,55 +36,50 @@ As a Partner Technical Architect, you won't be taking this exam every day — bu
 
 ## Topic Weight by Section (Your Study Plan)
 
-```
-Priority 1 — High Weight + Complex Material:
-  Configuration & Setup     (20%)  ← sections 1–2
-  Object Manager & App Builder (20%)  ← sections 4
-  Automation                (16%)  ← section 9
+**Priority 1 — High Weight + Complex Material:**
+- Configuration & Setup (20%) — sections 1–2
+- Object Manager & App Builder (20%) — section 4
+- Automation (16%) — section 9
 
-Priority 2 — Medium Weight:
-  Data & Analytics          (14%)  ← section 8
-  Sales & Marketing Apps    (12%)  ← section 5
+**Priority 2 — Medium Weight:**
+- Data & Analytics (14%) — section 8
+- Sales & Marketing Apps (12%) — section 5
 
-Priority 3 — Lower Weight (but don't skip):
-  Service & Support         (11%)  ← section 6
-  Productivity              (7%)   ← section 7
-```
+**Priority 3 — Lower Weight (but don't skip):**
+- Service & Support (11%) — section 6
+- Productivity (7%) — section 7
 
 ## The Security Model at a Glance
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  OBJECT-LEVEL: Profile/Permission Set (what you CAN DO) │
-│  CRUD on each object + FLS on each field                │
-├─────────────────────────────────────────────────────────┤
-│  RECORD-LEVEL: (what you CAN SEE)                       │
-│  1. OWD → sets the FLOOR (most restrictive baseline)    │
-│  2. Role Hierarchy → opens UP based on manager position │
-│  3. Sharing Rules → open to groups/roles/criteria       │
-│  4. Manual Sharing → record-by-record grants            │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["OBJECT-LEVEL\nProfile / Permission Set — what you CAN DO\nCRUD on each object + FLS on each field"]
+    B["RECORD-LEVEL — what you CAN SEE\n1. OWD — sets the FLOOR (most restrictive baseline)\n2. Role Hierarchy — opens UP based on manager position\n3. Sharing Rules — open to groups/roles/criteria\n4. Manual Sharing — record-by-record grants"]
+    A --> B
 ```
 
 ## Automation Decision Tree
 
-```
-Does a HUMAN need to approve/reject?
-  YES → Approval Process
-  NO  → Which trigger?
-         Save (create/update) → Record-Triggered Flow (Before or After Save)
-         Schedule/batch       → Schedule-Triggered Flow
-         User-facing UI       → Screen Flow
-         Legacy org (exam)    → Workflow Rule / Process Builder
+```mermaid
+flowchart TD
+    A{"Human needs to\napprove or reject?"}
+    A -->|"Yes"| B["Approval Process"]
+    A -->|"No"| C{"Which trigger?"}
+    C -->|"Record save\n(create/update)"| D["Record-Triggered Flow\n(Before or After Save)"]
+    C -->|"Schedule / batch"| E["Schedule-Triggered Flow"]
+    C -->|"User-facing UI"| F["Screen Flow"]
+    C -->|"Legacy org (exam)"| G["Workflow Rule /\nProcess Builder"]
 ```
 
 ## Data Tool Decision
 
-```
-Object supported + under 50K records? → Data Import Wizard
-Otherwise (Opportunities, Cases, over 50K, need upsert) → Data Loader
-Full org backup → Data Export
-Specific filtered export → Report Export
+```mermaid
+flowchart TD
+    A{"Object supported in\nImport Wizard AND\nunder 50K records?"}
+    A -->|"Yes"| B["Data Import Wizard"]
+    A -->|"No\n(Opps, Cases, over 50K,\nneed upsert)"| C["Data Loader"]
+    D["Need full org backup?"] --> E["Data Export"]
+    F["Need specific filtered export?"] --> G["Report Export"]
 ```
 
 ## Key Numbers to Memorize

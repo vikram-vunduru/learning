@@ -43,31 +43,23 @@ Queues + Assignment Rules = basic routing. Omni-Channel = intelligent real-time 
 
 ## Architecture / How It Works
 
-```
-Queue and Assignment Rule Flow
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  NEW CASE CREATED
-         ↓
-  ASSIGNMENT RULE (active rule, entries in order)
-  ┌───────────────────────────────────────────┐
-  │  Entry 1: Origin=Web AND Priority=High    │
-  │           → Assign to: Tier2 Queue        │
-  │  Entry 2: Origin=Phone                    │
-  │           → Assign to: Phone Support User │
-  │  Entry 3: (catch-all)                     │
-  │           → Assign to: General Queue      │
-  └─────────────────┬─────────────────────────┘
-                    │ (first match wins)
-                    ▼
-  QUEUE (holding area)
-  ┌───────────────────────────────────────────┐
-  │  General Queue                            │
-  │  Members: User A, User B, Group X         │
-  │                                           │
-  │  All members SEE the case                 │
-  │  Any member can ACCEPT (take ownership)   │
-  └───────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    New["NEW CASE CREATED"]
+    New --> Rule
+    subgraph Rule["ASSIGNMENT RULE — active rule, entries in order"]
+        E1["Entry 1: Origin=Web AND Priority=High\nAssign to: Tier2 Queue"]
+        E2["Entry 2: Origin=Phone\nAssign to: Phone Support User"]
+        E3["Entry 3: catch-all\nAssign to: General Queue"]
+        E1 -->|"No match"| E2
+        E2 -->|"No match"| E3
+    end
+    Rule -->|"First match wins"| Queue
+    subgraph Queue["QUEUE — holding area"]
+        Q1["General Queue\nMembers: User A, User B, Group X"]
+        Q2["All members SEE the case"]
+        Q3["Any member can ACCEPT (take ownership)"]
+    end
 ```
 
 **Limitations:**

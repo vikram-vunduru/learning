@@ -53,30 +53,21 @@ Activity tracking is where CRM adoption lives or dies. Sales reps who don't log 
 
 ## Architecture / How It Works
 
-```
-Activity Object Model
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    subgraph Task["TASK — action item"]
+        T1["Subject\nDue Date\nStatus, Priority"]
+        T2["Assigned To\nRelated To (WhatId)\nName (WhoId — Contact or Lead)"]
+    end
+    subgraph Event["EVENT — meeting"]
+        E1["Subject\nStart Date/Time\nEnd Date/Time, Location"]
+        E2["Invitees (multiple attendees)\nRelated To (WhatId)\nName (WhoId)"]
+    end
+    Task -->|"When completed"| AH["ACTIVITY HISTORY\n(related list)\nCompleted Tasks, Past Events\nLogged Calls, Emails"]
+    Event -->|"When past"| AH
 
-  TASK (Action Item)                EVENT (Meeting)
-  ┌─────────────────────┐           ┌──────────────────────┐
-  │ Subject             │           │ Subject              │
-  │ Due Date            │           │ Start Date/Time      │
-  │ Status              │           │ End Date/Time        │
-  │ Priority            │           │ Location             │
-  │ Assigned To         │           │ Invitees             │
-  │ Related To (WhatId) │           │ Related To (WhatId)  │
-  │ Name (WhoId)        │           │ Name (WhoId)         │
-  └─────────────────────┘           └──────────────────────┘
-       ↓ Completed                        ↓ Past
-  ACTIVITY HISTORY (related list)
-  ┌──────────────────────────────────────────────────────┐
-  │  Completed Tasks, Past Events, Logged Calls, Emails  │
-  └──────────────────────────────────────────────────────┘
-
-  OPEN ACTIVITIES (related list)
-  ┌──────────────────────────────────────────────────────┐
-  │  Incomplete Tasks, Future Events                     │
-  └──────────────────────────────────────────────────────┘
+    Task -->|"While incomplete"| OA["OPEN ACTIVITIES\n(related list)\nIncomplete Tasks\nFuture Events"]
+    Event -->|"While upcoming"| OA
 ```
 
 **Limitations:**

@@ -8,32 +8,17 @@ Asynchronous JavaScript — ~20% of exam weight. High-priority study area.
 ### The Event Loop — How JS Handles Async
 JavaScript is single-threaded. "Async" means: defer work, continue, pick it up later.
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                     JavaScript Engine (V8)                        │
-│                                                                   │
-│  ┌──────────────┐    ┌─────────────────────────────────────────┐ │
-│  │  Call Stack  │    │ Web APIs / Node APIs                    │ │
-│  │  (sync code) │    │ (setTimeout, fetch, I/O — run outside   │ │
-│  │              │    │  the main thread)                       │ │
-│  └──────┬───────┘    └───────────┬─────────────────────────────┘ │
-│         │                        │ callback registered            │
-│         │            ┌───────────▼─────────┐                     │
-│         │            │  Microtask Queue     │  ← Promises,        │
-│         │            │  (Promise callbacks, │    queueMicrotask   │
-│         │            │   MutationObserver)  │    Higher priority  │
-│         │            └───────────┬──────────┘                     │
-│         │                        │                                 │
-│         │            ┌───────────▼─────────┐                     │
-│         │            │  Macrotask Queue     │  ← setTimeout,      │
-│         │            │  (setTimeout,        │    setInterval,     │
-│         │            │   setInterval, I/O)  │    I/O              │
-│         │            └───────────┬──────────┘                     │
-│         │                        │                                 │
-│         ◄────── event loop ───────                                │
-│     (when stack is empty,                                         │
-│      drain microtask queue first, then ONE macrotask)            │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Engine["JavaScript Engine (V8)"]
+        STACK["Call Stack\n(sync code)"]
+        subgraph APIS["Web APIs / Node APIs\n(setTimeout, fetch, I/O — run outside main thread)"]
+        end
+    end
+    APIS -->|"callback registered"| MICRO["Microtask Queue\n(Promise callbacks, MutationObserver)\nHigher priority"]
+    MICRO --> MACRO["Macrotask Queue\n(setTimeout, setInterval, I/O)"]
+    MACRO -->|"event loop:\nwhen stack empty,\ndrain microtasks first,\nthen ONE macrotask"| STACK
+    STACK --> APIS
 ```
 
 **Execution order: synchronous code → all microtasks → one macrotask → repeat**
@@ -47,16 +32,12 @@ console.log('2 sync');
 ```
 
 ### Promises — Three States
-```
-┌─────────────────────────────────────────────────────┐
-│                     Promise                          │
-│                                                      │
-│  pending ──► fulfilled  (resolve called) → .then()  │
-│     │                                                │
-│     └──────► rejected   (reject called)  → .catch() │
-│                                                      │
-│  .finally() runs regardless of fulfillment or reject │
-└─────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    P["pending"] -->|"resolve called"| F["fulfilled → .then()"]
+    P -->|"reject called"| R["rejected → .catch()"]
+    F --> FIN[".finally() — runs regardless"]
+    R --> FIN
 ```
 
 ```javascript

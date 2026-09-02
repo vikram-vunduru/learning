@@ -80,19 +80,12 @@ In a customer conversation: "Instead of your agent always giving the same boiler
 
 ### Common Enterprise Pattern: Data Flow → Prompt Template
 For a large e-commerce company customer:
-```
-Customer asks: "Can you give me a full summary of my recent orders and flag anything I should be concerned about?"
-    │
-    Atlas → Order Summary Topic
-    │
-    ├── Action 1: Get Recent Orders (Flow)
-    │       Input: accountId (from session)
-    │       Output: ordersText (concatenated order summary string)
-    │
-    └── Action 2: Order Analysis Template (Flex)
-            Input: {!ordersText} (from prior Flow Action)
-            System Prompt: "Analyze this order data. Highlight any delayed, cancelled, or pending items."
-            Output: Natural language analysis with flagged concerns
+```mermaid
+flowchart TD
+    Q["Customer: 'Summarize my recent orders\nand flag anything I should be concerned about'"]
+    Q --> TOPIC["Atlas → Topic: Order Summary"]
+    TOPIC --> A1["Action 1: Get Recent Orders (Flow)\nInput: accountId (from session)\nOutput: ordersText (concatenated summary string)"]
+    A1 --> A2["Action 2: Order Analysis Template (Flex)\nInput: ordersText (from prior Flow Action)\nSystem Prompt: 'Analyze order data, highlight\ndelayed/cancelled/pending items'\nOutput: Natural language analysis with flagged concerns"]
 ```
 
 This is a pattern that traditional chatbots cannot do — they can retrieve data, but they can't intelligently analyze and synthesize it with natural language.
@@ -106,40 +99,18 @@ This is a pattern that traditional chatbots cannot do — they can retrieve data
 ## Architecture
 
 ### Prompt Template Action in the Agent Flow
-```
-User Request
-    │
-    ▼
-Atlas: Topic matched → Action selected (Prompt Template Action)
-    │
-    ▼
-Does template need input data from another Action first?
-    │
-    ├── Yes → Atlas invokes preceding Action(s) first
-    │          [Flow/Apex Action results stored in context]
-    │
-    └── No → Proceed directly
-    │
-    ▼
-Atlas invokes Prompt Template Action
-    Passes input parameters:
-    • From conversation context (extracted by Atlas)
-    • From prior Action outputs (from context window)
-    • From session context (user/account data)
-    │
-    ▼
-Flex Template assembled
-    System Prompt + Template Body (with resolved params) + Grounding results
-    │
-    ▼
-Einstein Trust Layer:
-    Masking → LLM Call → Toxicity Filter → Audit Log
-    │
-    ▼
-Generated text returned to Atlas
-    │
-    ▼
-Atlas observes result → Delivers to user
+```mermaid
+flowchart TD
+    UR["User Request"]
+    UR --> TM["Atlas: Topic matched → Action selected\n(Prompt Template Action)"]
+    TM --> PRIOR{"Does template need\ninput data from\nanother Action first?"}
+    PRIOR -->|"Yes"| PA["Atlas invokes preceding Action(s) first\n(Flow/Apex Action results stored in context)"]
+    PRIOR -->|"No"| PTA
+    PA --> PTA["Atlas invokes Prompt Template Action\nPasses input parameters:\n• From conversation context\n• From prior Action outputs\n• From session context"]
+    PTA --> FT["Flex Template assembled\nSystem Prompt + Template Body\n(with resolved params) + Grounding results"]
+    FT --> TL["Einstein Trust Layer:\nMasking → LLM Call → Toxicity Filter → Audit Log"]
+    TL --> GEN["Generated text returned to Atlas"]
+    GEN --> DEL["Atlas observes result → Delivers to user"]
 ```
 
 **Limitations:**
@@ -149,29 +120,13 @@ Atlas observes result → Delivers to user
 - Template Action cannot be invoked in parallel with other Actions — Atlas is sequential
 
 ### Multi-Action Flow-to-Template Pattern
-```
-Topic: Case Management
-│
-├── Action 1: "Get Case Details" (Flow)
-│   ┌─────────────────────────────────────────┐
-│   │ Inputs: caseNumber                       │
-│   │ Outputs: subject, status, description,  │
-│   │          lastUpdate, assignee           │
-│   └─────────────────────────────────────────┘
-│   Atlas invokes this first.
-│   Results stored in context window.
-│
-└── Action 2: "Summarize Case for Customer" (Prompt Template)
-    ┌─────────────────────────────────────────┐
-    │ Inputs: {!subject}, {!status},           │
-    │         {!description}, {!lastUpdate}   │
-    │ (Atlas passes from Action 1 outputs)    │
-    │ System Prompt: "Empathetic case update" │
-    │ Output: natural language summary        │
-    └─────────────────────────────────────────┘
-    Atlas invokes this second.
-    Template generates personalized summary.
-    Atlas delivers to user.
+```mermaid
+flowchart TD
+    TOPIC["Topic: Case Management"]
+    TOPIC --> A1["Action 1: Get Case Details (Flow)\nInputs: caseNumber\nOutputs: subject, status, description,\nlastUpdate, assignee\n← Atlas invokes this first"]
+    A1 --> CTX["Results stored in context window"]
+    CTX --> A2["Action 2: Summarize Case for Customer (Prompt Template)\nInputs: subject, status, description, lastUpdate\n(Atlas passes from Action 1 outputs)\nSystem Prompt: 'Empathetic case update'\nOutput: natural language summary\n← Atlas invokes this second"]
+    A2 --> DELIVER["Atlas delivers personalized summary to user"]
 ```
 
 **Limitations:**
@@ -180,23 +135,19 @@ Topic: Case Management
 - If Action 1 fails (error output), Action 2 receives null/error inputs → poor template output
 
 ### Active Flex Template Picker
-```
+
 Agentforce Studio: Add Action → Prompt Template
 
-Template picker shows:
-┌────────────────────────────────────────────────┐
-│  Available Flex Templates (Active only)         │
-│                                                │
-│  ✓ Case Summary for Customer (v2) [Active]     │
-│  ✓ Order Analysis Template [Active]            │
-│  ✓ Product Recommendation Template [Active]    │
-│                                                │
-│  [NOT shown — inactive templates]              │
-│  [NOT shown — Field Generation templates]      │
-│  [NOT shown — Record Summary templates]        │
-│  [NOT shown — Sales Email templates]           │
-└────────────────────────────────────────────────┘
-```
+**Available Flex Templates (Active only):**
+- ✓ Case Summary for Customer (v2) [Active]
+- ✓ Order Analysis Template [Active]
+- ✓ Product Recommendation Template [Active]
+
+**NOT shown:**
+- Inactive templates
+- Field Generation templates
+- Record Summary templates
+- Sales Email templates
 
 ## Key Facts to Memorize
 - Only **Active Flex templates** appear in the Agentforce Action picker

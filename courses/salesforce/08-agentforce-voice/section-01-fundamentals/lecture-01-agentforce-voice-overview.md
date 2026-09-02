@@ -12,18 +12,14 @@ Requires a supported telephony partner — Salesforce does not operate phone net
 
 ### Open CTI vs. Agentforce Voice — Know This Distinction
 
-```
-┌─────────────────────┬────────────────────────────┬────────────────────────────┐
-│ Attribute           │ Open CTI (Legacy)           │ Agentforce Voice (Current) │
-├─────────────────────┼────────────────────────────┼────────────────────────────┤
-│ Intelligence        │ None — display only         │ Atlas Reasoning Engine     │
-│ Transcription       │ None                        │ Real-time (Contact Lens)   │
-│ Agent Assist        │ None                        │ Yes — live AI suggestions  │
-│ Autonomous Handling │ None                        │ Yes — full voice bot mode  │
-│ Data flow           │ Call metadata only          │ Live transcript + AI       │
-│ What it is          │ JavaScript API, softphone   │ Full AI voice platform     │
-└─────────────────────┴────────────────────────────┴────────────────────────────┘
-```
+| Attribute | Open CTI (Legacy) | Agentforce Voice (Current) |
+|---|---|---|
+| Intelligence | None — display only | Atlas Reasoning Engine |
+| Transcription | None | Real-time (Contact Lens) |
+| Agent Assist | None | Yes — live AI suggestions |
+| Autonomous Handling | None | Yes — full voice bot mode |
+| Data flow | Call metadata only | Live transcript + AI |
+| What it is | JavaScript API, softphone | Full AI voice platform |
 
 **Limitations:**
 - Open CTI is still valid for basic click-to-dial if no AI is needed — don't over-engineer
@@ -32,20 +28,14 @@ Requires a supported telephony partner — Salesforce does not operate phone net
 
 ### Full Voice Call Flow Architecture
 
-```
-Customer (Phone/PSTN)
-    │
-    ▼
-Telephony Partner (Amazon Connect / Genesys Cloud CX / NICE CXone)
-    │  [handles SIP, audio, STT transcription via Contact Lens / provider-native]
-    ▼
-Salesforce Service Cloud Voice
-    │  [creates VoiceCall record, real-time transcript feed, Omni-Channel routing]
-    ▼
-Agentforce Voice Agent (Atlas Reasoning Engine)
-    │  [intent classification, entity extraction, action invocation]
-    ├──[resolved]──▶ Ends call / posts summary to VoiceCall record
-    └──[escalate]──▶ Human Agent (with screen pop + Agent Assist panel active)
+```mermaid
+flowchart TD
+    CX["Customer (Phone/PSTN)"]
+    CX --> TP["Telephony Partner\n(Amazon Connect / Genesys Cloud CX / NICE CXone)\nHandles SIP, audio, STT transcription via Contact Lens"]
+    TP --> SCV["Salesforce Service Cloud Voice\nCreates VoiceCall record, real-time transcript feed\nOmni-Channel routing"]
+    SCV --> AVA["Agentforce Voice Agent\n(Atlas Reasoning Engine)\nIntent classification, entity extraction, action invocation"]
+    AVA -->|"Resolved"| END["Ends call / posts summary to VoiceCall record"]
+    AVA -->|"Escalate"| HA["Human Agent\n(screen pop + Agent Assist panel active)"]
 ```
 
 **Limitations:**
@@ -56,25 +46,14 @@ Agentforce Voice Agent (Atlas Reasoning Engine)
 
 ### Autonomous Voice Bot vs. Agent Assist
 
-```
-┌──────────────────────────────────┬──────────────────────────────────┐
-│       AUTONOMOUS VOICE BOT       │          AGENT ASSIST             │
-│    [ AI handles the full call ]  │    [ Human + AI in parallel ]    │
-├──────────────────────────────────┼──────────────────────────────────┤
-│ Caller speaks                    │ Call routes to human agent        │
-│    ↓                             │    ↓                              │
-│ AI classifies intent             │ Human agent speaks with caller    │
-│    ↓                             │    ↓                              │
-│ AI executes actions              │ AI listens to live transcript     │
-│    ↓                             │    ↓                              │
-│ AI responds or escalates         │ AI surfaces suggestions on screen │
-├──────────────────────────────────┼──────────────────────────────────┤
-│ Best for: high-volume, routine,  │ Best for: complex, sensitive,    │
-│ well-defined tasks               │ relationship-driven calls         │
-│ (order status, appt confirm,     │ (complaints, account retention,  │
-│  password reset, store hours)    │  medical inquiries, legal topics) │
-└──────────────────────────────────┴──────────────────────────────────┘
-```
+| | Autonomous Voice Bot | Agent Assist |
+|---|---|---|
+| **Model** | AI handles the full call | Human + AI in parallel |
+| **Step 1** | Caller speaks | Call routes to human agent |
+| **Step 2** | AI classifies intent | Human agent speaks with caller |
+| **Step 3** | AI executes actions | AI listens to live transcript |
+| **Step 4** | AI responds or escalates | AI surfaces suggestions on screen |
+| **Best for** | High-volume, routine, well-defined tasks (order status, appt confirm, password reset) | Complex, sensitive, relationship-driven calls (complaints, account retention, medical inquiries) |
 
 **Limitations:**
 - Autonomous mode requires well-scoped Topics — every unhandled intent causes escalation or poor experience
@@ -85,22 +64,13 @@ Agentforce Voice Agent (Atlas Reasoning Engine)
 
 PCI data masking must happen at the **telephony layer** (Amazon Connect Contact Lens), before the transcript reaches Salesforce. Salesforce receives a pre-masked transcript. Zero data retention applies — call content is never used for model training.
 
-```
-Phone Call
-    ↓
-Telephony Layer (Amazon Connect)
-    │  ← PCI masking applied HERE (Contact Lens)
-    │     before transcript leaves telephony
-    ↓
-Salesforce Platform
-    ┌─────────────────────────────────────────┐
-    │  EINSTEIN TRUST LAYER                   │
-    │  ▸ Data Masking (PCI / SSN)             │
-    │  ▸ Zero Data Retention (no training)    │
-    │  ▸ Audit Trail (every AI action logged) │
-    └─────────────────────────────────────────┘
-    ↓
-Agentforce Agent (processes pre-masked transcript)
+```mermaid
+flowchart TD
+    PC["Phone Call"]
+    PC --> TL["Telephony Layer (Amazon Connect)\nPCI masking applied HERE via Contact Lens\nbefore transcript leaves telephony"]
+    TL --> SF["Salesforce Platform\n(receives pre-masked transcript)"]
+    SF --> ETL["Einstein Trust Layer\n• Data Masking (PCI / SSN)\n• Zero Data Retention (no training)\n• Audit Trail (every AI action logged)"]
+    ETL --> AA["Agentforce Agent\n(processes pre-masked transcript)"]
 ```
 
 **Limitations:**

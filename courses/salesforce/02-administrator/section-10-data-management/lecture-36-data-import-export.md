@@ -68,35 +68,23 @@ Data migration is one of the most common and most risk-prone activities in Sales
 
 ## Architecture / How It Works
 
-```
-Data Import Decision Tree
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    Q1{"Object supported in\nData Import Wizard?\n(Accounts, Contacts, Leads,\nSolutions, Campaign Members,\nCustom Objects)"}
+    Q1 -->|"Yes"| Q2{"Under 50,000 records?"}
+    Q2 -->|"Yes"| DIW["Data Import Wizard\n(browser, no install)"]
+    Q2 -->|"No"| DL["Data Loader\n(desktop app, all objects)"]
+    Q1 -->|"No (Opps, Cases, etc.)"| DL
 
-  Object supported in Import Wizard?
-  (Accounts, Contacts, Leads, Solutions,
-   Campaign Members, Custom Objects)
-       │
-       YES → Under 50,000 records?
-       │         │
-       │         YES → Data Import Wizard ✓
-       │         NO  → Data Loader
-       │
-       NO → Data Loader (only option)
+    Q3{"Need to DELETE records?"} -->|"Yes"| DL2["Data Loader\n(Delete or Hard Delete)"]
 
-  Need to DELETE records?
-       → Data Loader (Delete or Hard Delete)
-
-  Need Upsert (insert/update by External ID)?
-       Both tools support it; Data Loader preferred for scale
-
-  External ID Upsert Flow:
-  ┌─────────────────────────────────────────┐
-  │  CSV row: ExtID=12345, Name=Acme Corp   │
-  │                ↓                        │
-  │  Check: record with ExtID=12345 exists? │
-  │  YES → UPDATE that record               │
-  │  NO  → INSERT new record                │
-  └─────────────────────────────────────────┘
+    subgraph Upsert["External ID Upsert Flow"]
+        CSV["CSV row: ExtID=12345, Name=Acme Corp"]
+        Check{"Record with\nExtID=12345 exists?"}
+        CSV --> Check
+        Check -->|"Yes"| Update["UPDATE that record"]
+        Check -->|"No"| Insert["INSERT new record"]
+    end
 ```
 
 **Limitations:**

@@ -104,54 +104,36 @@
 
 ## Data Cloud Architecture (Enterprise Scale)
 
-```
-╔════════════════════════════════════════════════════════════════════════╗
-║              DATA CLOUD — ENTERPRISE AI ARCHITECTURE                   ║
-╠════════════════════════════════════════════════════════════════════════╣
-║                                                                        ║
-║  DATA SOURCES (ingested into Data Cloud)                               ║
-║  ┌────────────────────────────────────────────────────────────────┐    ║
-║  │ Salesforce CRM   │ E-Commerce    │ ERP/Finance  │ Marketing    │    ║
-║  │ (Service Cloud)  │ (Shopify)     │ (SAP)        │ (Pardot/MC)  │    ║
-║  │ Web Analytics    │ Mobile App    │ IoT Sensors  │ Loyalty Sys  │    ║
-║  └────────────────────────────────────────────────────────────────┘    ║
-║                           │                                            ║
-║  DATA CLOUD                ▼                                           ║
-║  ┌────────────────────────────────────────────────────────────────┐    ║
-║  │                                                                │    ║
-║  │  INGESTION (Data Streams + MuleSoft)                           │    ║
-║  │  → Normalize formats, map to Data Cloud Data Model             │    ║
-║  │                                                                │    ║
-║  │  IDENTITY RESOLUTION                                           │    ║
-║  │  → Match "Jane Smith / jsmith@email.com / 555-0101" across     │    ║
-║  │    all source systems → One Unified Customer Profile           │    ║
-║  │                                                                │    ║
-║  │  UNIFIED CUSTOMER PROFILE                                      │    ║
-║  │  → Complete 360° view: all interactions + behaviors + scores   │    ║
-║  │  → Calculated Insights: CLV, Engagement Score, Churn Risk      │    ║
-║  │                                                                │    ║
-║  │  EINSTEIN VECTOR STORE                                         │    ║
-║  │  → Product catalog, knowledge articles, contract docs          │    ║
-║  │  → Embedded as vectors for semantic search / RAG               │    ║
-║  │                                                                │    ║
-║  └────────────────────────────────────────────────────────────────┘    ║
-║                           │                                            ║
-║  AI LAYER                  ▼                                           ║
-║  ┌────────────────────────────────────────────────────────────────┐    ║
-║  │  Agentforce grounding: Unified Profile injected as context     │    ║
-║  │  RAG: Vector Store searched for relevant document chunks       │    ║
-║  │  Prediction Builder: Calculated Insights used as features      │    ║
-║  │  Prompt Builder: {!$Record...} merge fields from unified data  │    ║
-║  └────────────────────────────────────────────────────────────────┘    ║
-║                           │                                            ║
-║  ACTIVATION                ▼                                           ║
-║  ┌────────────────────────────────────────────────────────────────┐    ║
-║  │  Back to Salesforce CRM  → personalized rep experience         │    ║
-║  │  Marketing Cloud         → personalized campaigns              │    ║
-║  │  Advertising             → targeted audiences                  │    ║
-║  │  External Systems        → via Salesforce Connect or APIs      │    ║
-║  └────────────────────────────────────────────────────────────────┘    ║
-╚════════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    subgraph Sources["Data Sources — ingested into Data Cloud"]
+        S1["Salesforce CRM\nService Cloud"]
+        S2["E-Commerce\nShopify"]
+        S3["ERP/Finance\nSAP"]
+        S4["Marketing\nPardot/MC"]
+        S5["Web Analytics\nMobile App\nIoT Sensors\nLoyalty System"]
+    end
+    subgraph DC["Data Cloud"]
+        I["Ingestion — Data Streams + MuleSoft\nNormalize formats · map to Data Cloud Data Model"]
+        IR["Identity Resolution\nMatch Jane Smith / jsmith@email.com across all systems\ninto one Unified Customer Profile"]
+        UCP["Unified Customer Profile\nComplete 360° view: interactions + behaviors + scores\nCalculated Insights: CLV · Engagement Score · Churn Risk"]
+        EVS["Einstein Vector Store\nProduct catalog · knowledge articles · contract docs\nEmbedded as vectors for semantic search / RAG"]
+        I --> IR --> UCP
+        I --> EVS
+    end
+    subgraph AI["AI Layer"]
+        A1["Agentforce: Unified Profile injected as context"]
+        A2["RAG: Vector Store searched for relevant document chunks"]
+        A3["Prediction Builder: Calculated Insights used as features"]
+        A4["Prompt Builder: merge fields from unified data"]
+    end
+    subgraph Act["Activation"]
+        AC1["Back to Salesforce CRM — personalized rep experience"]
+        AC2["Marketing Cloud — personalized campaigns"]
+        AC3["Advertising — targeted audiences"]
+        AC4["External Systems — via Salesforce Connect or APIs"]
+    end
+    Sources --> DC --> AI --> Act
 ```
 
 **Limitations:**

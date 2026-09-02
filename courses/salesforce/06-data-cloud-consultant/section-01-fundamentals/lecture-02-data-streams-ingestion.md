@@ -20,48 +20,19 @@ The Ingestion API requires OAuth 2.0 Client Credentials flow via a Connected App
 
 ### Connector Decision Tree
 
-```
-  START: What is the data source?
-         │
-         ▼
-  ┌─────────────────────────────────────────┐
-  │ Is it a Salesforce CRM org?             │
-  │         YES ══▶ SALESFORCE CONNECTOR    │
-  │              (native, bidirectional,    │
-  │               incremental refresh)      │
-  └─────────────────────────────────────────┘
-         │ NO
-         ▼
-  ┌─────────────────────────────────────────┐
-  │ Does it drop files in S3/GCS/Azure?     │
-  │         YES ══▶ CLOUD STORAGE           │
-  │              (CSV / JSON / Parquet,     │
-  │               scheduled batch pickup)   │
-  └─────────────────────────────────────────┘
-         │ NO
-         ▼
-  ┌─────────────────────────────────────────┐
-  │ Real-time web/mobile/IoT events?        │
-  │         YES ══▶ INGESTION API           │
-  │              (OAuth 2.0 / Connected App │
-  │               streaming or bulk mode)   │
-  └─────────────────────────────────────────┘
-         │ NO
-         ▼
-  ┌─────────────────────────────────────────┐
-  │ Marketing Cloud subscriber/engagement?  │
-  │         YES ══▶ MC CONNECTOR            │
-  │              (bidirectional — ingest    │
-  │               AND activate back to MC)  │
-  └─────────────────────────────────────────┘
-         │ NO
-         ▼
-  ┌─────────────────────────────────────────┐
-  │ MuleSoft already in environment?        │
-  │         YES ══▶ MULESOFT CONNECTOR      │
-  │              (any legacy/non-standard   │
-  │               source system)            │
-  └─────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    START["What is the data source?"]
+    START --> Q1{"Is it a Salesforce CRM org?"}
+    Q1 -->|YES| SF["SALESFORCE CONNECTOR\nnative, bidirectional,\nincremental refresh"]
+    Q1 -->|NO| Q2{"Does it drop files\nin S3/GCS/Azure?"}
+    Q2 -->|YES| CS["CLOUD STORAGE CONNECTOR\nCSV / JSON / Parquet,\nscheduled batch pickup"]
+    Q2 -->|NO| Q3{"Real-time web/mobile/IoT events?"}
+    Q3 -->|YES| IAPI["INGESTION API\nOAuth 2.0 / Connected App\nstreaming or bulk mode"]
+    Q3 -->|NO| Q4{"Marketing Cloud subscriber\nor engagement data?"}
+    Q4 -->|YES| MCC["MC CONNECTOR\nbidirectional — ingest\nAND activate back to MC"]
+    Q4 -->|NO| Q5{"MuleSoft already\nin environment?"}
+    Q5 -->|YES| MUL["MULESOFT CONNECTOR\nany legacy/non-standard\nsource system"]
 ```
 
 **Limitations:**
@@ -74,24 +45,12 @@ The Ingestion API requires OAuth 2.0 Client Credentials flow via a Connected App
 
 ### Batch vs. Streaming Timeline
 
-```
-  BATCH INGESTION (pull on schedule)
-  ─────────────────────────────────────────────────────────────────
-  Time:  ──────────┬────────────────────┬────────────────────┬───▶
-                   │                    │                    │
-              [6 AM load]          [12 PM load]         [6 PM load]
-              ████████████████     ████████████████     ████████████
-              (large block)        (large block)        (large block)
-  Sources: Salesforce Connector, S3/GCS/Azure, Marketing Cloud
-  Latency: up to 24 hours (depends on schedule)
-
-  STREAMING INGESTION (push as events occur)
-  ─────────────────────────────────────────────────────────────────
-  Time:  ──•─•──•──•─•─•──•─•──•──•─•──•──•─•──•──•──•─•──•──▶
-            continuous individual events
-  Sources: Ingestion API (streaming mode)
-  Latency: seconds to minutes
-```
+| | Batch Ingestion | Streaming Ingestion |
+|---|---|---|
+| **Pattern** | Pull on schedule — large periodic blocks | Push as events occur — continuous individual events |
+| **Sources** | Salesforce Connector, S3/GCS/Azure, Marketing Cloud | Ingestion API (streaming mode) |
+| **Latency** | Up to 24 hours (depends on schedule) | Seconds to minutes |
+| **When to use** | Regular, structured data loads; nightly exports | Real-time events (web clicks, mobile actions, IoT) |
 
 **Limitations:**
 - Streaming ingestion via Ingestion API does NOT update Unified Individual profiles or segment membership in real time — those still run on their own schedules
@@ -101,26 +60,13 @@ The Ingestion API requires OAuth 2.0 Client Credentials flow via a Connected App
 
 ### Ingestion API Authentication Flow
 
-```
-  STEP 1: Create Connected App         STEP 2: Get Credentials
-  ───────────────────────────          ─────────────────────────
-  ╔═══════════════════════════╗        Consumer Key:    ABC123xyz
-  ║  Salesforce Setup         ║        Consumer Secret: s3cr3t456
-  ║  Apps > Connected Apps    ║
-  ║  ✓ Enable OAuth           ║
-  ║  ✓ Ingestion API scope    ║
-  ╚═══════════════════════════╝
-
-  STEP 3: Exchange for Token           STEP 4: Call Ingestion API
-  ─────────────────────────────        ─────────────────────────────
-  POST /services/oauth2/token          POST /api/v1/ingest/...
-  grant_type=client_credentials        Authorization: Bearer eyJ...
-  client_id=ABC123xyz                        │
-  client_secret=s3cr3t456                    ▼
-        │                               Data lands in DLO
-        ▼                               (within seconds)
-  { "access_token": "eyJ..." }
-  (token expires — app must refresh)
+```mermaid
+flowchart LR
+    S1["STEP 1: Create Connected App\nSalesforce Setup\nApps → Connected Apps\nEnable OAuth\nIngestion API scope"]
+    S2["STEP 2: Get Credentials\nConsumer Key: ABC123xyz\nConsumer Secret: s3cr3t456"]
+    S3["STEP 3: Exchange for Token\nPOST /services/oauth2/token\ngrant_type=client_credentials\nclient_id + client_secret\n→ access_token: eyJ...\n(token expires — must refresh)"]
+    S4["STEP 4: Call Ingestion API\nPOST /api/v1/ingest/...\nAuthorization: Bearer eyJ...\n→ Data lands in DLO\n(within seconds)"]
+    S1 --> S2 --> S3 --> S4
 ```
 
 **Limitations:**

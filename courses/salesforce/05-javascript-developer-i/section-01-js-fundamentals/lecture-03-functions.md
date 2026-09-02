@@ -108,39 +108,31 @@ function walkTree(node) {
 ## Architecture / How It Works
 
 ### Function Call Stack
-```
-Call stack frames (LIFO — Last In First Out):
-────────────────────────────────────────────────
-main() calls greet() calls format()
 
-│ format()  │  ← currently executing (top of stack)
-│ greet()   │
-│ main()    │
-│ [global]  │
-────────────────────────────────────────────────
-
-format() returns → popped
-greet() returns  → popped
-main() returns   → popped
+```mermaid
+flowchart TD
+    subgraph Stack["Call Stack — LIFO (Last In First Out)"]
+        direction TB
+        F["format() ← currently executing (top)"]
+        G["greet()"]
+        M["main()"]
+        GL["[global]"]
+        F --> G --> M --> GL
+    end
+    F -->|"returns"| POP1["popped"]
+    G -->|"returns"| POP2["popped"]
+    M -->|"returns"| POP3["popped"]
 ```
 
 ### Arrow vs Regular Function `this`
-```
-Class instance (LWC component):
-  this = component object
 
-  handleClick = () => {          // arrow — captures class `this`
-    this.count++;                // ✓ this = component
-  }
-
-  handleClick() {                // method shorthand — own `this`
-    this.count++;                // ✓ this = component (called on instance)
-  }
-
-  // Passed as callback to setTimeout:
-  setTimeout(this.handleClick, 1000)
-    arrow version  → this = component ✓
-    method version → this = undefined (strict mode) ✗
+```mermaid
+flowchart TD
+    A["Class instance — this = component"] --> B["handleClick = () => {}"]
+    A --> C["handleClick() {}"]
+    B -->|"captures lexical this"| B1["this = component ✓\nsafe as callback"]
+    C -->|"called as obj.method()"| C1["this = component ✓"]
+    C -->|"passed to setTimeout"| C2["this = undefined (strict) ✗\nuse .bind(this) or arrow"]
 ```
 
 **Limitations:**

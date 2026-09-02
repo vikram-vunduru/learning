@@ -116,56 +116,19 @@ The Trust Layer solves all four.
 
 ## Trust Layer Architecture (Enterprise View)
 
-```
-╔════════════════════════════════════════════════════════════════════════╗
-║              EINSTEIN TRUST LAYER — COMPLETE FLOW                      ║
-╠════════════════════════════════════════════════════════════════════════╣
-║                                                                        ║
-║  SALESFORCE ORG                                                        ║
-║  ┌──────────────────────────────────────────────────────────────────┐  ║
-║  │ User invokes AI (Prompt Builder / Agentforce / Copilot)          │  ║
-║  │ Prompt template + merge fields → fully resolved prompt           │  ║
-║  └──────────────────────────────────┬─────────────────────────────┘  ║
-║                                     │                                  ║
-║  ═══════════════ TRUST LAYER ══════════════════════════════════════   ║
-║                                     │                                  ║
-║  STEP 1: DATA MASKING (INPUT)        │                                  ║
-║  ┌──────────────────────────────────▼─────────────────────────────┐  ║
-║  │ PII Scanner: "Contact is John Smith, email: j@acme.com"        │  ║
-║  │             → "Contact is {PERSON_1}, email: {EMAIL_1}"        │  ║
-║  │ Masked prompt proceeds; mapping stored for detokenization       │  ║
-║  └──────────────────────────────────┬─────────────────────────────┘  ║
-║                                     │                                  ║
-║  STEP 2: ZDR BOUNDARY                │                                  ║
-║  ┌──────────────────────────────────▼─────────────────────────────┐  ║
-║  │ Masked prompt sent to LLM provider (OpenAI / Anthropic / etc.) │  ║
-║  │ ZDR contract: provider cannot retain, log, or train on this    │  ║
-║  └──────────────────────────────────┬─────────────────────────────┘  ║
-║                                     │                                  ║
-║  EXTERNAL LLM (outside Salesforce boundary)                            ║
-║  ┌──────────────────────────────────▼─────────────────────────────┐  ║
-║  │ Generates response: "Here is a summary for {PERSON_1}..."       │  ║
-║  └──────────────────────────────────┬─────────────────────────────┘  ║
-║                                     │                                  ║
-║  STEP 3: TOXICITY SCORING (OUTPUT)   │                                  ║
-║  ┌──────────────────────────────────▼─────────────────────────────┐  ║
-║  │ Toxicity model evaluates response                              │  ║
-║  │ If score < threshold: proceed                                  │  ║
-║  │ If score ≥ threshold: BLOCK response, return safe error        │  ║
-║  └──────────────────────────────────┬─────────────────────────────┘  ║
-║                                     │                                  ║
-║  STEP 4: DETOKENIZE + AUDIT LOG      │                                  ║
-║  ┌──────────────────────────────────▼─────────────────────────────┐  ║
-║  │ {PERSON_1} → John Smith (original value restored)              │  ║
-║  │ Full interaction logged to Audit Trail                         │  ║
-║  └──────────────────────────────────┬─────────────────────────────┘  ║
-║                                     │                                  ║
-║  ══════════════════════════════════════════════════════════════════   ║
-║                                     │                                  ║
-║  ┌──────────────────────────────────▼─────────────────────────────┐  ║
-║  │ User sees: "Here is a summary for John Smith..."               │  ║
-║  └────────────────────────────────────────────────────────────────┘  ║
-╚════════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    A["Salesforce Org\nUser invokes AI via Prompt Builder / Agentforce / Copilot\nPrompt template + merge fields resolved to full prompt"]
+    B["Step 1 — Data Masking INPUT\nPII Scanner detects names, emails, SSNs, etc.\nContact is John Smith → Contact is {PERSON_1}\nMapped tokens stored for later detokenization"]
+    C["Step 2 — ZDR Boundary\nMasked prompt sent to external LLM provider\nZDR contract: provider cannot retain, log, or train on this"]
+    D["External LLM — outside Salesforce boundary\nGenerates response using tokens:\n#quot;Here is a summary for {PERSON_1}...#quot;"]
+    E{"Step 3 — Toxicity Scoring OUTPUT\nToxicity model evaluates response"}
+    F["BLOCK — Safe error returned to user"]
+    G["Step 4 — Detokenize + Audit Log\n{PERSON_1} restored to John Smith\nFull interaction logged to Audit Trail"]
+    H["User sees unmasked, contextually correct response"]
+    A --> B --> C --> D --> E
+    E -->|"score >= threshold"| F
+    E -->|"score < threshold"| G --> H
 ```
 
 **Limitations of the Einstein Trust Layer:**

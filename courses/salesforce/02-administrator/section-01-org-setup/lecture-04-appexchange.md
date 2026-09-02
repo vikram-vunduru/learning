@@ -42,27 +42,24 @@ AppExchange decisions come up in every implementation. The key architectural que
 
 ## Architecture / How It Works
 
-```
-AppExchange Package Architecture
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart LR
+    subgraph Publisher["PUBLISHER ORG"]
+        PU1["Develop app"]
+        PU2["Pass security review"]
+        PU3["List on AppExchange"]
+        PU4["LMA — license management"]
+        PU1 --> PU2 --> PU3
+    end
+    subgraph Customer["CUSTOMER ORG"]
+        CU1["Managed Package\n(namespaced)"]
+        CU2["Objects, Fields\nCode (obfuscated)\nTabs"]
+        CU3["Can receive updates\nfrom publisher"]
+        CU1 --> CU2 --> CU3
+    end
+    Publisher -->|"Install"| Customer
 
-  PUBLISHER ORG                    CUSTOMER ORG
-  ┌──────────────────┐             ┌──────────────────────┐
-  │  Develop app     │             │                      │
-  │  Pass security   │  Install    │  Managed Package     │
-  │  review          │ ──────────► │  (namespaced)        │
-  │  List on         │             │  - Objects           │
-  │  AppExchange     │             │  - Fields            │
-  │                  │             │  - Code (obfuscated) │
-  │  LMA (license    │             │  - Tabs              │
-  │  management)     │             │                      │
-  └──────────────────┘             │  Can receive updates │
-                                   │  from publisher      │
-                                   └──────────────────────┘
-
-  Unmanaged Package:
-  Source Org → Package → Customer Org
-  (code visible, no namespace, no updates)
+    SrcOrg["Source Org\n(Unmanaged Package)"] -->|"Package\n(code visible,\nno namespace,\nno updates)"| CustOrg2["Customer Org"]
 ```
 
 **Limitations:**

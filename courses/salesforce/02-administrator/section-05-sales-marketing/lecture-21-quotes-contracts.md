@@ -40,35 +40,16 @@ Quotes and Contracts are the boundary between CRM and the order management/ERP w
 
 ## Architecture / How It Works
 
-```
-Quote-Contract-Order Flow
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    Opp["OPPORTUNITY\n(with products)"]
+    Opp --> Quote["QUOTE — proposal\nGenerate PDF\nSync to Opportunity (one at a time)"]
+    Quote -->|"Customer agrees"| Contract["CONTRACT — signed agreement\nDraft → Activated (locked)\nLinked to Account"]
+    Contract --> Order["ORDER — fulfillment\nDraft → Activated\nOrder Products"]
 
-  OPPORTUNITY
-  │ (with products)
-  ▼
-  QUOTE (proposal)
-  ├── Generate PDF
-  ├── Sync to Opportunity (one at a time)
-  └── ✓ Customer agrees
-       ↓
-  CONTRACT (signed agreement)
-  ├── Draft → Activated (locked)
-  └── Linked to Account
-       ↓
-  ORDER (fulfillment)
-  ├── Draft → Activated
-  └── Order Products
-
-  Quote Sync Detail:
-  ┌───────────────────────────────────────┐
-  │  Quote A (SYNCED) ────► Opportunity   │
-  │    Changes to Quote A line items      │
-  │    automatically update Opp Amount    │
-  │                                       │
-  │  Quote B (unsynced) — separate        │
-  │  Only ONE synced quote per Opp        │
-  └───────────────────────────────────────┘
+    QuoteA["Quote A (SYNCED)\nChanges to line items\nauto-update Opp Amount"]
+    QuoteB["Quote B (unsynced)\nSeparate, not reflected in Opp"]
+    QuoteA -->|"Only ONE synced\nquote per Opportunity"| OppAmt["Opportunity Amount"]
 ```
 
 **Limitations:**

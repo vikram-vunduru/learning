@@ -97,59 +97,24 @@
 
 ## NBA Architecture
 
-```
-╔═════════════════════════════════════════════════════════════════════╗
-║             NEXT BEST ACTION — COMPLETE FLOW                         ║
-╠═════════════════════════════════════════════════════════════════════╣
-║                                                                     ║
-║  RECOMMENDATION LIBRARY (configured by admin)                       ║
-║  ┌───────────────────────────────────────────────────────────────┐  ║
-║  │ Rec 1: "Offer Premium Support Plan"                           │  ║
-║  │   - Acceptance Label: "Send Upgrade Email"                    │  ║
-║  │   - Action Flow: SendUpgradeEmailFlow                         │  ║
-║  │   - Applies to: Accounts with Support tier = Standard        │  ║
-║  │                                                               │  ║
-║  │ Rec 2: "Schedule Executive Business Review"                   │  ║
-║  │   - Acceptance Label: "Create EBR Task"                       │  ║
-║  │   - Action Flow: CreateEBRTaskFlow                            │  ║
-║  │   - Applies to: Enterprise accounts, no EBR in 6 months      │  ║
-║  │                                                               │  ║
-║  │ Rec 3: "Churn Risk Alert - Immediate Contact Needed"          │  ║
-║  │   - Acceptance Label: "Log Call + Create Task"                │  ║
-║  │   - Action Flow: ChurnInterventionFlow                        │  ║
-║  │   - Applies to: Churn score > 70                              │  ║
-║  └───────────────────────────────────────────────────────────────┘  ║
-║                          │                                          ║
-║  STRATEGY (runs when user opens Account page)                       ║
-║  ┌───────────────────────────────────────────────────────────────┐  ║
-║  │ Load: All active Recommendations                              │  ║
-║  │   ↓                                                           │  ║
-║  │ Filter: Only recs where Account.Support_Tier criteria match   │  ║
-║  │   ↓                                                           │  ║
-║  │ Filter: Exclude recs already shown in last 30 days            │  ║
-║  │   ↓                                                           │  ║
-║  │ Amplify: Boost Churn Alert if Churn_Score__c > 70             │  ║
-║  │   ↓                                                           │  ║
-║  │ Sort: By Amplified Score descending                           │  ║
-║  │   ↓                                                           │  ║
-║  │ Limit: Return top 2                                           │  ║
-║  └───────────────────────────────────────────────────────────────┘  ║
-║                          │                                          ║
-║  NBA LIGHTNING COMPONENT (on Account page)                          ║
-║  ┌───────────────────────────────────────────────────────────────┐  ║
-║  │ [Churn Risk Alert - Immediate Contact Needed]  [Accept]       │  ║
-║  │ [Offer Premium Support Plan]                   [Accept]       │  ║
-║  └───────────────────────────────────────────────────────────────┘  ║
-║                          │ Rep clicks Accept                        ║
-║                          ▼                                          ║
-║  ACTION FLOW RUNS                                                   ║
-║  ┌───────────────────────────────────────────────────────────────┐  ║
-║  │ ChurnInterventionFlow runs:                                   │  ║
-║  │ • Logs a call activity                                        │  ║
-║  │ • Creates a high-priority task for the account owner         │  ║
-║  │ • Updates Account status field                               │  ║
-║  └───────────────────────────────────────────────────────────────┘  ║
-╚═════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    subgraph Lib["Recommendation Library — configured by admin"]
+        R1["Offer Premium Support Plan\nAcceptance: Send Upgrade Email\nFlow: SendUpgradeEmailFlow\nApplies to: Support tier = Standard"]
+        R2["Schedule Executive Business Review\nAcceptance: Create EBR Task\nFlow: CreateEBRTaskFlow\nApplies to: Enterprise, no EBR in 6 months"]
+        R3["Churn Risk Alert — Immediate Contact\nAcceptance: Log Call + Create Task\nFlow: ChurnInterventionFlow\nApplies to: Churn score > 70"]
+    end
+    subgraph Strat["Strategy — runs when user opens Account page"]
+        S1["Load: all active Recommendations"]
+        S2["Filter: match Account.Support_Tier criteria\nFilter: exclude recs shown in last 30 days"]
+        S3["Amplify: boost Churn Alert if Churn_Score > 70"]
+        S4["Sort: by amplified score descending"]
+        S5["Limit: return top 2"]
+        S1 --> S2 --> S3 --> S4 --> S5
+    end
+    NBA["NBA Lightning Component on Account page\nDisplays top 2 recommendations with Accept button"]
+    AF["Action Flow runs on Accept\nChurnInterventionFlow:\nLogs call activity · Creates high-priority task\nUpdates Account status field"]
+    Lib --> Strat --> NBA -->|"Rep clicks Accept"| AF
 ```
 
 **Limitations:**

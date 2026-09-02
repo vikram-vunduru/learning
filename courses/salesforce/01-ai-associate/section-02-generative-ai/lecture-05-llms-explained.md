@@ -56,41 +56,13 @@
 
 ## LLM Architecture in Salesforce Context
 
-```
-╔═════════════════════════════════════════════════════════════════════════╗
-║            LLM LIFECYCLE IN SALESFORCE (ENTERPRISE VIEW)                ║
-╠═════════════════════════════════════════════════════════════════════════╣
-║                                                                         ║
-║  PRE-TRAINING (done by LLM provider, not Salesforce)                    ║
-║  ┌──────────────────────────────────────────────────┐                   ║
-║  │ Internet text + books + code → billions of       │                   ║
-║  │ parameters trained via self-supervised learning  │                   ║
-║  └──────────────────────────────────────────────────┘                   ║
-║                          │                                              ║
-║                          ▼                                              ║
-║  ALIGNMENT (done by LLM provider)                                       ║
-║  ┌──────────────────────────────────────────────────┐                   ║
-║  │ RLHF (Reinforcement Learning from Human          │                   ║
-║  │ Feedback) — human raters score responses →       │                   ║
-║  │ model learns to be helpful, harmless, honest     │                   ║
-║  └──────────────────────────────────────────────────┘                   ║
-║                          │                                              ║
-║                          ▼                                              ║
-║  SALESFORCE DEPLOYMENT (what you configure)                             ║
-║  ┌──────────────────────────────────────────────────┐                   ║
-║  │ Einstein Trust Layer wraps all LLM calls         │                   ║
-║  │ • Data masking (PII → tokens before LLM)         │                   ║
-║  │ • ZDR agreement with LLM provider                │                   ║
-║  │ • Toxicity filter on output                      │                   ║
-║  │ • Audit trail logged                             │                   ║
-║  └──────────────────────────────────────────────────┘                   ║
-║                          │                                              ║
-║  GROUNDING (optional, strongly recommended)                             ║
-║  ┌──────────────────────────────────────────────────┐                   ║
-║  │ Data Cloud / Retrieval → relevant docs/records   │                   ║
-║  │ injected into prompt context → fewer hallucations│                   ║
-║  └──────────────────────────────────────────────────┘                   ║
-╚═════════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    A["Pre-Training — done by LLM provider\nInternet text + books + code\nbillions of parameters via self-supervised learning"]
+    B["Alignment — done by LLM provider\nRLHF: human raters score responses\nmodel learns to be helpful, harmless, honest"]
+    C["Salesforce Deployment — what you configure\nEinstein Trust Layer wraps all LLM calls\nData masking · ZDR · Toxicity filter · Audit trail"]
+    D["Grounding — optional, strongly recommended\nData Cloud / Retrieval injects relevant docs/records\ninto prompt context to reduce hallucinations"]
+    A --> B --> C --> D
 ```
 
 **Limitations of LLMs:**

@@ -51,41 +51,27 @@ Duplicate management is a data governance decision. The most common enterprise f
 
 ## Architecture / How It Works
 
-```
-Duplicate Management Framework
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    subgraph MatchRule["MATCHING RULE — HOW to detect duplicates\n(inactive by default — must activate)"]
+        MC["Match Criteria:\nEmail = exact match\nOR First Name + Last Name = fuzzy"]
+    end
+    MatchRule -->|"feeds into"| DupRule
+    subgraph DupRule["DUPLICATE RULE — WHAT to do about it"]
+        DR1["Object: Lead"]
+        DR2["Action: Block (prevent save)\nor Allow with alert\nor Report (add to Duplicate Set)"]
+        DR3["Alert Message: 'Duplicate lead found'"]
+    end
 
-  MATCHING RULE (how to find duplicates)
-  ┌─────────────────────────────────────────┐
-  │  Match Criteria:                        │
-  │  Email = exact match                    │
-  │  OR (First Name + Last Name = fuzzy)    │
-  └────────────────┬────────────────────────┘
-                   │ feeds into
-                   ▼
-  DUPLICATE RULE (what to do about it)
-  ┌─────────────────────────────────────────┐
-  │  Object: Lead                           │
-  │  Action: Block (prevent save)           │
-  │  Alert Message: "Duplicate lead found"  │
-  │  Report: Yes (add to Duplicate Set)     │
-  └─────────────────────────────────────────┘
-
-  Merge Process:
-  ┌─────────────────────────────────────────┐
-  │  Record A  Record B  Record C           │
-  │  (duplicate accounts)                   │
-  │                                         │
-  │  Choose Master: Record A                │
-  │  Select field values:                   │
-  │    Name: from A                         │
-  │    Phone: from B (more current)         │
-  │    Website: from C                      │
-  │                                         │
-  │  Result: Record A = merged master       │
-  │  Records B & C → Recycle Bin            │
-  │  Related records → move to Record A     │
-  └─────────────────────────────────────────┘
+    subgraph Merge["MERGE PROCESS — Accounts, Contacts, Leads only\nMax 3 records per operation"]
+        MA["Record A (chosen as Master)"]
+        MB["Record B (duplicate)"]
+        MC2["Record C (duplicate)"]
+        MR["Master Record A = merged\nField values selected from A, B, or C\nRecords B & C move to Recycle Bin\nAll related records move to Record A"]
+        MA --> MR
+        MB --> MR
+        MC2 --> MR
+    end
 ```
 
 **Limitations:**

@@ -28,11 +28,13 @@ Inputs → [weights] → Σ (sum) → Activation Function → Output
 
 **The AI hierarchy to know for the exam:**
 
-```
-ARTIFICIAL INTELLIGENCE (broadest)
-  └── MACHINE LEARNING (subset)
-        └── DEEP LEARNING (subset)
-              └── LARGE LANGUAGE MODELS (subset)
+```mermaid
+flowchart TD
+    AI["Artificial Intelligence — broadest"]
+    ML["Machine Learning — subset"]
+    DL["Deep Learning — subset"]
+    LLM["Large Language Models — subset"]
+    AI --> ML --> DL --> LLM
 ```
 
 Every LLM is deep learning. Every deep learning system is ML. Every ML system is AI.
@@ -55,25 +57,24 @@ Every LLM is deep learning. Every deep learning system is ML. Every ML system is
 
 ## Neural Network Architecture
 
-```
-╔══════════════════════════════════════════════════════════════════╗
-║                 NEURAL NETWORK STRUCTURE                         ║
-╠══════════════════════════════════════════════════════════════════╣
-║                                                                  ║
-║  INPUT LAYER      HIDDEN LAYERS          OUTPUT LAYER            ║
-║                                                                  ║
-║  Annual Rev ──┐   ┌──●──●──●──┐                                 ║
-║  Industry  ──┤   │  ●  ●  ● │          ┌─── Score: 87%         ║
-║  Lead Src  ──┼──▶│  ●  ●  ● │──────▶   │                       ║
-║  Title     ──┤   │  ●  ●  ● │          └─── (will convert)     ║
-║  Employees ──┘   │  ●  ●  ● │                                   ║
-║               Layer Layer Layer                                  ║
-║                 1     2     3                                    ║
-║                                                                  ║
-║  LEARNING CYCLE:                                                 ║
-║  Forward pass → Loss → Backpropagation → Weight update          ║
-║  (repeat for each batch of training examples)                    ║
-╚══════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart LR
+    subgraph Input["Input Layer"]
+        A1["Annual Revenue"]
+        A2["Industry"]
+        A3["Lead Source"]
+        A4["Title"]
+        A5["Employees"]
+    end
+    subgraph Hidden["Hidden Layers 1, 2, 3\nAbstract pattern detection"]
+        H["Neurons learn\ncomplex patterns"]
+    end
+    subgraph Output["Output Layer"]
+        O["Score: 87%\n(will convert)"]
+    end
+    Input --> Hidden --> Output
+    LC["Learning Cycle:\nForward pass → Loss → Backpropagation → Weight update\nRepeat for each batch of training examples"]
+    Output --> LC
 ```
 
 **Limitations of neural networks:**

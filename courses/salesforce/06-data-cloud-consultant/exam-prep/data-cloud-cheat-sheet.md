@@ -11,44 +11,22 @@
 
 ## Architecture Flow — The Pipeline (Memorize This First)
 
-```
-  ╔══════════════════════════════════════════════════════════════════════════╗
-  ║  SOURCE SYSTEMS                                                          ║
-  ║  CRM ─── S3/GCS ─── Ingestion API ─── MC Connector ─── MuleSoft        ║
-  ╚═══════════════════════════╤══════════════════════════════════════════════╝
-                              │  DATA STREAM (pipeline config)
-                              ▼
-  ╔══════════════════════════════════════════════════════════════════════════╗
-  ║  DATA LAKE OBJECTS (DLO)                                                 ║
-  ║  Raw, unchanged source data. Auto-created by Data Streams.               ║
-  ║  NOT visible in Segment Builder. NOT queryable by Tableau.               ║
-  ╚═══════════════════════════╤══════════════════════════════════════════════╝
-                              │  FIELD MAPPING (DLO field → DMO field)
-                              ▼
-  ╔══════════════════════════════════════════════════════════════════════════╗
-  ║  DATA MODEL OBJECTS (DMO)                                                ║
-  ║  Standardized schema. Individual + Contact Points + Sales Order etc.     ║
-  ║  Source for IR, CI, Segmentation, Analytics.                             ║
-  ╚═══════════════════════════╤══════════════════════════════════════════════╝
-                              │  IDENTITY RESOLUTION
-                              ▼
-  ╔══════════════════════════════════════════════════════════════════════════╗
-  ║  UNIFIED INDIVIDUAL                                                      ║
-  ║  Merged, de-duplicated profile. Reconciled attributes + additive CPs.    ║
-  ║  Grain for all segmentation and activation.                              ║
-  ╚═══════════════════════════╤══════════════════════════════════════════════╝
-                     ┌────────┴────────┐
-                     ▼                 ▼
-              CALCULATED          SEGMENT BUILDER
-              INSIGHTS            (attribute / related /
-              (SQL GROUP BY)       CI filters)
-                     │                 │
-                     └────────┬────────┘
-                              ▼
-  ╔══════════════════════════════════════════════════════════════════════════╗
-  ║  ACTIVATION TARGET                                                       ║
-  ║  CRM (Campaign Members) | MC (Data Extension) | Ads (SHA-256 hash)       ║
-  ╚══════════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    subgraph SRC["Source Systems"]
+        CRM["CRM"] 
+        S3["S3/GCS"]
+        IAPI["Ingestion API"]
+        MCC["MC Connector"]
+        MUL["MuleSoft"]
+    end
+    SRC -->|"DATA STREAM (pipeline config)"| DLO["DATA LAKE OBJECTS (DLO)\nRaw, unchanged source data\nAuto-created by Data Streams\nNOT in Segment Builder / Tableau"]
+    DLO -->|"FIELD MAPPING\n(DLO field → DMO field)"| DMO["DATA MODEL OBJECTS (DMO)\nStandardized schema\nIndividual + Contact Points + Sales Order etc.\nSource for IR, CI, Segmentation, Analytics"]
+    DMO -->|"IDENTITY RESOLUTION"| UI["UNIFIED INDIVIDUAL\nMerged, de-duplicated profile\nReconciled attributes + additive CPs\nGrain for all segmentation and activation"]
+    UI --> CI["CALCULATED INSIGHTS\n(SQL GROUP BY)"]
+    UI --> SEG["SEGMENT BUILDER\n(attribute / related / CI filters)"]
+    CI --> SEG
+    SEG --> AT["ACTIVATION TARGET\nCRM (Campaign Members)\nMC (Data Extension)\nAds (SHA-256 hash)"]
 ```
 
 **Limitations:**
@@ -181,15 +159,13 @@ GROUP BY i.Id                          -- GROUP BY REQUIRED — no exceptions
 
 ## Segment Criteria Types
 
-```
-  Business Need                          → Criteria Type
-  ─────────────────────────────────────────────────────────────────
-  Profile attr on Unified Individual      → Attribute Filter (direct)
-  Attr on related DMO (1 hop)             → Related Attribute Filter
-  Attr on 2-hop related DMO               → Related Attribute Filter (indirect) — MAX
-  Aggregated metric (total spend, count)  → Calculated Insight filter
-  3+ hop data                             → Use CI instead
-```
+| Business Need | Criteria Type |
+|---|---|
+| Profile attribute on Unified Individual | Attribute Filter (direct) |
+| Attribute on related DMO (1 hop) | Related Attribute Filter |
+| Attribute on 2-hop related DMO | Related Attribute Filter (indirect) — MAX depth |
+| Aggregated metric (total spend, count) | Calculated Insight filter |
+| 3+ hop data | Use a Calculated Insight instead |
 
 **Segment refresh schedule:** 12h or 24h
 **MUST be Published** before it can be added to an Activation Target
@@ -246,14 +222,15 @@ GROUP BY i.Id                          -- GROUP BY REQUIRED — no exceptions
 
 ## Job Refresh Order (Critical for Exam)
 
-```
-  1. Data Stream refresh   → DLO updated → DMO updated
-        │ (must complete first)
-  2. CI refresh            → computes new metrics from DMO
-        │ (must complete after step 1)
-  3. Segment refresh       → applies new CI values, updates membership
-        │ (must complete after step 2)
-  4. Activation publish    → sends updated members to destinations
+```mermaid
+flowchart TD
+    DS["1. Data Stream refresh\nDLO updated → DMO updated"]
+    CI["2. CI refresh\nComputes new metrics from DMO"]
+    SEG["3. Segment refresh\nApplies new CI values, updates membership"]
+    ACT["4. Activation publish\nSends updated members to destinations"]
+    DS -->|"must complete first"| CI
+    CI -->|"must complete after step 1"| SEG
+    SEG -->|"must complete after step 2"| ACT
 ```
 
 Use **Job Scheduler job chaining** to enforce this order. Without chaining, CI can run before DMO is updated — segment reflects stale data.
@@ -317,36 +294,28 @@ Use **Job Scheduler job chaining** to enforce this order. Without chaining, CI c
 
 ## Most Common Exam Traps (10 Non-Negotiables)
 
-```
-  1. Email for IR → Contact Point Email DMO (NOT Individual.Email)
-  2. Custom person DMO instead of Individual DMO → breaks IR entirely
-  3. DLOs accessible in Segment Builder → FALSE (only DMOs/CIs)
-  4. DLOs accessible in Tableau → FALSE (only DMOs/CIs)
-  5. Draft segment can be activated → FALSE (must Publish first)
-  6. CI refresh before Data Stream → CI computes stale data
-  7. Segment size = Activation size → FALSE (consent/contact filters reduce it)
-  8. One segment needs multiple ATs → FALSE (one segment → many ATs)
-  9. Data Spaces = physical isolation → FALSE (logical access boundary)
-  10. Reconciliation applies to Contact Points → FALSE (Contact Points are additive)
-```
+1. Email for IR → Contact Point Email DMO (NOT Individual.Email)
+2. Custom person DMO instead of Individual DMO → breaks IR entirely
+3. DLOs accessible in Segment Builder → FALSE (only DMOs/CIs)
+4. DLOs accessible in Tableau → FALSE (only DMOs/CIs)
+5. Draft segment can be activated → FALSE (must Publish first)
+6. CI refresh before Data Stream → CI computes stale data
+7. Segment size = Activation size → FALSE (consent/contact filters reduce it)
+8. One segment can only go to one AT → FALSE (one segment → many ATs simultaneously)
+9. Data Spaces = physical isolation → FALSE (logical access boundary)
+10. Reconciliation applies to Contact Points → FALSE (Contact Points are additive)
 
 ---
 
 ## Scenario Question Formula
 
-```
-  Step 1: Identify the pipeline layer
-          Ingestion? Modeling? IR? Segment? Activation? Governance?
+**Step 1: Identify the pipeline layer** — Ingestion? Modeling? IR? Segment? Activation? Governance?
 
-  Step 2: Identify the constraint
-          Streaming vs batch? Consent? Hop count? Permission level?
+**Step 2: Identify the constraint** — Streaming vs batch? Consent? Hop count? Permission level?
 
-  Step 3: Eliminate wrong answers
-          See any of the 10 traps above in an answer choice? Cross it out.
+**Step 3: Eliminate wrong answers** — See any of the 10 traps above in an answer choice? Cross it out.
 
-  Step 4: Match to Data Cloud architecture exactly
-          Left-to-right pipeline: Sources → DLO → DMO → IR → Segment → Activation
-```
+**Step 4: Match to Data Cloud architecture exactly** — Left-to-right pipeline: Sources → DLO → DMO → IR → Segment → Activation
 
 ---
 

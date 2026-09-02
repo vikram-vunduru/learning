@@ -38,25 +38,12 @@ Any production deployment that includes Apex code requires at least 75% code cov
 
 ## Architecture / How It Works
 
-```
-Sandbox Types — Decision Matrix:
-┌──────────────────┬────────────┬──────────────┬─────────────────────────┐
-│ Type             │ Storage    │ Refresh      │ Best For                │
-├──────────────────┼────────────┼──────────────┼─────────────────────────┤
-│ Developer        │ 200MB      │ Daily        │ Development, unit build │
-│                  │ (no data)  │              │ (no production data)    │
-├──────────────────┼────────────┼──────────────┼─────────────────────────┤
-│ Developer Pro    │ 1GB        │ Daily        │ Larger dev work, team   │
-│                  │ (no data)  │              │ development             │
-├──────────────────┼────────────┼──────────────┼─────────────────────────┤
-│ Partial Copy     │ 5GB        │ 5 days       │ QA, integration testing │
-│                  │ (sample    │              │ with representative     │
-│                  │  data)     │              │ production data         │
-├──────────────────┼────────────┼──────────────┼─────────────────────────┤
-│ Full             │ All data   │ 29 days      │ UAT, performance/load   │
-│                  │ (full copy)│              │ testing, regression     │
-└──────────────────┴────────────┴──────────────┴─────────────────────────┘
-```
+| Sandbox Type | Storage | Refresh | Best For |
+|---|---|---|---|
+| Developer | 200MB (no data) | Daily | Development, unit build — no production data |
+| Developer Pro | 1GB (no data) | Daily | Larger dev work, team development |
+| Partial Copy | 5GB (sample data) | 5 days | QA, integration testing with representative production data |
+| Full | All data (full copy) | 29 days | UAT, performance/load testing, regression |
 
 **Limitations:**
 - Full sandbox refresh takes up to 24–48 hours for large orgs
@@ -64,26 +51,24 @@ Sandbox Types — Decision Matrix:
 - You cannot selectively include specific records in a Developer sandbox (no data at all)
 - Sandboxes created from production count against sandbox license limits
 
+```mermaid
+flowchart TD
+    subgraph Declarative["DECLARATIVE (Change Sets)"]
+        DevSB["Dev Sandbox\n(Source org creates)"]
+        CS["Change Set"]
+        Prod1["Production\n(Target org deploys)"]
+        DevSB -->|"outbound"| CS
+        CS -->|"inbound"| Prod1
+    end
+    subgraph Programmatic["PROGRAMMATIC (Salesforce DX)"]
+        Scratch["Scratch Org\n(Disposable)"]
+        Repo["Repository\n(Source of truth)"]
+        SBProd["Sandbox / Prod"]
+        Scratch -->|"git push"| Repo
+        Repo -->|"CI/CD"| SBProd
+    end
 ```
-Deployment Pipeline:
-┌────────────────────────────────────────────────────────────────────┐
-│                    DECLARATIVE (Change Sets)                       │
-│                                                                    │
-│  Dev Sandbox ──outbound──► Change Set ──inbound──► Production     │
-│      │                                                             │
-│      │ (Source org creates)        (Target org deploys)           │
-│                                                                    │
-│  Deployment Connection: MUST be authorized in TARGET org           │
-└────────────────────────────────────────────────────────────────────┘
-
-┌────────────────────────────────────────────────────────────────────┐
-│                    PROGRAMMATIC (Salesforce DX)                    │
-│                                                                    │
-│  Scratch Org ──git push──► Repository ──CI/CD──► Sandbox/Prod     │
-│      │                         │                                  │
-│  (Disposable)            (Source of truth)                        │
-└────────────────────────────────────────────────────────────────────┘
-```
+Deployment Connection for change sets: MUST be authorized in the TARGET org.
 
 **Limitations:**
 - Change sets cannot be rolled back — once deployed, you must manually reverse each change
@@ -91,25 +76,13 @@ Deployment Pipeline:
 - Scratch orgs expire (default 7 days, max 30 days) — they are temporary by design
 - Not all metadata types are supported by change sets — some require Salesforce CLI
 
-```
-Validate → Deploy → Quick Deploy Flow:
-┌────────────────────────────────────────────────────────────────────┐
-│                                                                    │
-│  Validate Change Set                                               │
-│     │                                                              │
-│     ├── Runs Apex tests (75% coverage required if Apex included)  │
-│     ├── Checks component dependencies                             │
-│     └── NO CHANGES committed to target org                        │
-│                                                                    │
-│     If validation passes ──────────► 10-day Quick Deploy window  │
-│                                           │                        │
-│                                           ▼                        │
-│                                   Quick Deploy                     │
-│                                   (deploys same set, no           │
-│                                    re-running tests)              │
-│                                                                    │
-│  Regular Deploy = Validate + Commit in one step                   │
-└────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    V["Validate Change Set\n- Runs Apex tests (75% coverage if Apex included)\n- Checks component dependencies\n- NO CHANGES committed to target org"]
+    QD["Quick Deploy\n(deploys same set,\nno re-running tests)"]
+    RD["Regular Deploy\n(Validate + Commit\nin one step)"]
+    V -->|"Passes — opens\n10-day window"| QD
+    V -->|"OR"| RD
 ```
 
 **Limitations:**

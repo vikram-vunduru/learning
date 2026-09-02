@@ -111,40 +111,17 @@ Salesforce created an internal oversight body — the Office of Ethical and Huma
 
 ## Trusted AI Architecture (Governance View)
 
-```
-╔═══════════════════════════════════════════════════════════════════╗
-║              SALESFORCE TRUSTED AI GOVERNANCE STACK                ║
-╠═══════════════════════════════════════════════════════════════════╣
-║                                                                   ║
-║  RESPONSIBLE AI PRINCIPLES (Ethical Foundation)                   ║
-║  ┌───────────────────────────────────────────────────────────┐   ║
-║  │  Responsible · Accountable · Transparent ·                │   ║
-║  │  Empowering · Inclusive                                   │   ║
-║  └───────────────────────────────────────────────────────────┘   ║
-║                          │                                        ║
-║  AI GOVERNANCE BODIES                                             ║
-║  ┌───────────────────────────────────────────────────────────┐   ║
-║  │  Office of Ethical and Humane Use of Technology           │   ║
-║  │  • Reviews new AI features                                │   ║
-║  │  • Publishes Acceptable Use Policy                        │   ║
-║  │  • Investigates misuse                                    │   ║
-║  └───────────────────────────────────────────────────────────┘   ║
-║                          │                                        ║
-║  TECHNICAL IMPLEMENTATION (What ships in the product)             ║
-║  ┌───────────────────────────────────────────────────────────┐   ║
-║  │  Einstein Trust Layer (Responsible + Accountable)         │   ║
-║  │  • Data Masking, ZDR, Toxicity Scoring, Audit Trail       │   ║
-║  │                                                           │   ║
-║  │  Driving Factors / Model Cards (Transparent)              │   ║
-║  │  • Explains predictions; discloses model characteristics  │   ║
-║  │                                                           │   ║
-║  │  Human-in-Loop Design (Empowering)                        │   ║
-║  │  • AI drafts for review; escalation paths in Agentforce   │   ║
-║  │                                                           │   ║
-║  │  Bias Detection + Fair AI (Inclusive)                     │   ║
-║  │  • Disaggregated accuracy reporting; bias mitigation      │   ║
-║  └───────────────────────────────────────────────────────────┘   ║
-╚═══════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    A["Responsible AI Principles — Ethical Foundation\nResponsible · Accountable · Transparent · Empowering · Inclusive"]
+    B["AI Governance Bodies\nOffice of Ethical and Humane Use of Technology\nReviews new AI features · Publishes Acceptable Use Policy\nInvestigates misuse"]
+    subgraph Tech["Technical Implementation — what ships in the product"]
+        T1["Einstein Trust Layer — Responsible + Accountable\nData Masking · ZDR · Toxicity Scoring · Audit Trail"]
+        T2["Driving Factors + Model Cards — Transparent\nExplains predictions · discloses model characteristics"]
+        T3["Human-in-Loop Design — Empowering\nAI drafts for review · escalation paths in Agentforce"]
+        T4["Bias Detection + Fair AI — Inclusive\nDisaggregated accuracy reporting · bias mitigation"]
+    end
+    A --> B --> Tech
 ```
 
 **Limitations:**

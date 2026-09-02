@@ -166,29 +166,20 @@ static void testExtension() {
 
 ## Architecture / How It Works
 
-```
-CONTROLLER EXTENSION PATTERN — WIRING
-
-  VF Page (markup):
-  ┌──────────────────────────────────────────────────────────┐
-  │  <apex:page standardController="Account"                 │
-  │             extensions="AccountExtension">               │
-  │                                                          │
-  │  {!account.Name}  ← from standard controller            │
-  │  {!sendInvoice}   ← from extension                       │
-  │  {!save}          ← from standard controller             │
-  └──────────────────────────────────────────────────────────┘
-           │                               │
-           ▼                               ▼
-  ApexPages.StandardController     AccountExtension class
-  ─────────────────────────────     ────────────────────────────
-  - getRecord()                     - constructor(stdCtrl)
-  - save(), delete(), edit()        - sendInvoice() method
-  - getId()                         - custom properties
-  - Standard CRUD behaviors
-
-  Both are instantiated when page loads.
-  Extension constructor receives the StandardController instance.
+```mermaid
+flowchart TD
+    subgraph VFPage["VF Page (markup)"]
+        A["&lt;apex:page standardController='Account'\n           extensions='AccountExtension'&gt;\n{!account.Name}  -- from standard controller\n{!sendInvoice}   -- from extension\n{!save}          -- from standard controller"]
+    end
+    A -->|"standard controller methods"| B
+    A -->|"extension methods"| C
+    subgraph StdCtrl["ApexPages.StandardController"]
+        B["getRecord()\nsave(), delete(), edit()\ngetId()\nStandard CRUD behaviors"]
+    end
+    subgraph Ext["AccountExtension class"]
+        C["constructor(stdCtrl)\nsendInvoice() method\ncustom properties"]
+    end
+    D["Both are instantiated when page loads.\nExtension constructor receives the StandardController instance."]
 ```
 
 **Limitations:**
@@ -196,27 +187,16 @@ CONTROLLER EXTENSION PATTERN — WIRING
 - Multiple extensions: methods in first extension take precedence if there are name conflicts
 - `stdController.getRecord()` only populates fields referenced in VF markup OR explicitly added via `addFields()`
 
-```
-PAGE REFERENCE NAVIGATION
+**PageReference Navigation — What Action Methods Return:**
 
-  Action method returns:
-  ┌───────────────────────────────────────────────────────┐
-  │  null            → stay on current page, re-render    │
-  │                                                       │
-  │  new PageReference('/apex/OtherPage')                 │
-  │                  → navigate to another VF page        │
-  │                                                       │
-  │  Page.OtherPage  → type-safe VF page reference        │
-  │                                                       │
-  │  new PageReference('/' + recordId)                    │
-  │                  → standard record detail page        │
-  │                                                       │
-  │  (ref).setRedirect(true) → browser HTTP redirect      │
-  │  (ref).setRedirect(false) → server-side forward       │
-  └───────────────────────────────────────────────────────┘
-  Note: setRedirect(true) recommended for navigating
-  outside VF framework (standard pages, external URLs)
-```
+| Return value | Behavior |
+|---|---|
+| `null` | Stay on current page, re-render |
+| `new PageReference('/apex/OtherPage')` | Navigate to another VF page |
+| `Page.OtherPage` | Type-safe VF page reference (compile-time validated) |
+| `new PageReference('/' + recordId)` | Standard record detail page |
+| `(ref).setRedirect(true)` | Browser HTTP redirect (recommended for standard pages) |
+| `(ref).setRedirect(false)` | Server-side forward |
 
 **Limitations:**
 - `Page.PageName` static references resolve at compile time — page must exist in the org

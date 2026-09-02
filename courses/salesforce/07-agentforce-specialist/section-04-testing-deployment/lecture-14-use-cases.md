@@ -139,44 +139,28 @@ Advise customers honestly:
 ## Architecture
 
 ### Use Case Matching Framework
-```
-Business Problem
-      │
-      ▼
-Who is the user?
-      │
-      ├── External customer ────▶ Is the goal service resolution or lead qualification?
-      │                               │
-      │                        Service → Service Agent
-      │                        Qualification → SDR Agent
-      │
-      ├── Internal employee ───▶ What domain?
-      │                               │
-      │                        Sales coaching → Sales Coach Agent
-      │                        HR/IT/Other → Custom Agent (Slack)
-      │
-      └── Custom app user ────▶ Custom Agent + API channel
+```mermaid
+flowchart TD
+    BP["Business Problem"]
+    BP --> WU{"Who is the user?"}
+    WU -->|"External customer"| EXT{"Goal?"}
+    WU -->|"Internal employee"| INT{"Domain?"}
+    WU -->|"Custom app user"| CAU["Custom Agent + API channel"]
+    EXT -->|"Service resolution"| SA["Service Agent"]
+    EXT -->|"Lead qualification"| SDR["SDR Agent"]
+    INT -->|"Sales coaching"| SCA["Sales Coach Agent"]
+    INT -->|"HR/IT/Other"| CA["Custom Agent (Slack)"]
 ```
 
 ### ROI Impact Model
-```
-Before Agentforce:
-    ┌────────────────────────────────────────────────────────┐
-    │ 100% of contacts → Human agents                       │
-    │ Avg cost: $8/contact × 10,000/month = $80,000/month   │
-    │ Resolution: human-dependent quality                    │
-    │ Availability: business hours only                      │
-    └────────────────────────────────────────────────────────┘
 
-After Agentforce:
-    ┌────────────────────────────────────────────────────────┐
-    │ 65% deflected → Agentforce: $0.30 × 6,500 = $1,950   │
-    │ 35% escalated → Human agents: $8 × 3,500  = $28,000  │
-    │ Total: $29,950/month vs $80,000/month                  │
-    │ Savings: $50,050/month ($600,600/year)                 │
-    │ + 24/7 availability + consistent quality               │
-    └────────────────────────────────────────────────────────┘
-```
+| | Before Agentforce | After Agentforce |
+|---|---|---|
+| **Contact routing** | 100% to human agents | 65% to Agentforce, 35% to humans |
+| **Cost calculation** | $8 × 10,000 = $80,000/month | ($0.30 × 6,500) + ($8 × 3,500) = $29,950/month |
+| **Resolution quality** | Human-dependent | Consistent agent + human fallback |
+| **Availability** | Business hours only | 24/7 |
+| **Monthly savings** | — | $50,050/month ($600,600/year) |
 
 **Limitations:**
 - Deflection rates vary significantly by use case quality, Knowledge base coverage, and scoping
@@ -185,30 +169,24 @@ After Agentforce:
 - Not all contacts that agents handle are fully resolved — some "deflected" contacts resurface as human contacts later
 
 ### Customer Service Use Case Architecture
-```
-Customer Service Agentforce Agent
-    │
-    ├── Topic: Order Management
-    │   ├── Action: Get Order Status (Flow → Order object)
-    │   ├── Action: Get Order Line Items (Flow → OrderItem object)
-    │   └── Action: Knowledge Search (shipping/returns policies)
-    │
-    ├── Topic: Billing & Payments
-    │   ├── Action: Get Account Balance (Flow → Account/Finance obj)
-    │   ├── Action: Get Payment History (Flow → Payment records)
-    │   └── Action: Knowledge Search (billing FAQ)
-    │
-    ├── Topic: Product Information
-    │   ├── Action: Get Product Details (Apex → product catalog API)
-    │   └── Action: Knowledge Search (product documentation)
-    │
-    └── Topic: Returns & Refunds
-        ├── Action: Initiate Return (Flow → creates Return record)
-        ├── Action: Check Refund Status (Flow → Return/Refund object)
-        └── Action: Knowledge Search (return policy)
-    │
-    └── Channel: Embedded Chat on website
-        └── Escalation: Omni-Channel → Customer Service queue
+```mermaid
+flowchart TD
+    AGENT["Customer Service Agentforce Agent\nChannel: Embedded Chat on website\nEscalation: Omni-Channel → Customer Service queue"]
+    AGENT --> T1["Topic: Order Management"]
+    AGENT --> T2["Topic: Billing & Payments"]
+    AGENT --> T3["Topic: Product Information"]
+    AGENT --> T4["Topic: Returns & Refunds"]
+    T1 --> T1A1["Get Order Status\n(Flow → Order object)"]
+    T1 --> T1A2["Get Order Line Items\n(Flow → OrderItem object)"]
+    T1 --> T1A3["Knowledge Search\n(shipping/returns policies)"]
+    T2 --> T2A1["Get Account Balance\n(Flow → Account/Finance obj)"]
+    T2 --> T2A2["Get Payment History\n(Flow → Payment records)"]
+    T2 --> T2A3["Knowledge Search\n(billing FAQ)"]
+    T3 --> T3A1["Get Product Details\n(Apex → product catalog API)"]
+    T3 --> T3A2["Knowledge Search\n(product documentation)"]
+    T4 --> T4A1["Initiate Return\n(Flow → creates Return record)"]
+    T4 --> T4A2["Check Refund Status\n(Flow → Return/Refund object)"]
+    T4 --> T4A3["Knowledge Search\n(return policy)"]
 ```
 
 ## Key Facts to Memorize

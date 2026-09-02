@@ -38,31 +38,13 @@ Individual components on a Screen element can be hidden or shown conditionally b
 
 ## Architecture / How It Works
 
-```
-Screen Flow Anatomy:
-                                                              
-  ┌──────────────────────────────────────────────────────┐   
-  │  SCREEN 1: Gather Basic Info                         │   
-  │  ┌─────────────────────┐  ┌──────────────────────┐   │   
-  │  │ Text: First Name     │  │ Text: Last Name       │   │   
-  │  └─────────────────────┘  └──────────────────────┘   │   
-  │  ┌─────────────────────────────────────────────────┐  │   
-  │  │ Picklist: Department (from object picklist)      │  │   
-  │  └─────────────────────────────────────────────────┘  │   
-  │  [Previous] [Next] [Pause]                            │   
-  └──────────────────────────────────────────────────────┘   
-                    │ Next                                    
-                    ▼                                         
-  ┌──────────────────────────────────────────────────────┐   
-  │  SCREEN 2: Review & Submit                           │   
-  │  ┌─────────────────────────────────────────────────┐  │   
-  │  │ Display Text: "You entered: {!FirstName_Var}"    │  │   
-  │  └─────────────────────────────────────────────────┘  │   
-  │  [Previous] [Finish]                                  │   
-  └──────────────────────────────────────────────────────┘   
-                    │ Finish                                  
-                    ▼                                         
-             Create Record / Update Record elements          
+```mermaid
+flowchart TD
+    S1["SCREEN 1: Gather Basic Info\nText: First Name\nText: Last Name\nPicklist: Department\n[Previous] [Next] [Pause]"]
+    S2["SCREEN 2: Review & Submit\nDisplay Text: 'You entered: {!FirstName_Var}'\n[Previous] [Finish]"]
+    Action["Create Record / Update Record elements"]
+    S1 -->|"Next"| S2
+    S2 -->|"Finish"| Action
 ```
 
 **Limitations:**
@@ -71,47 +53,30 @@ Screen Flow Anatomy:
 - Paused flows consume Salesforce storage and count against flow interview limits
 - Screen Flows don't support all input types (e.g., File Upload requires a custom LWC)
 
-```
-How to Launch a Screen Flow:
-┌─────────────────────────────────────────────────────────────┐
-│  1. Lightning App Builder → Flow component on any page      │
-│     └─ Embed directly, auto-runs when page loads or         │
-│        requires a button click (configurable)               │
-│                                                             │
-│  2. Quick Action → Flow type action → add to page layout    │
-│     └─ Button in record highlights panel, pops in modal     │
-│                                                             │
-│  3. Utility Bar (Lightning apps)                            │
-│     └─ Accessible from any page in the app                  │
-│                                                             │
-│  4. Custom button / Lightning component launches the flow   │
-│     └─ Developer adds button that calls flow via API        │
-│                                                             │
-│  5. Home page, App page, or Record page via Lightning App   │
-│     Builder component                                       │
-└─────────────────────────────────────────────────────────────┘
-```
+**How to Launch a Screen Flow**
+
+1. **Lightning App Builder** — Flow component on any page; embeds directly, auto-runs on page load or on button click (configurable)
+2. **Quick Action** (Flow type) — Add to page layout; appears as a button in the record Highlights Panel and opens in a modal
+3. **Utility Bar** (Lightning apps) — Accessible from any page in the app
+4. **Custom button / Lightning component** — Developer adds a button that calls the flow via API
+5. **Home page, App page, or Record page** — Placed via Lightning App Builder Flow component
 
 **Limitations:**
 - Quick Action flows open in a modal overlay — they cannot fill the full screen
 - Record context (Record ID) must be explicitly configured in the Flow component or Quick Action settings to pass the current record into the flow
 - Screen Flows embedded in Communities/Experience Cloud have additional permission requirements
 
+```mermaid
+flowchart TD
+    Pct["Number input: Discount Percent (%)"]
+    Rule{"Discount_Percent > 20?"}
+    Reason["Text input: Discount Reason\n(appears when % > 20)"]
+    Hidden["Discount Reason hidden"]
+    Pct --> Rule
+    Rule -->|"Yes"| Reason
+    Rule -->|"No"| Hidden
 ```
-Component Visibility (Reactive Screens):
-                                                               
-  ┌─────────────────────────────────────────────────────┐      
-  │  SCREEN                                             │      
-  │  ┌─────────────────────────────────────────────┐    │      
-  │  │ Number: Discount Percent (%): [    25    ]  │    │      
-  │  └─────────────────────────────────────────────┘    │      
-  │  Visibility rule on "Discount Reason":               │      
-  │  SHOW WHEN: Discount_Percent > 20                   │      
-  │  ┌─────────────────────────────────────────────┐    │      
-  │  │ Text: Discount Reason: [________________]   │ ← appears when % > 20
-  │  └─────────────────────────────────────────────┘    │      
-  └─────────────────────────────────────────────────────┘      
-```
+Reactive Screens (Spring 2023+): visibility rules evaluate in real-time as the user fills in fields.
 
 **Limitations:**
 - Component visibility rules evaluate in real-time (Spring '23+ Reactive Screens) — older orgs may need a Next/refresh to re-evaluate

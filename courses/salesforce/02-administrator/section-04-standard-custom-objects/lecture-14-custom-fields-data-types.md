@@ -59,35 +59,32 @@ Field type decisions are data model decisions with long-term consequences. Commo
 
 ## Architecture / How It Works
 
-```
-Field Type Decision Tree
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    Q["What are you storing?"]
+    Q --> Num{"A number?"}
+    Num -->|"Money"| Currency["Currency"]
+    Num -->|"Percentage"| Percent["Percent"]
+    Num -->|"Plain number"| Number["Number"]
 
-  What are you storing?
-  │
-  ├── A number?
-  │   ├── Money → Currency
-  │   ├── Percentage → Percent
-  │   └── Plain number → Number
-  │
-  ├── Text?
-  │   ├── Short (≤255) → Text
-  │   ├── Long (≤131K) → Long Text Area
-  │   ├── Formatted → Rich Text Area
-  │   └── Category (fixed values) → Picklist
-  │
-  ├── Date/Time?
-  │   ├── Date only → Date
-  │   └── Date + Time → Date/Time
-  │
-  ├── A relationship to another record?
-  │   ├── Optional, no cascade → Lookup
-  │   ├── Required, cascade delete, roll-ups → Master-Detail
-  │   └── Self-referencing → Lookup to same object
-  │
-  └── Calculated/Read-only?
-      ├── Real-time formula → Formula
-      └── Aggregate from children → Roll-Up Summary (M-D parent only)
+    Q --> Txt{"Text?"}
+    Txt -->|"Short (255 chars)"| Text["Text"]
+    Txt -->|"Long (131K chars)"| LTA["Long Text Area"]
+    Txt -->|"HTML formatted"| RTA["Rich Text Area"]
+    Txt -->|"Fixed category values"| Picklist["Picklist"]
+
+    Q --> DT{"Date/Time?"}
+    DT -->|"Date only"| Date["Date"]
+    DT -->|"Date + Time"| DateTime["Date/Time"]
+
+    Q --> Rel{"Relationship to\nanother record?"}
+    Rel -->|"Optional, no cascade"| Lookup["Lookup"]
+    Rel -->|"Required, cascade delete,\nroll-ups needed"| MD["Master-Detail"]
+    Rel -->|"Self-referencing"| SelfLookup["Lookup to same object"]
+
+    Q --> Calc{"Calculated\nor read-only?"}
+    Calc -->|"Real-time formula"| Formula["Formula"]
+    Calc -->|"Aggregate from children\n(M-D parent only)"| RUS["Roll-Up Summary"]
 ```
 
 **Limitations:**

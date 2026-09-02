@@ -97,54 +97,15 @@
 
 ## Prompt Builder Architecture
 
-```
-╔═══════════════════════════════════════════════════════════════════════╗
-║              PROMPT BUILDER CONFIGURATION & RUNTIME FLOW               ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║                                                                       ║
-║  DESIGN TIME (Admin configures in Setup)                              ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ TEMPLATE DEFINITION                                          │    ║
-║  │                                                              │    ║
-║  │ Type: Record Summary                                         │    ║
-║  │ Object: Case                                                 │    ║
-║  │                                                              │    ║
-║  │ "Summarize this service case for a manager escalation.       │    ║
-║  │  Case Subject: {!$Record.Subject}                            │    ║
-║  │  Customer: {!$Record.Contact.Name}                           │    ║
-║  │  Account: {!$Record.Account.Name}                            │    ║
-║  │  Priority: {!$Record.Priority}                               │    ║
-║  │  Status: {!$Record.Status}                                   │    ║
-║  │  Description: {!$Record.Description}                         │    ║
-║  │  Write 3 bullet points: issue, impact, recommended action.  │    ║
-║  │  Use professional language."                                 │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                            ║
-║  RUN TIME (User on record page)                                       ║
-║                          │                                            ║
-║  Salesforce resolves merge fields:                                    ║
-║  "Case Subject: Network outage - Priority 1                           ║
-║   Customer: John Smith                                                ║
-║   Account: Acme Corp                                                  ║
-║   ..."                                                                ║
-║                          │                                            ║
-║  TRUST LAYER                                                          ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ PII Mask: "John Smith" → {PERSON_1}                          │    ║
-║  │ ZDR boundary: LLM provider cannot retain                     │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                            ║
-║  EXTERNAL LLM generates 3-bullet summary                              ║
-║                          │                                            ║
-║  TRUST LAYER (output)                                                 ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Toxicity check → OK                                          │    ║
-║  │ Detokenize: {PERSON_1} → "John Smith"                        │    ║
-║  │ Audit trail logged                                           │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                            ║
-║  User sees 3-bullet summary, reviews, accepts/edits                   ║
-╚═══════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    A["Design Time — Admin configures in Setup\nTemplate Type: Record Summary · Object: Case\nPrompt body with merge fields:\n{!$Record.Subject} · {!$Record.Contact.Name}\n{!$Record.Priority} · {!$Record.Description}"]
+    B["Run Time — User on record page\nSalesforce resolves merge fields to actual values\nCase Subject: Network outage - Priority 1\nCustomer: John Smith · Account: Acme Corp"]
+    C["Trust Layer — Input\nPII Mask: John Smith → {PERSON_1}\nZDR boundary: LLM provider cannot retain"]
+    D["External LLM\nGenerates 3-bullet summary using tokenized prompt"]
+    E["Trust Layer — Output\nToxicity check passed\nDetokenize: {PERSON_1} → John Smith\nAudit trail logged"]
+    F["User sees 3-bullet summary\nReviews, accepts, or edits the draft"]
+    A --> B --> C --> D --> E --> F
 ```
 
 **Limitations:**

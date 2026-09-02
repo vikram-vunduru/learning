@@ -82,80 +82,47 @@ All sObjects, Strings, and collections in memory count against heap. Loading 50,
 
 ## Architecture / How It Works
 
-```
-MULTI-TENANT GOVERNOR ENFORCEMENT
-
-  Salesforce Platform
-  ┌──────────────────────────────────────────────────────────────┐
-  │  Shared Compute / Database Infrastructure                    │
-  │  ┌────────────┐   ┌────────────┐   ┌────────────┐           │
-  │  │  Org A     │   │  Org B     │   │  Org C     │           │
-  │  │  TX: 40    │   │  TX: 89    │   │  TX: 15    │           │
-  │  │  SOQL used │   │  SOQL used │   │  SOQL used │           │
-  │  │            │   │  LIMIT!    │   │            │           │
-  │  └────────────┘   └────────────┘   └────────────┘           │
-  │                        ↑                                     │
-  │          LimitException thrown; Org B TX rolled back         │
-  │          Other orgs unaffected                               │
-  └──────────────────────────────────────────────────────────────┘
-  Each transaction is an isolated resource context.
-  LimitException: NOT catchable → always rolls back.
+```mermaid
+flowchart TD
+    subgraph Platform["Salesforce Platform — Shared Compute / Database Infrastructure"]
+        A["Org A\nTX: 40 SOQL used\n(under limit)"]
+        B["Org B\nTX: 89 SOQL used\nLIMIT REACHED!"]
+        C["Org C\nTX: 15 SOQL used\n(under limit)"]
+    end
+    B --> D["LimitException thrown\nOrg B TX rolled back\nOther orgs unaffected"]
+    E["Each transaction is an isolated resource context.\nLimitException: NOT catchable — always rolls back."]
 ```
 
 **Limitations:**
 - LimitException cannot be caught with try/catch — the ONLY defense is designing to stay under limits
 - Limits are per-transaction, not per-class or per-method
 
-```
-GOVERNOR LIMITS REFERENCE
+| Resource | Synchronous | Asynchronous |
+|----------|-------------|--------------|
+| SOQL queries | 100 | 200 |
+| DML statements | 150 | 150 |
+| DML rows | 10,000 | 10,000 |
+| CPU time | 10,000 ms | 60,000 ms |
+| Heap size | 6 MB | 12 MB |
+| HTTP callouts | 100 | 100 |
+| SOSL queries | 20 | 20 |
+| @future calls | 50 | N/A |
+| Rows per SOQL | 50,000 | 50,000 |
 
-  ┌────────────────────┬──────────────┬───────────────┐
-  │  Resource          │  Synchronous │  Asynchronous │
-  ├────────────────────┼──────────────┼───────────────┤
-  │  SOQL queries      │     100      │      200      │
-  │  DML statements    │     150      │      150      │
-  │  DML rows          │   10,000     │    10,000     │
-  │  CPU time          │  10,000 ms   │   60,000 ms   │
-  │  Heap size         │    6 MB      │     12 MB     │
-  │  HTTP callouts     │     100      │      100      │
-  │  SOSL queries      │      20      │       20      │
-  │  @future calls     │      50      │       N/A     │
-  │  Rows per SOQL     │   50,000     │    50,000     │
-  └────────────────────┴──────────────┴───────────────┘
-  QueryLocator (Batch Apex start() only): 50,000,000 rows
-```
+QueryLocator (Batch Apex `start()` only): 50,000,000 rows.
 
 **Limitations:**
 - DML statements AND DML rows are tracked independently — you can hit either one
 - Async contexts get 2× SOQL (200), 6× CPU (60s), 2× heap (12MB) — main reason to move work async
 - Callout limit (100) is the same in both sync and async
 
-```
-BULKIFICATION PATTERN — ALWAYS 1 SOQL REGARDLESS OF VOLUME
-
-  ANY VOLUME of records (1 to 200)
-          │
-          ▼
-  Step 1: Collect IDs
-  Set<Id> accIds = new Set<Id>();
-  for (Contact c : contacts) accIds.add(c.AccountId);
-          │
-          ▼
-  Step 2: Single SOQL query
-  Map<Id, Account> accMap = new Map<Id, Account>(
-      [SELECT Id, Name FROM Account WHERE Id IN :accIds]
-  );  ← 1 SOQL query consumed, regardless of list size
-          │
-          ▼
-  Step 3: Map lookup — O(1), no SOQL
-  for (Contact c : contacts) {
-      Account a = accMap.get(c.AccountId);
-      c.Account_Industry__c = a?.Industry;
-  }
-          │
-          ▼
-  Bulk DML after loop
-  update contacts;  ← 1 DML statement
+```mermaid
+flowchart TD
+    A["ANY VOLUME of records (1 to 200)"] --> B
+    B["Step 1: Collect IDs\nSet&lt;Id&gt; accIds = new Set&lt;Id&gt;();\nfor (Contact c : contacts) accIds.add(c.AccountId);"] --> C
+    C["Step 2: Single SOQL query\nMap&lt;Id, Account&gt; accMap = new Map&lt;Id, Account&gt;(\n  [SELECT Id, Name FROM Account WHERE Id IN :accIds]\n);\n-- 1 SOQL query, regardless of list size"] --> D
+    D["Step 3: Map lookup -- O(1), no SOQL\nfor (Contact c : contacts) {\n  Account a = accMap.get(c.AccountId);\n  c.Account_Industry__c = a?.Industry;\n}"] --> E
+    E["Bulk DML after loop\nupdate contacts; -- 1 DML statement"]
 ```
 
 **Limitations:**

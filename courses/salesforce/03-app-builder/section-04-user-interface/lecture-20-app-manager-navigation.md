@@ -38,25 +38,14 @@ Apps can include different types of navigation tabs: Object Tabs (e.g., Accounts
 
 ## Architecture / How It Works
 
-```
-Lightning App Components:
-┌─────────────────────────────────────────────────────────────────┐
-│  App Name + Description (Step 1)                                │
-│                                                                 │
-│  Branding: Logo + Primary/Secondary Colors (Step 2)             │
-│                                                                 │
-│  Utility Bar items (Step 3) — Lightning only:                   │
-│  ┌──────────┬──────────┬──────────┬────────────────────────┐   │
-│  │  Phone   │  Notes   │ History  │  [Custom Component]    │   │
-│  └──────────┴──────────┴──────────┴────────────────────────┘   │
-│  (persistent across all pages in the app)                      │
-│                                                                 │
-│  Navigation Items (Step 4):                                     │
-│  [Accounts] [Contacts] [Opportunities] [Reports] [+More ▾]     │
-│                                                                 │
-│  Profile Assignment (Step 5):                                   │
-│  ● Sales Rep profile  ● Sales Manager profile  etc.            │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    S1["Step 1: App Name + Description"]
+    S2["Step 2: Branding\n(Logo, Primary/Secondary Colors)"]
+    S3["Step 3: Utility Bar Items\n(Lightning only — persistent across all pages)\ne.g., Phone · Notes · History · Custom Component"]
+    S4["Step 4: Navigation Items\ne.g., Accounts · Contacts · Opportunities · Reports"]
+    S5["Step 5: Profile Assignment\ne.g., Sales Rep · Sales Manager"]
+    S1 --> S2 --> S3 --> S4 --> S5
 ```
 
 **Limitations:**
@@ -65,38 +54,26 @@ Lightning App Components:
 - Apps cannot have custom CSS/themes beyond the branding options in step 2
 - Removing a navigation item from an app doesn't delete the object — it just removes the tab
 
-```
-Standard vs. Console Navigation:
-┌────────────────────────────────────┬──────────────────────────────┐
-│ Standard Navigation                │ Console Navigation            │
-├────────────────────────────────────┼──────────────────────────────┤
-│ Tabs across the top                │ App workspaces across top    │
-│ Records open full-page             │ Records open in sub-tabs      │
-│ Navigate away = leave current page │ Multiple records open at once │
-│ Good for: casual use, admins       │ Good for: agents, reps        │
-│ Examples: default Lightning app    │ Examples: Service/Sales       │
-│                                    │ Console                       │
-└────────────────────────────────────┴──────────────────────────────┘
-```
+| Standard Navigation | Console Navigation |
+|---|---|
+| Tabs across the top | App workspaces across top |
+| Records open full-page | Records open in sub-tabs |
+| Navigate away = leave current page | Multiple records open at once |
+| Good for: casual use, admins | Good for: agents, reps |
+| Examples: default Lightning app | Examples: Service Console, Sales Console |
 
 **Limitations:**
 - Console navigation is a separate app setting — you can't switch a Standard nav app to Console without creating or editing the app
 - Console navigation has a learning curve for users unfamiliar with sub-tabs
 - Some Lightning components behave differently in Console vs. Standard navigation context
 
-```
-App Manager — App Types and Their Purpose:
-┌───────────────────────────────────────────────────────────────┐
-│  App Manager (Setup → App Manager):                           │
-│                                                               │
-│  Classic Apps     → Legacy tabs, Salesforce Classic          │
-│  Lightning Apps   → Modern Lightning Experience apps         │
-│  Connected Apps   → OAuth integrations (API, mobile, etc.)  │
-│                                                               │
-│  Creating a new app: Click "New Lightning App"               │
-│  The "New Connected App" button is separate and for devs     │
-└───────────────────────────────────────────────────────────────┘
-```
+**App Manager** (Setup → App Manager)
+
+- **Classic Apps** — Legacy tabs, Salesforce Classic only
+- **Lightning Apps** — Modern Lightning Experience apps (focus for this exam)
+- **Connected Apps** — OAuth integrations (API, mobile, external systems)
+
+Create a new app with "New Lightning App." The "New Connected App" button is separate and for developers building integrations.
 
 **Limitations:**
 - Classic Apps cannot use utility bars or console navigation

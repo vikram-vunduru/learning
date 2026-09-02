@@ -115,29 +115,17 @@ public inherited sharing class AccountService { }   // adopts caller's sharing c
 
 ## Architecture / How It Works
 
-```
-INHERITANCE HIERARCHY IN APEX
-
-  Object (implicit root of all classes)
-       │
-       ├── Animal (virtual class)
-       │       │
-       │       ├── Dog (extends Animal, overrides speak())
-       │       └── Cat (extends Animal, overrides speak())
-       │
-       ├── Shape (abstract class)
-       │       │
-       │       ├── Circle (concrete, implements area())
-       │       └── Rectangle (concrete, implements area())
-       │
-       └── MyException (extends Exception)
-               ← name MUST end in Exception
-
-  Rules:
-  - Cannot extend a non-virtual, non-abstract class
-  - Must use override keyword when overriding virtual methods
-  - All abstract methods must be implemented by concrete subclass
-  - Single inheritance only (one extends); multiple implements allowed
+```mermaid
+flowchart TD
+    Root["Object (implicit root of all classes)"]
+    Root --> Animal["Animal (virtual class)"]
+    Animal --> Dog["Dog\nextends Animal, overrides speak()"]
+    Animal --> Cat["Cat\nextends Animal, overrides speak()"]
+    Root --> Shape["Shape (abstract class)"]
+    Shape --> Circle["Circle\nconcrete, implements area()"]
+    Shape --> Rect["Rectangle\nconcrete, implements area()"]
+    Root --> Exc["MyException\nextends Exception\n(name MUST end in Exception)"]
+    Rules["Rules:\n- Cannot extend non-virtual/non-abstract class\n- Must use override keyword\n- All abstract methods must be implemented\n- Single inheritance only (one extends); multiple implements allowed"]
 ```
 
 **Limitations:**
@@ -145,50 +133,42 @@ INHERITANCE HIERARCHY IN APEX
 - Interfaces: multiple `implements` are allowed; `interface extends interface` is allowed
 - `abstract` class cannot be instantiated — `new Shape()` → compile error
 
+**@AuraEnabled Usage Guide:**
+
+Read-only (list/fetch data) — use `cacheable=true` for `@wire`:
+
+```apex
+@AuraEnabled(cacheable=true)
+public static List<Account> getAccounts() {
+    return [SELECT Id, Name FROM Account LIMIT 50];
+}
+// LWC: @wire(getAccounts)  <-- wire works with cacheable=true
 ```
-@AuraEnabled USAGE GUIDE
 
-  Read-only (list/fetch data):
-  ┌────────────────────────────────────────────────────────┐
-  │  @AuraEnabled(cacheable=true)                          │
-  │  public static List<Account> getAccounts() {           │
-  │      return [SELECT Id, Name FROM Account LIMIT 50];   │
-  │  }                                                     │
-  │                                                        │
-  │  LWC: @wire(getAccounts)  ← wire works with cacheable  │
-  └────────────────────────────────────────────────────────┘
+Write/DML — no cacheable, call imperatively from LWC:
 
-  Write/DML:
-  ┌────────────────────────────────────────────────────────┐
-  │  @AuraEnabled   ← no cacheable!                        │
-  │  public static void saveAccount(Account a) {           │
-  │      update a;                                         │
-  │  }                                                     │
-  │                                                        │
-  │  LWC: import saveAccount from '@salesforce/apex/...'   │
-  │  Call imperatively: await saveAccount({a: account});   │
-  └────────────────────────────────────────────────────────┘
+```apex
+@AuraEnabled   // no cacheable!
+public static void saveAccount(Account a) {
+    update a;
+}
+// LWC: import saveAccount from '@salesforce/apex/...'
+// Call imperatively: await saveAccount({a: account});
 ```
 
 **Limitations:**
 - `@AuraEnabled(cacheable=true)` with DML → runtime error: "System.AuraHandledException: Read access to sObject not permitted"
 - `@wire` only works with `cacheable=true` — trying to wire a non-cacheable method doesn't work
 
-```
-SHARING KEYWORD SCOPE
+**Sharing Keyword Scope:**
 
-  ╔═══════════════════════════════════════════════════════════╗
-  ║  ALL RECORDS (system mode)                                ║
-  ║  without sharing — sees everything regardless of user     ║
-  ║  ┌─────────────────────────────────────────────────────┐  ║
-  ║  │  USER'S RECORDS ONLY (sharing mode)                 │  ║
-  ║  │  with sharing — respects OWD + sharing rules        │  ║
-  ║  └─────────────────────────────────────────────────────┘  ║
-  ║  inherited sharing — delegates decision to caller         ║
-  ╚═══════════════════════════════════════════════════════════╝
-  Note: All three modes always enforce CRUD + FLS.
-  Sharing only controls RECORD visibility, not field/object access.
-```
+| Keyword | Record Visibility | Notes |
+|---------|-------------------|-------|
+| `without sharing` | ALL records — system mode, ignores user's sharing access | Use only with written justification |
+| `with sharing` | USER'S RECORDS ONLY — respects OWD + sharing rules | Default for user-facing code |
+| `inherited sharing` | Delegates to calling context's sharing mode | Right choice for utility/service classes |
+
+Note: All three modes always enforce CRUD + FLS separately. Sharing only controls record visibility, not field/object permissions.
 
 **Limitations:**
 - `with sharing` does NOT automatically enforce FLS — you still need `WITH USER_MODE` in SOQL or `Security.stripInaccessible()`

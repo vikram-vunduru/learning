@@ -127,31 +127,17 @@ Large enterprises often deploy the same agent across multiple channels with chan
 ## Architecture
 
 ### Embedded Service Chat Setup Flow
-```
-Setup → Embedded Service Deployments → New Deployment
-    │
-    ▼ Configure Deployment
-    │   Site: [select Community/Experience site]
-    │   Chat Channel: [select agent]
-    │   Branding: color, logo, welcome message
-    │   Escalation Queue: [select Omni-Channel queue]
-    │
-    ▼ Save → Code Snippet Generated
-    │
-    │  <script src="https://[orgname].my.salesforce.com/
-    │       embeddedservice/5.0/esw.min.js"></script>
-    │  <script> var initESW = function(...) { ... }; </script>
-    │
-    ▼ Developer embeds snippet in website
-    │
-    ▼ Chat widget appears on website
-    │
-    ▼ User starts conversation → Agentforce handles
-    │
-    ▼ [If escalation triggered]
-    │   → Omni-Channel routes to available human agent
-    │   → Agent sees full conversation history
-    │   → Human takes over
+```mermaid
+flowchart TD
+    SETUP["Setup → Embedded Service Deployments → New Deployment"]
+    SETUP --> CFG["Configure Deployment\n• Site: select Community/Experience site\n• Chat Channel: select agent\n• Branding: color, logo, welcome message\n• Escalation Queue: select Omni-Channel queue"]
+    CFG --> SAVE["Save → Code Snippet Generated\n(HTML/JavaScript snippet)"]
+    SAVE --> EMBED["Developer embeds snippet in website"]
+    EMBED --> WIDGET["Chat widget appears on website"]
+    WIDGET --> CONV["User starts conversation → Agentforce handles"]
+    CONV --> ESC{"Escalation triggered?"}
+    ESC -->|"Yes"| HUMAN["Omni-Channel routes to available human agent\nAgent sees full conversation history\nHuman takes over"]
+    ESC -->|"No"| RESOLVE["Agent resolves conversation"]
 ```
 
 **Limitations:**
@@ -161,20 +147,15 @@ Setup → Embedded Service Deployments → New Deployment
 - Chat widget requires browser JavaScript support — doesn't work in no-JS environments
 
 ### Multi-Channel Agent Architecture
-```
-         ┌─────────────────────────────────────┐
-         │         Single Agentforce Agent     │
-         │  (same Topics, Actions, Instructions)│
-         └────────────────┬────────────────────┘
-                          │
-          ┌───────────────┼───────────────┐
-          │               │               │
-          ▼               ▼               ▼
-   Embedded Chat       Slack           API
-   (customer web)   (internal)     (custom app)
-          │               │               │
-   External users    Employees       Mobile app
-                                       users
+```mermaid
+flowchart TD
+    AGENT["Single Agentforce Agent\n(same Topics, Actions, Instructions)"]
+    AGENT --> EC["Embedded Chat\n(customer web)"]
+    AGENT --> SL["Slack\n(internal)"]
+    AGENT --> API["API\n(custom app)"]
+    EC --> EU["External users"]
+    SL --> EMP["Employees"]
+    API --> MAU["Mobile app users"]
 ```
 
 **Limitations:**
@@ -184,21 +165,18 @@ Setup → Embedded Service Deployments → New Deployment
 - API channel requires maintaining OAuth tokens — calling app must handle token refresh
 
 ### Agentforce Licensing Model
-```
-Traditional model: Per user seat
-    $X/user/month × N users
 
-Agentforce model: Per conversation
-    $X/conversation × conversation volume
+**Traditional model:** Per user seat — `$X/user/month × N users`
 
-ROI formula:
-    Human contact cost: $4–15 per interaction
-    Agentforce cost:    $0.10–0.50 per conversation
-    Deflection rate:    60–80% for well-scoped agents
+**Agentforce model:** Per conversation — `$X/conversation × conversation volume`
 
-Annual savings = (conversations/year × deflection rate)
-               × (human cost - agent cost per conversation)
-```
+**ROI reference figures:**
+- Human contact cost: $4–15 per interaction
+- Agentforce cost: $0.10–0.50 per conversation
+- Deflection rate: 60–80% for well-scoped agents
+
+**Annual savings formula:**
+`(conversations/year × deflection rate) × (human cost − agent cost per conversation)`
 
 **Limitations:**
 - Consumption volume must be estimated for budget planning; difficult to predict without historical data

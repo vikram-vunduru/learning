@@ -46,43 +46,36 @@ Revenue Cloud (formerly CPQ + Billing) extends the basic Products model signific
 
 ## Architecture / How It Works
 
+```mermaid
+flowchart TD
+    subgraph Opp["OPPORTUNITY"]
+        O1["Stage → Probability + Forecast Category"]
+        O2["Close Date (required)"]
+        O3["Amount (calculated from products\nor manual entry)"]
+    end
+    Opp -->|"Products related list"| LineItems
+    subgraph LineItems["OPPORTUNITY PRODUCTS — Line Items"]
+        LI1["Product A | Qty: 5 | Unit Price: $100"]
+        LI2["Product B | Qty: 2 | Unit Price: $500"]
+        LI3["Total Amount: $1,500"]
+    end
+    LineItems -->|"Pulled from"| PB
+    subgraph PB["PRICE BOOKS"]
+        SPB["Standard Price Book (required)\nAll products + list prices"]
+        CPB["Custom Price Book (optional)\nSame products + different prices"]
+    end
 ```
-Opportunity → Products → Revenue Model
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  OPPORTUNITY
-  ┌───────────────────────────────────────────┐
-  │  Stage ──────► Probability + Forecast Cat │
-  │  Close Date                               │
-  │  Amount (calculated from products or      │
-  │           manual entry)                   │
-  └─────────────────┬─────────────────────────┘
-                    │ related list
-                    ▼
-  OPPORTUNITY PRODUCTS (Line Items)
-  ┌───────────────────────────────────────────┐
-  │  Product A  │  Qty: 5  │  Unit Price: $100│
-  │  Product B  │  Qty: 2  │  Unit Price: $500│
-  │  Total Amount: $1,500                     │
-  └─────────────────┬─────────────────────────┘
-                    │ pulled from
-                    ▼
-  PRICE BOOKS
-  ┌─────────────────────────────────────────┐
-  │  Standard Price Book (required)         │
-  │    └── All products + list prices       │
-  │  Custom Price Book (optional)           │
-  │    └── Same products + different prices │
-  └─────────────────────────────────────────┘
+**Stage to Forecast Category mapping:**
 
-  Stage → Forecast Pipeline:
-  Prospecting  → Pipeline    → 10%
-  Qualification → Pipeline   → 20%
-  Proposal     → Best Case   → 50%
-  Negotiation  → Commit      → 90%
-  Closed Won   → Closed      → 100%
-  Closed Lost  → Omitted     → 0%
-```
+| Stage | Forecast Category | Default Probability |
+|---|---|---|
+| Prospecting | Pipeline | 10% |
+| Qualification | Pipeline | 20% |
+| Proposal | Best Case | 50% |
+| Negotiation | Commit | 90% |
+| Closed Won | Closed | 100% |
+| Closed Lost | Omitted | 0% |
 
 **Limitations:**
 - An Opportunity can only use products from ONE Price Book (can switch but must remove existing products first)

@@ -63,30 +63,16 @@ Validation rules are the no-code data quality enforcement layer. They're the rig
 
 ## Architecture / How It Works
 
-```
-Validation Rule Execution
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  User/API/Flow attempts to save record
-         ↓
-  All Validation Rules on the object evaluate
-  ┌─────────────────────────────────────────┐
-  │  Rule 1: ISBLANK(Email__c)              │
-  │  Result: FALSE (email has value) → OK   │
-  │                                         │
-  │  Rule 2: CloseDate < TODAY()            │
-  │  Result: TRUE (date is past) → ERROR    │
-  │  Error message: "Close Date cannot be   │
-  │  in the past"                           │
-  └─────────────────────────────────────────┘
-         ↓
-  If ANY rule = TRUE → Record is NOT saved
-  Error message shown to user/returned to API
-  
-  If ALL rules = FALSE → Record IS saved ✓
-
-  TRUE = ERROR (block)
-  FALSE = OK (allow)
+```mermaid
+flowchart TD
+    Attempt["User/API/Flow attempts to save record"]
+    Attempt --> Eval["All Validation Rules on the object evaluate"]
+    Eval --> R1{"Rule 1: ISBLANK(Email__c)\nResult?"}
+    R1 -->|"FALSE — email has value"| R2{"Rule 2: CloseDate < TODAY()\nResult?"}
+    R1 -->|"TRUE — field is blank"| Block1["Record NOT saved\nError shown to user / returned to API"]
+    R2 -->|"FALSE — date is valid"| Save["Record IS saved"]
+    R2 -->|"TRUE — date is in past"| Block2["Record NOT saved\nError: 'Close Date cannot be in the past'"]
+    Note["TRUE = ERROR (block)\nFALSE = OK (allow)\nIf ANY rule is TRUE, the save is blocked"]
 ```
 
 **Limitations:**

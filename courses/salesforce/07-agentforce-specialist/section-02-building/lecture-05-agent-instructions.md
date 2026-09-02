@@ -100,35 +100,15 @@ For financial services, insurance, healthcare:
 ## Architecture
 
 ### Instructions in the Agent Context
-```
-Every Atlas reasoning turn:
-
-┌────────────────────────────────────────────────────┐
-│  CONTEXT WINDOW (loaded for every turn)            │
-│                                                    │
-│  ┌─────────────────────────────────┐               │
-│  │ Agent Instructions (global)     │               │
-│  │ • Persona: "You are Aria..."    │ ← Always here │
-│  │ • Rules: "Keep under 150 words" │               │
-│  │ • Escalation: "Transfer when..."│               │
-│  │ • Exclusions: "Never discuss..."│               │
-│  └─────────────────────────────────┘               │
-│  ┌─────────────────────────────────┐               │
-│  │ Topic Descriptions              │               │
-│  │ (all Topics listed)             │               │
-│  └─────────────────────────────────┘               │
-│  ┌─────────────────────────────────┐               │
-│  │ Action Descriptions             │               │
-│  │ (all Actions in matched Topic)  │               │
-│  └─────────────────────────────────┘               │
-│  ┌─────────────────────────────────┐               │
-│  │ Conversation History            │               │
-│  │ + Prior Action Results          │               │
-│  └─────────────────────────────────┘               │
-└────────────────────────────────────────────────────┘
-                     │
-                     ▼
-              Atlas REASON step
+```mermaid
+flowchart TD
+    subgraph CW["CONTEXT WINDOW (loaded for every turn)"]
+        INST["Agent Instructions (global — always here)\n• Persona: 'You are Aria...'\n• Rules: 'Keep under 150 words'\n• Escalation: 'Transfer when...'\n• Exclusions: 'Never discuss...'"]
+        TD["Topic Descriptions\n(all Topics listed)"]
+        AD["Action Descriptions\n(all Actions in matched Topic)"]
+        CH["Conversation History\n+ Prior Action Results"]
+    end
+    CW --> RE["Atlas REASON step"]
 ```
 
 **Limitations:**
@@ -138,39 +118,30 @@ Every Atlas reasoning turn:
 - Instructions cannot reference specific Salesforce field API names meaningfully — Atlas reads natural language
 
 ### Instructions Components Breakdown
-```
-Agent Instructions = 4 sections
 
-1. PERSONA
-   ┌─────────────────────────────────────────┐
-   │ Who: name, company                      │
-   │ Tone: professional/casual/empathetic    │
-   │ Voice: concise/thorough/warm            │
-   └─────────────────────────────────────────┘
+Agent Instructions = 4 sections:
 
-2. BEHAVIORAL RULES
-   ┌─────────────────────────────────────────┐
-   │ Greeting conventions                    │
-   │ Response length guidance                │
-   │ Language/formatting requirements        │
-   │ Things to always confirm before acting  │
-   └─────────────────────────────────────────┘
+**1. PERSONA**
+- Who: name, company
+- Tone: professional / casual / empathetic
+- Voice: concise / thorough / warm
 
-3. ESCALATION GUIDANCE
-   ┌─────────────────────────────────────────┐
-   │ When to transfer to human               │
-   │ Which queue to transfer to              │
-   │ How to notify the user of transfer      │
-   │ What context to pass to human agent     │
-   └─────────────────────────────────────────┘
+**2. BEHAVIORAL RULES**
+- Greeting conventions
+- Response length guidance
+- Language/formatting requirements
+- Things to always confirm before acting
 
-4. EXCLUSIONS
-   ┌─────────────────────────────────────────┐
-   │ Topics/questions agent won't handle     │
-   │ Commitments agent won't make            │
-   │ Advice agent won't give                 │
-   └─────────────────────────────────────────┘
-```
+**3. ESCALATION GUIDANCE**
+- When to transfer to human
+- Which queue to transfer to
+- How to notify the user of transfer
+- What context to pass to human agent
+
+**4. EXCLUSIONS**
+- Topics/questions agent won't handle
+- Commitments agent won't make
+- Advice agent won't give
 
 **Limitations:**
 - Only natural language — no code, no variables, no conditionals

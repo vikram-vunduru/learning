@@ -39,18 +39,14 @@ switch (status) {
 - `default` can appear anywhere but convention puts it at the end
 
 ### Loop Types — When to Use Each
-```
-┌────────────────┬─────────────────────┬──────────────────────────────┐
-│ Loop           │ Iterates            │ Use When                     │
-├────────────────┼─────────────────────┼──────────────────────────────┤
-│ for(;;)        │ counter / index     │ need index, fine control     │
-│ for...of       │ VALUES of iterable  │ arrays, strings, Map, Set    │
-│ for...in       │ KEYS of object      │ plain object keys only       │
-│                │                     │ ⚠ NEVER use on arrays        │
-│ while          │ condition-based     │ unknown iteration count      │
-│ do...while     │ condition-based     │ body must run at least once  │
-└────────────────┴─────────────────────┴──────────────────────────────┘
-```
+
+| Loop | Iterates | Use When |
+|------|----------|----------|
+| `for(;;)` | counter / index | need index, fine control |
+| `for...of` | VALUES of iterable | arrays, strings, Map, Set |
+| `for...in` | KEYS of object | plain object keys only — ⚠ NEVER use on arrays |
+| `while` | condition-based | unknown iteration count |
+| `do...while` | condition-based | body must run at least once |
 
 **for...of vs for...in (most common exam question):**
 ```javascript
@@ -69,11 +65,16 @@ outer: for (let i = 0; i < 3; i++) {
 ```
 
 ### try / catch / finally
-```
-try block executes
-    ├── no error → finally runs → continue
-    └── error thrown → catch runs → finally runs → continue
-                           └── catch re-throws → finally still runs → propagates up
+
+```mermaid
+flowchart TD
+    A["try block executes"] -->|"no error"| B["finally runs"]
+    B --> C["continue"]
+    A -->|"error thrown"| D["catch runs"]
+    D --> E["finally runs"]
+    E --> C
+    D -->|"catch re-throws"| F["finally still runs"]
+    F --> G["propagates up"]
 ```
 
 `finally` always runs. Even if try has a `return`. Even if catch re-throws. This is the cleanup guarantee.
@@ -118,23 +119,17 @@ async function loadRecord(id) {
 ## Architecture / How It Works
 
 ### Error Propagation in LWC Async
-```
-User clicks Save
-        │
-  handleSave() [async]
-        │
-   await saveRecord()
-        │
-   ┌────┴─────┐
-   │ SUCCESS  │ FAILURE (Apex throws AuraHandledException)
-   │          │
-   │          └── err.body.message = "Record validation failed"
-   │          └── catch block sets this.error
-   │
-   └── dispatchEvent('save')
-        │
-   finally ← runs regardless
-   └── this.isLoading = false
+
+```mermaid
+flowchart TD
+    A["User clicks Save"] --> B["handleSave() async"]
+    B --> C["await saveRecord()"]
+    C -->|"SUCCESS"| D["dispatchEvent('save')"]
+    C -->|"FAILURE\n(Apex throws AuraHandledException)"| E["err.body.message =\n'Record validation failed'"]
+    E --> F["catch block sets this.error"]
+    D --> G["finally — runs regardless"]
+    F --> G
+    G --> H["this.isLoading = false"]
 ```
 
 **Limitations:**

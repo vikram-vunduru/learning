@@ -89,56 +89,22 @@
 
 ## RAG Architecture (Enterprise Scale)
 
-```
-╔═════════════════════════════════════════════════════════════════════════╗
-║           RAG PIPELINE — SALESFORCE ENTERPRISE ARCHITECTURE             ║
-╠═════════════════════════════════════════════════════════════════════════╣
-║                                                                         ║
-║  DATA PREPARATION (one-time + ongoing)                                  ║
-║  ┌──────────────────────────────────────────────────────────────────┐   ║
-║  │ External Sources                  Data Cloud Processing          │   ║
-║  │ • Knowledge Articles    ────────▶ Chunk text (500-1500 tokens)   │   ║
-║  │ • SharePoint PDFs       ────────▶ Embed each chunk → vector      │   ║
-║  │ • Product Catalog       ────────▶ Store in Einstein Vector Store  │   ║
-║  │ • Contract Documents    ────────▶ Index for semantic search       │   ║
-║  └──────────────────────────────────────────────────────────────────┘   ║
-║                                                                         ║
-║  QUERY TIME (per user request)                                          ║
-║                                                                         ║
-║  USER QUERY                                                             ║
-║  "What is the return policy for enterprise accounts?"                   ║
-║         │                                                               ║
-║         ▼                                                               ║
-║  EMBEDDING MODEL                                                        ║
-║  Query → [0.23, -0.41, 0.87, ...] (vector)                             ║
-║         │                                                               ║
-║         ▼                                                               ║
-║  VECTOR SEARCH (Einstein Vector Store / Data Cloud)                     ║
-║  Finds top 3 most semantically similar document chunks:                 ║
-║  • "Enterprise Return Policy v2.3.pdf — Section 4" (score: 0.94)       ║
-║  • "Account Terms FAQ — Q15" (score: 0.91)                              ║
-║  • "Customer Success Handbook p.23" (score: 0.87)                      ║
-║         │                                                               ║
-║         ▼                                                               ║
-║  AUGMENTED PROMPT CONSTRUCTION                                          ║
-║  ┌────────────────────────────────────────────────────────────────┐     ║
-║  │ System: You are a Salesforce service agent. Answer using only  │     ║
-║  │ the provided context. If unsure, escalate to human.            │     ║
-║  │                                                                │     ║
-║  │ Context: [Enterprise Return Policy v2.3 text chunk]           │     ║
-║  │          [Account Terms FAQ Q15 text chunk]                   │     ║
-║  │          [Customer Success Handbook p.23 text chunk]          │     ║
-║  │                                                                │     ║
-║  │ Question: What is the return policy for enterprise accounts?  │     ║
-║  └────────────────────────────────────────────────────────────────┘     ║
-║         │                                                               ║
-║         ▼  [Trust Layer: mask PII, ZDR boundary]                        ║
-║  EXTERNAL LLM                                                           ║
-║  Generates answer grounded in retrieved policy chunks                   ║
-║         │                                                               ║
-║         ▼  [Toxicity scoring, audit log, detokenize]                    ║
-║  USER RECEIVES grounded, accurate answer                                ║
-╚═════════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    subgraph Prep["Data Preparation — one-time and ongoing"]
+        P1["External Sources\nKnowledge Articles · SharePoint PDFs\nProduct Catalog · Contract Documents"]
+        P2["Data Cloud Processing\nChunk text into 500-1500 token segments\nEmbed each chunk into a vector\nStore in Einstein Vector Store\nIndex for semantic search"]
+        P1 --> P2
+    end
+    UQ["User Query\n#quot;What is the return policy for enterprise accounts?#quot;"]
+    EM["Embedding Model\nQuery converted to vector [0.23, -0.41, 0.87, ...]"]
+    VS["Vector Search — Einstein Vector Store\nFinds top 3 semantically similar chunks:\nEnterprise Return Policy Section 4 (0.94)\nAccount Terms FAQ Q15 (0.91)\nCustomer Success Handbook p.23 (0.87)"]
+    AP["Augmented Prompt Construction\nSystem instruction + retrieved context chunks\n+ original question combined into one prompt"]
+    TL["Trust Layer\nMask PII · ZDR boundary enforced"]
+    LLM["External LLM\nGenerates answer grounded in retrieved policy chunks"]
+    OUT["User receives grounded, accurate answer\nToxicity scoring · Audit log · Detokenize"]
+    Prep --> UQ
+    UQ --> EM --> VS --> AP --> TL --> LLM --> OUT
 ```
 
 **Limitations of RAG:**

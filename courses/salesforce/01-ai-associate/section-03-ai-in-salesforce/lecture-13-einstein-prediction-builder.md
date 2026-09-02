@@ -80,49 +80,22 @@
 
 ## Prediction Builder Architecture
 
-```
-╔══════════════════════════════════════════════════════════════════════╗
-║              EINSTEIN PREDICTION BUILDER FLOW                         ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  TRAINING PHASE (one-time + periodic retraining)                     ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Historical Salesforce Records                                │    ║
-║  │ (e.g., 5,000 Leads, Converted field = True/False)            │    ║
-║  │          │                                                   │    ║
-║  │          ▼                                                   │    ║
-║  │ Feature Selection                                            │    ║
-║  │ (Industry, Annual Revenue, Lead Source, # Employees...)      │    ║
-║  │          │                                                   │    ║
-║  │          ▼                                                   │    ║
-║  │ Salesforce Auto-ML                                           │    ║
-║  │ • Tests multiple algorithms                                  │    ║
-║  │ • Selects best-performing                                    │    ║
-║  │ • Trains on 80% of data                                      │    ║
-║  │ • Evaluates on held-out 20%                                  │    ║
-║  │          │                                                   │    ║
-║  │          ▼                                                   │    ║
-║  │ Model Accuracy Dashboard                                     │    ║
-║  │ • Overall accuracy: 84%                                      │    ║
-║  │ • Top predictors: Annual Revenue (high impact),              │    ║
-║  │   Lead Source (medium), Industry (medium)                    │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                                                                      ║
-║  INFERENCE PHASE (ongoing, for each new record)                      ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ New Lead Record                                              │    ║
-║  │   Annual Revenue: $50M, Lead Source: Web, Industry: Tech     │    ║
-║  │          │                                                   │    ║
-║  │          ▼                                                   │    ║
-║  │ Model scores the record                                      │    ║
-║  │          │                                                   │    ║
-║  │          ▼                                                   │    ║
-║  │ Output on Lead Record:                                       │    ║
-║  │   Conversion Score: 78                                       │    ║
-║  │   Top Positive Factors: Annual Revenue, Industry             │    ║
-║  │   Top Negative Factors: Lead Age > 30 days                   │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-╚══════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    subgraph Train["Training Phase — one-time and periodic retraining"]
+        T1["Historical Salesforce Records\n5,000 Leads with Converted = True/False"]
+        T2["Feature Selection\nIndustry · Annual Revenue · Lead Source · Employees"]
+        T3["Salesforce Auto-ML\nTests multiple algorithms · selects best\nTrains on 80% · evaluates on held-out 20%"]
+        T4["Model Accuracy Dashboard\nOverall accuracy: 84%\nTop predictors: Annual Revenue high · Lead Source medium"]
+        T1 --> T2 --> T3 --> T4
+    end
+    subgraph Infer["Inference Phase — ongoing for each new record"]
+        I1["New Lead Record\nAnnual Revenue: $50M · Lead Source: Web · Industry: Tech"]
+        I2["Model scores the record"]
+        I3["Output on Lead Record\nConversion Score: 78\nTop Positive: Annual Revenue · Industry\nTop Negative: Lead Age > 30 days"]
+        I1 --> I2 --> I3
+    end
+    Train --> Infer
 ```
 
 **Limitations:**

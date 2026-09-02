@@ -36,123 +36,68 @@ For a PTA doing deal reviews or architecture assessments, real-world use case fl
 
 ### Retail Use Case — End-to-End
 
-```
-  DATA SOURCES:
-  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-  │  POS     │  │ E-Comm   │  │ Loyalty  │  │  MC Email│
-  │ Salesf.  │  │(S3/GCS)  │  │ App      │  │ Connector│
-  │ Connector│  │CloudStore│  │Ingestion │  │          │
-  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘
-       │             │              │              │
-       └─────────────┴──────────────┴──────────────┘
-                             ▼
-                     DATA STREAMS → DLOs
-                             ▼
-                      FIELD MAPPING
-                         DMOs:
-                    Individual / CPEmail
-                    SalesOrder / SalesOrderProduct
-                    Web Engagement / Email Engagement
-                             ▼
-                  IDENTITY RESOLUTION
-                  Match: Email (Exact) + Name (Fuzzy)
-                  Reconcile: Source Priority (CRM #1)
-                             ▼
-                  UNIFIED INDIVIDUAL
-                  ~4M unique customers
-                  (from 11M source records — 2.75:1 dedup)
-                             ▼
-              ┌──────────────┬──────────────┐
-              ▼              ▼              ▼
-        SEGMENT A       SEGMENT B      SEGMENT C
-        Lapsed          High RFM       New/Recent
-        >90d no         >$1000,        <30d first
-        purchase        >3 orders      purchase
-              │              │              │
-              ▼              ▼              ▼
-        MC Campaign     MC VIP +       MC Welcome
-        + Ad suppress   Lookalike Ads  Journey
+```mermaid
+flowchart TD
+    subgraph SRC["Data Sources"]
+        POS["POS (Salesforce Connector)"]
+        EC["E-Commerce (S3/GCS Cloud Storage)"]
+        LOY["Loyalty App (Ingestion API)"]
+        MCE["MC Email (MC Connector)"]
+    end
+    SRC -->|"Data Streams → DLOs"| FM["FIELD MAPPING\nDMOs: Individual / CPEmail\nSalesOrder / SalesOrderProduct\nWeb Engagement / Email Engagement"]
+    FM -->|"Identity Resolution\nMatch: Email Exact + Name Fuzzy\nReconcile: Source Priority (CRM #1)"| UI["UNIFIED INDIVIDUAL\n~4M unique customers\n(from 11M source records — 2.75:1 dedup)"]
+    UI --> SA["SEGMENT A: Lapsed\n>90d no purchase\n→ MC Campaign + Ad suppress"]
+    UI --> SB["SEGMENT B: High RFM\n>$1000, >3 orders\n→ MC VIP + Lookalike Ads"]
+    UI --> SC["SEGMENT C: New/Recent\n<30d first purchase\n→ MC Welcome Journey"]
 ```
 
 ---
 
 ### Connector Decision Tree
 
-```
-  Where is the source data?
-            │
-  ┌─────────┴──────────────────────────┐
-  ▼                                    ▼
-  In Salesforce?                       External?
-  (CRM, MC, B2B Comm)                  │
-  │                                    ├── File-based (CSV)?
-  ▼                                    │   → Cloud Storage (S3/GCS/Azure)
-  Salesforce Connector                 │
-  (Standard — low effort,              ├── API-based (streaming events)?
-   auto-updates with CRM)              │   → Ingestion API
-                                       │   (OAuth 2.0, real-time)
-                                       │
-                                       ├── In MuleSoft?
-                                       │   → MuleSoft Connector
-                                       │
-                                       └── In Marketing Cloud?
-                                           → MC Connector
+```mermaid
+flowchart TD
+    Q["Where is the source data?"]
+    Q --> SF{"In Salesforce?\n(CRM, MC, B2B Commerce)"}
+    SF -->|YES| SFC["Salesforce Connector\nStandard — low effort,\nauto-updates with CRM"]
+    SF -->|NO| EXT{"External?"}
+    EXT --> Q1{"File-based (CSV/JSON/Parquet)?"}
+    Q1 -->|YES| CS["Cloud Storage Connector\n(S3/GCS/Azure)"]
+    Q1 -->|NO| Q2{"API-based streaming events?"}
+    Q2 -->|YES| IAPI["Ingestion API\nOAuth 2.0, real-time"]
+    Q2 -->|NO| Q3{"In MuleSoft?"}
+    Q3 -->|YES| MUL["MuleSoft Connector"]
+    Q3 -->|NO| Q4{"In Marketing Cloud?"}
+    Q4 -->|YES| MCC["MC Connector"]
 ```
 
 ---
 
 ### Segment Criteria Decision Tree
 
-```
-  What kind of filter do I need?
-            │
-  ┌─────────┴────────────────────────────────────┐
-  ▼                                              ▼
-  Filter on a single attribute             Filter requires aggregation
-  (LoyaltyTier = "Gold")                   (total spend, count of orders)
-  │                                              │
-  ▼                                              ▼
-  Attribute Filter                         CALCULATED INSIGHT
-  (direct on Unified                       (pre-computed SQL GROUP BY)
-   Individual or Individual DMO)
-            │
-  Does the data come from a RELATED DMO?
-            │
-  ┌─────────┴──────────────┐
-  ▼                        ▼
-  1 hop away             2 hops away
-  (SalesOrder            (SalesOrder → Product)
-   directly linked)      (still allowed — max 2)
-            │                     │
-            ▼                     ▼
-   Related Attribute       Related Attribute
-   Filter (direct)         Filter (indirect)
-                                     │
-                         3+ hops? → USE CI INSTEAD
+```mermaid
+flowchart TD
+    Q["What kind of filter do I need?"]
+    Q --> AGG{"Filter requires aggregation?\n(total spend, count of orders)"}
+    AGG -->|YES| CI["CALCULATED INSIGHT\n(pre-computed SQL GROUP BY)"]
+    AGG -->|NO| ATTR{"Filter on a single attribute\n(LoyaltyTier = 'Gold')"}
+    ATTR --> DIRECT{"Data from a RELATED DMO?"}
+    DIRECT -->|NO - on Unified Individual| AF["Attribute Filter\n(direct on Unified Individual\nor Individual DMO)"]
+    DIRECT -->|YES| HOPS{"How many hops?"}
+    HOPS -->|"1 hop (SalesOrder directly linked)"| RAF1["Related Attribute Filter\n(direct)"]
+    HOPS -->|"2 hops (SalesOrder → Product)"| RAF2["Related Attribute Filter\n(indirect — max allowed)"]
+    HOPS -->|"3+ hops"| CI2["USE CI INSTEAD\n(pre-compute in SQL)"]
 ```
 
 ---
 
 ### Activation Target Decision Tree
 
-```
-  Where do you need to send the segment?
-
-  ┌─────────────────────────────────────────────────────────────────┐
-  │                    ACTIVATION TARGET TYPE                       │
-  ├──────────────────┬──────────────────┬───────────────────────────┤
-  │  Salesforce CRM  │ Marketing Cloud  │  Advertising Platform     │
-  │  ─────────────── │  ──────────────  │  ──────────────────────── │
-  │  Adds as Campaign│  Creates/updates │  Sends SHA-256 hashed     │
-  │  Members         │  Data Extension  │  email/phone for Custom   │
-  │                  │  + subscriber    │  Audience upload          │
-  │  Use: CRM-based  │  Use: Email,     │  Use: Social ads,         │
-  │  outreach, sales │  journey trigger │  suppression, lookalike   │
-  │  tasks, service  │                  │                           │
-  │                  │  ★ Subscriber    │  ★ Raw PII never sent     │
-  │                  │  Key required    │  SHA-256 only             │
-  └──────────────────┴──────────────────┴───────────────────────────┘
-```
+| | Salesforce CRM | Marketing Cloud | Advertising Platform |
+|---|---|---|---|
+| **What it does** | Adds as Campaign Members | Creates/updates Data Extension + subscriber | Sends SHA-256 hashed email/phone for Custom Audience upload |
+| **Use for** | CRM-based outreach, sales tasks, service | Email campaigns, journey trigger | Social ads, suppression, lookalike |
+| **Critical requirement** | Segment must be Published | Subscriber Key mapping required | Raw PII never sent — SHA-256 only |
 
 ---
 
@@ -160,50 +105,23 @@ For a PTA doing deal reviews or architecture assessments, real-world use case fl
 
 These are the most commonly tested wrong-answer traps. Know these cold:
 
-```
-  TRAP 1: "Draft segments can be activated"
-  TRUTH:  Segments must be PUBLISHED first
-
-  TRAP 2: "Identity Resolution is real-time"
-  TRUTH:  IR runs on schedule; Unified Individuals update
-          after the next IR run, not instantly
-
-  TRAP 3: "Contact Points are reconciled like attribute fields"
-  TRUTH:  Contact Points are ADDITIVE — ALL emails/phones
-          from ALL source records appear on Unified Individual
-
-  TRAP 4: "Tableau can query DLO data"
-  TRUTH:  Tableau only accesses DMOs and CIs — never DLOs
-
-  TRAP 5: "GROUP BY is optional in CI SQL"
-  TRUTH:  GROUP BY is REQUIRED in every CI query
-
-  TRAP 6: "Map email to Individual DMO for IR email matching"
-  TRUTH:  Map to Contact Point Email DMO — not Individual
-```
+1. **Trap:** "Draft segments can be activated" — **Truth:** Segments must be PUBLISHED first
+2. **Trap:** "Identity Resolution is real-time" — **Truth:** IR runs on schedule; Unified Individuals update after the next IR run, not instantly
+3. **Trap:** "Contact Points are reconciled like attribute fields" — **Truth:** Contact Points are ADDITIVE — ALL emails/phones from ALL source records appear on Unified Individual
+4. **Trap:** "Tableau can query DLO data" — **Truth:** Tableau only accesses DMOs and CIs — never DLOs
+5. **Trap:** "GROUP BY is optional in CI SQL" — **Truth:** GROUP BY is REQUIRED in every CI query
+6. **Trap:** "Map email to Individual DMO for IR email matching" — **Truth:** Map to Contact Point Email DMO — not Individual
 
 ---
 
 ## Industry-Specific Pattern Summary
 
-```
-  RETAIL                          FINANCIAL SERVICES
-  ═══════════════                 ══════════════════════
-  Multi-source: POS + EC          Strict identity: Exact
-  + Loyalty                       only — no Fuzzy (false
-  IR: Email Exact + Name Fuzzy    merge risk is catastrophic)
-  Segments: RFM, churn,           Consent: GDPR + CCPA
-  acquisition                     strict compliance
-  Activation: MC email + Ads      No third-party data sharing
-
-  HEALTHCARE                      B2B
-  ══════════════                  ════════════════
-  HIPAA considerations            Account-based, not person-based
-  Strict consent framework        IR by Account ID (Exact only)
-  DoNotProcess = critical         Contacts link to Accounts
-  Patient data: purpose-          Custom DMOs for B2B entities
-  based consent categories        Lower IR complexity than B2C
-```
+| Industry | Key Patterns |
+|---|---|
+| **Retail** | Multi-source: POS + E-Commerce + Loyalty. IR: Email Exact + Name Fuzzy. Segments: RFM, churn, acquisition. Activation: MC email + Ads. |
+| **Financial Services** | Strict identity: Exact only — no Fuzzy (false merge risk is catastrophic). Consent: GDPR + CCPA strict compliance. No third-party data sharing. |
+| **Healthcare** | HIPAA considerations. Strict consent framework. DoNotProcess = critical. Patient data: purpose-based consent categories. |
+| **B2B** | Account-based, not person-based. IR by Account ID (Exact only). Contacts link to Accounts. Custom DMOs for B2B entities. Lower IR complexity than B2C. |
 
 ---
 

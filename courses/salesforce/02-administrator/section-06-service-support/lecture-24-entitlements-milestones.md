@@ -40,31 +40,16 @@ Entitlements and Milestones are the difference between "we have Service Cloud" a
 
 ## Architecture / How It Works
 
-```
-Entitlement & Milestone Stack
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  ACCOUNT (customer)
-  └── SERVICE CONTRACT (formal agreement)
-       └── ENTITLEMENT (what they're entitled to)
-            ├── Entitlement Process assigned
-            │
-            └── CASE created → Entitlement attached
-                 │
-                 └── MILESTONES tracked on case:
-                      ┌─────────────────────────────┐
-                      │ Milestone: First Response    │
-                      │ Target: 1 hour               │
-                      │ Status: [Incomplete]         │
-                      │                              │
-                      │ 30 min → Warning action      │
-                      │ 60 min → Violation action    │
-                      └─────────────────────────────┘
-
-  Timeline:
-  Case Created ──┬── 30 min (Warning) ──┬── 60 min (Breach)
-                 │                      │
-                 └── Respond here ✓     └── VIOLATION (if not responded)
+```mermaid
+flowchart TD
+    Account["ACCOUNT (customer)"]
+    Account --> SC["SERVICE CONTRACT\n(formal agreement)"]
+    SC --> Entitlement["ENTITLEMENT\n(what they're entitled to)\nEntitlement Process assigned"]
+    Entitlement --> Case["CASE created\nEntitlement attached"]
+    Case --> Milestone["MILESTONES tracked on case\nMilestone: First Response\nTarget: 1 hour\nStatus: Incomplete"]
+    Milestone --> Warning["30 min — Warning action\n(approaching deadline)"]
+    Milestone --> Violation["60 min — Violation action\n(breach: deadline missed)"]
+    Milestone --> Success["Respond before deadline\nSuccess action fires"]
 ```
 
 **Limitations:**

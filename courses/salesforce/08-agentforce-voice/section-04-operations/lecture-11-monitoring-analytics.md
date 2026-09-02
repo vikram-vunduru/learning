@@ -7,30 +7,13 @@ Use Cases & Business Value / Operations — Agentforce Specialist (CRT-271)
 
 ### The Monitoring Stack for Service Cloud Voice
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  MONITORING LAYER                   │  TOOL / FEATURE           │
-├─────────────────────────────────────┼───────────────────────────┤
-│  Real-time call monitoring          │  Supervisor Console        │
-│  (agent status, queue depth,        │  (Omni-Channel widget)    │
-│  live call listen/barge/whisper)    │                           │
-├─────────────────────────────────────┼───────────────────────────┤
-│  Post-call transcript + summary     │  VoiceCall record         │
-│  + intent classification            │  ConversationEntry        │
-├─────────────────────────────────────┼───────────────────────────┤
-│  Voice agent performance metrics    │  Einstein Conversation    │
-│  (containment, escalation,          │  Insights (ECI)           │
-│  out-of-scope, topic hit rate)      │                           │
-├─────────────────────────────────────┼───────────────────────────┤
-│  Historical call analytics          │  CRM Analytics (Tableau   │
-│  (call volume, AHT, resolution,     │  CRM) + standard reports  │
-│  CSAT correlation)                  │                           │
-├─────────────────────────────────────┼───────────────────────────┤
-│  Retrospective call pattern mining  │  Einstein Conversation    │
-│  (trend identification, topic gap   │  Mining                   │
-│  analysis from historical data)     │                           │
-└─────────────────────────────────────┴───────────────────────────┘
-```
+| Monitoring Layer | Tool / Feature |
+|---|---|
+| Real-time call monitoring (agent status, queue depth, live call listen/barge/whisper) | Supervisor Console (Omni-Channel widget) |
+| Post-call transcript + summary + intent classification | VoiceCall record + ConversationEntry |
+| Voice agent performance metrics (containment, escalation, out-of-scope, topic hit rate) | Einstein Conversation Insights (ECI) |
+| Historical call analytics (call volume, AHT, resolution, CSAT correlation) | CRM Analytics (Tableau CRM) + standard reports |
+| Retrospective call pattern mining (trend identification, topic gap analysis) | Einstein Conversation Mining (ECM) |
 
 **Key point:** Real-time = Supervisor Console + ECI alerts. Post-call = VoiceCall records + ECI insights + CRM Analytics reports. Retrospective trend analysis = Einstein Conversation Mining.
 
@@ -76,28 +59,20 @@ CSAT (Customer Satisfaction)
 
 ### Einstein Conversation Insights (ECI) — Key Metrics
 
-```
-ECI METRICS DASHBOARD
+**ECI Metrics Dashboard — Trend Metrics (week-over-week):**
 
-Trend Metrics (week-over-week):
-  ┌──────────────────────────────────────────────────┐
-  │  Containment Rate  ████████████░░░  62%           │
-  │  vs. last week     ▲ +4%                          │
-  │                                                   │
-  │  Avg Handle Time   ████████░░░░░░  2:14           │
-  │  vs. last week     ▼ -0:12                        │
-  │                                                   │
-  │  Out-of-Scope Rate ███░░░░░░░░░░░  12%            │
-  │  vs. last week     ▼ -3%                          │
-  └──────────────────────────────────────────────────┘
+| Metric | Value | Trend |
+|---|---|---|
+| Containment Rate | 62% | +4% vs. last week |
+| Avg Handle Time | 2:14 | -0:12 vs. last week |
+| Out-of-Scope Rate | 12% | -3% vs. last week |
 
-Top Out-of-Scope Utterances (this week):
-  1. "I need to upgrade my plan"          → 238 occurrences
-  2. "When is my renewal date?"           → 119 occurrences
-  3. "Transfer my account to a new email" → 87 occurrences
+**Top Out-of-Scope Utterances (this week):**
+1. "I need to upgrade my plan" — 238 occurrences
+2. "When is my renewal date?" — 119 occurrences
+3. "Transfer my account to a new email" — 87 occurrences
 
-Action: Create Topics for the top out-of-scope utterances
-```
+**Action:** Create Topics for the top out-of-scope utterances.
 
 **This is the continuous improvement loop.** Monitor out-of-scope utterances weekly. Each one is a new Topic or action to add. Most voice agents improve containment rate by 10–20% in the first 90 days post-launch through this monitoring process.
 
@@ -119,15 +94,14 @@ ECM: unsupervised ML on call transcript corpus (STRATEGIC / RETROSPECTIVE)
                 quarterly review (what new patterns have emerged?)
     NOT real-time — processes batches of historical transcripts
 
-ECM Output:
-  ┌────────────────────────────────────────────────────────┐
-  │  Cluster 1: Billing disputes   → 28% of call volume   │
-  │  Cluster 2: Account changes    → 21% of call volume   │
-  │  Cluster 3: Tech support       → 19% of call volume   │
-  │  Cluster 4: [Unclassified]     → 12% of call volume   │
-  │  Cluster 5: Plan information   → 11% of call volume   │
-  └────────────────────────────────────────────────────────┘
-  Build Topics in priority order of call volume
+**ECM Output example — cluster distribution by call volume:**
+- Cluster 1: Billing disputes — 28% of call volume
+- Cluster 2: Account changes — 21% of call volume
+- Cluster 3: Tech support — 19% of call volume
+- Cluster 4: [Unclassified] — 12% of call volume
+- Cluster 5: Plan information — 11% of call volume
+
+Build Topics in priority order of call volume.
 ```
 
 **Limitations:**
@@ -166,22 +140,17 @@ Low Confidence Transcript Analysis:
 
 ### Call Quality Metrics — MOS Score
 
-```
-MOS (Mean Opinion Score) — audio quality assessment
-Scale: 1.0 (unusable) → 5.0 (excellent)
-Target for voice agent: MOS ≥ 3.5 (acceptable; ≥ 4.0 preferred)
+MOS (Mean Opinion Score) — audio quality assessment. Scale: 1.0 (unusable) to 5.0 (excellent). Target for voice agent: MOS ≥ 3.5 (acceptable); ≥ 4.0 preferred.
 
-MOS Range   │ Caller Experience    │ Impact on STT
-────────────┼──────────────────────┼──────────────────────────────
-4.5 – 5.0  │ Excellent            │ Minimal transcription errors
-3.5 – 4.4  │ Good                 │ Occasional errors, manageable
-2.5 – 3.4  │ Fair / Acceptable    │ Noticeable errors, re-prompts
-1.5 – 2.4  │ Poor                 │ High WER, frequent failures
-1.0 – 1.4  │ Unusable             │ STT cannot produce reliable output
+| MOS Range | Caller Experience | Impact on STT |
+|---|---|---|
+| 4.5 – 5.0 | Excellent | Minimal transcription errors |
+| 3.5 – 4.4 | Good | Occasional errors, manageable |
+| 2.5 – 3.4 | Fair / Acceptable | Noticeable errors, re-prompts |
+| 1.5 – 2.4 | Poor | High WER, frequent failures |
+| 1.0 – 1.4 | Unusable | STT cannot produce reliable output |
 
-MOS is typically measured at the telephony provider layer, not in Salesforce.
-Amazon Connect provides MOS data in Contact Trace Records (CTR).
-```
+MOS is typically measured at the telephony provider layer, not in Salesforce. Amazon Connect provides MOS data in Contact Trace Records (CTR).
 
 **Limitations:**
 - Salesforce does not natively surface MOS scores — access via Amazon Connect Contact Trace Records (CTR) or a CTI integration that writes MOS to VoiceCall

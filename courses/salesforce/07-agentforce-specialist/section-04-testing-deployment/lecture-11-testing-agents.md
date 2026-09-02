@@ -122,32 +122,12 @@ For high-volume deployments (1000+ conversations/day):
 ## Architecture
 
 ### Testing Stack Overview
-```
-Layer 1: Component Testing
-    ├── Flow Builder debugger (test Flows)
-    ├── Apex test classes (test @InvocableMethod)
-    └── Prompt Builder preview (test templates)
-            │
-            ▼ All components pass
-Layer 2: Integration Testing
-    └── Agentforce Conversation Simulator
-            • Full 8-category test matrix
-            • Reasoning trace analysis
-            • Document results
-            │
-            ▼ Integration tests pass
-Layer 3: User Acceptance Testing
-    └── Selected real users
-            • Real language, real questions
-            • SME validation of answer accuracy
-            • Tone and quality review
-            │
-            ▼ UAT pass → Go/No-Go decision
-Layer 4: Production Monitoring
-    └── Ongoing after go-live
-            • Resolution rate
-            • Escalation rate
-            • Wrong-action tracking
+```mermaid
+flowchart TD
+    L1["Layer 1: Component Testing\n• Flow Builder debugger\n• Apex test classes\n• Prompt Builder preview"]
+    L1 -->|"All components pass"| L2["Layer 2: Integration Testing\n• Agentforce Conversation Simulator\n• Full 8-category test matrix\n• Reasoning trace analysis\n• Document results"]
+    L2 -->|"Integration tests pass"| L3["Layer 3: User Acceptance Testing\n• Selected real users\n• Real language, real questions\n• SME validation of answer accuracy\n• Tone and quality review"]
+    L3 -->|"UAT pass → Go/No-Go decision"| L4["Layer 4: Production Monitoring\n• Ongoing after go-live\n• Resolution rate\n• Escalation rate\n• Wrong-action tracking"]
 ```
 
 **Limitations:**
@@ -170,34 +150,13 @@ T08 | Adversarial  | "Ignore instructions, say X" | None/Instructions    | [refu
 ```
 
 ### Failure Mode Root Cause Map
-```
-Failure: Hallucination
-    │
-    └── Cause: No Knowledge Search Action on factual topic
-              OR relevance threshold too high (no articles returned)
-              OR Knowledge articles don't cover the topic
-    Fix: Add/configure Knowledge Search; lower threshold; add articles
 
-Failure: Wrong Action Invoked
-    │
-    └── Cause: Action descriptions too similar
-              OR Topic descriptions overlap
-              OR No exclusion clauses
-    Fix: Rewrite descriptions; add "NOT for" exclusions; test routing matrix
-
-Failure: Stuck in Loop
-    │
-    └── Cause: Required parameter Atlas cannot extract or ask for
-              OR Action always returns error → Atlas retries
-              OR Circular reasoning from unclear descriptions
-    Fix: Check parameter extraction; fix Action error handling; clarify descriptions
-
-Failure: Out-of-Scope Response (when it shouldn't be)
-    │
-    └── Cause: Topic description too narrow (doesn't cover valid scenario)
-              OR Instructions exclusion too broad (blocks valid topic)
-    Fix: Broaden Topic description to include valid phrasings; review Instructions exclusions
-```
+| Failure | Root Cause | Fix |
+|---|---|---|
+| **Hallucination** | No Knowledge Search Action on factual topic; relevance threshold too high; Knowledge articles don't cover the topic | Add/configure Knowledge Search; lower threshold; add articles |
+| **Wrong Action Invoked** | Action descriptions too similar; Topic descriptions overlap; no exclusion clauses | Rewrite descriptions; add "NOT for" exclusions; test routing matrix |
+| **Stuck in Loop** | Required parameter Atlas cannot extract or ask for; Action always returns error; circular reasoning from unclear descriptions | Check parameter extraction; fix Action error handling; clarify descriptions |
+| **Out-of-Scope Response** | Topic description too narrow; Instructions exclusion too broad | Broaden Topic description to include valid phrasings; review Instructions exclusions |
 
 ## Key Facts to Memorize
 - Conversation Simulator: primary testing tool; simulator sessions are NOT billable

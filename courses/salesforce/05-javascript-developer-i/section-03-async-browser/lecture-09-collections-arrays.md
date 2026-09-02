@@ -97,18 +97,14 @@ new Map([['a', 1], ['b', 2]]);   // from entries array
 ```
 
 **Map vs Object:**
-```
-┌──────────────┬──────────────────────┬────────────────────────┐
-│ Feature      │ Map                  │ Object                 │
-├──────────────┼──────────────────────┼────────────────────────┤
-│ Key types    │ Any type             │ String or Symbol only  │
-│ Order        │ Insertion order      │ Insertion (mostly)     │
-│ Size         │ map.size             │ Object.keys(obj).length│
-│ Default keys │ None                 │ Inherits from prototype│
-│ Performance  │ Better for frequent  │ Better for simple data │
-│              │ add/delete           │ structures             │
-└──────────────┴──────────────────────┴────────────────────────┘
-```
+
+| Feature | Map | Object |
+|---------|-----|--------|
+| Key types | Any type | String or Symbol only |
+| Order | Insertion order | Insertion (mostly) |
+| Size | `map.size` | `Object.keys(obj).length` |
+| Default keys | None | Inherits from prototype |
+| Performance | Better for frequent add/delete | Better for simple data structures |
 
 ### Set — Unique Values
 ```javascript

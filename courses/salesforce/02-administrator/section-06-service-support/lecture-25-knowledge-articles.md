@@ -20,8 +20,12 @@ Salesforce Knowledge is the knowledge base component of Service Cloud — a repo
 **The `__kav` suffix:** Knowledge Article Versions use the `__kav` API name suffix (vs regular custom objects = `__c`). This comes up on the exam.
 
 **Article Lifecycle:**
-```
-Draft → In Review → Published → Archived
+```mermaid
+flowchart LR
+    Draft --> Review["In Review"]
+    Review --> Published
+    Published --> Archived
+    Published -->|"Un-publish"| Draft
 ```
 - **Draft:** Being written, not visible to anyone except authors
 - **In Review:** Submitted for review/approval before publishing
@@ -52,45 +56,37 @@ Knowledge is one of the highest ROI investments in Service Cloud — articles re
 
 ## Architecture / How It Works
 
-```
-Knowledge Article Architecture
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    subgraph LK["LIGHTNING KNOWLEDGE — current model"]
+        KO["Knowledge Object"]
+        RT1["Record Type: FAQ"]
+        RT2["Record Type: How-To"]
+        RT3["Record Type: Troubleshooting"]
+        KO --> RT1
+        KO --> RT2
+        KO --> RT3
+    end
 
-  LIGHTNING KNOWLEDGE (current)
-  ┌────────────────────────────────────────┐
-  │  Knowledge Object                      │
-  │  └── Record Types = Article Types      │
-  │       ├── FAQ                          │
-  │       ├── How-To                       │
-  │       └── Troubleshooting              │
-  └────────────────────────────────────────┘
+    Draft["Draft\n(being written)"]
+    Review["In Review\n(pending approval)"]
+    Published["Published\n(visible in channels)"]
+    Archived["Archived\n(hidden, record persists)"]
+    Draft --> Review --> Published --> Archived
+    Published -->|"Un-publish"| Draft
 
-  Article Lifecycle:
-  [Draft] → [In Review] → [Published] → [Archived]
-     ↑                          │
-     └──────────────────────────┘ (un-publish back to draft)
+    subgraph Channels["CHANNELS — who can see published articles"]
+        CH1["Internal App — support agents"]
+        CH2["Customer — Experience Cloud users"]
+        CH3["Partner — partner portal users"]
+        CH4["Public — anyone (no login required)"]
+    end
 
-  Channels (who can see published articles):
-  ┌──────────────────────────────────────────┐
-  │  Internal App  → Support agents           │
-  │  Customer      → Experience Cloud users  │
-  │  Partner       → Partner portal users    │
-  │  Public        → Anyone (no login)       │
-  └──────────────────────────────────────────┘
-
-  Data Categories:
-  ┌──────────────────────────────────────────┐
-  │  Category Group: Products                │
-  │    ├── Category: Product A               │
-  │    └── Category: Product B               │
-  │                                          │
-  │  Category Group: Region                  │
-  │    ├── Category: North America           │
-  │    └── Category: EMEA                    │
-  │                                          │
-  │  Article assigned to categories          │
-  │  User's profile controls category access │
-  └──────────────────────────────────────────┘
+    subgraph DataCats["DATA CATEGORIES"]
+        CG1["Category Group: Products\nProduct A, Product B"]
+        CG2["Category Group: Region\nNorth America, EMEA"]
+        DC_Note["Article assigned to categories\nUser profile controls category access"]
+    end
 ```
 
 **Limitations:**

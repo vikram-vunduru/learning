@@ -39,22 +39,7 @@ Don't use segments for one-off ad-hoc reports — use CRM Analytics or Tableau i
 
 ### Segment Population and Membership
 
-```
-  ALL UNIFIED INDIVIDUALS
-  ╔══════════════════════════════════════════════════════════════╗
-  ║  ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○  ║
-  ║  ○ ○ ○   ╔══════════════════════════════╗  ○ ○ ○ ○ ○ ○ ○  ║
-  ║  ○ ○ ○   ║  SEGMENT: High-Value 30d     ║  ○ ○ ○ ○ ○ ○ ○  ║
-  ║  ○ ○ ○   ║  ● ● ● ● ● ● ● ● ● ● ● ●   ║  ○ ○ ○ ○ ○ ○ ○  ║
-  ║  ○ ○ ○   ║  ● ● ● ● ● ● ● ● ● ● ● ●   ║  ○ ○ ○ ○ ○ ○ ○  ║
-  ║  ○ ○ ○   ║  12,450 members              ║  ○ ○ ○ ○ ○ ○ ○  ║
-  ║  ○ ○ ○   ╚══════════════════════════════╝  ○ ○ ○ ○ ○ ○ ○  ║
-  ║  ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○ ○  ║
-  ╚══════════════════════════════════════════════════════════════╝
-  ○ = All Unified Individuals
-  ● = Segment members (meet the criteria at last refresh)
-  Membership is DYNAMIC — recalculates on refresh schedule
-```
+A segment is a filtered subset of the full pool of Unified Individuals. For example, a "High-Value 30d" segment with 12,450 members is a subset drawn from your entire Unified Individual population. Members who meet the criteria are included; those who don't are excluded. Membership is dynamic — it recalculates on the 12h or 24h refresh schedule as data changes.
 
 **Limitations:**
 - Segment refresh schedule options: **12 hours or 24 hours** only — no real-time, no sub-12h option
@@ -65,24 +50,15 @@ Don't use segments for one-off ad-hoc reports — use CRM Analytics or Tableau i
 
 ### Segment Criteria Types
 
-```
-  ╔══════════════════════╗  ╔══════════════════════╗  ╔══════════════════════╗
-  ║  ATTRIBUTE FILTER    ║  ║ RELATED ATTR FILTER  ║  ║ CALCULATED INSIGHT   ║
-  ║  ──────────────────  ║  ║  ──────────────────  ║  ║  ──────────────────  ║
-  ║  Fields on Unified   ║  ║  Fields from a DMO   ║  ║  Pre-computed SQL    ║
-  ║  Individual or       ║  ║  related to Unified  ║  ║  aggregate metric    ║
-  ║  Individual DMO      ║  ║  Individual          ║  ║  (COUNT, SUM, AVG)   ║
-  ║                      ║  ║                      ║  ║                      ║
-  ║  Examples:           ║  ║  Examples:           ║  ║  Examples:           ║
-  ║  LoyaltyTier="Gold"  ║  ║  Has SalesOrder      ║  ║  TotalSpend90d       ║
-  ║  City="Chicago"      ║  ║  WHERE Amount>$500   ║  ║  >= $1,000           ║
-  ║  BirthDate in range  ║  ║  in last 30 days     ║  ║                      ║
-  ╚══════════════════════╝  ╚══════════════════════╝  ╚══════════════════════╝
-               │                      │                       │
-               └──────────────────────┼───────────────────────┘
-                                      │
-                         Combined with AND / OR logic
-                         + Exclusion criteria (applied after inclusion)
+```mermaid
+flowchart LR
+    AF["ATTRIBUTE FILTER\nFields on Unified Individual\nor Individual DMO\n\nExamples:\nLoyaltyTier='Gold'\nCity='Chicago'\nBirthDate in range"]
+    RA["RELATED ATTR FILTER\nFields from a DMO related\nto Unified Individual\n\nExamples:\nHas SalesOrder\nWHERE Amount > $500\nin last 30 days"]
+    CI["CALCULATED INSIGHT\nPre-computed SQL\naggregate metric\n(COUNT, SUM, AVG)\n\nExamples:\nTotalSpend90d >= $1,000"]
+    COMB["Combined with AND / OR logic\n+ Exclusion criteria\n(applied after inclusion)"]
+    AF --> COMB
+    RA --> COMB
+    CI --> COMB
 ```
 
 **Limitations:**
@@ -94,37 +70,14 @@ Don't use segments for one-off ad-hoc reports — use CRM Analytics or Tableau i
 
 ### Direct vs. Indirect Relationships
 
+```mermaid
+flowchart TD
+    UI1["Unified Individual"] -->|"IndividualId FK\n(1 hop — direct)"| SO1["SALES ORDER\nOrderDate, TotalAmount\nFilter: Amount > $500,\nDate in last 30d"]
+    UI2["Unified Individual"] -->|"hop 1 (direct)"| SO2["SALES ORDER"]
+    SO2 -->|"hop 2 (indirect — MAX)"| SOP["SALES ORDER PRODUCT\nFilter: ProductCategory='Electronics'"]
 ```
-  DIRECT (1 hop):
-  ┌──────────────────┐
-  │  Unified Individ │
-  └────────┬─────────┘
-           │ IndividualId FK
-           ▼
-  ┌──────────────────┐
-  │  SALES ORDER     │ ◀── Filter: Amount > $500, Date in last 30d
-  │  OrderDate       │
-  │  TotalAmount     │
-  └──────────────────┘
 
-  INDIRECT (2 hops):
-  ┌──────────────────┐
-  │  Unified Individ │
-  └────────┬─────────┘
-           │ hop 1 (direct)
-           ▼
-  ┌──────────────────┐
-  │  SALES ORDER     │
-  └────────┬─────────┘
-           │ hop 2 (indirect)
-           ▼
-  ┌──────────────────┐
-  │ SALES ORDER      │ ◀── Filter: ProductCategory="Electronics"
-  │ PRODUCT          │
-  └──────────────────┘
-  ★ Data Cloud supports max 2 hops from Unified Individual
-  ★ "Customers who bought Electronics in last 90 days" = 2-hop indirect
-```
+**Max 2 hops** from Unified Individual. "Customers who bought Electronics in last 90 days" = 2-hop indirect relationship filter.
 
 **Limitations:**
 - **Maximum 2 hops** from Unified Individual — 3-hop relationships cannot be used in segment criteria
@@ -135,23 +88,16 @@ Don't use segments for one-off ad-hoc reports — use CRM Analytics or Tableau i
 
 ### Consent Exclusion Pattern
 
+```mermaid
+flowchart TD
+    INC["INCLUSION CRITERIA\nLoyaltyTier = 'Gold'\n→ All Gold Customers"]
+    EXC["EXCLUSION CRITERIA\nHasOptedOutOfEmail = true\n→ Opted-out members"]
+    FINAL["FINAL ACTIVATED SEGMENT\nGold tier, NOT opted out of email\nSafe for email campaign activation"]
+    INC -->|"minus excluded members"| FINAL
+    EXC -->|"applied after inclusion"| FINAL
 ```
-  INCLUSION CRITERIA:          EXCLUSION CRITERIA:
-  LoyaltyTier = "Gold"         HasOptedOutOfEmail = true
-         ↓                              ↓
-  ┌─────────────────────┐      ┌──────────────────┐
-  │ All Gold Customers  │minus │ Opted-out members│
-  │  ● ● ● ● ● ● ● ●   │      │ ● ● ● ●          │
-  └─────────────────────┘      └──────────────────┘
-         ↓  Apply exclusion
-  ╔══════════════════════════════════════╗
-  ║  FINAL ACTIVATED SEGMENT            ║
-  ║  Gold tier, NOT opted out of email  ║
-  ║  Safe for email campaign activation ║
-  ╚══════════════════════════════════════╝
-  ★ ALWAYS include HasOptedOutOfEmail exclusion in email activation segments
-  ★ HasOptedOutOfEmail lives on Contact Point Email DMO — not Individual
-```
+
+**Always** include HasOptedOutOfEmail exclusion in email activation segments. HasOptedOutOfEmail lives on the Contact Point Email DMO — not on Individual.
 
 ---
 

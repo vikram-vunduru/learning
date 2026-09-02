@@ -86,31 +86,13 @@ Apex Replay Debugger: download log → open in VS Code → set breakpoints → s
 
 ## Architecture / How It Works
 
-```
-DEBUG LOG CAPTURE FLOW
-
-  User action / scheduled job
-         │
-         ▼
-  ┌──────────────────────────────────────────────────────────┐
-  │  Salesforce Platform Execution Engine                     │
-  │                                                          │
-  │  Trace Flag active for this user?  YES                   │
-  │         │                                                │
-  │         ▼                                                │
-  │  Each log event evaluated against category+level filter  │
-  │  APEX_CODE:DEBUG → captures System.debug() calls         │
-  │  DATABASE:INFO  → captures SOQL query text + row counts  │
-  │  CALLOUT:INFO   → captures HTTP request/response         │
-  │         │                                                │
-  │         ▼                                                │
-  │  Written to log file (up to 20MB, then truncated)        │
-  └──────────────────────────────────────────────────────────┘
-         │
-         ▼
-  Setup > Debug Logs
-  ├── retained 24 hours
-  └── max 1,000 per org
+```mermaid
+flowchart TD
+    A["User action / scheduled job"] --> B{"Trace Flag active for this user?"}
+    B -->|"NO"| Z["No log generated"]
+    B -->|"YES"| C["Each log event evaluated against category+level filter\nAPEX_CODE:DEBUG -> captures System.debug() calls\nDATABASE:INFO -> captures SOQL query text + row counts\nCALLOUT:INFO -> captures HTTP request/response"]
+    C --> D["Written to log file (up to 20 MB, then truncated)"]
+    D --> E["Setup > Debug Logs\nRetained 24 hours\nMax 1,000 per org"]
 ```
 
 **Limitations:**
@@ -118,47 +100,42 @@ DEBUG LOG CAPTURE FLOW
 - 1,000 log org limit — high-volume orgs cycle through this quota quickly; download logs before they expire
 - Trace flags expire after the configured duration (default 30 min) — code that runs after expiry produces no log
 
-```
-LOG LEVEL VISIBILITY TABLE
+| Message Level | NONE | ERROR | WARN | INFO | DEBUG | FINE | FINER | FINEST |
+|---|---|---|---|---|---|---|---|---|
+| ERROR message | no | YES | YES | YES | YES | YES | YES | YES |
+| WARN message | no | no | YES | YES | YES | YES | YES | YES |
+| INFO message | no | no | no | YES | YES | YES | YES | YES |
+| DEBUG message | no | no | no | no | YES | YES | YES | YES |
+| FINE message | no | no | no | no | no | YES | YES | YES |
+| FINER message | no | no | no | no | no | no | YES | YES |
+| FINEST message | no | no | no | no | no | no | no | YES |
 
-  Log Level Set →  NONE  ERROR  WARN  INFO  DEBUG  FINE  FINER  FINEST
-  ─────────────    ─────  ─────  ────  ────  ─────  ────  ─────  ──────
-  ERROR message    no     YES    YES   YES   YES    YES   YES    YES
-  WARN message     no     no     YES   YES   YES    YES   YES    YES
-  INFO message     no     no     no    YES   YES    YES   YES    YES
-  DEBUG message    no     no     no    no    YES    YES   YES    YES
-  FINE message     no     no     no    no    no     YES   YES    YES
-  FINER message    no     no     no    no    no     no    YES    YES
-  FINEST message   no     no     no    no    no     no    no     YES
-
-  System.debug() default = DEBUG level
-  System.debug(LoggingLevel.WARN, ...) = WARN level
-```
+`System.debug()` default = DEBUG level. `System.debug(LoggingLevel.WARN, ...)` = WARN level.
 
 **Limitations:**
 - A log filter set to WARN will NOT capture default `System.debug()` calls (those are at DEBUG)
 - Setting all categories to FINEST is rarely useful in production — use targeted levels
 
-```
-DEVELOPER CONSOLE LOG INSPECTOR LAYOUT
+**Developer Console — Log Inspector Panels:**
 
-  ┌─────────────────────────────────────────────────────────┐
-  │  Execution Log (chronological events)                   │
-  │  ──────────────────────────────────────                 │
-  │  [0.00]  EXECUTION_STARTED                              │
-  │  [0.01]  CODE_UNIT_STARTED  AccountTrigger              │
-  │  [0.02]  SOQL_EXECUTE_BEGIN  [SELECT Id FROM Account]   │
-  │  [0.03]  SOQL_EXECUTE_END   rows: 5                     │
-  │  [0.04]  USER_DEBUG  [12]  DEBUG  Rating = Hot          │  ← click this
-  │                                                         │
-  ├─────────────────────────────────────────────────────────┤
-  │  Source (jumps to line 12 of the class)                 │
-  │    System.debug('Rating = ' + acct.Rating);  ← highlighted
-  ├─────────────────────────────────────────────────────────┤
-  │  Variables at line 12:                                  │
-  │    acct.Rating = 'Hot'                                  │
-  │    acct.AnnualRevenue = 15000000                        │
-  └─────────────────────────────────────────────────────────┘
+**Execution Log** (chronological events):
+```
+[0.00]  EXECUTION_STARTED
+[0.01]  CODE_UNIT_STARTED  AccountTrigger
+[0.02]  SOQL_EXECUTE_BEGIN  [SELECT Id FROM Account]
+[0.03]  SOQL_EXECUTE_END   rows: 5
+[0.04]  USER_DEBUG  [12]  DEBUG  Rating = Hot   <- click this line
+```
+
+**Source** (jumps to line 12 of the class):
+```apex
+System.debug('Rating = ' + acct.Rating);  // highlighted
+```
+
+**Variables at line 12:**
+```
+acct.Rating = 'Hot'
+acct.AnnualRevenue = 15000000
 ```
 
 **Limitations:**

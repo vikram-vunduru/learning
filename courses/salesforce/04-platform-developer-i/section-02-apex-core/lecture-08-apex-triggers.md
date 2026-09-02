@@ -104,24 +104,10 @@ trigger AccountTrigger on Account (before insert, before update, after insert) {
 
 ## Architecture / How It Works
 
-```
-BEFORE vs AFTER TRIGGER — DECISION GUIDE
-
-  Need to modify the SAME RECORD being saved?
-  ─────────────────────────────────────────────
-  YES → BEFORE trigger
-        • Modify Trigger.new directly
-        • No DML needed
-        • No Id on new records yet
-        • Use for: format fields, set defaults
-
-  Need to create/update RELATED RECORDS or need the new Id?
-  ──────────────────────────────────────────────────────────
-  YES → AFTER trigger
-        • Trigger.new is read-only
-        • Records are committed; Ids exist
-        • Must use DML for related changes
-        • Use for: child records, related object updates, async callouts
+```mermaid
+flowchart TD
+    A{"What does the trigger need to do?"} -->|"Modify the SAME record being saved"| B["BEFORE trigger\n- Modify Trigger.new directly\n- No DML needed\n- No Id on new records yet\n- Use for: format fields, set defaults"]
+    A -->|"Create/update RELATED records\nor need the new Id"| C["AFTER trigger\n- Trigger.new is read-only\n- Records are committed; Ids exist\n- Must use DML for related changes\n- Use for: child records, related updates, async callouts"]
 ```
 
 **Limitations:**
@@ -130,57 +116,34 @@ BEFORE vs AFTER TRIGGER — DECISION GUIDE
 - After trigger cannot directly modify `Trigger.new` — read-only after commit
 - Workflow field updates re-fire before+after triggers one additional time
 
-```
-TRIGGER CONTEXT VARIABLE AVAILABILITY
+| Event | Trigger.new | Trigger.old | Trigger.newMap | Trigger.oldMap |
+|-------|-------------|-------------|----------------|----------------|
+| before insert | YES | NO | NO | NO |
+| after insert | YES | NO | YES | NO |
+| before update | YES | YES | YES* | YES |
+| after update | YES | YES | YES | YES |
+| before delete | NO | YES | NO | YES |
+| after delete | NO | YES | NO | YES |
+| after undelete | YES | NO | YES | NO |
 
-  Event           │ Trigger.new │ Trigger.old │ Trigger.newMap │ Trigger.oldMap
-  ────────────────┼─────────────┼─────────────┼────────────────┼───────────────
-  before insert   │    YES      │    NO       │    NO          │    NO
-  after insert    │    YES      │    NO       │    YES         │    NO
-  before update   │    YES      │    YES      │    NO*         │    YES
-  after update    │    YES      │    YES      │    YES         │    YES
-  before delete   │    NO       │    YES      │    NO          │    YES
-  after delete    │    NO       │    YES      │    NO          │    YES
-  after undelete  │    YES      │    NO       │    YES         │    NO
-  ─────────────────────────────────────────────────────────────────────
-  * Trigger.newMap available in before update (records have Ids from being existing)
-```
+*`Trigger.newMap` available in before update (records have Ids since they are existing records).
 
 **Limitations:**
 - Max 200 records per trigger batch
 - Accessing `Trigger.old` in a before insert trigger throws a NullPointerException — it doesn't exist
 
-```
-ORDER OF EXECUTION — KEY PLATFORM EVENTS
-
-  User/API DML
-       │
-       ▼
-  System validation (required fields)
-       │
-       ▼
-  ┌─── BEFORE TRIGGERS ───┐
-  └───────────────────────┘
-       │
-       ▼
-  Custom Validation Rules     ← triggers can set values checked here
-       │
-       ▼
-  DATABASE SAVE (Id assigned)
-       │
-       ▼
-  ┌─── AFTER TRIGGERS ────┐
-  └───────────────────────┘
-       │
-       ▼
-  Workflow Rules
-  (field updates) ─────────────────────────┐
-       │                                   │
-       ▼                                   ▼
-  Process Builder / Flows             Re-fires before+after
-       │                              triggers ONE more time
-       ▼
-  Commit to database
+```mermaid
+flowchart TD
+    A["User/API DML"] --> B["System validation (required fields)"]
+    B --> C["BEFORE TRIGGERS\n(modify Trigger.new directly)"]
+    C --> D["Custom Validation Rules\n(triggers can set values checked here)"]
+    D --> E["DATABASE SAVE (Id assigned)"]
+    E --> F["AFTER TRIGGERS\n(Trigger.new is read-only)"]
+    F --> G["Workflow Rules (field updates)"]
+    G --> H["Process Builder / Flows"]
+    G -->|"field updates"| I["Re-fires BEFORE + AFTER triggers ONE more time"]
+    H --> J["Commit to database"]
+    I --> J
 ```
 
 **Limitations:**

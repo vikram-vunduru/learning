@@ -167,19 +167,16 @@ class UserFacade {
 ## Architecture / How It Works
 
 ### Pattern Applicability in LWC/Salesforce
-```
-┌────────────────┬────────────────────────────────────────────────┐
-│ Pattern        │ LWC / Salesforce Context                       │
-├────────────────┼────────────────────────────────────────────────┤
-│ Module         │ ES modules are already modules — IIFE obsolete │
-│ Singleton      │ Module-level service state; LMS message channel│
-│ Factory        │ Creating components/services by type           │
-│ Observer       │ Lightning Message Service (pub/sub)            │
-│ Decorator      │ @api, @wire, @track LWC decorators             │
-│ Strategy       │ Swappable data processing / sort algorithms    │
-│ Facade         │ LWC service component wrapping multiple APIs   │
-└────────────────┴────────────────────────────────────────────────┘
-```
+
+| Pattern | LWC / Salesforce Context |
+|---------|--------------------------|
+| Module | ES modules are already modules — IIFE obsolete |
+| Singleton | Module-level service state; LMS message channel |
+| Factory | Creating components/services by type |
+| Observer | Lightning Message Service (pub/sub) |
+| Decorator | `@api`, `@wire`, `@track` LWC decorators |
+| Strategy | Swappable data processing / sort algorithms |
+| Facade | LWC service component wrapping multiple APIs |
 
 **Limitations:**
 - Singleton creates tight coupling — hard to test because shared state bleeds across tests; use `getInstance().reset()` in test teardown

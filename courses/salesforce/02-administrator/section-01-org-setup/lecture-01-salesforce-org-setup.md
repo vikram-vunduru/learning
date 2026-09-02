@@ -32,38 +32,18 @@ For enterprise customers: the standard recommendation is Developer sandboxes for
 
 ## Architecture / How It Works
 
-```
-Salesforce Org Landscape
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```mermaid
+flowchart TD
+    Prod["PRODUCTION ORG — live, real data\nCompany Info, Users, Config\nData + Metadata"]
+    Prod -->|"Refresh (creates a copy)"| Dev["Developer Sandbox\n1 day refresh\nMetadata only"]
+    Prod -->|"Refresh"| DevPro["Developer Pro Sandbox\n1 day refresh\nMetadata only"]
+    Prod -->|"Refresh"| Partial["Partial Copy Sandbox\n5 day refresh\nMetadata + sample data"]
+    Prod -->|"Refresh"| Full["Full Sandbox\n29 day refresh\nMetadata + ALL data\nSame size as Production"]
 
-  PRODUCTION ORG (live, real data)
-  ┌─────────────────────────────────────────┐
-  │  Company Info, Users, All Config        │
-  │  Data + Metadata                        │
-  └──────────┬──────────────────────────────┘
-             │ Refresh (creates a copy)
-             ▼
-  ┌─────────────────────────────────────────┐
-  │           SANDBOX TYPES                 │
-  │  ┌──────────┐  ┌──────────────────┐     │
-  │  │Developer │  │  Developer Pro   │     │
-  │  │(1 day)   │  │  (1 day)         │     │
-  │  └──────────┘  └──────────────────┘     │
-  │  ┌──────────┐  ┌──────────────────┐     │
-  │  │ Partial  │  │  Full            │     │
-  │  │ Copy     │  │  (29 days)       │     │
-  │  │ (5 days) │  │  Same size as    │     │
-  │  └──────────┘  │  Production      │     │
-  │                └──────────────────┘     │
-  └─────────────────────────────────────────┘
-
-  STANDALONE (no Production parent):
-  ┌──────────────┐  ┌──────────────────┐
-  │ Developer    │  │  Scratch Org     │
-  │ Edition      │  │  (DX/CLI,        │
-  │ (free,       │  │   expires)       │
-  │  learning)   │  │                  │
-  └──────────────┘  └──────────────────┘
+    subgraph Standalone["STANDALONE — no Production parent"]
+        DE["Developer Edition\nFree, for learning\nNo refresh from Production"]
+        SO["Scratch Org\nDX/CLI, expires 1–30 days\nSource-driven, CI/CD"]
+    end
 ```
 
 **Limitations:**

@@ -80,38 +80,13 @@ Bias in LLMs originates from training data that overrepresents or underrepresent
 
 ## Hallucination Prevention Architecture
 
-```
-╔══════════════════════════════════════════════════════════════════════╗
-║            HALLUCINATION MITIGATION LAYERS (ENTERPRISE)              ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  LAYER 1: GROUNDING (most effective)                                 ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Data Cloud / Vector Store → retrieves relevant facts         │    ║
-║  │ and injects into prompt as authoritative context             │    ║
-║  │ Effect: LLM answers from real data, not model memory        │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                           ║
-║  LAYER 2: PROMPT DESIGN                                              ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ "Only use information explicitly provided in the context.    │    ║
-║  │  If unsure, say 'I don't have enough information to answer  │    ║
-║  │  this accurately. Let me connect you with a specialist.'"   │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                           ║
-║  LAYER 3: HUMAN REVIEW                                               ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ AI-generated drafts surfaced for human approval              │    ║
-║  │ before delivery to customer (for high-stakes outputs)        │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-║                          │                                           ║
-║  LAYER 4: MONITORING & FEEDBACK                                      ║
-║  ┌──────────────────────────────────────────────────────────────┐    ║
-║  │ Einstein Audit Trail → review what was generated             │    ║
-║  │ User feedback mechanisms → flag inaccurate outputs           │    ║
-║  │ Regular prompt template review and improvement               │    ║
-║  └──────────────────────────────────────────────────────────────┘    ║
-╚══════════════════════════════════════════════════════════════════════╝
+```mermaid
+flowchart TD
+    L1["Layer 1 — Grounding (most effective)\nData Cloud / Vector Store retrieves relevant facts\nand injects into prompt as authoritative context\nLLM answers from real data, not model memory"]
+    L2["Layer 2 — Prompt Design\nOnly use information explicitly provided in context\nIf unsure, say so and escalate to a specialist"]
+    L3["Layer 3 — Human Review\nAI-generated drafts surfaced for human approval\nbefore delivery to customer for high-stakes outputs"]
+    L4["Layer 4 — Monitoring and Feedback\nEinstein Audit Trail: review what was generated\nUser feedback: flag inaccurate outputs\nRegular prompt template review and improvement"]
+    L1 --> L2 --> L3 --> L4
 ```
 
 **Limitations of hallucination mitigation:**

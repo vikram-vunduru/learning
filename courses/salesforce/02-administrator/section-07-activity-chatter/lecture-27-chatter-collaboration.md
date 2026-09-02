@@ -50,32 +50,26 @@ Chatter is often underutilized. The most common observation in enterprise orgs: 
 
 ## Architecture / How It Works
 
+```mermaid
+flowchart TD
+    subgraph Feeds["CHATTER FEEDS"]
+        RF["Record Feed\n(on a record)"]
+        UF["User Feed\n(on profile)"]
+        GF["Group Feed\n(in group)"]
+        Flow["Posts → Comments → @mentions → Notify"]
+    end
+
+    subgraph Groups["CHATTER GROUPS"]
+        PubG["Public\nAnyone can join\nVisible to all org members"]
+        PrivG["Private\nInvite or request to join\nContent visible to members only"]
+        UnlG["Unlisted\nHidden; invite only\nDoes not appear in search results"]
+    end
 ```
-Chatter Collaboration Model
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  CHATTER FEEDS:
-  ┌──────────────────────────────────────────┐
-  │  Record Feed    User Feed    Group Feed  │
-  │  (on a record)  (on profile) (in group)  │
-  │                                          │
-  │  Posts → Comments → @mentions → Notify  │
-  └──────────────────────────────────────────┘
-
-  GROUPS:
-  ┌────────────┬────────────┬────────────────┐
-  │  Public    │  Private   │  Unlisted      │
-  │  Anyone    │  Invite    │  Hidden;       │
-  │  can join  │  or request│  invite only   │
-  │  Visible   │  Members   │  Not in search │
-  │  to all    │  only      │  results       │
-  └────────────┴────────────┴────────────────┘
-
-  LICENSE TIERS:
-  Full Salesforce ──► Full CRM + All Chatter
-  Chatter Free    ──► Chatter only (no CRM objects)
-  Chatter External──► Limited Chatter for external users
-```
+**License tiers:**
+- **Full Salesforce** — Full CRM + All Chatter
+- **Chatter Free** — Chatter only (no CRM objects — no Accounts, Contacts, Opportunities)
+- **Chatter External** — Limited Chatter for external/non-employee users in communities
 
 **Limitations:**
 - Chatter is not real-time chat (no instant messaging); it's asynchronous feed-based
