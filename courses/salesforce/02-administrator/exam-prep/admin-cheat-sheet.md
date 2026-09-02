@@ -1,282 +1,299 @@
-# Salesforce Administrator Exam Cheat Sheet (CRT-101)
+# Salesforce Admin Exam — Cheat Sheet
 
-> Quick-reference tables and key facts. Use during final review, not as a substitute for studying the lectures.
+This is the everything-in-one-place reference. Read this the day before the exam.
 
 ---
 
-## 1. Security Model — The Stack
+## 1. Security Stack (The Floor-to-Ceiling Model)
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                  OBJECT-LEVEL SECURITY                       │
-│  Profile / Permission Set: CRUD on each object               │
-├─────────────────────────────────────────────────────────────┤
-│                  FIELD-LEVEL SECURITY                        │
-│  Profile / Permission Set: Read/Edit per field               │
-├─────────────────────────────────────────────────────────────┤
-│                RECORD-LEVEL ACCESS                           │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 1. OWD (Organization-Wide Defaults) — FLOOR          │   │
-│  │ 2. Role Hierarchy — opens up ABOVE OWD               │   │
-│  │ 3. Sharing Rules — grant access to groups/roles      │   │
-│  │ 4. Manual Sharing — record-by-record access grant    │   │
-│  │ 5. Teams (Account/Opportunity Teams)                 │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+WHAT YOU CAN DO (object/field access):
+  Profile (1 per user, required) → Permission Sets (0+, additive only)
+  Controls: Object CRUD, FLS, Apps, Login Hours, IP Ranges
+
+WHAT YOU CAN SEE (record access):
+  1. OWD (floor — most restrictive baseline)
+  2. Role Hierarchy (managers see subordinates' records)
+  3. Sharing Rules (criteria/owner-based groups, max 300/object)
+  4. Manual Sharing (per-record grants by users)
+  
+  These only OPEN access, never RESTRICT below OWD.
 ```
 
-**Key Rule:** Record-level security only opens access UP from OWD. It NEVER restricts below OWD.
+**Limitations:** Permission Sets = additive only (can't remove Profile grants). Role hierarchy visibility = upward only. Manual shares persist after ownership changes.
 
 ---
 
-## 2. Organization-Wide Defaults (OWD) Settings
+## 2. OWD Settings
 
-| OWD Setting | What It Means |
-|-------------|---------------|
-| **Private** | Only record owner + their managers in role hierarchy can see/edit. Most restrictive. |
-| **Public Read Only** | All users can view; only owner + managers can edit. |
-| **Public Read/Write** | All users can view and edit. |
-| **Public Read/Write/Transfer** | All users can view, edit, and change owner (Leads/Cases only). |
-| **Controlled by Parent** | Child record access follows parent record's access (Master-Detail). |
+| Setting | Non-Owner Access |
+|---|---|
+| Private | None |
+| Public Read Only | Read only |
+| Public Read/Write | Read + Edit |
+| Controlled by Parent | Follows parent record's access |
 
-**Default OWDs for standard objects:**
-- Leads: Public Read/Write
-- Accounts: Public Read/Write
-- Contacts: Controlled by Parent (if related to Account) or Public Read/Write
-- Opportunities: Public Read/Write (but often changed to Private)
-- Cases: Public Read/Write
+**Key:** OWD = floor; everything else opens it up. Setting OWD = Private + no role hierarchy = users only see their own records.
+
+**Limitations:** Changing OWD triggers recalculation (can be slow on large orgs). External OWD (for Community users) is separate from internal OWD.
 
 ---
 
-## 3. Profile vs. Permission Set vs. Role
+## 3. Profiles vs Permission Sets
 
-| Concept | Purpose | Grants | Restricts |
-|---------|---------|--------|-----------|
-| **Profile** | Baseline permissions; every user has exactly one | Object CRUD, FLS, app access, login hours | Can restrict (e.g., no Create on Accounts) |
-| **Permission Set** | Supplemental permissions; user can have many | Adds to profile permissions | Never restricts — only adds |
-| **Role** | Controls record visibility (who sees whose records) | Record access up the hierarchy | N/A — roles are about visibility, not permissions |
+| | Profile | Permission Set |
+|---|---|---|
+| Required? | Yes (1) | No (0+) |
+| Can restrict? | Yes | No (additive only) |
+| Login hours? | Yes | No |
+| Login IP ranges? | Yes | No |
+| Page layouts? | Yes | No |
+| FLS? | Yes | Yes (additive) |
+| Object CRUD? | Yes | Yes (additive) |
 
----
-
-## 4. Sharing Rules — Types
-
-| Type | Description |
-|------|-------------|
-| **Owner-Based Sharing Rule** | Share records owned by a group/role with another group/role |
-| **Criteria-Based Sharing Rule** | Share records that meet field criteria (e.g., Region = "West") with a group/role |
-| **Guest User Sharing Rule** | Share records with unauthenticated (guest) users on Experience Cloud sites |
-
-**Sharing rules can only GRANT access — they cannot restrict access below OWD.**
-
-Access levels available in sharing rules: Read Only or Read/Write (never Full Access).
+**Limitations:** Profiles going away (Salesforce roadmap); future = Minimum Access Profile + Permission Set Groups.
 
 ---
 
-## 5. Automation Tools Comparison
+## 4. Org Types Summary
 
-| Feature | Validation Rule | Workflow Rule | Process Builder | Record-Triggered Flow | Approval Process |
-|---------|----------------|---------------|-----------------|----------------------|-----------------|
-| **Status** | Current | Legacy | Legacy | Current | Current |
-| **Trigger** | On Save | On Save | On Save | Create/Update/Delete | Manual Submit |
-| **Before Save** | Yes (blocks save) | No | No | Yes (optimized) | N/A |
-| **Field Updates** | N/A (blocks save) | Yes | Yes | Yes | Yes |
-| **Email Alerts** | No | Yes | Yes | Yes | Yes |
-| **Create Records** | No | No | Yes | Yes | No |
-| **Human Decision** | No | No | No | No | Yes (required) |
-| **Time-Based** | No | Yes (Time Triggers) | Yes | Yes (Scheduled Paths) | No |
-| **Cross-Object Update** | No | Parent only | Yes | Yes | Yes |
-| **Loop/Iterate** | No | No | No | Yes | No |
-| **User Interface** | Error message | No | No | Yes (Screen Flow) | Approval email |
-| **When to Use** | Data validation | Simple legacy automation | Simple legacy automation | All new automation | Human review required |
+| Type | Sandbox? | Parent? | Refresh? | Use |
+|---|---|---|---|---|
+| Developer Edition | No | None | No | Personal learning |
+| Scratch Org | No | None | Expires | CI/CD, DX |
+| Developer Sandbox | Yes | Production | 1 day | Individual dev |
+| Developer Pro Sandbox | Yes | Production | 1 day | Larger dev |
+| Partial Copy Sandbox | Yes | Production | 5 days | Integration test |
+| Full Sandbox | Yes | Production | 29 days | UAT, load test |
+
+**Limitations:** Sandbox refresh destroys all sandbox data. Developer/Dev Pro = metadata only. Partial = sample data. Full = all data.
 
 ---
 
-## 6. Data Tools Comparison
+## 5. Automation Comparison
 
-| Feature | Data Import Wizard | Data Loader | Data Export | Report Export |
-|---------|-------------------|-------------|-------------|---------------|
-| **Max Records** | 50,000 | 5,000,000 | All records | ~100,000 |
-| **Supported Objects** | Accounts, Contacts, Leads, Solutions, Campaign Members, Custom Objects | All objects | All objects | Report's objects |
-| **Insert** | Yes | Yes | N/A | N/A |
-| **Update** | Yes | Yes | N/A | N/A |
-| **Upsert** | No | Yes (with External ID) | N/A | N/A |
-| **Delete** | No | Yes | N/A | N/A |
-| **Hard Delete** | No | Yes | N/A | N/A |
-| **Export** | No | Yes (SOQL) | Yes (all data) | Yes (filtered) |
-| **Schedule/Automate** | No | Via CLI | Yes (weekly/monthly) | Yes (subscribe) |
-| **Installation** | None (browser) | Required (desktop app) | None (Setup) | None (browser) |
-| **Batch Size** | Automatic | Configurable (default 200) | N/A | N/A |
-| **External ID Support** | Partial | Full | N/A | N/A |
+| Tool | Status | Can Branch? | Can Create Records? | Can Call Apex? |
+|---|---|---|---|---|
+| Workflow Rule | LEGACY | No | No (Task only) | No |
+| Process Builder | LEGACY | Yes | Yes | Yes |
+| Flow (Before Save) | Current | Yes | No | Limited |
+| Flow (After Save) | Current | Yes | Yes | Yes |
+| Flow (Screen) | Current | Yes | Yes | Yes |
+| Approval Process | Current | N/A | No | No |
 
-**Key Decision Rule:**
-- Object not supported by Wizard OR volume > 50K → Data Loader
-- Need upsert or hard delete → Data Loader
-- Full org backup → Data Export
-- Specific filtered subset → Report Export
+**Flow types:** Screen, Auto-launched, Record-Triggered, Scheduled, Platform Event-Triggered
+
+**Workflow Rule actions (4):** Field Update, Email Alert, Task, Outbound Message
+
+**Approval Process action sets (4):** Initial Submission, Approval, Rejection, Recall
+
+**Limitations:** Before Save Flow = only update triggering record. After Save = extra DML cost. Workflow Rules = deprecated (no new rules in new orgs post Feb 2023).
 
 ---
 
-## 7. Sandbox Types
+## 6. Data Tools
 
-| Sandbox Type | Storage | Data Copy | Refresh Interval | Use Case |
-|-------------|---------|-----------|-----------------|----------|
-| **Developer** | 200 MB | None | 1 day | Development, unit testing |
-| **Developer Pro** | 1 GB | None | 1 day | Larger development projects |
-| **Partial Copy** | 5 GB | Sample (template-based) | 5 days | Integration testing, UAT |
-| **Full** | Same as Production | Complete copy | 29 days | Performance testing, final pre-release |
+| Tool | Objects | Max Records | Delete? | Hard Delete? | Browser? |
+|---|---|---|---|---|---|
+| Data Import Wizard | Accounts, Contacts, Leads, Solutions, Campaign Members, Custom | 50,000 | No | No | Yes |
+| Data Loader | All | 5,000,000 | Yes | Yes | No (install) |
+| Data Export | All (backup) | All | No | No | Yes |
 
-**Refresh destroys all existing sandbox data — back up work before refreshing.**
+**Upsert** = Insert OR Update based on External ID match
 
----
+**Hard Delete** = permanent (bypasses Recycle Bin)
 
-## 8. Report Types Comparison
+**Data Export download window = 48 hours**
 
-| Format | Groupings | Dashboard Support | Best For |
-|--------|-----------|------------------|----------|
-| **Tabular** | None | Table component only | Flat lists, exports, mailing lists |
-| **Summary** | Row groupings (up to 3) | Full (all component types) | Subtotals, pipeline by stage, cases by owner |
-| **Matrix** | Row + Column (up to 2 each) | Full | Pivot tables, cross-dimensional analysis |
-| **Joined** | Multiple blocks (up to 5) | Limited (table only) | Compare two unrelated datasets |
-
-**Critical:** Tabular reports cannot be used for chart/gauge/metric dashboard components.
+**Limitations:** Import Wizard doesn't support Opportunities or Cases. Data Loader requires API access. Standard Matching Rules are inactive by default.
 
 ---
 
-## 9. Custom Report Types
+## 7. Sandbox Refresh Intervals
 
-| Setting | Detail |
-|---------|--------|
-| Max objects | 4 (1 primary + 3 related) |
-| "Must have" | Only primary records WITH related children appear |
-| "May or may not have" | All primary records appear (children blank if absent) |
-| Deployment Status | Must be "Deployed" for users to see it ("In Development" = hidden) |
-| Custom objects | NO auto-creation — admin must build custom report type |
-
----
-
-## 10. Dashboard Quick Reference
-
-| Feature | Key Fact |
-|---------|---------|
-| Max components per dashboard | 20 |
-| Max dashboard filters | 3 |
-| Dynamic dashboard limit: Professional | 5 |
-| Dynamic dashboard limit: Enterprise/Unlimited | 10 |
-| Static running user | All viewers see running user's data |
-| Dynamic dashboard | Each viewer sees their own data |
-| Data freshness | Cached from last refresh (up to 24 hrs) — NOT real-time |
-| Permission to view | "Run Reports" + Dashboard folder Viewer access |
-| Component needing groupings | Charts, Gauges, Metrics (require Summary/Matrix report) |
+| Sandbox | Refresh Interval | Data? |
+|---|---|---|
+| Developer | 1 day | Metadata only |
+| Developer Pro | 1 day | Metadata only |
+| Partial Copy | 5 days | Metadata + sample |
+| Full | 29 days | All data |
 
 ---
 
-## 11. All Salesforce Field Types
+## 8. Report Types & Dashboard Rules
 
-| Category | Field Types |
-|----------|-------------|
-| **Text** | Text, Text Area, Long Text Area, Rich Text Area, Email, Phone, URL |
-| **Number** | Number, Currency, Percent |
-| **Date/Time** | Date, Date/Time, Time |
-| **Selection** | Picklist, Multi-Select Picklist |
-| **Boolean** | Checkbox |
-| **Relationship** | Lookup Relationship, Master-Detail Relationship, External Lookup, Indirect Lookup |
-| **Calculated** | Formula, Roll-Up Summary |
-| **Auto** | Auto Number |
-| **Special** | Geolocation, Encrypted Text (Shield), External ID (attribute, not a type) |
+| Report Type | Groups | Charts | Dashboard |
+|---|---|---|---|
+| Tabular | None | None | Table only |
+| Summary | Up to 3 row groups | Yes | All component types |
+| Matrix | Up to 2 rows + 2 cols | Yes | All component types |
+| Joined | Up to 5 blocks | Limited | Limited |
 
-**External ID:** Not a field type — it's a checkbox attribute on Text, Number, Email, or Auto Number fields.
+**Dashboard limits:** Max 20 components, max 3 filters
+**Dynamic dashboards:** 10 (Enterprise/Unlimited), 5 (Professional)
+**Running user:** Static = fixed user; Dynamic = each viewer's own data
+**Dashboards don't refresh automatically** — manual or scheduled
 
----
-
-## 12. Object Relationship Quick Reference
-
-| Relationship Type | Parent Deleted | Roll-Up Summary | OWD | Notes |
-|------------------|---------------|-----------------|-----|-------|
-| **Master-Detail** | Cascade deletes child | Yes (on master) | Child follows parent | Tight coupling; required field |
-| **Lookup** | Child remains (lookup goes blank) | No | Independent | Loose coupling; optional or required |
-| **Many-to-Many** | Depends on each M-D leg | On each master | Per relationship | Uses junction object with two M-D |
-| **Self-Relationship** | N/A | N/A | N/A | Object related to itself (e.g., Account hierarchy) |
+**Limitations:** Tabular = no charts in dashboards (table component only). Dynamic dashboards have hard org-wide quantity limits.
 
 ---
 
-## 13. Validation Rules — Key Functions
+## 9. Field Types Quick Reference
 
-| Function | Syntax | Use For |
-|----------|--------|---------|
-| ISBLANK | `ISBLANK(Field)` | Text fields — TRUE if empty |
-| ISNULL | `ISNULL(Field)` | Number/Date — TRUE if null |
-| ISPICKVAL | `ISPICKVAL(Field, "Value")` | Picklist comparison |
-| ISCHANGED | `ISCHANGED(Field)` | TRUE if field was modified |
-| ISNEW | `ISNEW()` | TRUE on record creation only |
-| LEN | `LEN(Field)` | Character count |
-| CONTAINS | `CONTAINS(Field, "text")` | TRUE if field contains string |
-| NOT | `NOT(condition)` | Reverses TRUE/FALSE |
-| AND | `AND(cond1, cond2)` | Both must be TRUE |
-| OR | `OR(cond1, cond2)` | Either must be TRUE |
-| TODAY | `TODAY()` | Current date |
-| NOW | `NOW()` | Current date + time |
-
-**Remember:** Validation rule formula returning TRUE = ERROR (blocks save).
+| Field | Stored? | Formula? | Roll-Up? | Key Note |
+|---|---|---|---|---|
+| Text | Yes | No | No | Max 255 chars |
+| Long Text Area | Yes | No | No | Max 131,072 chars |
+| Formula | No | Yes | No | Read-only, runtime calc |
+| Roll-Up Summary | Yes | No | Yes (M-D only) | Max 25/object |
+| Lookup | Yes | No | No | Optional, no cascade |
+| Master-Detail | Yes | No | No | Required, cascade delete |
+| Auto Number | Yes | No | No | Sequential, read-only |
+| Checkbox | Yes | No | No | Always True/False, never blank |
 
 ---
 
-## 14. Approval Process Action Sets
+## 10. Relationship Comparison
 
-| Action Set | When It Fires | Common Actions |
-|-----------|---------------|----------------|
-| **Initial Submission** | When record is submitted for approval | Lock record, email approver |
-| **Approval** | When all required approvers approve | Update status to Approved, email submitter |
-| **Rejection** | When an approver rejects | Update status to Rejected, email submitter, unlock record |
-| **Recall** | When submitter recalls the record | Unlock record, reset fields |
+| | Lookup | Master-Detail |
+|---|---|---|
+| Required? | No | Yes |
+| Cascade delete? | No (nulls field) | Yes |
+| Roll-Up Summary? | No | On parent only |
+| Child OWD | Independent | Controlled by Parent |
+| Max per object | Many | 2 |
 
-**Approver Options:** Manager of submitter, specific user, queue, or let submitter choose.
+**Junction Object:** Two M-D relationships to create M:M
 
-**Delegated Approver:** Set by each user in their personal settings as backup when unavailable.
-
----
-
-## 15. Flow Types — Quick Reference
-
-| Flow Type | Trigger | UI? | Use Case |
-|-----------|---------|-----|----------|
-| **Screen Flow** | User-initiated | Yes (screens) | Guided wizards, data entry, self-service |
-| **Record-Triggered (Before-Save)** | Record Create/Update/Delete | No | Update triggering record's own fields |
-| **Record-Triggered (After-Save)** | Record Create/Update/Delete | No | Create/update related records, call services |
-| **Schedule-Triggered** | Time schedule | No | Batch processing, nightly cleanup, time-based actions |
-| **Auto-launched** | Called by Apex/Flow/REST | No | Reusable utility logic |
-| **Platform Event-Triggered** | Platform Event message | No | Event-driven integrations |
+**Limitations:** Max 2 M-D per object. Max 25 Roll-Up Summary per M-D parent. Converting Lookup → M-D requires no null values in the field.
 
 ---
 
-## 16. Change Set Key Facts
+## 11. Validation Rule Logic
 
-| Fact | Detail |
-|------|--------|
-| What it moves | Metadata (configuration) only — NOT data |
-| Direction | Sandbox → Production, Sandbox → Sandbox |
-| Dependency management | MANUAL — must add all dependencies yourself |
-| Rollback | NOT supported — manual reversal required |
-| Outbound Change Set | Built in source org; uploaded to target |
-| Inbound Change Set | Received in target org; must be validated + deployed |
-| Validate button | Runs all checks WITHOUT deploying — catches errors safely |
-| Deployment Connections | Must be configured in Setup → Deployment Settings |
+```
+TRUE = BLOCK the save (error shown)
+FALSE = ALLOW the save (proceed)
+
+ISBLANK(field)      — works for all field types including text
+ISNULL(field)       — legacy; use ISBLANK for text fields
+ISPICKVAL(p, "v")  — checks if picklist equals value
+ISCHANGED(field)   — true if field changed on THIS save
+ISNEW()            — true if this is a new record insert
+TODAY()            — current date
+```
 
 ---
 
-## 17. Exam-Day Tips
+## 12. Formula Functions
 
-1. **TRUE = Error in Validation Rules** — The most commonly missed concept. If the formula returns TRUE, the save is blocked.
-2. **Standard Rules are Inactive** — Standard duplicate rules for Leads/Contacts/Accounts must be ACTIVATED.
-3. **Custom Report Types not auto-created** — You must build them manually for custom objects.
-4. **Before-Save vs. After-Save** — Before-Save: update triggering record's fields only. After-Save: everything else.
-5. **Tabular reports can't source chart dashboard components** — Use Summary or Matrix for charts.
-6. **Data Import Wizard object limitations** — Accounts, Contacts, Leads, Solutions, Campaign Members, Custom only.
-7. **50K record limit** — Data Import Wizard max is 50,000. Above that: Data Loader.
-8. **Refresh destroys sandbox** — All sandbox-specific work is lost on refresh.
-9. **Change sets don't auto-include dependencies** — Always click View/Add Dependencies.
-10. **Role hierarchy = visibility, Profile = permissions** — Roles don't grant object CRUD. Profiles/Permission Sets do.
-11. **Dynamic dashboard limit** — Professional: 5, Enterprise/Unlimited: 10.
-12. **Merge: 3 records max** — Standard merge tool handles up to 3 records at a time for Accounts/Contacts/Leads.
-13. **Workflow is legacy** — Know it for the exam; build new automation in Flow.
-14. **ISCHANGED in workflow criteria** — Works in workflow formula criteria; does NOT work in standard formula fields.
-15. **Sandbox refresh intervals** — Developer: 1 day, Partial: 5 days, Full: 29 days.
+```
+IF(condition, true_val, false_val)
+AND(a, b) / OR(a, b) / NOT(a)
+TEXT(picklist)      — convert picklist to text
+DATEVALUE(datetime) — extract date from datetime
+LEN(text)          — length of text
+LEFT/RIGHT(text,n) — substring
+HYPERLINK(url, label)  — clickable link
+CEILING/FLOOR(n)   — rounding
+
+Cross-object formula:
+  Standard: Account.Name
+  Custom:   Account__r.Custom_Field__c
+  (__r = relationship traversal, custom lookups)
+```
+
+---
+
+## 13. Approval Process Key Facts
+
+- 4 action sets: Initial Submission, Approval, Rejection, Recall
+- Record is LOCKED while pending approval
+- Recall = submitter withdraws; runs Recall Actions; unlocks record
+- Rejection runs Rejection Actions and ENDS the process (no further steps)
+- Approval Actions run only when ALL steps are approved (final approval)
+- Delegated Approver = backup approver set in User record
+
+---
+
+## 14. Change Sets
+
+- Metadata ONLY — no data
+- Outbound = sending; Inbound = receiving
+- Dependencies NOT auto-included (must add manually)
+- Validate = test without applying; Deploy = apply changes
+- No rollback once deployed
+- Connection between orgs must be pre-authorized
+
+---
+
+## 15. Duplicate Management
+
+- Matching Rules = HOW to detect duplicates
+- Duplicate Rules = WHAT to do (Allow/Block/Report)
+- Standard Matching Rules = INACTIVE by default (must activate)
+- Merge: Accounts, Contacts, Leads only; max 3 at once
+- Master record keeps its Salesforce ID; others go to Recycle Bin
+
+---
+
+## 16. Knowledge Articles
+
+- Article lifecycle: Draft → In Review → Published → Archived
+- API suffix: `__kav` (not `__c`)
+- 4 channels: Internal App, Customer, Partner, Public Knowledge Base
+- Data Categories: organize + control visibility (two purposes)
+- Lightning Knowledge = 1 object + Record Types
+- Classic Knowledge = separate objects per type (legacy)
+- Archived ≠ deleted (record persists, just hidden from channels)
+
+---
+
+## 17. Key Numbers to Remember
+
+| Number | What |
+|---|---|
+| 65% | Passing score (Admin exam) |
+| 60 | Scored questions on exam |
+| 105 min | Exam time |
+| 200 | Enterprise Edition custom object limit |
+| 2,000 | Unlimited Edition custom object limit |
+| 500 | Custom fields per object |
+| 2 | Max Master-Detail per object |
+| 25 | Max Roll-Up Summary per M-D parent |
+| 300 | Max sharing rules per object |
+| 50,000 | Data Import Wizard max records |
+| 5,000,000 | Data Loader max records |
+| 500 | Web-to-Lead daily limit |
+| 5,000 | Web-to-Case daily limit |
+| 48 hours | Data Export download window |
+| 3 | Max records per merge |
+| 20 | Max dashboard components |
+| 3 | Max dashboard filters |
+| 10 | Max dynamic dashboards (Enterprise/Unlimited) |
+| 5 | Max dynamic dashboards (Professional) |
+| 29 days | Full sandbox minimum refresh interval |
+| 1 day | Developer sandbox minimum refresh interval |
+| 131,072 | Long Text Area max characters |
+| 255 | Text field max characters |
+| 4 | Max objects in Custom Report Type |
+
+---
+
+## 18. Exam Day Traps (The Most-Tested Wrong Answers)
+
+1. **Developer Edition = sandbox** — FALSE; no parent org, can't refresh
+2. **Permission Sets can restrict access** — FALSE; additive only
+3. **Tabular reports work for dashboard charts** — FALSE; table only
+4. **Roll-Up Summary on Lookup relationships** — FALSE; M-D parent only
+5. **ISNULL works for text fields** — FALSE; use ISBLANK
+6. **Validation rule TRUE = allow** — FALSE; TRUE = block
+7. **Standard Matching Rules active by default** — FALSE; must activate
+8. **Change Sets include data** — FALSE; metadata only
+9. **Sandbox refresh preserves sandbox data** — FALSE; destroys it
+10. **Profile login hours in Permission Set** — FALSE; Profile only
+11. **Role hierarchy visibility flows downward** — FALSE; upward only
+12. **Formula fields are stored in the database** — FALSE; runtime calculation
+13. **Page layout removal = security** — FALSE; FLS = Not Visible for true security
+14. **Person Accounts can be disabled** — FALSE; irreversible
+15. **Multiple active assignment rules per object** — FALSE; one at a time

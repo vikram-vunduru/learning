@@ -1,369 +1,136 @@
-# L35: Approval Processes
+# Approval Processes
 
-## 🎯 Learning Objectives
-- Configure a complete approval process including entry criteria, approver selection, and email templates
-- Distinguish between initial submission actions, approval actions, rejection actions, and recall actions
-- Use the Approval History related list to track approval status
-- Set up delegated approvers and explain their role
-- Configure multi-step and parallel approval processes
-- Determine when to use approval processes versus flows
+## Exam Domain
+Workflow/Process Automation — 16% of exam
 
-## 📊 SLIDES
+## Core Concepts
 
-### Slide 1: What Is an Approval Process?
-**Visual:**
+Approval Processes are structured workflows where a record must be reviewed and approved (or rejected) by one or more users before moving forward. Unlike other automation, approval processes require human decisions.
+
+**When to use:** Contract approval, discount authorization, expense approval, new product approval — any business process where a person must explicitly review and sign off.
+
+**The four action sets in an Approval Process:**
+
+| Set | When It Runs |
+|---|---|
+| Initial Submission Actions | When the record is first submitted for approval |
+| Approval Actions | When an approver approves the record |
+| Rejection Actions | When an approver rejects the record |
+| Recall Actions | When the submitter recalls (withdraws) the request |
+
+Each action set can contain: Field Updates, Email Alerts, Tasks, Outbound Messages (same as workflow rule actions).
+
+**Approval Steps:**
+- Multi-step approvals: Step 1 → Step 2 → etc.
+- Each step has its own approver and criteria
+- Step criteria determines when that step is entered (skip a step if criteria not met)
+
+**Approver options per step:**
+- **Specific user:** Named person always approves
+- **Related user:** Based on a user field on the record (e.g., "Manager" field = submitter's manager)
+- **Role/Queue:** Any member of the role or queue can approve
+- **Apex:** Custom logic to determine approver
+
+**Delegated Approver:**
+- An approver can designate a delegated approver who can act on their behalf
+- Configured in the approver's user record ("Delegated Approver" field)
+- Useful when the primary approver is on vacation
+
+**Record Lock:**
+- When a record is submitted for approval, it is **locked** — users cannot edit it while it's pending approval
+- The submitter and admins can recall/unlock
+- Approvers can optionally be allowed to edit locked records (configurable)
+
+**Approval History related list:**
+- Shows every approval step, who acted, and the outcome
+- Visible on the record
+
+**Multi-Step Approvals:**
+- Step 1 approver approves → moves to Step 2 approver
+- If Step 1 rejects → Rejection Actions run (process over)
+- If Step 2 approves → Approval Actions run (final approval)
+
+## PTA / SA Relevance
+
+Approval Processes are business governance tools. Every enterprise has approval workflows — the question is whether they're in Salesforce or happening via email/Slack outside the system.
+
+**The "offline approval" anti-pattern:** Many companies have approvals happening in email chains while the record in Salesforce shows the pre-approval state. This breaks auditability and compliance. Moving approvals into Salesforce Approval Processes creates an audit trail (Approval History), enforces sequential steps, and reduces the risk of approved data not being updated.
+
+**Approval Process limitations at scale:** Standard Approval Processes don't support parallel approval (multiple approvers must ALL approve before proceeding — each goes in sequence). For complex approval matrices (committee approvals, parallel sign-offs), you need custom Apex or a third-party CPQ/approvals app.
+
+**Chatter approvals:** When an approval request is generated, a Chatter post can be created on the record, notifying stakeholders. Approvers can approve/reject directly from the Chatter feed (mobile-friendly).
+
+## Architecture / How It Works
+
 ```
-  Record submitted for approval
-          │
-          ▼
-  Initial Submitter Actions (e.g., lock record)
-          │
-          ▼
-  Approval Step 1 ──▶ Approver notified
-          │
-     ┌────┴────┐
-     ▼         ▼
-  Approved   Rejected
-     │         │
-     ▼         ▼
-  Final       Rejection
-  Approve     Actions
-  Actions     (e.g., unlock,
-  (e.g.,       email submitter)
-  field update,
-  email)
+Approval Process Flow
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Record created/edited
+         ↓
+  Submit for Approval (button or auto)
+         ↓
+  INITIAL SUBMISSION ACTIONS run
+  Record is LOCKED (no edits while pending)
+         ↓
+  STEP 1: Approver is notified
+  ┌──────────────────────────────────────┐
+  │  Approver reviews record             │
+  │  APPROVE ──────────────────────────► │ (go to Step 2 or Final Approval)
+  │  REJECT ───────────────────────────► │ (Rejection Actions + process ends)
+  │  RECALL ───────────────────────────► │ (Recall Actions + back to Draft)
+  └──────────────────────────────────────┘
+         ↓ (if approved, multi-step)
+  STEP 2: Next approver notified
+         ↓ (if approved at all steps)
+  FINAL APPROVAL ACTIONS run
+  Record UNLOCKED
+
+  Action Sets:
+  ┌────────────────────────────────────────┐
+  │  Initial Submission │ on submit        │
+  │  Approval Actions   │ on approve       │
+  │  Rejection Actions  │ on reject        │
+  │  Recall Actions     │ on recall/recall │
+  └────────────────────────────────────────┘
 ```
-**Content:**
-- An **approval process** automates the review and approval of records
-- Defines: who can submit, entry criteria, who approves, and what happens on approval/rejection
-- **Use cases:** Discount approval on Opportunities, expense approvals, contract review, time-off requests
-- Approval processes can have **multiple steps** (sequential approval chains)
-- Can require **one approver** per step or **multiple approvers** (unanimous or first-response)
-- Approvers receive email notifications and can approve/reject via:
-  - Email (one-click approve/reject)
-  - Salesforce UI (Approval History list or Home page)
-  - Salesforce mobile app
-**Speaker Notes:** Approval processes are distinct from Flow-based automation. They're specifically designed for human-in-the-loop approval workflows where a person must review and make a decision. Flow automation is for automated actions without human decisions. Whenever the business requirement includes a person reviewing and approving/rejecting something, an approval process is the right tool.
 
-### Slide 2: Approval Process Setup — Entry Criteria & Submitters
-**Visual:**
-```
-  Approval Process Setup Wizard
+**Limitations:**
+- Standard Approval Processes are sequential (one approver at a time per step) — no native parallel approval
+- Record is locked while pending — cannot be edited without recalling first
+- Only one approver can be "active" per step at a time (unless using a queue/role with any member can approve)
+- Approval Process limit: 1,000 active processes per org
+- Cannot create Approval Processes for all objects — limited to standard objects and custom objects
 
-  ┌── Step 1: Name & Description ─────────────────────────────────┐
-  │  Process Name: [Discount Approval                           ]  │
-  │  Description:  [Required for discounts over 10%             ]  │
-  └────────────────────────────────────────────────────────────────┘
-                        │
-                        ▼
-  ┌── Step 2: Entry Criteria ──────────────────────────────────────┐
-  │  Records eligible for submission when:                         │
-  │  Discount__c  greater than  10                                 │
-  │                                                                │
-  │  ○ No criteria — all records can be submitted                  │
-  └────────────────────────────────────────────────────────────────┘
-                        │
-                        ▼
-  ┌── Step 3: Submitters ──────────────────────────────────────────┐
-  │  Who can submit?                                               │
-  │  ☑ Record Owner   ○ Role   ○ Public Group   ○ Specific Users   │
-  │  (Admins can always submit on behalf of any user)              │
-  └────────────────────────────────────────────────────────────────┘
-```
-**Content:**
-- **Entry Criteria:** Conditions that a record must meet before it can be submitted for approval
-  - Example: Opportunity Discount > 10%
-  - If criteria not met, the Submit for Approval button is still visible but the submission fails with an error
-  - OR entry criteria can be "No criteria — all records can be submitted"
-- **Submitter Designation:** Who can submit a record for approval
-  - Record owner, members of a role/role and subordinates, public group, specific users
-  - Admin can submit on behalf of any user
-- **Prevent submitters from recalling:** Option to lock records after submission
-**Speaker Notes:** Entry criteria acts as a gate — the record must qualify before it can enter the approval process. If you only want to require approval for big discounts, the entry criteria ensures small discounts bypass the process entirely. The submitter designation is important: typically the record owner submits, but you can configure any combination. Remember that an admin can always submit any record for approval regardless of submitter settings.
+## Key Facts to Memorize
 
-### Slide 3: Approval Steps — Approver Configuration
-**Visual:**
-```
-  Multi-Step Approval Chain
+- 4 action sets: Initial Submission, Approval, Rejection, Recall
+- Record is LOCKED when submitted for approval
+- Multi-step: sequential steps, each step can have its own approver
+- Approver types: specific user, related user field, role, queue, Apex
+- Delegated Approver = backup approver set by primary approver in their user settings
+- Recall = submitter withdraws the approval request (unlocks record)
+- Approval Actions run only when ALL steps are approved
+- Rejection at any step runs Rejection Actions (process ends)
 
-  ┌────────────────────────────────────────────────────────────────┐
-  │  STEP 1: Direct Manager                                        │
-  │  Approver: Manager of submitter (from user hierarchy)          │
-  │  Applies to: Discount 10–20%                                   │
-  │                                                                │
-  │  Approved ──▶ Proceed to Step 2                                │
-  │  Rejected ──▶ Return to submitter                              │
-  └───────────────────────┬────────────────────────────────────────┘
-                          │ (if approved)
-                          ▼
-  ┌────────────────────────────────────────────────────────────────┐
-  │  STEP 2: VP of Sales                                           │
-  │  Approver: Specific user — VP Sales                            │
-  │  Applies to: Discount > 20%                                    │
-  │                                                                │
-  │  Approved ──▶ Final Approval Actions                           │
-  │  Rejected ──▶ Return to submitter or back to Step 1            │
-  └───────────────────────┬────────────────────────────────────────┘
-                          │ (if approved)
-                          ▼
-  ┌────────────────────────────────────────────────────────────────┐
-  │  FINAL APPROVAL ACTIONS                                        │
-  │  Update Discount_Approved__c = true, send email, unlock record │
-  └────────────────────────────────────────────────────────────────┘
-```
-**Content:**
-- Each approval process has one or more **approval steps**
-- Each step defines:
-  - **Filter criteria** (this step only applies to records meeting these conditions — optional)
-  - **Approver selection:**
-    - Automatically assigned approver: manager, record owner's manager, or specific user/queue
-    - Let submitter choose approver
-    - Related user: a user lookup field on the record
-  - **Routing type:** Route to one approver or to a queue
-  - **Unanimous vs. First Response:** For multiple approvers in a queue
-    - Unanimous: all must approve
-    - First response: first person to respond decides
-**Speaker Notes:** The approver can be the record owner's manager (pulled from the user's Manager field), a specific user, a queue, or dynamically chosen by the submitter. The "manager" setting is powerful — it automatically routes based on the user hierarchy without needing hardcoded names. For each step, you can also configure whether it requires unanimous approval from all members of a queue, or if just one person approving is enough.
+## Exam Traps
 
-### Slide 4: The Four Action Sets
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │  INITIAL SUBMISSION ACTIONS        (fires when submitted)    │
-  │  • Lock record from editing                                  │
-  │  • Send email to approver                                    │
-  └──────────────────────────────────────────────────────────────┘
-                          │
-                ┌─────────┴──────────┐
-                ▼                    ▼
-  ┌──────────────────────┐  ┌──────────────────────────────┐
-  │  APPROVAL ACTIONS    │  │  REJECTION ACTIONS           │
-  │  (fires on approve)  │  │  (fires on reject)           │
-  │                      │  │                              │
-  │  • Update Status     │  │  • Update Status = Rejected  │
-  │    = Approved        │  │  • Send rejection email      │
-  │  • Send congrats     │  │  • Unlock record             │
-  │    email             │  │  • Return to submitter       │
-  │  • Unlock record     │  └──────────────────────────────┘
-  └──────────────────────┘
+- **"A record can be edited while it's in an approval process"** — FALSE. Records are locked during approval. Must recall to edit.
+- **"Rejection actions run when the final step is rejected only"** — FALSE. Rejection actions run when ANY step is rejected (process terminates).
+- **"Approval Actions run after each step approval"** — FALSE. Approval Actions only run when the ENTIRE process (all steps) is approved.
+- **"A delegated approver can approve on behalf of anyone"** — FALSE. A delegated approver can only act for the specific user who designated them as their delegate.
+- **"Initial Submission Actions run when approval is granted"** — FALSE. Initial Submission Actions run when the record is SUBMITTED, before any approval decisions.
 
-  ┌──────────────────────────────────────────────────────────────┐
-  │  RECALL ACTIONS                    (fires when recalled)     │
-  │  • Unlock record                                             │
-  │  • Restore previous field values                             │
-  └──────────────────────────────────────────────────────────────┘
-```
-**Content:**
-- **Initial Submission Actions:** Fire when the record is submitted for approval
-  - Common: Lock the record (prevent editing during review), send email to approver
-  - Default: record is locked automatically
-- **Approval Actions:** Fire when the approver approves the record
-  - Common: Update Status field to "Approved," send congratulations email to submitter
-  - Field updates take effect immediately
-- **Rejection Actions:** Fire when the approver rejects the record
-  - Common: Update Status field to "Rejected," send rejection notification email
-  - Can return record to submitter or go to previous step (in multi-step processes)
-- **Recall Actions:** Fire when the submitter (or admin) recalls the record from the approval queue
-  - Common: Unlock the record, restore previous values
-**Speaker Notes:** The four action sets give you full control over the record's state at each stage of the approval lifecycle. Actions can include field updates, email alerts, task creation, and outbound messages — the same action types as workflow rules. A common pattern: on initial submission, lock the record and send an email to the approver. On approval, update the Discount field to approved value and unlock the record. On rejection, notify the submitter and unlock the record so they can modify and resubmit.
+## Practice Questions
 
-### Slide 5: Approval History Related List
-**Visual:**
-```
-  Opportunity: Acme Corp Q3 Deal
-  ┌──────────────────────────────────────────────────────────────────────┐
-  │  Approval History                                                    │
-  ├──────────────┬────────────┬───────────┬────────────┬────────────────┤
-  │  Date        │ Status     │ Assigned  │ Actual     │ Comments       │
-  │              │            │ Approver  │ Approver   │                │
-  ├──────────────┼────────────┼───────────┼────────────┼────────────────┤
-  │ 09/01 10:02  │ Submitted  │ —         │ J. Smith   │ "Needs VP ok"  │
-  ├──────────────┼────────────┼───────────┼────────────┼────────────────┤
-  │ 09/01 10:02  │ Pending    │ M. Jones  │ —          │                │
-  │              │            │ (Manager) │            │ [Approve]      │
-  │              │            │           │            │ [Reject]       │
-  ├──────────────┼────────────┼───────────┼────────────┼────────────────┤
-  │ 09/02 14:30  │ Approved   │ M. Jones  │ M. Jones   │ "Looks good"   │
-  └──────────────┴────────────┴───────────┴────────────┴────────────────┘
-  Must add this related list to the page layout for users to see it
-```
-**Content:**
-- The **Approval History related list** appears on every record that has been submitted for approval
-- Shows:
-  - Who submitted the record and when
-  - Current approval status (Pending / Approved / Rejected / Recalled)
-  - Each step's status, assigned approver, actual approver, comments
-  - Actions: Approve, Reject, Recall (for pending items)
-- **Approver Comments:** Approvers can add comments when approving or rejecting — visible in the related list
-- **Admin override:** System administrators can always approve or reject from the Approval History list
-- Must add the Approval History related list to the page layout for users to see it
-**Speaker Notes:** The Approval History related list is the primary way users and managers track approval status. It provides a complete audit trail. Approvers can see their pending requests in two places: the Approval History on the specific record, and the "Items to Approve" section on the Salesforce Home page. Make sure your page layouts include the Approval History related list for objects that use approval processes.
+**Q:** A contract is submitted for approval. Before any approver acts, the sales rep realizes there was an error in the contract. What must the rep do to edit the record?
+**A:** Recall the approval request. This runs the Recall Actions and unlocks the record. The rep can then fix the error and resubmit.
 
-### Slide 6: Delegated Approvers
-**Visual:**
-```
-  Normal situation:
-  Approval request ──▶ Sarah (VP Sales) acts on it
-                            │
-                            ▼
-                         Decision made
+**Q:** An Approval Process has 3 steps. Step 2 is rejected. What happens?
+**A:** The Rejection Actions run immediately. The approval process ends — Step 3 is not reached. The record may be unlocked (depending on Rejection Action configuration) and the submitter is notified.
 
-  Sarah goes on vacation — sets delegated approver:
+**Q:** An approver is going on vacation for 2 weeks. What should they configure to ensure approvals aren't blocked?
+**A:** Set a Delegated Approver on their User record. Their delegate can approve/reject requests on their behalf while they're away.
 
-  Approval request ──▶ Sarah (VP Sales)         [out of office]
-                    │
-                    └──▶ Tom (VP Operations)    [delegated approver]
-                               │
-                               ▼
-                         Either Sarah OR Tom
-                         can approve/reject
-
-  How to configure: User personal settings (My Settings → Approvals)
-  Delegated approver receives same email notifications as primary approver
-```
-**Content:**
-- **Delegated Approver:** A backup approver who can approve on behalf of the primary approver
-- Each user can set their own delegated approver in their personal settings (My Settings)
-- When configured, approvals assigned to the primary approver are also sent to the delegated approver
-- Either the primary approver OR the delegated approver can take action
-- **Common use case:** Vacation coverage — user sets their manager's assistant or peer as delegated approver
-- Approval process can be configured to allow/disallow delegated approvers per process
-- Delegated approver receives the same email notifications as the primary approver
-**Speaker Notes:** Delegated approvers solve the vacation coverage problem. Without delegation, approvals pile up when an approver is out of office. With delegation, the backup approver receives the same notifications and can act. Important: delegated approvers are set by the USER in their personal settings, not by the admin (though admins can set them too via the user record). The approval process configuration controls whether delegation is allowed for that specific process.
-
-### Slide 7: Multi-Step and Parallel Approvals
-**Visual:**
-```
-  SEQUENTIAL (Multi-Step)              PARALLEL (Within One Step)
-  ────────────────────────             ──────────────────────────
-  Record submitted                     Record submitted
-        │                                    │
-        ▼                             ┌──────┴──────┐
-  STEP 1: Manager                     ▼             ▼
-  approves discount                Approver A   Approver B
-  10–20%                           (Legal)      (Finance)
-        │                               │             │
-        │ if approved                   └──────┬──────┘
-        ▼                                      ▼
-  STEP 2: VP Sales                   Unanimous: both must approve
-  approves discount                  First Response: one is enough
-  > 20%
-        │
-        │ if approved
-        ▼
-  FINAL APPROVAL ACTIONS
-
-  Rejection at any step:
-  → return to submitter, OR
-  → go back to a specific prior step
-```
-**Content:**
-- **Multi-Step Sequential Approval:**
-  - Record moves through steps in order: Step 1 must be approved before Step 2 activates
-  - Each step can have its own approver and criteria
-  - Rejection at any step can end the process or go back to a previous step
-  - Example: Manager approves discounts 10-20%; VP approves discounts over 20%
-- **Parallel Approval (within one step):**
-  - Assign to a queue where all members must approve (unanimous) or just one member (first response)
-  - All approvers receive the request simultaneously
-- **Jump to step:** On rejection, configure whether to return to submitter or go back to a specific previous step
-**Speaker Notes:** Multi-step approvals model real-world escalation hierarchies. The ability to set different criteria per step is powerful: Step 1 might only apply to discounts between 10-20% (and auto-approve higher steps), while Step 2 applies to discounts over 20%. Parallel approvals within a single step are great for legal + finance scenarios where both departments need to sign off simultaneously.
-
-### Slide 8: Approvals vs. Flows — When to Use Which
-**Visual:**
-```
-  Does a human need to make a decision?
-            │
-            ├── YES ──▶ Use APPROVAL PROCESS
-            │              │
-            │              └── Multiple humans in a chain?
-            │                    ├── YES ──▶ Multi-Step Approval
-            │                    └── NO  ──▶ Single-Step Approval
-            │
-            └── NO  ──▶ Use FLOW (automated logic)
-                           │
-                           ├── On record save? ──▶ Record-Triggered Flow
-                           ├── On schedule?    ──▶ Schedule-Triggered Flow
-                           └── User-facing?    ──▶ Screen Flow
-
-  Using BOTH together:
-  Flow detects condition ──▶ submits record ──▶ Approval Process handles
-  human review ──▶ post-approval Flow handles downstream updates
-```
-**Content:**
-- **Use Approval Process when:**
-  - A human must review and make an approve/reject decision
-  - There's a clear chain of approvers with possible escalation
-  - You need full audit trail of who approved/rejected and when
-  - Email-based approval (approve by clicking a link in email) is required
-- **Use Flow when:**
-  - Automation should happen without human review
-  - Conditions are evaluated automatically and actions taken immediately
-  - Complex data processing or integration is needed
-- **Use Both together:**
-  - A Flow can automatically SUBMIT a record for approval when conditions are met
-  - An Approval Process handles the human review; a Flow handles post-approval automation
-**Speaker Notes:** The key differentiator is human decision-making. If a person needs to review the record and explicitly approve or reject it, that's an approval process. If automation should evaluate conditions and take actions automatically without human intervention, that's a flow. Often, the two are used together: a Flow detects when a record needs approval (discount over threshold), submits it automatically, and then the Approval Process handles the human review. After approval, another Flow can handle post-approval steps like updating downstream systems.
-
-## 🎙️ RECORDING SCRIPT
-
-Welcome to Lecture 35 — Approval Processes. Approvals are one of the most business-critical automation features in Salesforce, and they appear frequently on the Admin exam. Let's master them.
-
-An approval process is Salesforce's tool for human-in-the-loop review workflows. When records need to be reviewed by a person before they're finalized — a discount that needs manager sign-off, an expense report needing finance approval, a contract needing legal review — that's an approval process.
-
-Setting up an approval process involves five key configurations. First, entry criteria: what conditions must the record meet to be eligible for submission? Second, submitters: who can submit the record for approval — typically the record owner. Third, approval steps: the chain of approvers, which can be sequential, each requiring approval before the next activates. Fourth, the four action sets — more on those in a moment. Fifth, email templates for notifications.
-
-The four action sets are critical. Initial Submission Actions fire when the record is submitted — typically you lock the record to prevent editing and send an email to the approver. Approval Actions fire when an approver approves — typically update a status field to "Approved" and notify the submitter. Rejection Actions fire when rejected — update status to "Rejected" and notify the submitter with the reason. Recall Actions fire when the submitter recalls the approval from the queue — typically unlock the record.
-
-Each approval step defines who the approver is. You can route to the record owner's manager (pulled dynamically from the user hierarchy), a specific user, a queue, or let the submitter choose. For queue routing, you decide: unanimous (all members must approve) or first response (first person to act decides).
-
-The Approval History related list on each record shows the complete audit trail: who submitted, when, who approved or rejected, and any comments. Always add this related list to your page layouts for objects using approval processes.
-
-Users can set a delegated approver in their personal settings to handle approvals when they're unavailable. This prevents approvals from stacking up during vacations.
-
-Remember: use approvals when a human decision is required. Use Flow when automation should happen without human intervention. Often, a Flow submits the record, an Approval Process handles the human review, and another Flow handles post-approval processing.
-
-## 🔔 EXAM TIPS
-- **Four Action Sets:** Initial Submission (fires on submit), Approval (fires on approve), Rejection (fires on reject), Recall (fires on recall). Know which fires when.
-- **Record Lock:** By default, records are locked from editing when submitted for approval. This is an initial submission action.
-- **Approver Options:** Manager of submitter, specific user, queue, or let submitter choose. "Manager" uses the user's Manager field.
-- **Delegated Approver:** Set by the user in personal settings as backup for when they're unavailable.
-- **Approval History:** Related list showing full audit trail — must add to page layout. Admin can always approve/reject from this list.
-- **Multi-step:** Steps are sequential by default. Rejection can return to submitter or previous step.
-- **Approval vs. Flow:** Approval = human decision required. Flow = automated decision without human review.
-
-## ✅ LECTURE SUMMARY
-- Approval processes route records to human approvers for review before final decisions
-- Entry criteria gates which records can be submitted; submitter settings control who can submit
-- Approval steps define the approver chain (manager, specific user, queue, or submitter's choice)
-- Four action sets: Initial Submission, Approval, Rejection, Recall — each fires at specific stage
-- Approval History related list provides full audit trail; must be added to page layout
-- Delegated approvers are backup approvers set by users in their personal settings
-- Multi-step approvals support sequential chains; parallel approvals support simultaneous review
-- Use approvals for human decisions; use Flow for automated logic without human review
-
-## ❓ MINI QUIZ
-
-**Q1:** A record is submitted for approval. Which action set fires IMMEDIATELY when the submission is made?
-- A) Approval Actions
-- B) Rejection Actions
-- C) Initial Submission Actions
-- D) Recall Actions
-
-**Answer:** C — Initial Submission Actions fire immediately when the record is submitted for approval, before any approver has taken action. These typically include locking the record from editing and sending an email notification to the designated approver.
-
-**Q2:** An approval process has two sequential steps: Step 1 routes to the submitter's direct manager, and Step 2 routes to the VP of Sales. The record is approved in Step 1 but rejected in Step 2. What options can be configured for the rejection behavior?
-- A) The record can only be returned to the original submitter
-- B) The record is automatically approved if any step is approved
-- C) The record can be returned to the submitter or sent back to a previous approval step
-- D) The record is permanently locked after rejection
-
-**Answer:** C — When a record is rejected at any step, the approval process can be configured to return the record to the submitter for correction and resubmission, OR to return it to a specific previous step (like Step 1 for re-approval). The record is unlocked by the Rejection Actions, allowing the submitter to make changes.
-
-**Q3:** A Salesforce Administrator wants to show users the complete history of all approval requests, approvals, and rejections for an Opportunity record. What must the admin do?
-- A) Run a report filtered on Approval History object
-- B) Enable "Approval Audit" in Setup
-- C) Add the Approval History related list to the Opportunity page layout
-- D) Purchase a separate Salesforce Shield license
-
-**Answer:** C — The Approval History related list must be added to the object's page layout for users to see the complete approval audit trail directly on the record page. This related list shows all submission, approval, rejection, and recall events with dates, approvers, and comments.
+**Q:** An admin needs to automatically lock a field to "Pending" status when a deal is submitted for approval and then change it to "Approved" when all steps are approved. What action sets should contain these field updates?
+**A:** Initial Submission Actions: field update to "Pending." Approval Actions: field update to "Approved." (Note: Approval Actions run only after ALL steps are approved.)

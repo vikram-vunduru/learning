@@ -1,137 +1,60 @@
-# Lab 1: Admin Org Setup
+# Lab 01 — Admin Org Setup
 
-## 🎯 Lab Objectives
-- Obtain and access a Salesforce Developer Edition org
-- Configure Company Information settings
-- Enable and configure My Domain
-- Create a custom app in App Manager
-- Configure the app's navigation bar with relevant tabs
+## What You Need to Be Able to Do
 
-## ⏱️ Estimated Time
-45–60 minutes
+This lab covers the foundational org setup tasks. If you can do all of these from memory, you understand Section 1 (Org Setup) at the exam level.
 
-## 🔧 Prerequisites
-- A valid email address (for Developer Edition sign-up)
-- A web browser (Google Chrome recommended)
-- No prior Salesforce setup required — this lab starts from scratch
+### Create a Developer Edition Org
+- [ ] Go to developer.salesforce.com and create a new Developer Edition org
+- [ ] Understand this is NOT a sandbox — it has no Production parent
+- [ ] Log in to your new DE org using the username you registered with
 
-## 📋 Step-by-Step Instructions
+### Configure Company Information
+- [ ] Navigate to Setup → Company Settings → Company Information
+- [ ] Find and note the Org ID (globally unique identifier)
+- [ ] Change the Default Locale to a different country's locale and observe date format changes
+- [ ] Change the Default Language and observe label changes
+- [ ] Reset to your preferred locale/language
+- [ ] Note the storage used, licenses available, and edition
 
-### Part 1: Create a Developer Edition Org
+### Set Up My Domain
+- [ ] Navigate to Setup → Company Settings → My Domain
+- [ ] Register a My Domain subdomain (e.g., `yourname-dev`)
+- [ ] Wait for domain provisioning (may take a few minutes in DE org)
+- [ ] Test by logging in via the new My Domain URL
+- [ ] Deploy to users (makes it the default URL for the org)
+- [ ] Confirm that your login URL now shows `yourname-dev.my.salesforce.com`
 
-1. Navigate to [developer.salesforce.com/signup](https://developer.salesforce.com/signup) in your browser.
-2. Fill in the registration form:
-   - First Name, Last Name
-   - Email Address (use your real email — you'll receive a verification message)
-   - Role: **Administrator**
-   - Company: Enter any name (e.g., "CertStudio Labs")
-   - Country, Postal Code
-   - Username: Must be in email format and globally unique (e.g., `firstname.lastname.certlab@example.com`)
-3. Click **Sign Me Up**.
-4. Check your email for a verification message from Salesforce. Click **Verify Account**.
-5. Set your password and security question, then click **Change Password**.
-6. You are now logged in to your Developer Edition org.
+### Configure Session Settings
+- [ ] Navigate to Setup → Security → Session Settings
+- [ ] Review session timeout and security settings
+- [ ] Note which options affect login security
 
-> **Note:** Your Developer Edition org is free forever and has most Enterprise Edition features enabled. It is ideal for learning and practice.
+### Create a Lightning App
+- [ ] Navigate to Setup → App Manager
+- [ ] Click "New Lightning App"
+- [ ] Configure: App Name, Logo, Color (branding)
+- [ ] Add Navigation Items: Accounts, Contacts, Leads, Opportunities
+- [ ] Add a Utility Item: Tasks (so it appears in the bottom utility bar)
+- [ ] Assign the app to your System Administrator profile
+- [ ] Save and find the new app in the App Launcher
+- [ ] Verify navigation items and utility bar appear correctly
 
-### Part 2: Configure Company Information
+### Customize the Navigation Bar
+- [ ] From your new Lightning App, use the navigation bar personalization
+- [ ] Add/remove navigation items from the user perspective
+- [ ] Note that admins set defaults; users can personalize further
 
-1. Click the **Setup** gear icon (top right) → **Setup**.
-2. In the Quick Find box, type `Company Information` and click **Company Information**.
-3. Click **Edit** and update the following fields:
-   - **Company Name:** CertStudio Labs
-   - **Default Locale:** Your preferred locale (e.g., English (United States))
-   - **Default Time Zone:** Your time zone
-   - **Default Currency:** USD - U.S. Dollar
-   - **Fiscal Year Start Month:** January (or your preferred month)
-4. Click **Save**.
-5. Observe the **Salesforce.com Organization ID** — this is your org's unique identifier.
+### Verify Setup Navigation
+- [ ] Identify where to find each section in Setup (use Quick Find as shortcut)
+- [ ] From Setup, navigate to: Users, Object Manager, Security Center, Profiles, Roles
+- [ ] Use the Quick Find bar (top of Setup sidebar) to find settings quickly
 
-> **Checkpoint:** Company Information is now updated. These settings affect date formats, currency symbols, and fiscal year calculations throughout the org.
+## Key Validation Points
 
-### Part 3: Set Up My Domain
-
-My Domain creates a custom subdomain URL for your org (e.g., `certstudiolabs.my.salesforce.com`).
-
-1. In Quick Find, type `My Domain` and click **My Domain**.
-2. Under "My Domain Name," enter a subdomain name (e.g., `certstudiolabs-dev`).
-3. Click **Check Availability** to verify the subdomain is available.
-4. If available, click **Register Domain**.
-5. Wait 1–5 minutes for the domain to be provisioned. Salesforce will send an email when ready.
-6. Once the email arrives, return to My Domain in Setup.
-7. Click **Log in** under the "Test your login" section to test the new domain.
-8. Under **Deploy to Users**, click **Deploy to Users** → **OK**.
-
-> **Important:** My Domain is required for Lightning Experience, single sign-on (SSO), and Salesforce mobile. Always deploy My Domain before implementing SSO.
-
-> **Checkpoint:** Your org now has a custom subdomain. The URL in your browser should now show your custom domain.
-
-### Part 4: Create a Custom App in App Manager
-
-1. In Quick Find, type `App Manager` and click **App Manager**.
-2. Click **New Lightning App** in the top right.
-3. In the App Wizard, complete Step 1 (App Details):
-   - **App Name:** Sales Hub
-   - **Developer Name:** (auto-populated as Sales_Hub)
-   - **Description:** "Custom app for sales team productivity"
-   - **App Logo:** Upload an image if desired, or skip
-4. Click **Next**.
-5. Step 2 (App Options):
-   - Leave defaults (Navigation Type: Standard Navigation)
-   - Enable **Utility Bar:** Skip for now, click **Next**
-6. Step 3 (Utility Items): Skip, click **Next**
-7. Step 4 (Navigation Items) — Add the following tabs:
-   - Accounts
-   - Contacts
-   - Opportunities
-   - Reports
-   - Dashboards
-   - Tasks
-   - Use the arrow buttons to reorder tabs as desired
-8. Click **Next**.
-9. Step 5 (User Profiles):
-   - Add **System Administrator** profile (required to test the app)
-   - You can add other profiles later
-10. Click **Save & Finish**.
-
-> **Checkpoint:** The Sales Hub app now appears in the App Launcher. Navigate to the App Launcher (grid icon, top left) and click **Sales Hub** to switch to your new app.
-
-### Part 5: Customize the Navigation Bar
-
-1. Switch to the **Sales Hub** app (App Launcher → Sales Hub).
-2. In the top navigation bar, click the pencil/edit icon (may appear as "Customize Navigation Bar" when you hover over the nav bar).
-3. In the navigation bar editor:
-   - Confirm the tabs added in Part 4 appear
-   - Add **Cases** to the navigation: click **Add More Items**, search for Cases, add it
-   - Reorder items by dragging: move Accounts to the first position
-4. Click **Save**.
-5. Verify the navigation bar shows: Accounts | Contacts | Opportunities | Cases | Reports | Dashboards | Tasks
-
-> **Bonus:** Try clicking each tab to verify they load correctly. Notice that the navigation in Sales Hub is different from the default Salesforce app.
-
----
-
-## ✅ Verification Checklist
-
-Before marking this lab complete, verify each item:
-
-- [ ] Successfully signed up for and accessed a Developer Edition org
-- [ ] Company Name is set to "CertStudio Labs" (or your chosen name) in Company Information
-- [ ] Default Locale, Time Zone, and Currency are configured
-- [ ] My Domain is registered, tested, and deployed to users
-- [ ] The org URL in your browser reflects the custom My Domain subdomain
-- [ ] Sales Hub Lightning app is visible in the App Launcher
-- [ ] Sales Hub navigation bar includes: Accounts, Contacts, Opportunities, Cases, Reports, Dashboards, Tasks
-- [ ] You can switch between Sales Hub and other apps via the App Launcher
-
-## 💡 Bonus Challenges
-
-1. **App Logo:** Find a free icon image online and upload it as the Sales Hub app logo. Verify it appears in the App Launcher.
-
-2. **Utility Bar:** Edit the Sales Hub app in App Manager and add a Utility Bar item for "History" (Recently Viewed). Save and observe the utility bar at the bottom of the screen.
-
-3. **Second App:** Create a second Lightning app called "Service Hub" with: Cases, Accounts, Contacts, Reports, Dashboards tabs. Assign it to System Administrator.
-
-4. **Navigation Styles:** In App Manager, find the Sales Hub app and click "Edit." Explore the Navigation Style option. What is the difference between Standard Navigation and Console Navigation? Try switching to Console and observe the UI change.
-
-5. **Fiscal Year:** In Company Information, change the Fiscal Year Start Month to April. Navigate to an Opportunity report and notice how the fiscal quarter labels change. Then revert to January.
+After completing this lab, verify you can answer:
+- What is the Org ID and where is it found?
+- What is My Domain and why is it required?
+- What is the difference between a Developer Edition org and a Developer Sandbox?
+- Where do you create Lightning Apps and what can they contain?
+- What is the App Manager and what does it show?
