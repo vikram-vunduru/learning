@@ -4,232 +4,253 @@
 
 ---
 
-## Agent Anatomy — The Four Building Blocks
-
-| Block | What It Is | Where Configured |
-|-------|-----------|-----------------|
-| Identity | Name, company, persona tone | Identity section of agent setup |
-| Instructions | Global system prompt: persona, rules, escalation, exclusions | Instructions block (applies to ALL conversations) |
-| Topics | Conversation domains the agent can engage with | Topics section |
-| Actions | Callable operations within each Topic | Within each Topic |
-
-**Memory hook:** I-I-T-A — Identity, Instructions, Topics, Actions
+## Exam Weight Snapshot
+| Domain | Weight | Key Files |
+|--------|--------|---------|
+| Concepts & Architecture | 20% | L01–L03 |
+| Building Agents | 25% | L04–L07 |
+| Prompt Builder | 20% | L08–L10 |
+| Testing & Deployment | 15% | L11–L13 |
+| Use Cases | 20% | L14 |
 
 ---
 
-## Atlas Reasoning Engine Loop
-
+## Agent Anatomy (I-I-T-A)
 ```
-User Message
-     ↓
-  OBSERVE (read: message + history + Instructions + Topic descriptions + Action descriptions + prior action results)
-     ↓
-  REASON (which Topic matches? which Action within Topic? are inputs available?)
-     ↓
-  ACT (invoke selected Action, pass extracted parameters)
-     ↓
-  OBSERVE (read action output, update context)
-     ↓
-  [loop repeats until: response ready | escalation needed | max iterations reached]
-     ↓
-  Respond to user
+Agent
+├── Identity: name, company, persona tone
+├── Instructions: persona + behavioral rules + escalation + exclusions
+├── Topics: conversation domains (3–7 recommended)
+│   └── Actions: operations within Topics
+│       ├── Flow Action (Autolaunched Flow only, Active, vars checked)
+│       ├── Apex Action (@InvocableMethod + @InvocableVariable)
+│       ├── Prompt Template Action (Active Flex only)
+│       └── Knowledge Search Action
+└── Channels: Embedded Chat / Slack / API / Mobile / Email
 ```
 
-**Key insight:** Atlas reads Topic and Action DESCRIPTIONS to make routing decisions. Descriptions = the routing engine.
+**Limitations:**
+- 3–7 Topics recommended; more causes routing ambiguity
+- Every Topic + Action description loads in context window each turn
+- Instructions apply globally to ALL Topics
+
+---
+
+## Atlas ReAct Loop
+```
+OBSERVE (context: Instructions + Topics + Actions + history + prior results)
+  → REASON (Topic match? Action match? Inputs available?)
+      → No Topic: OOS response
+      → No inputs: clarifying question
+      → Matched: ACT (Flow / Apex / Prompt Template / Knowledge Search)
+          → OBSERVE result
+              → Done? → Respond
+              → More? → Loop (REASON again)
+```
+
+**Atlas routing = semantic matching of natural language descriptions. NOT keywords.**
+
+**Limitations:**
+- Max iterations per turn (prevents infinite loops; caps deep workflows)
+- Sequential only — cannot invoke Actions in parallel
+- Context window finite — long Instructions + many Actions = pressure
 
 ---
 
 ## Pre-Built Agent Templates
+| Template | Facing | Channel | Use Case |
+|----------|--------|---------|---------|
+| Service Agent | External customers | Embedded Chat | Case deflection, FAQ, order lookup |
+| SDR Agent | External prospects | **Email** | BANT qualification, meeting booking |
+| Sales Coach | **Internal reps** | SF UI / Slack | Call analysis, coaching feedback |
+| Custom Agent | Either | Any | Everything else |
 
-| Template | Facing | Use Case | Channel |
-|----------|--------|----------|---------|
-| Service Agent | External (customers) | FAQ, order status, case deflection, escalation | Embedded Chat, Mobile, API |
-| SDR Agent | External (prospects) | Inbound lead qualification, meeting booking | Email, Chat |
-| Sales Coach | Internal (reps) | Call recording analysis, coaching feedback | Salesforce, internal |
-| Custom Agent | Either | Any other use case | Any |
-
-**Exam trap:** SDR is external-facing to prospects. Sales Coach is internal-facing to reps. Do NOT confuse them.
-
----
-
-## Action Types — When to Use Each
-
-| Action Type | Use When | Requires |
-|-------------|----------|---------|
-| Flow Action | Most business logic, data retrieval, record operations | Autolaunched Flow (Active), Available for Input/Output variables |
-| Apex Action | HTTP callouts, complex logic, advanced error handling | `@InvocableMethod(description='...')`, `@InvocableVariable` |
-| Prompt Template Action | AI-generated text: summaries, emails, recommendations | Active Flex template |
-| Knowledge Search Action | FAQ, policy questions, article-based answers | Einstein Knowledge enabled, published articles |
-
-**Flow Action requirements checklist:**
-- [ ] Autolaunched Flow (NOT Screen Flow)
-- [ ] Flow is Active
-- [ ] Input variables: "Available for Input" checked
-- [ ] Output variables: "Available for Output" checked
-- [ ] Variable descriptions filled in
+**SDR = email channel. Sales Coach = internal only. Service Agent = NOT internal.**
 
 ---
 
-## Effective Descriptions — The Three-Part Formula
-
-Every Topic description and Action description should answer:
-1. **WHAT** — what does this Topic/Action cover or do?
-2. **WHEN** — what customer intent triggers this? (use phrases: "use when customer asks about...")
-3. **INPUTS** — what information does the Action need? (for Actions)
-
-**Topic description:** also include explicit **EXCLUSIONS** ("does NOT handle X — that uses the Y Topic")
-
-**Weak Action description:** `"Gets order data"`  
-**Strong Action description:** `"Retrieves the current status, delivery date, and tracking number for a customer order. Invoke when a customer asks where their order is, whether it shipped, or when it will arrive. Requires: orderNumber. Returns: status, estimatedDelivery, trackingNumber."`
+## Action Type Requirements
+| Action Type | Requirements | Common Mistake |
+|-------------|-------------|---------------|
+| Flow Action | Autolaunched (NOT Screen), Active, Available for Input/Output checked | Using Screen Flow |
+| Apex Action | @InvocableMethod, @InvocableVariable for each param | Missing annotations |
+| Prompt Template Action | Active Flex template only | Using inactive or wrong type |
+| Knowledge Search | Knowledge enabled, relevance 0.5–0.6 | Threshold too high (no results) |
 
 ---
 
-## Grounding Sources — Quick Reference
+## Topic and Action Description Formula
+```
+Topic description:
+  "This handles: [what]
+   Activate when: [user scenarios]
+   Do NOT activate for: [exclusions]"
 
-| Source | Best For | Notes |
-|--------|---------|-------|
-| Einstein Knowledge | General policies, FAQ, how-to articles | Most common; lowest setup complexity |
-| Data Cloud | Personalized, real-time customer data | High setup complexity; requires Data Cloud license |
-| File Search | Document-heavy content (PDFs, Word) | Medium complexity; less structured than Knowledge |
-| External Grounding | Non-Salesforce knowledge systems | Highest complexity; most flexible |
+Action description:
+  "Use this to: [what it does]
+   Call when: [specific scenarios]
+   Required inputs: [what Atlas needs]"
+```
 
-**RAG pattern:** Retrieve (semantic search) → Augment (add to prompt context) → Generate (LLM answers from content)
-
-**Relevance Score tuning:**
-- Too high (>0.8) → no articles returned → agent says "I don't know"
-- Too low (<0.3) → wrong articles returned → agent hallucinates from bad content
-- Start at 0.5–0.6, tune based on test results
-
----
-
-## Prompt Builder Template Types
-
-| Type | Output | Saved? | For Agentforce? |
-|------|--------|--------|----------------|
-| Field Generation | Record field value | Yes (saves to field) | No |
-| Flex | Any (Flow, Apex, Agent, API) | Depends on usage | YES (only Flex can be Agentforce Action) |
-| Record Summary | Record page UI panel | No (transient) | No |
-| Sales Email | Email compose window draft | No (until sent) | No |
-
-**Template anatomy:**
-- **System Prompt** = AI role/context, applies globally (STATIC)
-- **Template Body** = task instruction with merge fields (DYNAMIC per invocation)
-- **Grounding** = optional knowledge retrieval before generation
-
-**Merge field syntax:** `{!ObjectName.FieldName}` — the `!` is required
-
-**After deployment:** Templates arrive INACTIVE in target org — must manually Activate
+**Exclusions are the most commonly missing and most commonly exam-tested element.**
 
 ---
 
-## Einstein Trust Layer — The Five Controls
+## Prompt Template Types
+| Type | Saves Output? | Agent Action? | Use Case |
+|------|-------------|--------------|---------|
+| Field Generation | Yes → record field | No | AI value for a field |
+| **Flex** | No → returns text | **Yes** | Any flexible context |
+| Record Summary | No → transient | No | On-screen record summary |
+| Sales Email | No → email draft | No | Email compose draft |
 
-| Control | What It Does | Exam Scenario |
-|---------|-------------|---------------|
-| Data Masking | Masks PII (SSN, credit card, etc.) before prompt leaves Salesforce | "Prevent SSN from going to external LLM" |
-| Zero Data Retention | LLM provider discards data after processing (contractual) | "LLM provider won't use our data for training" |
-| Toxicity Detection | Blocks harmful input/output content | "Filter abusive customer messages" |
-| Audit Log | Records every LLM interaction for compliance review | "Audit trail for what AI said to customers" |
-| Grounding | RAG anchors responses to verified sources | "Reduce hallucination" |
+**Only Flex works as an Agentforce Action.**
 
-**Key distinction:** Zero Data Retention = LLM provider doesn't store. Salesforce DOES store conversation transcripts in your org.
+**Merge field syntax: `{!ObjectName.FieldName}` — exclamation point required.**
 
----
-
-## Testing — The Eight Test Case Categories
-
-1. **Happy Path** — clear, typical requests for each Topic
-2. **Alternate Phrasings** — same intent, different words (tests semantic matching)
-3. **Missing Parameters** — should ask clarifying question, not fail
-4. **Out-of-Scope** — should decline and redirect, not hallucinate
-5. **Ambiguous Intent** — should ask clarifying question or pick best match
-6. **Multi-Intent** — one message, multiple Topics (advanced routing)
-7. **Emotional Inputs** — frustrated/upset customers (tone handling)
-8. **Adversarial Inputs** — prompt injection attempts (should refuse)
+**Limitations:**
+- Related lists cannot be directly merged — use Flow pre-processing
+- Templates arrive INACTIVE after Change Set deploy — must activate manually
+- Only 2 levels of relationship traversal in merge fields
 
 ---
 
-## Four Agent Failure Modes
+## Einstein Trust Layer — Five Controls
+| Control | Direction | Key Fact |
+|---------|-----------|---------|
+| Data Masking | Outbound | Bidirectional; pattern-based; PII replaced with tokens |
+| Zero Data Retention | Contractual | LLM provider discards; Salesforce STILL stores transcripts |
+| Toxicity Detection | Both | Bidirectional; probabilistic (false positives/negatives) |
+| Audit Log | Both | Every interaction; must be enabled; NOT retroactive |
+| Grounding | Outbound | RAG: Retrieve → Augment → Generate |
 
-| Failure | Symptom | Fix |
-|---------|---------|-----|
-| Hallucination | Agent confidently states wrong facts | Add Knowledge grounding; add grounding-focused Instructions |
-| Wrong Action | Correct Topic but wrong Action invoked | Improve Action descriptions; add explicit differentiation |
-| Stuck in Loop | Agent asks same question repeatedly | Add alternate lookup paths; Instructions: escalate after N attempts |
-| Out-of-Scope | Agent answers questions it shouldn't | Add explicit out-of-scope Instructions |
+**ZDR ≠ Salesforce stores nothing. ZDR = LLM provider discards.**
 
-**Routing failures → fix descriptions first, restructure second**
+---
+
+## RAG (Grounding) Pattern
+```
+Retrieve: Knowledge Search / Data Cloud vector search / File Search
+Augment: Add retrieved content to assembled prompt
+Generate: LLM generates response grounded in retrieved facts (not hallucinated)
+```
+
+**Grounding sources:**
+- Einstein Knowledge → FAQ, policies, documentation
+- Data Cloud → personalized customer 360° profile
+- File Search → uploaded PDFs/documents
+- External → custom Apex callout
+
+**Limitations (Knowledge Search):**
+- Must add Knowledge Search Action explicitly to each Topic — not automatic
+- Relevance 0.5–0.6 recommended; too high = no results; too low = low-quality results
+- Max 3–5 articles per search; more increases context pressure
+
+---
+
+## Multi-Action Pattern (Flow + Prompt Template)
+```
+User request
+  → Flow Action (deterministic data retrieval)
+  → Prompt Template Action (AI synthesis of retrieved data)
+  → Personalized natural language response
+```
+Flow = gets data. Prompt Template = synthesizes text. Keep them separate.
+
+---
+
+## Eight Test Categories
+1. Happy path (standard flow, all inputs available)
+2. Alternate phrasings (same intent, different words)
+3. Missing parameters (required input not in message)
+4. Out of scope (agent should not handle)
+5. Ambiguous intent (could match multiple Topics)
+6. Multi-intent (one message, two requests)
+7. Emotional / escalation (frustrated user)
+8. Adversarial (manipulation, jailbreak attempts)
+
+---
+
+## Four Failure Modes
+| Failure | Root Cause | Fix |
+|---------|-----------|-----|
+| Hallucination | No grounding / insufficient Knowledge | Add Knowledge Search Action; improve articles |
+| Wrong Action | Vague/duplicate descriptions | Rewrite with specificity + exclusions |
+| Stuck in Loop | Missing unresolvable parameter; Action always errors | Fix param extraction; fix error handling |
+| Out-of-Scope | Topic scope too narrow; Instructions exclusion too broad | Broaden Topic description; review Instructions |
 
 ---
 
 ## Deployment Channels
-
-| Channel | Use Case Type | Key Config |
-|---------|--------------|------------|
-| Embedded Service Chat | Customer-facing (web) | Embedded Service + Omni-Channel escalation queue + code snippet |
-| Salesforce Mobile | Internal reps | Mobile app configuration |
-| Slack | Internal employees | Salesforce for Slack app installed |
-| API | Custom apps, third-party | OAuth 2.0, session management |
-| Email | SDR Agent | Email channel in agent settings |
-
-**One agent → multiple channels** (configure once, deploy to many)  
-**Licensing:** Per conversation (not per seat) | Simulator testing doesn't count
+| Channel | User | Key Requirement |
+|---------|------|----------------|
+| Embedded Chat | External customers | Omni-Channel queue required; JS snippet embedded |
+| Slack | **Internal only** | SF for Slack app installed in workspace |
+| API | Custom app users | OAuth 2.0; caller manages session |
+| Mobile | Customer or employee | No extra setup (native app) |
+| Email | SDR prospects | SDR Agent primarily |
 
 ---
 
 ## Agent Lifecycle
-
 ```
 Draft → Active → Deactivated
-         ↑              ↓
-    (reactivate)   (edit/update)
+                ↗ (reactivate)
 ```
-
-- **Draft:** Configuration only; simulator testing available
-- **Active:** Live conversations; changes take effect immediately (dangerous!)
-- **Deactivated:** Offline; edit safely
-
-**Safe update pattern:** Deactivate → Edit → Test in simulator → Reactivate  
-**Major update pattern:** Clone agent → Build/test clone → Swap (deactivate original, activate clone)
-
----
-
-## Use Case Decision Framework
-
-**Ask three questions:**
-1. Who is the user? (customer → Service or Custom; prospect → SDR; internal employee → Custom + Slack)
-2. What kind of interaction? (FAQ → Knowledge; data lookup → Flow; content generation → Prompt Template; record write → Flow)
-3. Is there a pre-built template? (customer service → Service Agent; lead qualification → SDR Agent; rep coaching → Sales Coach; everything else → Custom Agent)
-
-**Good use case fit indicators:** High volume ✓ | Well-defined process ✓ | Data available ✓ | Clear scope ✓  
-**Poor fit indicators:** Low volume ✗ | Regulatory accountability required ✗ | Undefined process ✗ | High-stakes decisions ✗
-
----
-
-## Most Common Exam Traps
-
-1. **SDR vs Service Agent:** SDR = external prospects + email. Service = customers + real-time chat. Never swap these.
-2. **SDR vs Sales Coach:** SDR = external, autonomous lead qualification. Sales Coach = internal, rep coaching. Opposite directions.
-3. **Record Summary vs Field Generation:** Record Summary = transient display, not saved. Field Generation = saved to field. Storage behavior is the differentiator.
-4. **Active Flex only:** Only Active Flex templates can be Agentforce Actions. Other types and inactive templates do not appear.
-5. **Deployed templates are Inactive:** After change set or SF DX deploy, templates must be manually Activated.
-6. **Screen Flow won't work:** Agentforce requires Autolaunched Flow. Screen Flow always fails.
-7. **Zero Data Retention ≠ no Salesforce storage:** ZDR is about LLM provider retention. Salesforce stores conversation transcripts.
-8. **Custom Agent for non-standard:** HR, field service, IT helpdesk, internal tools → always Custom Agent, no pre-built template.
-9. **Routing failures → descriptions, not code:** If Atlas routes to the wrong Topic or Action, fix the descriptions first.
-10. **Instructions = global only:** Never put topic-specific rules in Instructions. Frequently-updated content goes in Knowledge, not Instructions.
+- Simulator testing: NOT billable (any state)
+- Billing starts: Active only
+- Deactivation removes from ALL channels simultaneously
 
 ---
 
 ## Key Numbers
-
-| Item | Value |
+| Fact | Value |
 |------|-------|
-| Exam questions | 60 |
 | Pass score | 65% = 39/60 |
-| Time limit | 105 minutes |
-| Cost | $200 |
-| Recommended Topics per agent | 3–7 |
-| Recommended starting relevance score | 0.5–0.6 |
-| Recommended max articles per Knowledge Search | 3 |
-| Max related object traversal in merge fields | 5 levels |
+| Exam time | 105 minutes |
+| Exam cost | $200 |
+| Topics per agent (recommended) | 3–7 |
+| Knowledge relevance threshold | 0.5–0.6 |
+| Max Knowledge articles per search | 3–5 |
+| Human contact cost | $4–15 typical |
+| Agent cost per conversation | $0.10–0.50 typical |
+
+---
+
+## Critical Deployment Facts
+- Prompt Templates arrive **INACTIVE** after Change Set deploy → must activate manually
+- Screen Flows **cannot** be agent Actions → Autolaunched only
+- Draft Flows **don't appear** in Action picker → must be Active
+- Input/Output variables need **"Available for Input/Output" checked** in Flow Builder
+- Audit log must be **enabled before go-live** — not retroactive
+- ZDR = LLM provider discards; **Salesforce stores** conversation transcripts
+
+---
+
+## Use Case Fit Checklist
+All four YES = good fit:
+- [ ] High volume (100s–1,000s/day)
+- [ ] Well-defined process (clear right answers)
+- [ ] Data accessible in Salesforce
+- [ ] Bounded scope (3–7 Topics cover 60–70% of volume)
+
+**Anti-patterns:** Oracle (too broad), Data Entry Clerk (deterministic work), Legal Advisor (regulatory liability), All-Knowing FAQ (unbounded scope)
+
+---
+
+## Exam Traps (Top 15)
+1. SDR Agent = **email channel**, not Embedded Chat
+2. Sales Coach = **internal reps**, NOT customer-facing
+3. Screen Flow → **cannot** be agent Action
+4. Only **Flex** template works as Agentforce Action
+5. **ZDR** = LLM provider discards; Salesforce stores transcripts
+6. Data masking is **bidirectional** (outbound AND inbound)
+7. Toxicity detection is **bidirectional** (both directions)
+8. Topic descriptions **must have exclusions** (not just what it does)
+9. Merge field: **`{!Object.Field}`** — exclamation required
+10. Templates arrive **INACTIVE** after Change Set deploy
+11. Simulator testing: **NOT billable**
+12. Atlas routing = **semantic matching**, NOT keywords
+13. Instructions apply **globally** (not per Topic)
+14. **Audit log** must be enabled before launch (not automatic/retroactive)
+15. Knowledge Search Action must be **explicitly added** to each Topic

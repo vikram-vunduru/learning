@@ -1,385 +1,266 @@
-# Lecture 09: Omni-Channel Routing for Voice
+# Omni-Channel Routing for Voice
 
-## Learning Objectives
-- Describe the Service Cloud Voice routing architecture and how voice fits into the broader Omni-Channel framework
-- Configure skill-based routing, queues, and capacity models for voice channels
-- Explain agent state management including Available, Busy, and After Call Work states
-- Configure ACW (After Call Work) time and understand its impact on agent availability and capacity planning
-- Design a voice escalation path from an autonomous Agentforce agent to a human agent with context preservation
+## Exam Domain
+Setup & Configuration / Architecture — Agentforce Specialist (CRT-271)
 
----
+## Core Concepts
 
-## Slides
+### Omni-Channel Voice Routing Architecture
 
-### Slide 1: Omni-Channel and Voice — The Big Picture
-**Visual:**
 ```
-  Incoming Call
-       │
-       ▼
-  ┌────────────────────────────────────────┐
-  │          OMNI-CHANNEL ROUTING          │
-  │                                        │
-  │  1. Check: Is Agentforce Voice bot     │
-  │     available? ──Yes──▶ Bot handles    │
-  │          │                             │
-  │         No                             │
-  │          │                             │
-  │  2. Route to Queue                     │
-  │     (by skill, case type, language)    │
-  │          │                             │
-  │  3. Find available agent               │
-  │     (capacity model: voice=1 unit)     │
-  │          │                             │
-  │  4. Push to agent ──▶ Screen Pop fires │
-  └────────────────────────────────────────┘
-       │
-       ▼
-  Agent Status Machine:
-  Available ──▶ Busy (on call) ──▶ ACW ──▶ Available
-
-  UNIFIED CHANNEL ARCHITECTURE:
-  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-  │   Chat   │  │   Email  │  │  Voice   │  │  Social  │
-  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘
-       └──────────────┴─────────────┴──────────────┘
-                            │
-                   Single routing engine
-                   Single capacity model
-                   Single agent state machine
+Inbound Call (PSTN)
+    ↓
+Telephony Provider (Amazon Connect / Genesys / NICE)
+    ↓ Routes based on: DNIS, ANI, IVR selection
+Service Cloud Voice API
+    ↓
+Omni-Channel Routing Engine
+    ├── Check: Is an Agentforce Voice Agent assigned to this channel?
+    │   YES → Route to autonomous agent (bot capacity unit consumed)
+    │   NO  → Route to human agent queue
+    │
+    └── Human Queue Routing:
+        ├── Most Available (least # of conversations)
+        ├── Least Active (most free capacity remaining)
+        └── Skills-Based (match required skills to agent skills)
 ```
 
-**Content:**
-- Omni-Channel routes work items across all channels from a single engine
-- Voice is a first-class channel in Omni-Channel — same routing rules, same agent state management
-- Benefit: a single agent can handle voice + chat + email in a blended model
-- Routing engine evaluates: agent availability, skills match, priority, capacity, queue depth
-- Voice work items created automatically when a call arrives; treated like any other work item
-- Key difference from other channels: voice is synchronous and real-time — routing must happen in seconds
+**Omni-Channel treats voice as a work item, just like chat or email.** The routing logic is the same Omni-Channel routing engine — Skills-Based, Most Available, Least Active — applied to voice calls. The telephony provider handles the actual call setup; Omni-Channel handles who receives the work item.
 
-**Speaker Notes:** The key insight for architects is that adding Voice to Omni-Channel does not require a parallel routing infrastructure. The same routing engine that sends chat conversations and email cases to agents also routes voice calls. This is architecturally elegant and operationally powerful — you can have agents who handle voice during peak phone hours and switch to chat and email during lower call volume periods, all managed by a single capacity model.
+**Limitations:**
+- Voice calls consume 100% of an agent's Omni-Channel capacity by default (capacity cost = 1.0)
+- If an agent is on a voice call, no other work items route to them unless blended capacity is explicitly configured
+- Omni-Channel routing decisions and telephony call routing must be kept in sync — if they diverge, calls can ring without an available Omni-Channel slot
 
----
+### Skills-Based Routing for Voice
 
-### Slide 2: Skill-Based Routing for Voice
-**Visual:**
 ```
-  SKILL-BASED ROUTING ASSIGNMENTS
-  ┌──────────┬──────────────────────────────┬──────────────────────┐
-  │  Agent   │ Skills                       │ Queues Serviced      │
-  ├──────────┼──────────────────────────────┼──────────────────────┤
-  │  Agent A │ English, Billing, Tier-2     │ Billing-EN, Tier2    │
-  │  Agent B │ Spanish, Sales               │ Sales-ES             │
-  │  Agent C │ English, Technical, Tier-1   │ Tech-EN-T1           │
-  │  Agent D │ French, Billing              │ Billing-FR           │
-  └──────────┴──────────────────────────────┴──────────────────────┘
-
-  SKILL RELAXATION TIMELINE (example: Spanish Billing queue)
-  0s ──────────────────▶ 90s ──────────────▶ 150s ──────────────▶
-  Require:               Relax Billing:      Any available:
-  Spanish + Billing      Spanish only        route to next agent
-  (exact match)          (relax one skill)   (relax all skills)
-
-  Required skill:  call will NOT route to agent without this skill
-  Preferred skill: routing prefers agents with this skill; relaxes if no match
+Incoming Call: Customer speaks Spanish
+    ↓
+ANI Lookup → Account record → Language = Spanish
+    ↓
+Routing Configuration: Required skills = [Spanish Language]
+    ↓
+Omni-Channel queries: which Available agents have Spanish skill?
+    ├── Agent A: English (no match)
+    ├── Agent B: English + Spanish (MATCH)
+    └── Agent C: English + French (no match)
+    ↓
+Route to Agent B
+    ↓
+If no match found within SLA threshold:
+Skill Relaxation → route to English-only agent after N seconds
 ```
 
-**Content:**
-- Routing Skills defined in Setup > Omni-Channel > Skills
-- Skills assigned to agents individually or via Permission Sets / profiles
-- Queue configuration: each queue specifies required and preferred skills
-- **Required skill:** call will not route to agent without this skill
-- **Preferred skill:** routing prefers agents with this skill but will relax if no match available
-- Skill relaxation: configure how long to wait before relaxing skill requirements
-- Skills for voice: language, product area, escalation tier, technical specialty
+**Skill Relaxation** is the fallback when no skilled agent is available. It progressively removes required skills after configurable time thresholds to prevent calls waiting indefinitely.
 
-**Speaker Notes:** Skill-based routing for voice is identical in configuration to skill-based routing for any other channel — that is the beauty of the unified Omni-Channel model. Define your skills once, assign them to agents, attach them to queues, and the routing engine handles the rest. The skill relaxation configuration is particularly important for voice, because unlike email where a thirty-minute wait is acceptable, a caller waiting on hold for a Spanish-speaking agent may abandon if the wait exceeds two minutes. Configure relaxation timers to match your service level targets.
+**Skills configuration:**
+1. Setup → Omni-Channel → Skills → Create skills (e.g., Spanish, Billing, Technical)
+2. Setup → Users → [Agent] → Skills → Assign skills with skill level (1–10)
+3. Routing Configuration → Required Skills → add skill criteria
+4. Routing Configuration → Skill Relaxation → configure thresholds
 
----
+**Limitations:**
+- Skills-Based routing adds routing lookup latency (~100–300ms) compared to Most Available
+- Skill levels (1–10) allow routing to highest-skilled agents first, but this can create uneven load distribution
+- A skill configuration mistake (agent missing a skill) results in calls waiting until skill relaxation triggers, not an obvious error
 
-### Slide 3: Queue Configuration for Voice
-**Visual:**
+### Agent Capacity and Work Item Design
+
 ```
-  VOICE QUEUE CONFIGURATION
-  Setup > Queues > [Queue Name] > Routing Configuration
-  ┌──────────────────────────────────────────────────────────┐
-  │  Queue Name:        Billing Support Voice                │
-  │  Routing Config:    Skills-Based                         │
-  │  Skills Required:   [Billing]  [English]                 │
-  │  Skills Preferred:  [Tier-2]                             │
-  │  Overflow Action:                                        │
-  │    All agents busy? ──▶ ┌─────────────────────────────┐  │
-  │                         │ Option 1: Play wait message  │  │
-  │                         │ Option 2: Offer callback     │  │
-  │                         │ Option 3: Overflow to        │  │
-  │                         │          General Queue       │  │
-  │                         └─────────────────────────────┘  │
-  │  Expected Wait Time: calculated by Omni-Channel           │
-  │                      surfaced via Voice Flow Speak element│
-  └──────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│  CAPACITY MODEL: Voice vs. Other Channels                         │
+├──────────────────────────┬────────────────────────────────────────┤
+│  Channel                 │  Typical Capacity Cost Configuration   │
+├──────────────────────────┼────────────────────────────────────────┤
+│  Voice Call (default)    │  100% capacity (no other work)         │
+│  Live Chat               │  25% capacity (up to 4 concurrent)     │
+│  Email / Case            │  10% capacity (up to 10 concurrent)    │
+│  Blended Voice + Chat    │  Voice 80% + Chat 20% (edge case;      │
+│                          │  operational challenge in practice)    │
+└──────────────────────────┴────────────────────────────────────────┘
 
-  ROUTING TYPES:
-  ┌──────────────────┬──────────────────────────────────────┐
-  │  Most Available  │ Longest idle time → even distribution│
-  │  Least Active    │ Fewest work items → balanced load    │
-  │  Skills-Based    │ Best skill match → highest FCR ✓     │
-  └──────────────────┴──────────────────────────────────────┘
-  Recommended: Skills-Based with fallback to Most Available after relaxation
+Agent capacity total: 100 units (standard default)
+Voice call capacity cost: 100 units → agent fully occupied
+Chat capacity cost: 25 units → 4 simultaneous chats
 ```
 
-**Content:**
-- Queues created in Setup > Queues; Voice-enabled queues need a Routing Configuration
-- Routing Configuration types: Most Available, Least Active, Skills-Based
-- **Most Available:** routes to agent with longest idle time
-- **Least Active:** routes to agent with fewest open work items
-- **Skills-Based:** routes to best skill match within capacity
-- Overflow action: when all agents at capacity → play wait message, offer callback, or escalate to different queue
-- Expected wait time: Omni-Channel calculates and can surface to caller via Voice Flow Speak element
+**Limitations:**
+- Blended voice + chat capacity configuration is technically possible but operationally difficult — an agent cannot effectively read a chat message while speaking on a phone call
+- Capacity model is set per Routing Configuration, not per queue — changes affect all queues using that Routing Config
+- Bot capacity units for Agentforce autonomous agents are separate from human agent capacity units
 
-**Speaker Notes:** Queue configuration is where voice operations get sophisticated. The routing configuration type you choose has significant implications for agent utilization and customer wait time. Most Available tends to distribute calls more evenly across agents but may route to a less skilled agent. Skills-Based delivers better first-contact resolution but can create uneven load. For most implementations, I recommend Skills-Based routing with a fallback to Most Available after a skill relaxation timeout, which balances quality and efficiency.
+### Omni-Channel Agent States for Voice
 
----
-
-### Slide 4: Priority and Capacity Models
-**Visual:**
 ```
-  PRIORITY AND CAPACITY MODEL
-  ┌──────────────────────────────────────────────────────────┐
-  │  QUEUE PRIORITIES            AGENT CAPACITY MODEL        │
-  │                                                          │
-  │  Priority 1 (highest)        Voice = 10/10 units         │
-  │  ┌──────────────────────┐    ┌──────────────────────────┐│
-  │  │  VIP Voice Queue     │    │  Agent total: 10 units   ││
-  │  └──────────┬───────────┘    │  Voice call: 10 units    ││
-  │             │                │  → blocks all other work ││
-  │  Priority 2                  └──────────────────────────┘│
-  │  ┌──────────────────────┐                                │
-  │  │  Standard Voice      │    BLENDED CAPACITY (optional):│
-  │  └──────────┬───────────┘    ┌──────────────────────────┐│
-  │             │                │  Voice = 8 units         ││
-  │  Priority 3                  │  Chat  = 2 units (async) ││
-  │  ┌──────────────────────┐    │  Total: 10 units         ││
-  │  │  Email / Cases       │    └──────────────────────────┘│
-  │  └──────────────────────┘    ⚠ Pilot before deploying   │
-  │                                blended voice+async       │
-  │  Direct-to-agent routing: bypass queue for VIP / callback│
-  └──────────────────────────────────────────────────────────┘
+Agent State Machine (voice-specific path):
+
+OFFLINE ←──────────────────────────────────────────
+   │                                               │
+   │ (manual login)                                │ (manual logout)
+   ▼                                               │
+AVAILABLE ──[inbound call assigned]──▶ ON CALL ──[call ends]──▶ ACW
+   │                                                              │
+   │                                                              │ (ACW timer)
+   │ ◀────────────────────────────── [timer expires] ────────────┘
+   │
+   └──[manual]──▶ BREAK / LUNCH / TRAINING / OTHER (custom statuses)
+
+ACW = After Call Work (Wrap-Up) — agent finishes notes, updates case, closes loop
+ACW is timed — configurable duration per queue or routing configuration
 ```
 
-**Content:**
-- **Priority:** numeric value on queue (lower = higher priority); voice typically set higher than async channels
-- **Capacity model:** defines how much agent bandwidth a voice interaction consumes
-- Default: voice consumes 100% of capacity (agent can only handle one call at a time)
-- Custom capacity units: configure voice as 10 units of capacity where agent total = 10 (same effect)
-- Blended capacity: some organizations allow agents to handle one call + one chat simultaneously (requires careful UX design)
-- **Direct-to-agent routing:** bypass queue, route specific caller directly to a named agent (used for VIP or scheduled callbacks)
+**After Call Work (ACW) is critical for call center operations.** Without it, agents would have to take another call immediately before finishing the previous one. ACW gives them time to update the case record, write call notes, and set disposition codes.
 
-**Speaker Notes:** The capacity model for voice almost always sets voice at 100% of an agent's capacity — you simply cannot have a meaningful phone conversation while simultaneously handling another call. Where capacity modeling gets interesting is in the blended scenario: some operations allow agents to handle a voice call alongside a low-intensity asynchronous work item like an email. This can improve utilization metrics, but it risks call quality and customer satisfaction. Use blended capacity models only after pilot testing with agent feedback.
+**Limitations:**
+- ACW duration must be configured — if set to 0 or not configured, agents immediately return to Available after a call
+- If ACW time runs out before the agent finishes work, they return to Available and may receive a new call — this is a design decision, not a bug
+- Custom presence statuses (Break, Lunch, Training) must be created, then assigned to agent permission profiles before agents can select them
 
----
+### Queue Overflow and Callback
 
-### Slide 5: Agent State Management
-**Visual:**
 ```
-  AGENT STATE MACHINE
-  ┌───────────┐
-  │  Offline  │◀──────────────────────────────────────────┐
-  └─────┬─────┘   sign out                                │
-        │ sign in                                          │
-        ▼                                                  │
-  ┌───────────┐    call arrives    ┌──────────────────┐    │
-  │ Available │───────────────────▶│  Busy (on call)  │    │
-  │           │◀──────────────────┐└──────────────────┘    │
-  └───────────┘  ACW expires /     │  call ends            │
-                 manual end ACW    ▼                        │
-                             ┌───────────────────────────┐  │
-                             │  After Call Work (ACW)    │  │
-                             │  • Update case record     │  │
-                             │  • Add call notes         │  │
-                             │  • Select disposition     │  │
-                             │  • Send follow-up email   │  │
-                             └───────────────────────────┘  │
-                                                            │
-  Custom Statuses (all show as unavailable for routing):    │
-  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
-  │  Break  │  │  Lunch   │  │ Training │  │ Meeting  │────┘
-  └─────────┘  └──────────┘  └──────────┘  └──────────┘
-  All state changes are tracked and reportable
+Queue State:
+    All agents BUSY → Call enters Queue
+        ↓
+    Position in queue: 1, 2, 3...
+        ↓
+    Max Queue Size: [configurable] (calls after max → overflow action)
+        ↓
+    Overflow Actions (must be configured; none by default):
+    ├── Play Message + Disconnect
+    ├── Transfer to External Number (backup IVR or overflow center)
+    ├── Offer Callback: "We'll call you back when an agent is free"
+    └── Transfer to Another Queue
+
+Callback Feature (Salesforce Service Cloud Voice):
+    Customer agrees to callback
+        ↓
+    Salesforce creates a Scheduled Callback record
+        ↓
+    When agent becomes Available → automatic outbound call placed
+        ↓
+    Agent receives callback work item in Omni-Channel
 ```
 
-**Content:**
-- **Offline:** agent not signed into Omni-Channel; no work routed
-- **Available:** agent signed in and open to receive work; subcategory per channel (Available for Voice, Available for Chat)
-- **Busy:** agent currently handling a work item; new work not routed (unless blended capacity allows)
-- **After Call Work (ACW):** post-call state for disposition, notes, case update; configurable duration
-- **Custom statuses:** Break, Lunch, Training, Meeting — all show as unavailable for routing purposes
-- State changes are tracked and reportable; used in workforce management and adherence reporting
-- Supervisors can view all agent states in real time in the Supervisor Console
+**Limitations:**
+- Queue overflow actions must be explicitly configured — if not set, calls may simply ring with no answer behavior
+- Callback feature requires additional configuration: outbound dial plan, phone number to call from, business hours
+- Amazon Connect queue overflow handling can also be configured in the Amazon Connect Contact Flow — be careful not to create conflicting overflow logic in both systems
 
-**Speaker Notes:** Agent state management is the operational heartbeat of a contact center. When an agent is in ACW, they are not receiving new calls — that is protected time for them to complete their post-call work. If ACW is too short, call quality and CRM data completeness suffer. If it is too long, queue depths grow and wait times increase. Finding the right ACW duration for your team is an iterative process that starts with measurement, which we cover in the Monitoring lecture.
+### Omni-Channel Supervisor Features
 
----
-
-### Slide 6: After Call Work Configuration
-**Visual:**
 ```
-  ACW CONFIGURATION
-  Setup > Omni-Channel > Service Channels > Voice > ACW Settings
-  ┌──────────────────────────────────────────────────────────┐
-  │  ACW Time Limit:        60 seconds  (configurable)       │
-  │  ACW Type:              ● Fixed  ○ Manual                │
-  │  Auto-Route After ACW:  ● Yes    ○ No                    │
-  │  Channels Using ACW:    ☑ Voice   ☑ Chat   ☐ Email       │
-  └──────────────────────────────────────────────────────────┘
+SUPERVISOR CONSOLE REAL-TIME VIEW:
 
-  RECOMMENDED ACW DURATION BY CALL TYPE:
-  ┌────────────────────────────────┬────────────────────────┐
-  │  Call Type                     │ Recommended ACW        │
-  ├────────────────────────────────┼────────────────────────┤
-  │  Simple inquiry                │ 30-45 seconds          │
-  │  Standard support              │ 45-60 seconds          │
-  │  Complex / case creation       │ 90-120 seconds         │
-  │  Escalation documentation      │ 90-120 seconds         │
-  └────────────────────────────────┴────────────────────────┘
-  Baseline: start at 60 seconds
-  Measure: actual wrap-up time via call recording review and reporting
-  Adjust: quarterly based on median actual wrap-up time
+┌────────────────────────────────────────────────────────────────┐
+│  QUEUE STATUS                                                  │
+│  Queue: Voice Technical Support                                │
+│  Calls in Queue: 3   Longest Wait: 1:47   Avg Wait: 0:52       │
+│                                                                │
+│  AGENT STATUS                                                  │
+│  ┌────────────────┬──────────────┬─────────────────────────┐  │
+│  │ Agent          │ Status       │ Current Work Item       │  │
+│  ├────────────────┼──────────────┼─────────────────────────┤  │
+│  │ J. Smith       │ On Call      │ Call: Jane Doe 2:31     │  │
+│  │ M. Johnson     │ ACW          │ Wrap-up: 0:45 remaining │  │
+│  │ T. Williams    │ Available    │ (idle)                  │  │
+│  │ A. Kumar       │ Break        │                         │  │
+│  └────────────────┴──────────────┴─────────────────────────┘  │
+│                                                                │
+│  [Listen] [Barge] [Whisper]  ← voice monitoring controls      │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-**Content:**
-- Configure ACW duration in Setup > Omni-Channel > Service Channels > Voice
-- **Fixed duration:** agent automatically exits ACW after X seconds
-- **Manual:** agent manually ends ACW when done; at risk of agent extending ACW indefinitely
-- **Auto-end + auto-route:** next work item pushed to agent automatically when ACW expires
-- Typical ACW for voice: 30-90 seconds depending on call complexity
-- Short calls (simple inquiries): 30-45 seconds ACW
-- Complex calls (case creation, escalation documentation): 90-120 seconds ACW
-- Recommendation: start with 60 seconds, measure actual wrap-up time, adjust quarterly
+**Limitations:**
+- Supervisor console real-time data refreshes on a polling interval — not true instantaneous display
+- Listen/Barge/Whisper are telephony capabilities enabled by the telephony provider — Salesforce surfaces the controls but the feature depends on Amazon Connect (or partner) support
+- Historical reports (Omni-Channel reports in CRM Analytics) have reporting lag — not the same as real-time supervisor console
 
-**Speaker Notes:** ACW duration is one of those configuration decisions that looks minor but has significant operational impact. Too short and agents rush their notes, creating incomplete case records that require follow-up. Too long and you are paying agents to sit idle. The right approach is to monitor actual wrap-up time through call recording review and reporting — then set your ACW limit slightly above the median actual wrap-up time to give most agents enough room while limiting outliers.
+### Routing Priority Between Bot and Human Queue
 
----
-
-### Slide 7: Voice Escalation — Autonomous Agent to Human Agent
-**Visual:**
 ```
-  VOICE ESCALATION: AUTONOMOUS AGENT → HUMAN AGENT
-  ┌──────────────────────────────────────────────────────────┐
-  │  Agentforce             VoiceCall Record   Human Agent   │
-  │  Autonomous Agent           (context)       Desktop      │
-  │       │                         │               │        │
-  │  Escalation trigger             │               │        │
-  │  • Caller: "speak to agent"     │               │        │
-  │  • Low confidence threshold     │               │        │
-  │  • Sentiment drop               │               │        │
-  │  • Specific intent (legal,      │               │        │
-  │    complaint, billing dispute)  │               │        │
-  │       │                         │               │        │
-  │       ├──write context─────────▶│               │        │
-  │       │  • Conversation         │               │        │
-  │       │    transcript           │               │        │
-  │       │  • Detected intent      │               │        │
-  │       │  • Escalation reason    │               │        │
-  │       │  • Collected data fields│               │        │
-  │       │                         │               │        │
-  │       ├──Transfer to Agent──▶ Omni-Channel ────▶│        │
-  │       │                      routing            │        │
-  │                                         Screen Pop fires │
-  │                                         Agent Assist ON  │
-  └──────────────────────────────────────────────────────────┘
-  Caller hears: "Connecting you to a specialist who has your history"
-  Agent sees: customer record + conversation summary + reason for escalation
+Typical Routing Hierarchy:
+    ┌─────────────────────────────────────────────────────┐
+    │  Inbound Call (via DNIS / IVR selection)            │
+    │      ↓                                              │
+    │  Business Hours Check (Routing Config)              │
+    │      ├── Business Hours: Route to Agent Queue       │
+    │      │   Agentforce Voice Agent (autonomous)        │
+    │      │       → escalates to Human Queue if needed   │
+    │      │                                              │
+    │      └── After Hours: Route directly to Human Queue │
+    │          (all calls queued for next business day    │
+    │           or overflow to voicemail/external number) │
+    └─────────────────────────────────────────────────────┘
+
+For VIP callers (Skills-Based):
+    ├── VIP Account: route to Priority Queue (shorter SLA)
+    └── Standard Account: route to Standard Queue
 ```
 
-**Content:**
-- Escalation triggers in autonomous agent: caller request ("speak to an agent"), low confidence, sentiment threshold, specific intent (complaints, legal, billing dispute)
-- Transition mechanism: Agentforce agent invokes Transfer to Agent Flow element
-- Context preservation: full conversation transcript, detected intent, collected data fields passed via VoiceCall record
-- Agent receives: screen pop with customer record, conversation summary, reason for escalation
-- Post-escalation: Agent Assist mode activates automatically on escalated calls (configurable)
-- Graceful escalation: agent hears "I am connecting you to a specialist who has your conversation history" — no repetition required
+**Limitations:**
+- Business hours routing is configured in the Routing Configuration or Omni-Channel Flow — not in Agentforce Studio
+- After-hours voicemail requires a telephony-layer action (e.g., Amazon Connect Contact Flow "Play Prompt + Record" block) — Salesforce Omni-Channel does not natively provide voicemail
+- Priority queues require separate Routing Configurations with higher priority values — just putting high-tier calls in a separate queue doesn't give them priority without setting priority values
 
-**Speaker Notes:** The escalation path is where the entire voice architecture comes together. When an autonomous agent transfers a call to a human, the quality of that handoff determines whether the caller experiences a seamless upgrade or a frustrating restart. The critical piece is context preservation — the human agent must see the conversation history, the detected intent, and any data the caller provided to the autonomous agent, so they can continue the conversation rather than starting over. This requires deliberate configuration: the Agentforce agent must write context to the VoiceCall record, and the screen pop must be configured to surface that record to the receiving agent.
+## PTA / SA Relevance
 
----
+**Omni-Channel routing for voice is an operations design problem as much as a technical one.** Getting routing right requires understanding the customer's workforce management model, their SLA targets, and their agent skill structure. This is a common gap in partner implementations — voice gets configured as "just another work item" without the operational nuance that telephony routing requires.
 
-## Recording Script
+**Common partner mistakes:**
+- Not configuring ACW timers, resulting in agents returning to Available before finishing case updates — this produces data quality issues in post-call records
+- Using Most Available routing for voice without considering skill specialization — results in generalists receiving specialist calls
+- Configuring queue overflow actions as "Transfer to another queue" without realizing the second queue is also at capacity — creating a circular overflow problem
+- Not aligning Omni-Channel routing with the telephony provider's queue configuration — a call can be routed to an Omni-Channel queue but the telephony still rings the wrong agents if the provider's routing is different
 
-Welcome to Lecture 9. We are going to cover how voice routing works in Salesforce Omni-Channel — the routing engine that handles all channels from a single control plane, including voice.
+**Enterprise-scale considerations:**
+- At 50+ queues and 500+ agents, routing configuration becomes a management challenge — use Routing Configuration templates and document the skill taxonomy before building
+- Skills-Based routing with 20+ skills creates a combinatorial problem — simplify skill categories before implementation (broad skills route faster; highly granular skills cause more wait time from skill relaxation events)
+- ACW time standards should come from the workforce management team — they have historical data on actual wrap-up times per call type
 
-Let me start with the architectural point that is most important to understand: voice is not a separate routing system. Service Cloud Voice feeds calls into the same Omni-Channel routing engine that handles chat, email, messaging, and cases. This is a significant design decision by Salesforce, and it has major operational benefits. It means a single configuration — your queues, your skills, your capacity rules — governs how all work reaches your agents, regardless of channel. It means agents can be configured to handle voice during peak call periods and switch to asynchronous channels during quieter periods, with the routing engine managing that transition automatically.
+**For a customer with a legacy ACD (Automatic Call Distributor):** "We're not replacing your ACD's routing logic — we're bringing that logic into Salesforce so it can use CRM context. Today your routing is: caller selects 1, 2, or 3. After this project: caller says 'billing' and the routing already knows they're a VIP with an open case and routes directly to your billing specialists."
 
-So how does voice routing actually work? When a call arrives through your telephony provider — Amazon Connect, Genesys, or NICE CXone — Service Cloud Voice creates a Voice Call record and a work item in Omni-Channel. That work item is then subject to the same routing logic as any other work item: queue priority, skill matching, agent capacity, and agent state.
+## Customer Advisory Tips
 
-Let us walk through skill-based routing, because this is the most common configuration for voice in enterprise contact centers. You define routing skills in Setup — things like language proficiency, product specialization, or support tier. You assign those skills to agents. You configure queues to require certain skills and prefer others. When a call arrives, the routing engine finds available agents whose skills match the queue's requirements, then selects the best match based on your routing configuration — most available, least active, or skills-based.
+**ACW timer calibration is a workforce management decision, not a technical one.** Too short: agents feel rushed, case notes are incomplete. Too long: agents game the system by staying in ACW. Get the WFM team's input on the right duration for each call type.
 
-The skill relaxation feature is particularly important for voice. Unlike an email that can wait in a queue for thirty minutes, a caller on hold will abandon if they wait too long. Skill relaxation lets you define how long to hold out for a perfectly skilled agent before expanding the match criteria. For example: require a Spanish-speaking, billing-specialized agent for the first ninety seconds; after that, relax to any Spanish-speaking agent; after another sixty seconds, route to any available agent.
+**Skills-Based routing skill taxonomy best practice:**
+- Start with 5–10 broad skills (language, product line, specialization)
+- Add skill levels only if you have agents with measurably different capability levels
+- Document which skills can be relaxed and after how many seconds — this becomes part of your SLA design
 
-Queue configuration for voice adds one important capability: overflow actions. When all agents are at capacity, your queue can play a hold message and estimate wait time — you can feed the expected wait time into a Voice Flow Speak element so callers hear "Your estimated wait time is four minutes." You can offer a callback option, which creates a scheduled callback record in Salesforce. Or you can overflow to a different queue with looser skill requirements.
+**Queue overflow design:** Every queue must have an overflow action. "No overflow configured" means calls ring unanswered when all agents are busy. Common enterprise standard: offer callback after 3 minutes in queue, then message + disconnect after 10 minutes.
 
-Now let us talk about agent state management, which is the operational heartbeat of your call center. Agents exist in a state machine: Offline, Available, Busy, After Call Work, and custom statuses like Break or Training. When an agent is Available, the routing engine can push voice calls to them. When they are Busy on a call, they are not available for additional calls (in most configurations). When a call ends, the agent transitions to After Call Work.
+**When Skills-Based routing is overkill:**
+- Fewer than 30 agents
+- Agents are generalists (same skill set)
+- Call types are not meaningfully different
+In these cases, Most Available is simpler and has less configuration overhead.
 
-After Call Work is protected time for the agent to complete post-call tasks: updating the case record, adding call notes, sending a follow-up email, or creating a task for a colleague. The duration of ACW is configurable per service channel. You can set a fixed time limit — say, sixty seconds — after which the agent automatically becomes available again. Or you can configure it as manual, where the agent ends ACW themselves when they finish. For most operations, a fixed time limit prevents ACW from becoming an extended break while still giving agents enough time to complete their wrap-up work.
+## Key Facts to Memorize
+- Omni-Channel treats voice calls as work items — same routing engine as chat and email
+- Voice capacity cost default = 100% (no other work items while on a call)
+- ACW (After Call Work) = timed wrap-up period; must be configured with duration
+- Skills-Based routing uses skill relaxation to prevent indefinite wait when no skilled agent available
+- Supervisor Listen/Barge/Whisper = telephony provider capability; Salesforce surfaces the controls
+- Bot capacity units (autonomous agent) are separate from human agent capacity units
+- Queue overflow actions must be explicitly configured — no default behavior
 
-I want to spend a moment on the escalation path from an autonomous Agentforce voice agent to a human agent, because this is where routing, agent state, and context preservation all converge.
+## Exam Traps
+- "Voice calls are routed by Agentforce Studio" → False — routing is handled by Omni-Channel routing engine and telephony provider
+- "ACW automatically gives agents unlimited time to finish notes" → False — ACW has a configurable timer; when it expires, agent returns to Available
+- "Skills-Based routing always routes faster than Most Available" → False — Skills-Based adds routing lookup time; if no skilled agent is available, skill relaxation adds wait time
+- "Supervisor listen/barge/whisper is configured in Salesforce Setup" → Partially — controls appear in Salesforce, but the underlying feature requires telephony provider support (Amazon Connect supervisor monitoring)
+- "Queue overflow is handled automatically by Omni-Channel" → False — overflow actions must be explicitly configured; no default overflow behavior exists
 
-When an autonomous agent decides to escalate — because the caller asked to speak to a human, because the agent's confidence is too low, or because a configured trigger fired — it invokes the Transfer to Agent element. That element routes the call to the appropriate Omni-Channel queue based on the escalation reason. But before handing off, the agent writes context to the VoiceCall record: the conversation transcript, the detected intent, the reason for escalation, and any data fields the caller provided.
+## Practice Questions
 
-When the human agent accepts the call, their screen pops with the customer record and the VoiceCall record — including all that context. Agent Assist mode activates automatically on escalated calls (configurable), so the AI immediately begins surfacing suggestions based on the conversation history. The caller hears something like "I am connecting you now to a specialist who has your information" — and when the agent answers, they do not need to ask the caller to repeat themselves because everything is already on their screen.
+**Q:** An Omni-Channel routing configuration is set to Skills-Based routing for voice. A Spanish-speaking caller is waiting, but no Spanish-skilled agent is available. After 3 minutes, the call is routed to an English-only agent. What configuration caused this behavior?
+**A:** Skill relaxation is configured with a 3-minute threshold. After 3 minutes with no matching skilled agent, Omni-Channel removes the Spanish language skill requirement and routes to any available agent. This is expected and correct behavior if designed that way.
 
-That handoff experience — seamless, context-preserving, AI-assisted — is the gold standard for voice escalation, and it is achievable with proper configuration of these three components: Voice Flows, VoiceCall record field population, and screen pop rules.
+**Q:** An administrator needs to ensure that when all agents are busy, callers have the option to receive a callback rather than waiting indefinitely. Which feature and where is it configured?
+**A:** Configure queue overflow in the Routing Configuration or Omni-Channel Flow. Set the overflow action to "Offer Callback" after a defined queue wait time threshold. Salesforce creates a Scheduled Callback record, and the outbound call is placed automatically when an agent becomes available.
 
----
-
-## Exam Tips
-- Voice is a first-class Omni-Channel channel — the same routing engine, queues, and skills model applies to voice as to chat and email
-- Skill relaxation for voice is critical because callers abandon queues faster than async channel users
-- After Call Work duration should be configured based on measured actual wrap-up time, not guesswork
-- Direct-to-agent routing bypasses the queue and is used for VIP callers or scheduled callbacks
-- Context preservation during escalation requires the Agentforce agent to write to the VoiceCall record before invoking Transfer to Agent
-- Agent Assist mode can be configured to activate automatically when an autonomous agent escalates to a human
-
----
-
-## Lecture Summary
-- Voice integrates into Omni-Channel as a first-class channel, using the same routing engine, queues, and skill assignments as chat and email
-- Skill-based routing with configurable relaxation timers balances skill match quality against acceptable wait time for voice
-- Queue overflow actions for voice include hold with wait time estimate, callback scheduling, and overflow to alternate queue
-- Agent state machine (Offline → Available → Busy → After Call Work) governs when calls are routed; ACW provides protected post-call wrap-up time
-- ACW duration should be set based on measured actual wrap-up time; typical range is 30-90 seconds for voice
-- Voice escalation from autonomous agent to human requires context written to VoiceCall record, with screen pop and optional auto-enabled Agent Assist on the receiving end
-
----
-
-## Mini Quiz
-
-**Q1:** A Spanish-speaking, billing-specialized agent is on a call. A new Spanish-speaking caller enters the billing queue, but no other agents with both skills are available. Which configuration ensures the caller is routed within 90 seconds rather than waiting indefinitely?
-
-A) Set queue priority to highest  
-B) Configure skill relaxation to drop the billing skill requirement after 90 seconds  
-C) Configure ACW to 0 seconds so the current agent becomes available sooner  
-D) Set the routing type to Most Available  
-
-**Answer:** B — Skill relaxation allows you to define a wait threshold after which one or more required skills are dropped from the routing match criteria, enabling the call to route to any Spanish-speaking available agent rather than waiting indefinitely for the full skill match.
-
----
-
-**Q2:** An autonomous Agentforce voice agent has just determined a caller's issue requires human intervention. What must the agent do before invoking the Transfer to Agent element to ensure a seamless handoff?
-
-A) End the call and send the caller a case number via SMS  
-B) Write conversation transcript, detected intent, and escalation reason to the VoiceCall record  
-C) Create a new Case record and assign it to the receiving agent  
-D) Play a hold message while the routing engine searches for agents  
-
-**Answer:** B — Context preservation requires that the autonomous agent populate the VoiceCall record with the conversation history and escalation context before the transfer. The receiving agent's screen pop reads this record, enabling them to continue the conversation without asking the caller to repeat information.
-
----
-
-**Q3:** A contact center manager notices agents are extending After Call Work indefinitely, causing queue depths to increase. What is the recommended configuration change?
-
-A) Remove After Call Work from the voice channel entirely  
-B) Set a fixed ACW time limit in the Voice Service Channel settings  
-C) Reduce agent capacity to force faster call acceptance  
-D) Increase queue priority to override ACW  
-
-**Answer:** B — Setting a fixed ACW time limit in the Voice Service Channel configuration causes the agent to automatically transition to Available status when the timer expires, preventing indefinite extension of wrap-up time while still giving agents protected time for post-call tasks.
+**Q:** An Agentforce Voice agent handles 80% of calls autonomously. When it escalates to a human agent, the human receives the call but sees no context from the automated conversation. What is the most likely cause?
+**A:** The Transfer action in the voice agent (or autolaunched Flow) is configured for cold transfer instead of warm transfer. Warm transfer must be selected in the Voice Channel card's escalation settings to pass the VoiceCall record context and transcript to the receiving human agent.

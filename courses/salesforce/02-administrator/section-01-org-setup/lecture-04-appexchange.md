@@ -1,275 +1,104 @@
-# L04: AppExchange
+# AppExchange
 
-## 🎯 Learning Objectives
-- Explain what AppExchange is and how it fits into the Salesforce ecosystem
-- Distinguish between managed and unmanaged packages and their implications
-- Describe the AppExchange security review process and license management
+## Exam Domain
+Configuration & Setup — 20% of exam
 
-## 📊 SLIDES
+## Core Concepts
 
-### Slide 1: What Is AppExchange?
-**Visual:**
+AppExchange is Salesforce's marketplace for pre-built apps, components, flows, and solutions built by Salesforce partners. Think of it as the App Store for Salesforce. The exam tests the mechanics of installing packages and the difference between managed and unmanaged packages.
+
+**Two package types:**
+
+| | Managed Package | Unmanaged Package |
+|---|---|---|
+| Code visible? | No (obfuscated) | Yes (open source) |
+| Upgradeable? | Yes (publisher can push updates) | No (you own the code) |
+| Installed namespace? | Yes (e.g., `mypkg__FieldName__c`) | No namespace |
+| Locked fields? | Yes (can't edit managed components) | No (fully customizable) |
+| Who uses it? | ISV commercial apps | Templates, samples, free tools |
+
+**Lightning Managed App (LMA):** The tool ISVs use to manage licenses for their managed packages. LMA lives in the publisher's org, not the customer's. As a customer admin, you don't interact with LMA directly.
+
+**Installation flow:**
+1. Find app on AppExchange
+2. Log into the target org from AppExchange (choose Production or Sandbox)
+3. Select install for: Admins Only / All Users / Specific Profiles
+4. Configure security access (profile permissions for installed objects/tabs)
+5. After install: configure the app per instructions
+
+**Security review:** All AppExchange apps go through Salesforce security review before listing. This doesn't mean they're perfectly safe for your org's data — you still need to review what data they access.
+
+## PTA / SA Relevance
+
+AppExchange decisions come up in every implementation. The key architectural questions:
+
+1. **Build vs Buy:** Can we get 80% of the functionality from an AppExchange app and customize the remaining 20%? Or is the business logic so custom that we'd spend more time bending the ISV product than building it ourselves?
+
+2. **Managed package risks:** Managed packages add dependencies to your org. Upgrades can break your customizations if you've built logic against the package's API. Uninstalling a managed package that has data associated with it requires a data migration plan.
+
+3. **Namespace pollution:** Managed packages introduce namespaced fields (e.g., `mypkg__Custom_Field__c`). This affects every report, flow, and integration that references those fields. In complex orgs with multiple installed packages, namespace management becomes an architecture concern.
+
+4. **Security and data access:** When you install an AppExchange app, you're granting that code access to your org. Always review: what objects does it query? Does it send data to external endpoints? This is especially important for financial services or healthcare customers with compliance requirements.
+
+## Architecture / How It Works
+
 ```
-  ┌──────────────────────────────────────────────────────────────────────────┐
-  │  appexchange.salesforce.com                                              │
-  ├──────────────────────────────────────────────────────────────────────────┤
-  │  🔍  [ Search apps, components, and more...                    ]        │
-  ├─────────────────┬──────────────────┬───────────────┬─────────────────────┤
-  │   📊  Sales     │   🎧  Service    │  📣 Marketing │   🔧  IT & Admin    │
-  ├─────────────────┴──────────────────┴───────────────┴─────────────────────┤
-  │  FEATURED LISTINGS                                                       │
-  │  ┌────────────────────────────┐    ┌────────────────────────────┐        │
-  │  │  DocuSign eSignature       │    │  Conga Composer            │        │
-  │  │  ★★★★★  4.9  FREE TRIAL   │    │  ★★★★☆  4.6  PAID         │        │
-  │  └────────────────────────────┘    └────────────────────────────┘        │
-  │  7,000+ solutions  ·  Published by Salesforce, ISVs & community devs    │
-  └──────────────────────────────────────────────────────────────────────────┘
+AppExchange Package Architecture
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  PUBLISHER ORG                    CUSTOMER ORG
+  ┌──────────────────┐             ┌──────────────────────┐
+  │  Develop app     │             │                      │
+  │  Pass security   │  Install    │  Managed Package     │
+  │  review          │ ──────────► │  (namespaced)        │
+  │  List on         │             │  - Objects           │
+  │  AppExchange     │             │  - Fields            │
+  │                  │             │  - Code (obfuscated) │
+  │  LMA (license    │             │  - Tabs              │
+  │  management)     │             │                      │
+  └──────────────────┘             │  Can receive updates │
+                                   │  from publisher      │
+                                   └──────────────────────┘
+
+  Unmanaged Package:
+  Source Org → Package → Customer Org
+  (code visible, no namespace, no updates)
 ```
-**Content:**
-- **AppExchange** is Salesforce's marketplace for pre-built apps, components, and solutions
-- Hosted at **appexchange.salesforce.com**
-- Listings include: Apps, Components, Lightning Bolt Solutions, Flow Templates, and more
-- Over 7,000 solutions available; includes both free and paid listings
-- Published by Salesforce, Salesforce partners (ISVs), and community developers
-**Speaker Notes:** Think of AppExchange as the App Store or Google Play for Salesforce. Instead of building every feature from scratch, you can find pre-built solutions for common business needs — HR management, document generation, e-signatures, marketing automation, and thousands more. Some are free, some are paid, and many offer a free trial period so you can test before you buy.
 
-### Slide 2: Types of AppExchange Content
-**Visual:**
-```
-  ┌──────────────────────────────────────┬──────────────────────────────────────┐
-  │  📦  APPS                            │  🧩  COMPONENTS                      │
-  ├──────────────────────────────────────┼──────────────────────────────────────┤
-  │  Full-featured applications          │  Individual LWC or Aura blocks        │
-  │  (e.g., HR mgmt, e-signatures,       │  dropped onto App Builder pages;      │
-  │  document generation)                │  smaller, reusable building blocks    │
-  ├──────────────────────────────────────┼──────────────────────────────────────┤
-  │  ⚡  LIGHTNING BOLT SOLUTIONS        │  ➡  FLOW TEMPLATES                   │
-  ├──────────────────────────────────────┼──────────────────────────────────────┤
-  │  Industry-specific starter kits      │  Pre-built automations ready to      │
-  │  bundling community + app + flows    │  deploy or customize immediately     │
-  └──────────────────────────────────────┴──────────────────────────────────────┘
-           Also listed: 🤝  Consultants — Salesforce-certified impl. partners
-```
-**Content:**
-- **Apps:** Full-featured applications (e.g., a complete HR management app)
-- **Components:** Individual Lightning Web Components or Aura components to embed in pages
-- **Lightning Bolt Solutions:** Industry-specific starter templates (community + app + flows)
-- **Flow Templates:** Pre-built flows for automation that you can install and customize
-- **Consultants:** Salesforce-certified implementation partners (also listed on AppExchange)
-**Speaker Notes:** Not everything on AppExchange is a full app. Components are smaller building blocks you drop onto a page in Lightning App Builder. Lightning Bolt Solutions are end-to-end templates designed for specific industries like Financial Services or Healthcare. Flow Templates are ready-made automations you can deploy immediately or use as a starting point. The exam may ask you to identify the right AppExchange asset type for a given scenario.
+**Limitations:**
+- Managed package components cannot be modified — if you need to change logic, you're dependent on the ISV
+- Uninstalling a managed package does not automatically delete its data — the objects/fields may remain as unused metadata
+- Security review by Salesforce does not guarantee the app is safe for all compliance frameworks (HIPAA, PCI, etc.)
+- Some AppExchange items require specific Salesforce editions — always check compatibility
 
-### Slide 3: Managed vs. Unmanaged Packages
-**Visual:**
-```
-  ┌────────────────────────────────────────┬────────────────────────────────────────┐
-  │        MANAGED PACKAGE  🔒             │       UNMANAGED PACKAGE  🔓            │
-  ├────────────────────────────────────────┼────────────────────────────────────────┤
-  │  Code Visibility:  Hidden/Protected    │  Code Visibility:  Fully visible       │
-  │  Upgradable:       ✓  Yes             │  Upgradable:       ✗  No               │
-  │  Namespace Prefix: ✓  Yes             │  Namespace Prefix: ✗  No               │
-  │  Support:          By publisher (ISV) │  Support:          Community only      │
-  │  Use Case:         Commercial apps    │  Use Case:         Sample code,        │
-  │                    on AppExchange     │                    Trailhead labs      │
-  └────────────────────────────────────────┴────────────────────────────────────────┘
-    Key exam point: Only MANAGED packages receive publisher-pushed upgrades
-```
-**Content:**
-- **Managed Package:** Code is protected (components hidden); upgradable; has a namespace prefix; supported by the publisher
-- **Unmanaged Package:** Code is fully visible and editable; NOT upgradable; no namespace; used for open sharing of components
-- Managed packages can be distributed commercially on AppExchange
-- Unmanaged packages are commonly used to share developer templates, sample code, or Trailhead labs
-**Speaker Notes:** This distinction is heavily tested on the exam. Managed packages are what ISVs use to distribute commercial products. Because the code is protected, the vendor can push upgrades without exposing their intellectual property. Unmanaged packages expose all the components and code, making them great for learning and customization but not for commercial software. If you install an unmanaged package and the publisher updates it, you won't automatically get those updates — you'd have to reinstall.
+## Key Facts to Memorize
 
-### Slide 4: Installing a Package
-**Visual:**
-```
-  ┌──────────────────────┐
-  │  AppExchange Listing  │
-  └──────────┬───────────┘
-             │  Click "Get It Now"
-             ▼
-  ┌──────────────────────┐
-  │  Log in to Salesforce │
-  └──────────┬───────────┘
-             │
-             ▼
-  ┌────────────────────────────────────────┐
-  │  Choose target org:                    │
-  │    ◉  Sandbox  ← Best practice first! │
-  │    ○  Production                       │
-  └──────────┬─────────────────────────────┘
-             │
-             ▼
-  ┌────────────────────────────────────────┐
-  │  Set installation access:              │
-  │    ○  Install for Admins Only          │
-  │    ○  Install for All Users            │
-  │    ○  Install for Specific Profiles    │
-  └──────────┬─────────────────────────────┘
-             │
-             ▼
-  ┌────────────────────────────────────────┐
-  │  ✓  Installation Complete              │
-  │  Manage at: Setup > Installed Packages │
-  └────────────────────────────────────────┘
-```
-**Content:**
-- Click **Get It Now** on any AppExchange listing to begin installation
-- Choose whether to install in **Production** or a **Sandbox**
-- Best practice: Always test installs in a **Sandbox first**, then deploy to Production
-- Installation security options: Install for Admins Only, Install for All Users, Install for Specific Profiles
-- Post-install: Check Setup > Installed Packages to manage or uninstall
-**Speaker Notes:** The installation security option during install is important — it controls which profiles get access to the new app's components immediately. Choosing "Install for Admins Only" is the safest choice during initial testing. You can always expand access later. The Installed Packages page in Setup is where you manage everything after installation, including uninstalling packages you no longer need.
+- Managed packages: namespaced, obfuscated code, upgradeable, used by commercial ISVs
+- Unmanaged packages: open code, no namespace, no upgrades, used for samples/templates
+- AppExchange = Salesforce's marketplace; all listings pass Salesforce security review
+- LMA (Lightning Managed App) = publisher's tool for license management; customers don't see it
+- Install options: Admins Only, All Users, Specific Profiles
+- Can install to Production or Sandbox (best practice: Sandbox first)
+- Managed package fields use namespace prefix: `namespace__FieldName__c`
 
-### Slide 5: AppExchange Security Review
-**Visual:**
-```
-                         ┌─────────────────────────┐
-                         │   AppExchange            │
-                         │   SECURITY REVIEW  🛡    │
-                         └────────────┬────────────┘
-          ┌──────────────────┬────────┴────────┬──────────────────┐
-          ▼                  ▼                 ▼                  ▼
-  ┌───────────────┐  ┌──────────────────┐  ┌─────────────┐  ┌───────────────────┐
-  │ Static Code   │  │ Manual Testing   │  │ Penetration │  │ Data Security     │
-  │ Analysis      │  │                  │  │ Testing     │  │ Check             │
-  └───────────────┘  └──────────────────┘  └─────────────┘  └───────────────────┘
-          │
-          ▼
-  ┌────────────────────────────────────────────────────────┐
-  │  ✓  SECURITY REVIEWED badge earned on listing          │
-  │     Free / open-source listings may not carry badge    │
-  └────────────────────────────────────────────────────────┘
-```
-**Content:**
-- All commercial listings on AppExchange must pass Salesforce's **Security Review**
-- Review includes: static code analysis, manual testing, penetration testing
-- Ensures the app doesn't compromise org security or user data
-- Passing the review earns the **Security Reviewed** badge on the listing
-- Free/open-source listings may bypass the full security review
-**Speaker Notes:** The Security Review is what differentiates AppExchange from random code you might find online. When you see the Security Reviewed badge, it means Salesforce has run that app through a rigorous testing process. This is a meaningful assurance for companies in regulated industries. Note that free and open-source listings don't always carry this badge, so you should evaluate them more carefully before installing in Production.
+## Exam Traps
 
-### Slide 6: License Management App (LMA)
-**Visual:**
-```
-  ┌──────────────────────┐       ┌─────────────────────────┐       ┌──────────────────────┐
-  │   ISV's Org          │       │   AppExchange            │       │   Customer Org       │
-  │   (Publisher)        │ ────▶ │   Listing                │ ────▶ │   (Admin installs)  │
-  │                      │       │                          │       │                      │
-  │  ┌────────────────┐  │       │  ┌───────────────────┐  │       │  Setup >             │
-  │  │  LMA           │  │       │  │  My App  v2.1     │  │       │  Installed Packages  │
-  │  │  (tracks all   │◀─┼───────┼──│  🔒 Managed Pkg  │  │       │  > Manage Licenses   │
-  │  │  subscribers)  │  │       │  └───────────────────┘  │       │                      │
-  │  └────────────────┘  │       └─────────────────────────┘       └──────────────────────┘
-  └──────────────────────┘
-    End-customer admins do NOT use the LMA — that is the ISV's tool
-```
-**Content:**
-- **License Management App (LMA):** Used by ISVs (not end customers) to manage subscriber licenses
-- Allows ISVs to see who has installed their app and how many licenses each customer has
-- End admins manage their own installed package licenses at: **Setup > Installed Packages > [Package] > Manage Licenses**
-- Admins can assign or revoke package licenses to individual users from this page
-**Speaker Notes:** If you're an admin at a company that installs AppExchange apps, the License Management App is not something you interact with directly — that's the ISV's tool. What you do interact with is the Manage Licenses section within your own Installed Packages page. From there you can see how many seats your company purchased and assign them to specific users. Running out of seats means users won't be able to access the app until you purchase more or revoke a license from someone else.
+- **"Unmanaged packages can be updated by the publisher"** — FALSE. Only managed packages receive publisher updates.
+- **"Installing an AppExchange app automatically grants all users access"** — FALSE. You choose: Admins Only, All Users, or Specific Profiles.
+- **"All AppExchange apps are free"** — FALSE. Many are commercial apps with license fees.
+- **"LMA is installed in the customer's org to manage licenses"** — FALSE. LMA lives in the publisher's/ISV's org.
+- **"You should install AppExchange packages in Production first"** — FALSE. Best practice is to test in Sandbox first.
 
-### Slide 7: Trailhead and AppExchange Learning
-**Visual:**
-```
-  ┌─────────────────────────────────────────┐   ┌─────────────────────────────────────────┐
-  │  📱  TRAILHEAD GO (Mobile App)          │   │  🗺  TRAILMIX (Curated Learning Path)   │
-  ├─────────────────────────────────────────┤   ├─────────────────────────────────────────┤
-  │  ┌───────────────────────────────────┐  │   │  Admin Certification Prep               │
-  │  │  🤖 Astro                         │  │   │  ┌───────────────────────────────────┐  │
-  │  │  Welcome back!                    │  │   │  │  ☑  Org Setup Basics              │  │
-  │  │  🏅  5 badges earned              │  │   │  │  ☑  User Management               │  │
-  │  │  ⭐  3,200 points                 │  │   │  │  ☐  Security & Access             │  │
-  │  └───────────────────────────────────┘  │   │  │  ☐  Data Management               │  │
-  │  Available: iOS & Android               │   │  └───────────────────────────────────┘  │
-  └─────────────────────────────────────────┘   └─────────────────────────────────────────┘
-    Hands-on practice via Trailhead Playgrounds (Developer Edition orgs)
-    Superbadges = scenario-based challenges; excellent exam prep for CRT-101
-```
-**Content:**
-- **Trailhead:** Salesforce's free, gamified learning platform (trailhead.salesforce.com)
-- **Trailhead GO:** Mobile app for Salesforce learning on iOS and Android
-- Trailhead modules use Developer Edition orgs (Trailhead Playgrounds) for hands-on practice
-- Content covers admin, developer, architect, and business user topics
-- Completing Trailhead content earns badges and superbadges; many link to certification preparation
-**Speaker Notes:** Trailhead is free and frankly one of the best learning platforms in enterprise software. If you haven't set up a Trailhead account yet, do it now. The hands-on challenges — called Trailhead Playgrounds — give you a real Salesforce environment to practice in. Superbadges are longer, scenario-based challenges that simulate real admin work and are excellent preparation for the CRT-101 exam.
+## Practice Questions
 
-### Slide 8: Key AppExchange Exam Facts
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────────────────┐
-  │              ★  APPEXCHANGE — EXAM CHEAT SHEET  ★                      │
-  ├──────────────────────────────────────────────────────────────────────────┤
-  │  ▶  Managed package        →  Protected code, upgradable, has namespace  │
-  │  ▶  Unmanaged package      →  Open code, NOT upgradable, no namespace    │
-  │  ▶  Install order          →  Sandbox first, then Production             │
-  │  ▶  Security Review badge  →  Salesforce has tested the app              │
-  │  ▶  Manage pkg licenses    →  Setup > Installed Packages > Manage Lic.   │
-  │  ▶  Installation options   →  Admins Only / All Users / Specific Profiles│
-  └──────────────────────────────────────────────────────────────────────────┘
-```
-**Content:**
-- Managed packages: code protected, upgradable, have namespace prefix
-- Unmanaged packages: code visible, NOT upgradable, no namespace
-- Always install in **Sandbox first**, then Production
-- Security Review badge = Salesforce has tested the app for security
-- Manage user licenses for installed packages at: **Setup > Installed Packages > Manage Licenses**
-- Installation options: Admins Only, All Users, Specific Profiles
-**Speaker Notes:** These are the AppExchange facts most likely to appear on the exam. The managed vs. unmanaged distinction is the most tested topic from this lecture. Always default to sandbox-first for any package installation. And remember where to manage licenses for packages your company has installed.
+**Q:** A company wants to install an AppExchange CRM analytics app. They want to test it before going live. What is the recommended approach?
+**A:** Install the package in a Sandbox first. Test configuration, permissions, and functionality. Then install in Production.
 
-## 🎙️ RECORDING SCRIPT
+**Q:** What is the difference between a managed and unmanaged package?
+**A:** Managed packages have obfuscated (non-editable) code, a namespace prefix, and can receive updates from the publisher. Unmanaged packages have visible, editable code, no namespace, and cannot be updated by the original author.
 
-Welcome to Lecture 4 — AppExchange. This lecture covers Salesforce's marketplace for pre-built apps and components, the important distinction between package types, and how the security review and licensing processes work.
+**Q:** An admin installed an AppExchange package but regular sales reps can't see the new tabs. What installation option was likely selected?
+**A:** "Admins Only" was selected during installation. The admin needs to grant access to the appropriate profiles or change the installation to "All Users" or "Specific Profiles."
 
-AppExchange is Salesforce's version of an app store. You'll find it at appexchange.salesforce.com. Over seven thousand solutions are available, ranging from simple Lightning components to full enterprise applications for HR, finance, legal, and more. Some listings are free. Many are paid. Most offer a trial. Publishers include Salesforce itself, certified partner companies called ISVs — Independent Software Vendors — and individual community developers.
-
-The content types on AppExchange go beyond just "apps." There are individual Lightning Components you can drop onto a record page. There are Lightning Bolt Solutions, which are industry-specific starter kits with a prebuilt community, app, and flows bundled together. There are Flow Templates — ready-to-deploy automations. And there are consultant listings for when you need a Salesforce implementation partner.
-
-Now let's get into the exam's favorite AppExchange topic: managed packages versus unmanaged packages. A managed package is what commercial ISVs use to distribute their products. The code is protected — you can use the components but you can't see the underlying Apex code or modify the metadata. This protection allows the vendor to push upgrades to you over time. Managed packages also have a namespace prefix to prevent conflicts with your own customizations.
-
-An unmanaged package is the opposite. All components are fully exposed and editable. They're commonly used to share developer resources, sample code, or Trailhead lab exercises. But because there's no protection, there's no upgrade path. If you install an unmanaged package and the author releases a new version, you don't automatically get those changes — you'd have to reinstall manually. This is the key distinction: managed packages are upgradable; unmanaged packages are not.
-
-When you're ready to install something from AppExchange, the process starts with clicking "Get It Now" on the listing. You'll log into your Salesforce account, choose whether to install in a Production org or a Sandbox, and then set the installation security — who gets access right away. Best practice is always to install in a Sandbox first, validate it, and then install in Production. The Installed Packages page in Setup is where you manage everything post-installation.
-
-Every commercial listing on AppExchange must pass Salesforce's Security Review — a process that includes static code analysis, manual testing, and penetration testing. When you see the Security Reviewed badge, you know Salesforce has vetted that app. Free and open-source listings don't always carry this badge, so do your own due diligence before installing those in a Production environment.
-
-After installation, you manage user licenses for the package at Setup > Installed Packages > click the package > Manage Licenses. This is where you assign access to specific users and track how many seats you've consumed versus how many you've purchased.
-
-That wraps up the Org Setup section. Next we move into User Management, starting with how to create and manage user accounts.
-
-## 🔔 EXAM TIPS
-- **Managed vs. Unmanaged:** Managed = protected code, upgradable, has namespace. Unmanaged = open code, not upgradable, no namespace. This distinction appears on almost every practice exam.
-- **Sandbox first:** The best practice answer for AppExchange installation is always to test in a sandbox before installing in Production. If a question asks what to do before installing a package, "test in sandbox" is almost always correct.
-- **Manage Licenses path:** To assign AppExchange package licenses to users, go to Setup > Installed Packages > [Package Name] > Manage Licenses.
-
-## ✅ LECTURE SUMMARY
-- AppExchange is Salesforce's marketplace for apps, components, Lightning Bolt Solutions, and flow templates
-- Managed packages have protected code, support upgrades, and have a namespace prefix; unmanaged packages are fully open but not upgradable
-- All commercial AppExchange listings must pass Salesforce's Security Review
-- Best practice: always install packages in a Sandbox before installing in Production
-- Post-install license management is done at Setup > Installed Packages > Manage Licenses
-
-## ❓ MINI QUIZ
-
-**Q1:** A company installs an app from AppExchange. Six months later, the app publisher releases a new version with bug fixes. Which package type allows the admin to receive these upgrades automatically?
-- A) Unmanaged Package
-- B) Managed Package
-- C) Both package types support automatic upgrades
-- D) Upgrades require reinstalling any package type
-**Answer:** B — Managed packages support version upgrades from the publisher. Unmanaged packages cannot be upgraded and would require a full reinstallation to get the new version.
-
-**Q2:** Before installing a new AppExchange app in Production, what is the recommended best practice?
-- A) Review the app in Trailhead first
-- B) Install it for Admins Only to limit initial access
-- C) Install and test it in a Sandbox environment first
-- D) Contact Salesforce Support to approve the installation
-**Answer:** C — Best practice is always to install and validate an AppExchange package in a Sandbox before deploying to Production. This prevents unexpected impacts to your live environment.
-
-**Q3:** An administrator installs an AppExchange managed package. Where can they assign the package licenses to specific users?
-- A) Setup > Users > Manage Licenses
-- B) Setup > Permission Sets > [Package Permission Set]
-- C) Setup > Installed Packages > [Package Name] > Manage Licenses
-- D) The AppExchange portal at appexchange.salesforce.com
-**Answer:** C — Package license assignment is done at Setup > Installed Packages > click the specific package > Manage Licenses. This page shows how many licenses are available and allows the admin to assign or revoke them.
+**Q:** A field installed from an AppExchange managed package appears as `acme__Revenue_Score__c`. What does `acme__` indicate?
+**A:** It's the namespace prefix of the managed package, assigned by the publisher (Acme). All components in a managed package share this prefix.

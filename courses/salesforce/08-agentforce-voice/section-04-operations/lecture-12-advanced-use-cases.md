@@ -1,424 +1,297 @@
-# Lecture 12: Advanced Use Cases
+# Advanced Use Cases for Agentforce Voice
 
-## Learning Objectives
-- Configure outbound voice dialing modes (predictive and progressive) with Agentforce
-- Design a blended inbound/outbound voice campaign architecture in Service Cloud Voice
-- Integrate Data Cloud unified customer profiles for real-time call personalization
-- Understand compliance requirements for voice — specifically PCI-DSS for payment capture and call recording laws
-- Calculate ROI and model the cost implications of voice automation investment
+## Exam Domain
+Use Cases & Business Value / Architecture — Agentforce Specialist (CRT-271)
 
----
+## Core Concepts
 
-## Slides
+### Use Case Portfolio — From Simple to Advanced
 
-### Slide 1: Outbound Voice Dialing with Agentforce
-**Visual:**
 ```
-  OUTBOUND DIALING MODES
-  ┌──────────────────────────────┐    ┌──────────────────────────────┐
-  │   PROGRESSIVE DIALING        │    │   PREDICTIVE DIALING         │
-  ├──────────────────────────────┤    ├──────────────────────────────┤
-  │  Dial queue                  │    │  Dial queue                  │
-  │  ┌───┐ ┌───┐ ┌───┐ ┌───┐    │    │  ┌─┐ ┌─┐ ┌─┐ ┌─┐ ┌─┐ ┌─┐   │
-  │  │ 1 │ │ 2 │ │ 3 │ │ 4 │    │    │  │1│ │2│ │3│ │4│ │5│ │6│   │
-  │  └───┘ └───┘ └───┘ └───┘    │    │  └─┘ └─┘ └─┘ └─┘ └─┘ └─┘   │
-  │                              │    │                              │
-  │  1 dial per ready session    │    │  Multiple dials at once      │
-  │          │                   │    │  (more than agents ready)    │
-  │  Connected ──▶ Agent/Bot     │    │          │                   │
-  │  No answer ──▶ skip          │    │  Connected ──▶ Agent match   │
-  │                              │    │  No answer ──▶ skip          │
-  │  Connect rate: ~65%          │    │  Abandoned ──▶ ⚠ TCPA risk  │
-  │  Abandon risk:  LOW          │    │  Connect rate: ~80%          │
-  │                              │    │  Abandon risk: HIGHER        │
-  │  Use for: low volume,        │    │  Use for: high volume        │
-  │  structured outbound,        │    │  campaigns; requires careful │
-  │  autonomous AI calls         │    │  tuning for compliance       │
-  └──────────────────────────────┘    └──────────────────────────────┘
-  TCPA (US): prior consent required for automated outbound calls
-  Autonomous outbound: appointment reminders, surveys, delivery confirmations
+COMPLEXITY SPECTRUM
+
+SIMPLE (Flow-based)                    ADVANCED (Agent + Integration)
+──────────────────────────────────     ──────────────────────────────────────
+Case status self-service               Outbound proactive notifications
+Store hours / location                 Data Cloud real-time enrichment
+Order status lookup                    Multi-system authenticated transactions
+Appointment confirmation (DTMF)        Predictive routing + intent pre-classification
+Password reset (account verification)  Compliance monitoring (GDPR/PCI)
+Account balance inquiry                Complex multi-topic single calls
 ```
 
-**Content:**
-- **Progressive Dialing:** system dials one number per available agent; when agent is ready, next number is dialed; lower abandon risk
-- **Predictive Dialing:** system dials multiple numbers simultaneously, predicting how many will connect; routes connected calls to available agents; higher efficiency, higher abandon risk
-- Agentforce outbound: AI agent handles outbound calls autonomously (appointment reminders, collections, surveys)
-- Human-assisted outbound: predictive/progressive dialer plus Agent Assist for connected calls
-- Outbound campaigns: defined in Salesforce as Campaign records with associated Contact/Lead lists
-- Legal requirement: TCPA compliance — prior consent required for automated outbound calls in US
+The architecture for each use case differs significantly. Know which tier of complexity requires which components.
 
-**Speaker Notes:** Outbound voice with Agentforce is a significant expansion of the platform's capability beyond reactive inbound support. The autonomous outbound use case — an Agentforce agent making appointment reminder calls, collecting survey responses, or confirming delivery windows — can replace a large volume of outbound work that would otherwise require human agents. The legal landscape for outbound autodialing is complex and varies by jurisdiction; always involve Legal before launching any outbound campaign.
+### Use Case 1 — Data Cloud Real-Time Caller Enrichment
 
----
-
-### Slide 2: Blended Inbound/Outbound Voice Campaigns
-**Visual:**
 ```
-  BLENDED INBOUND / OUTBOUND ARCHITECTURE
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │  Campaign record + Contact list                          │
-  │       │                                                  │
-  │       ▼                                                  │
-  │  Outbound Dialer ─────────────────────────────┐          │
-  │                                               │          │
-  │  Inbound Calls ───────────────────────────────┤          │
-  │                                               │          │
-  │                                               ▼          │
-  │                             ┌─────────────────────────┐  │
-  │                             │  OMNI-CHANNEL ROUTING   │  │
-  │                             │  (unified work queue)   │  │
-  │                             └──────────┬──────────────┘  │
-  │                                        │                  │
-  │                             ┌──────────┴──────────┐       │
-  │                             │                     │       │
-  │                        Inbound               Outbound     │
-  │                        priority              campaign      │
-  │                        (preempts             (fills idle  │
-  │                         outbound)             capacity)   │
-  │                             │                     │       │
-  │                             └──────────┬──────────┘       │
-  │                                        │                  │
-  │                                        ▼                  │
-  │                               Blended Agent Pool          │
-  └──────────────────────────────────────────────────────────┘
-  ACW applies to outbound calls │ Disposition codes captured during ACW
-  Reporting: connect rate, conversion, campaign completion on VoiceCall records
+Caller dials in (ANI: +1-555-234-5678)
+    ↓
+ANI lookup → Salesforce Contact (standard)
+    ↓
+Data Cloud Query Action:
+    Query unified profile for additional context:
+    - Purchase propensity score (from ML model in Data Cloud)
+    - Recent product interactions (cross-channel)
+    - Churn risk score
+    - Last marketing email opened
+    ↓
+Voice agent personalization:
+    "Hi Jane, I see you recently looked at our Pro plan.
+     Are you calling about upgrading today?"
+    ↓
+Routing enrichment:
+    Churn risk > 80% → route to Retention specialist queue
+    Purchase propensity > 85% → route to Sales + flag for upsell
 ```
 
-**Content:**
-- Blended agents: same agent pool handles inbound calls and outbound campaign calls
-- Omni-Channel capacity: configure outbound campaign as a work item type alongside inbound
-- Campaign management: Salesforce Campaign object tracks outbound call list, disposition codes, completion status
-- Prioritization: configure whether inbound calls preempt active outbound campaign work
-- Wrap-up between calls: ACW applies to outbound calls too; disposition codes captured during ACW
-- Performance reporting: outbound connect rate, conversion rate, campaign completion rate — all on VoiceCall records
+**This is the differentiator between Agentforce Voice and a generic voice bot.** The Data Cloud integration brings cross-channel customer context into the voice interaction in real-time.
 
-**Speaker Notes:** Blended inbound/outbound is the operational model that maximizes agent utilization. Rather than having a pool of agents waiting for inbound calls during quiet periods, the dialer fills their capacity with outbound campaign calls. When inbound volume increases, the blender shifts agents back to inbound priority. This requires careful Omni-Channel capacity configuration and clear agent training so agents understand the workflow transition — it is a more complex operational model than purely inbound or purely outbound.
+**Limitations:**
+- Data Cloud query adds ~200–500ms to call setup — design Speak wait message during query
+- Data Cloud unified profile accuracy depends on data ingestion recency — a batch-updated profile may not reflect events from the last few hours
+- Data Cloud license required in addition to Service Cloud Voice and Agentforce licenses
 
----
+### Use Case 2 — Outbound Proactive Voice Notifications
 
-### Slide 3: Voice + Data Cloud Integration
-**Visual:**
 ```
-  DATA CLOUD INTEGRATION FOR VOICE
-  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-  │   CRM    │  │  Web /   │  │ Purchase │  │ Service  │
-  │  Data    │  │  Mobile  │  │ History  │  │ History  │
-  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘
-       └──────────────┴─────────────┴──────────────┘
-                            │
-                            ▼
-              ┌─────────────────────────┐
-              │   DATA CLOUD            │
-              │   Unified Customer      │
-              │   Profile               │
-              └────────────┬────────────┘
-                           │ real-time activation on call arrival
-                           ▼
-  ┌────────────────────────────────────────────────────────┐
-  │  VoiceCall Enrichment (at call start)                  │
-  │  • Churn risk score:  HIGH                             │
-  │  • Lifetime value:    $4,200/yr  (top 20%)             │
-  │  • Last web visit:    2 days ago (viewed Plan Upgrade) │
-  │  • Last service:      3 contacts, same issue           │
-  │  • Product owned:     Basic Plan                       │
-  └─────────────────┬──────────────────────────────────────┘
-                    │
-       ┌────────────┴─────────────┐
-       │                          │
-       ▼                          ▼
-  Voice Flow /              Human Agent
-  Agentforce Agent          Screen Pop
-  • Skip irrelevant menus   • Full context +
-  • Personalized greeting     Data Cloud attrs
-  • Proactive offer         • Retention offer
-    (retention discount)      pre-loaded
-  Latency: Data Cloud lookup must complete before Flow continues (sub-second)
+INBOUND vs. OUTBOUND
+
+Inbound: Customer calls in → Agentforce Voice handles
+Outbound: Salesforce triggers a call → Agent speaks to customer
+
+Outbound Voice Use Cases:
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  Appointment reminders (healthcare, field service)              │
+  │  Payment due / overdue notifications                            │
+  │  Fraud alerts (financial services)                              │
+  │  Delivery notifications (retail)                                │
+  │  Prescription refill reminders (pharmacy)                       │
+  └─────────────────────────────────────────────────────────────────┘
+
+Outbound Architecture:
+Salesforce Scheduled Flow / Trigger
+    ↓
+Service Cloud Voice Outbound API call
+    ↓
+Amazon Connect places outbound call to customer number
+    ↓
+Customer answers → Agentforce Voice agent speaks first
+    ↓
+Customer responds → agent handles → resolves or routes
+
+Outbound dialing modes:
+  Progressive: one call placed per available agent (no abandonment risk)
+  Predictive: dials ahead of agent availability (higher efficiency, higher abandonment risk)
 ```
 
-**Content:**
-- Data Cloud builds a unified customer profile from multiple data sources (CRM, web behavior, purchase history, service interactions)
-- Voice trigger: when a call arrives, Data Cloud profile is activated in real time and attributes surface in the call context
-- Attributes available at call start: customer lifetime value, churn risk score, product ownership, recent website activity, last interaction channel
-- Use cases: personalize greeting ("We see you recently visited our website about Plan Upgrades"), prioritize routing for high-LTV callers, trigger retention offer for high-churn-risk callers
-- Configuration: Data Cloud connector to Service Cloud, attribute mapping to VoiceCall extended fields or screen pop context
-- Latency consideration: Data Cloud lookup must complete before Flow continues — design for sub-second latency
+**Limitations:**
+- Outbound calling requires specific telephony configuration (outbound caller ID, compliance setup) separate from inbound
+- TCPA (US) and similar regulations require explicit opt-in consent for automated outbound calls — this is a legal requirement, not a Salesforce setting
+- Predictive dialing is not supported for AI-handled calls in the same way as human agent predictive dialing — verify specific capability with current Salesforce release notes
 
-**Speaker Notes:** The Data Cloud integration is what elevates Agentforce Voice from a contact center tool to a true customer experience platform. When the agent — or autonomous agent — knows not just who the caller is in the CRM but what they have been doing across all touchpoints in the last 30 days, the quality of the interaction changes fundamentally. A caller who looked at the upgrade page on your website three times this week probably wants to upgrade — your voice agent should be ready to have that conversation, not ask them to navigate a generic menu.
+### Use Case 3 — Complex Multi-Intent Call Handling
 
----
-
-### Slide 4: Multi-Language Voice Support
-**Visual:**
 ```
-  MULTI-LANGUAGE VOICE ARCHITECTURE
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │  Caller speaks                                           │
-  │       │                                                  │
-  │       ▼                                                  │
-  │  Amazon Transcribe                                       │
-  │  Language Detection ──▶ Detected: "Spanish (es-US)"     │
-  │  (automatic, no menu       OR                            │
-  │   required for caller)  Prompted: "Para Español, marque 2"│
-  │       │                                                  │
-  │       ▼                                                  │
-  │  Flow Decision: Language detected?                       │
-  │  ┌──────────┬──────────┬──────────┬──────────┐           │
-  │  │ English  │ Spanish  │  French  │  Other   │           │
-  │  └────┬─────┴────┬─────┴────┬─────┴────┬─────┘           │
-  │       │          │          │          │                  │
-  │       ▼          ▼          ▼          ▼                  │
-  │  EN Queue   ES Queue   FR Queue   General Queue           │
-  │  EN Agent   ES Agent   FR Agent   (EN fallback)           │
-  │  EN TTS     ES TTS     FR TTS                             │
-  │  EN Knowledge ES Knowledge FR Knowledge                   │
-  │  articles   articles   articles                           │
-  └──────────────────────────────────────────────────────────┘
-  Language = Routing Skill; relaxation applies if no language match
-  Knowledge: tag articles by language for Agent Assist filtering
+Single call, multiple intents (common in enterprise call centers):
+
+Caller: "I want to pay my bill, and then update my address"
+    ↓
+Agent: Handles Billing Topic (payment) first
+    ↓ (payment action completes)
+Agent: "Is there anything else I can help you with?"
+Caller: "Yes, I need to update my address"
+    ↓
+Agent: Handles Account Management Topic (address update)
+    ↓ (address update action completes)
+Agent: "Done! Anything else?" → "No" → Call ends cleanly
+
+Multi-turn conversation: same session, multiple Topics resolved
+
+Design requirement:
+- Each Topic must have a clean completion state
+- Agent system prompt must include instructions for handling "anything else" transitions
+- Max turns limit must account for multi-topic calls (set higher than single-intent assumption)
 ```
 
-**Content:**
-- Amazon Connect supports multiple languages for STT — configure in the Contact Flow
-- Language detection: automatic (Amazon Transcribe detects language) or prompted (caller selects language)
-- Voice prompts: pre-record or TTS prompts in each supported language; reference language variable in Speak elements
-- Language-specific routing: route Spanish callers to Spanish-skilled agents; use skill relaxation with language skills
-- Knowledge articles: language-tagged articles surface correctly in Agent Assist for language-specific queries
-- Multi-language agent assist: Einstein suggestions include language as a filter for Knowledge article recommendations
-- Supported languages: follow Amazon Transcribe language support — English, Spanish, French, German, Japanese, and others
+**Limitations:**
+- Multi-intent calls are longer → higher max turns requirement → configure accordingly
+- Agent must handle "nothing else" termination gracefully — without explicit exit handling, agent may loop
+- Context from Topic 1 (e.g., account verified) does not automatically carry to Topic 2 unless explicitly stored in the conversation context
 
-**Speaker Notes:** Multi-language support is architecturally more complex than it appears because language affects every layer: the TTS prompts, the STT engine configuration, the routing skills, and the Knowledge articles. Build a language-first architecture from day one if you plan to support multiple languages — retrofitting it into a single-language design is much more difficult. The Amazon Transcribe automatic language detection feature can identify the caller's language without prompting them, which creates a significantly better caller experience.
+### Use Case 4 — PCI-Compliant Payment Processing
 
----
-
-### Slide 5: Voice for Field Service
-**Visual:**
 ```
-  VOICE FOR FIELD SERVICE — HANDS-FREE TECHNICIAN WORKFLOW
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │  Technician (driving)  ──calls──▶  Agentforce            │
-  │                                   Autonomous Agent       │
-  │                                        │                 │
-  │  "Complete job 4521"   ──────────▶  Work Order lookup    │
-  │  "What's my next job?" ──────────▶  ServiceAppt SOQL     │
-  │  "Check part #BRK-44"  ──────────▶  Inventory lookup     │
-  │  "ETA is 2:30pm"       ──────────▶  Update record +      │
-  │                                    SMS to customer        │
-  │                                                          │
-  │  HANDS-FREE WORKFLOW CYCLE:                              │
-  │  ┌──────────────────────────────────────────────────┐    │
-  │  │ Drive to job ──▶ Voice check-in ──▶ WO opens    │    │
-  │  │       ▼                                         │    │
-  │  │ Complete job ──▶ Voice confirm ──▶ WO closes    │    │
-  │  │       ▼                                         │    │
-  │  │ Route to next ──▶ Voice lookup ──▶ Next appt.   │    │
-  │  └──────────────────────────────────────────────────┘    │
-  └──────────────────────────────────────────────────────────┘
-  Safety: eliminates screen interaction while driving
-  FSL objects (Work Order, Service Appointment) accessible via
-  SOQL Record Lookup in Voice Flow — same as any other object
+VOICE PAYMENT FLOW (PCI-DSS Compliant)
+
+Agent: "I can process your payment today. Let me prepare the payment screen."
+    ↓
+Amazon Connect Contact Flow: PAUSE RECORDING
+    ↓
+Agent (Voice): "Please enter your 16-digit card number using your keypad"
+Caller: [DTMF tones — card number entered]
+    ↓
+Telephony layer: DTMF tones captured, NOT transcribed, NOT recorded
+    ↓
+Payment API call (external service): card processing
+    ↓
+Amazon Connect Contact Flow: RESUME RECORDING
+    ↓
+Agent: "Payment of $XX.XX confirmed. Your confirmation number is [XXXX]"
+
+Key PCI design decisions:
+  1. Recording pause: Amazon Connect layer (not Salesforce)
+  2. DTMF for card entry: no STT, no transcript of card number
+  3. AWS Transcribe PII redaction: backup layer if speech is used
+  4. Zero data retention: card number never stored in Salesforce
 ```
 
-**Content:**
-- Use case: field service technicians use voice (hands-free) to check in, complete, or report on work orders while in the field
-- Agentforce autonomous agent handles: work order status queries, job completion confirmation, next job lookup, parts availability check
-- Hands-free operation: technicians driving cannot type; voice is the only safe input modality
-- Integration: Field Service Lightning (FSL) objects (Work Order, Service Appointment) accessible in Voice Flow via SOQL
-- Customer notification trigger: when technician checks in via voice, Flow triggers SMS/email to customer with ETA
-- Safety benefit: reduces screen interaction while driving; voice-enabled check-in replaces manual app navigation
+**Limitations:**
+- Recording pause must be configured in the telephony Contact Flow — if configured in a Salesforce autolaunched Flow, it only affects the transcript, not the audio recording
+- PCI compliance for voice requires formal PCI-DSS audit — configure to the standard, then engage a Qualified Security Assessor (QSA) for formal validation
+- DTMF-only mode for payment input requires that the external payment processor accepts DTMF-routed input or has an API integration that receives DTMF values
 
-**Speaker Notes:** Field service voice is one of the most compelling use cases for autonomous Agentforce voice precisely because it solves a real safety problem. A technician driving between jobs should not be tapping through a mobile app to confirm job completion or look up their next assignment. A thirty-second voice interaction while hands remain on the wheel is both safer and faster. The integration with Field Service Lightning objects is straightforward — the same SOQL-based Record Lookup elements used in other Voice Flows work for FSL objects.
+### Use Case 5 — Multilingual Voice Agent
 
----
-
-### Slide 6: PCI-DSS Compliance for Voice Payment Capture
-**Visual:**
 ```
-  PCI-DSS VOICE PAYMENT COMPLIANCE ARCHITECTURE
-  ┌──────────────────────────────────────────────────────────┐
-  │  CALL RECORDING TIMELINE                                 │
-  │                                                          │
-  │  ├─────────────────────────────────────────────────────▶ │
-  │  │                  │               │            │       │
-  │  Call start         │               │        Call end    │
-  │  Recording: ON ●    │               │  Recording: ON ●   │
-  │                     │               │                    │
-  │             Payment section         │                    │
-  │             begins                  │                    │
-  │             Recording: PAUSE ◼      │                    │
-  │             DTMF ONLY accepted      │                    │
-  │             (no speech-to-text      │                    │
-  │              of card digits)        │                    │
-  │                          Payment done                    │
-  │                          Recording: RESUME ●             │
-  │                          Transcript: auto-redacted        │
-  └──────────────────────────────────────────────────────────┘
-  CONFIGURED IN: Amazon Connect Contact Flow (not Salesforce Flow)
+LANGUAGE ROUTING ARCHITECTURE
 
-  PCI-DSS REQUIREMENTS FOR VOICE:
-  ┌────┬────────────────────────────────────────────────────┐
-  │  1 │ Pause recording during DTMF card entry             │
-  │  2 │ DTMF-only card input (no speech capture)           │
-  │  3 │ Amazon Transcribe auto-redaction of financial data  │
-  │  4 │ Tokenize card numbers — no raw PAN in Salesforce   │
-  │  5 │ Engage Qualified Security Assessor before launch   │
-  └────┴────────────────────────────────────────────────────┘
-  Scope warning: voice system touching cardholder data may put entire
-  Salesforce environment and Amazon Connect instance in PCI scope
+Telephony IVR:
+"For English, press 1. Para Español, oprima 2. Pour le français, appuyez sur 3."
+    ↓
+[DNIS or menu choice → Amazon Connect routes to language-specific queue]
+    ↓
+Language-specific Voice Channel:
+    English:  TTS = Amazon Polly "Joanna" (US English)
+              Topics = English descriptions
+    Spanish:  TTS = Amazon Polly "Lupe" (US Spanish)
+              Topics = Spanish descriptions (written in Spanish)
+    French:   TTS = Amazon Polly "Léa" (French)
+              Topics = French descriptions (written in French)
+
+Configuration:
+  One Agentforce agent per language (cleanest design)
+  OR one agent with language-detection branching (complex)
 ```
 
-**content:**
-- PCI-DSS: Payment Card Industry Data Security Standard — applies when voice interactions involve cardholder data
-- Key requirement: cardholder data (card number, CVV, expiry) must not be stored in call recordings or transcripts
-- **Recording pause:** Amazon Connect Contact Flow pauses recording before DTMF payment entry; resumes after
-- **Transcript redaction:** Amazon Transcribe supports automatic redaction of financial data in transcripts
-- **DTMF-only payment capture:** require callers to enter card data via keypad only (no speech) to prevent speech-to-text capture of card numbers
-- **Tokenization:** card numbers should be tokenized immediately; raw PAN should never be stored in Salesforce
-- Compliance scope: if any voice system touches cardholder data, the entire system (servers, storage, network paths) may be in PCI scope
+**Limitations:**
+- Topic descriptions must be written in the same language as the caller utterances — an English Topic description will not match a Spanish utterance accurately
+- Amazon Transcribe language must be explicitly configured per channel — do not rely on auto-detect for production
+- Translating Topic descriptions is not a simple word-for-word translation — phrases must reflect how native speakers actually express the intent
 
-**Speaker Notes:** PCI-DSS compliance for voice is a specialized topic that your security and compliance teams must be involved in from the start. The core technical implementation — recording pause and DTMF-only payment capture — is straightforward to configure in Amazon Connect. What is more complex is the organizational scope: once your voice system touches cardholder data, PCI DSS assessors may require the entire Salesforce environment, Amazon Connect instance, and network path to be in scope for assessment. Work with a Qualified Security Assessor before deploying payment capture in voice.
+### Use Case 6 — Agent Assist with Guided Resolution
 
----
-
-### Slide 7: Cost Modeling and ROI for Voice Automation
-**Visual:**
 ```
-  ROI WATERFALL — AGENTFORCE VOICE AUTOMATION
-  (Example: 1M calls/year at $8/call baseline)
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │  $8.0M ████████████████████████  Baseline cost          │
-  │         (1M calls × $8/call)                             │
-  │                                                          │
-  │  $7.2M ████████████████████░░░░  After containment       │
-  │         Autonomous containment:  savings                 │
-  │         200K calls × ($8−$4)     = −$800K               │
-  │                                                          │
-  │  $6.4M ███████████████████░░░░░  After AHT reduction     │
-  │         AHT reduction:           savings                 │
-  │         800K calls × 2min × $0.50= −$800K               │
-  │                                                          │
-  │  $6.8M █████████████████████░░░  After infrastructure    │
-  │         Licensing + impl. cost   = +$400K               │
-  │                                                          │
-  │  Net annual benefit:  ~$1.2M                             │
-  │  Payback period:      12-18 months                       │
-  └──────────────────────────────────────────────────────────┘
+GUIDED RESOLUTION (Agent Assist mode)
 
-  ROI CALCULATION INPUTS:
-  ┌─────────────────────────────────┬──────────────────────┐
-  │  Annual call volume             │  1,000,000           │
-  │  Current cost per call          │  $8.00               │
-  │  Target containment rate        │  20%                 │
-  │  AI cost per contained call     │  $4.00               │
-  │  AHT reduction (minutes)        │  2 min               │
-  │  Agent cost per minute          │  $0.50               │
-  │  Implementation + licensing     │  $400K               │
-  └─────────────────────────────────┴──────────────────────┘
-  Quick rule: 10% containment improvement on 1M calls at $8/call = $800K gross savings
+Call arrives → Human agent answers → AI assists
+    ↓
+AI detects Topic: "Complex technical escalation"
+    ↓
+AI Suggestions Panel shows guided steps:
+  Step 1: Verify account (Account Lookup action)
+  Step 2: Check open cases (Case SOQL)
+  Step 3: Run diagnostic Flow (Diagnostic Autolaunched Flow)
+  Step 4: If unresolved → escalate to Tier 2 (Transfer)
+    ↓
+Human agent follows AI guidance
++ AI narrows the knowledge base articles to relevant results
++ AI drafts call summary in real-time
+    ↓
+Call ends → AI summary pre-populated → Agent edits + saves
 ```
 
-**Content:**
-- **Baseline cost:** fully loaded cost per agent-handled call (typically $5–$15 depending on geography and complexity)
-- **Autonomous containment value:** (calls contained) × (cost per agent call) — subtract Agentforce Voice licensing
-- **AHT reduction value:** (AHT reduction in minutes) × (agent cost per minute) × (annual call volume)
-- **Infrastructure cost:** Salesforce Voice licenses + Amazon Connect per-minute charges + implementation cost
-- **Typical payback period:** 12-24 months for mid-size contact centers; shorter for high-volume simple call types
-- **ROI calculation inputs:** annual call volume, current cost per call, current AHT, target containment rate, target AHT reduction, implementation and licensing costs
-- **Quick rule of thumb:** 10% containment improvement on 1M calls/year at $8/call = $800K gross savings
+**This use case demonstrates Agent Assist value beyond simple suggestions.** The AI acts as a structured guide through complex resolution paths — especially valuable for new agents handling escalations.
 
-**Speaker Notes:** ROI modeling for voice automation is both an architectural tool and a business case tool. As an architect, you use it to prioritize which call types to automate first — focus on the intersection of high volume, low complexity, and high current cost. As a business case presenter, you use it to justify the investment to leadership. The numbers are usually compelling because voice automation addresses such high-volume, repetitive work. But be conservative in your projections — containment rates in production are almost always lower than what testing suggests, and implementation costs almost always exceed initial estimates.
+**Limitations:**
+- Guided resolution suggestions are based on Einstein NLP topic classification — if the Topic is misclassified, the wrong guidance appears
+- Human agents can ignore AI suggestions — adoption requires training and UX design showing the time savings from following the guidance
 
----
+### Use Case 7 — Voice + CRM Integration at Enterprise Scale
 
-## Recording Script
+```
+ENTERPRISE CONTACT CENTER REFERENCE ARCHITECTURE
 
-Welcome to Lecture 12, the final lecture in the Advanced Use Cases section. We are going to cover the sophisticated applications of Agentforce Voice: outbound dialing, campaign blending, Data Cloud integration, multi-language support, field service, PCI compliance, and ROI modeling.
+                        [Data Cloud]
+                       Real-time profiles
+                             │
+[Telephony Network] ─────▶ [Service Cloud Voice] ─────▶ [Agentforce Voice Agent]
+Amazon Connect              VoiceCall record               Multi-Topic autonomous
+Partner Telephony           ConversationEntry              + Agent Assist escalation
+                             │
+                        [Omni-Channel]
+                       Skills-Based routing
+                        Human Agent queues
+                             │
+                        [CRM Analytics]
+                       ECI + ECM + reports
+                        Business intelligence
 
-Let me start with outbound voice, because it represents a significant expansion of what most people think of when they hear "call center AI."
+At 10,000+ concurrent calls:
+- Request Amazon Connect stream quota increase (pre-provisioned)
+- Validate Salesforce API limits for VoiceCall record creation rate
+- Design monitoring alerting at 80% of quota thresholds
+- Performance test full stack before launch
+```
 
-Agentforce Voice can operate autonomously on outbound calls. An AI agent can call a customer to confirm an appointment, collect a survey response, notify them of a delivery window, or follow up on an open case. This is not a human agent making calls with AI assistance — this is the AI making the calls entirely on its own. The use cases that work best are structured, predictable interactions where the outcome is binary: the customer confirms or cancels, the survey is collected or not, the notification is delivered or the call goes to voicemail.
+**Limitations at enterprise scale:**
+- VoiceCall record creation rate is subject to Salesforce API limits — high-volume contact centers must validate API throughput capacity
+- ConversationEntry volume at 10K concurrent calls with 5-minute average handle time = massive record volumes — plan storage accordingly
+- Amazon Connect concurrent transcription streams have service quotas — request increase 4–6 weeks before planned launch capacity
+- Salesforce Streaming API (used for real-time transcript delivery) has per-org limits — verify at design time for high-volume deployments
 
-For outbound dialing modes, you have two main options: progressive and predictive. Progressive dialing dials one number at a time per available agent — or, for autonomous mode, one call at a time per configured concurrent session. It is lower efficiency but lower risk of abandoned calls when a call connects before an agent or agent session is ready. Predictive dialing dials more numbers than available agents, using algorithms to predict connection rates and match connected calls to ready agents. It is more efficient but requires careful tuning to avoid regulatory compliance issues with abandoned call rates.
+## PTA / SA Relevance
 
-Now let us talk about Data Cloud integration, which is one of the most transformative capabilities in the Agentforce Voice stack. Data Cloud builds a unified customer profile that aggregates data from your CRM, your website, your mobile app, your purchase history systems, and anywhere else your customer data lives. When a call arrives, you can query that unified profile and surface attributes in the call context before the first word is spoken.
+**Advanced use cases are where the real business value lives, but they require architecture decisions beyond the standard certification content.** As a PTA or SA, you need to understand not just which use case to recommend, but how to size the solution, what the failure modes are, and when the customer's requirements exceed what the current platform can deliver.
 
-The practical impact is significant. Instead of treating every call as a fresh start, your voice system — or your human agent's screen pop — can incorporate context like: this customer's churn risk score is high, they recently browsed upgrade plans on your website, their lifetime value puts them in the top 20% of your customer base, and their last three service interactions were all about the same issue. With that context, your Voice Flow can skip irrelevant menu options, your Agentforce agent can proactively address the likely reason for the call, and your human agent can engage at a much higher level from the opening seconds.
+**The use case prioritization framework:**
+1. First: high-volume, predictable intent, self-service (case status, order tracking) — fastest to build, fastest ROI
+2. Second: Agent Assist for complex calls (NPS lift, AHT reduction, new agent ramp time) — higher configuration complexity but measurable ROI
+3. Third: advanced integrations (Data Cloud enrichment, outbound, multi-language) — highest value but highest implementation complexity
 
-Let me spend a moment on PCI-DSS compliance for voice, because this is a topic where getting it wrong has serious consequences.
+**Common partner mistakes:**
+- Starting with a complex use case (PCI payment) before proving the basic infrastructure works — test simple containment before adding PCI complexity
+- Not designing the enterprise-scale data model before go-live — VoiceCall and ConversationEntry record volumes can grow faster than expected, creating storage cost surprises
+- Not involving legal/compliance teams for outbound calling (TCPA) and PCI use cases — discovering regulatory requirements during build is expensive
 
-If your voice system handles credit card numbers, expiry dates, or CVV codes at any point, you are subject to PCI-DSS requirements. The core technical requirements are: do not record cardholder data in call recordings, do not capture cardholder data in call transcripts, and do not store raw card numbers in Salesforce.
+**For a financial services customer exploring voice AI:** "Before we talk about which use cases to build, let's agree on the architecture principles: PCI compliance is non-negotiable for payment calls, Data Cloud enrichment requires your CRM data to be clean, and outbound calling requires explicit consent management. Map those constraints first, then select use cases that fit within them."
 
-The technical implementation involves three things. First, configure Amazon Connect to pause recording when the payment capture segment of the call begins and resume it after. Second, use DTMF-only payment capture — require callers to enter card digits via keypad, not speech, to prevent the STT engine from capturing card numbers in the transcript. Third, use Amazon Transcribe's automatic redaction feature to ensure that even if any financial data appears in the transcript, it is masked before storage.
+## Customer Advisory Tips
 
-But the most important PCI consideration is scope. The moment your voice system touches cardholder data, your PCI assessor may determine that your entire Salesforce environment, your Amazon Connect instance, your network paths between them, and the workstations of anyone who accesses that data are in PCI scope. That dramatically expands the compliance burden. Engage a Qualified Security Assessor before you design a payment capture feature for voice.
+**Data Cloud real-time enrichment is a compelling demo, but data quality is the gating factor.** Propensity scores and churn risk models are only as good as the underlying data. Before promising a "personalized voice experience," assess whether the customer's Data Cloud implementation has the unified profiles and ML models that the demo shows.
 
-Finally, let us do a quick ROI calculation framework, because this is what you will use to make the business case for Agentforce Voice investments.
+**Outbound voice requires consent management.** In the US (TCPA), EU (GDPR), and most markets, automated outbound calls require explicit customer consent. Build consent management into the outbound use case design — not as an afterthought.
 
-Start with your baseline: total annual inbound call volume multiplied by your fully loaded cost per call. In a mid-size US contact center, that might be one million calls per year at eight dollars per call, giving you eight million dollars of annual operating cost.
+**PCI use case scoping:** PCI-DSS applies whenever payment card data is in scope. If the voice agent is only routing callers to a payment IVR that the customer's payment processor operates, the Salesforce side may be out of scope. Get the customer's PCI-DSS scoping documentation before designing the payment flow.
 
-Your autonomous containment improvement represents the biggest savings lever. If Agentforce Voice contains 20% of calls that previously required a human agent, that is two hundred thousand calls times eight dollars minus the Agentforce Voice platform cost. Even at a conservative four dollars per call fully loaded cost for the AI (licensing plus infrastructure), you are saving four dollars per contained call. Two hundred thousand calls times four dollars is eight hundred thousand dollars in annual savings.
+**When voice AI is NOT the right recommendation:**
+- Very low call volume (<5K calls/month) — ROI doesn't justify implementation cost
+- Highly variable call types with no dominant self-service pattern — agent covers too few calls to show containment ROI
+- Customer population with known STT accuracy challenges + no appetite to invest in audio quality improvement
+- Regulatory environment where a human must be in the loop for all calls (some financial advice, medical, legal)
 
-On top of that, add the AHT reduction benefit for calls that do still involve a human agent. If Agent Assist reduces average handle time by two minutes per call and you have eight hundred thousand remaining calls at an agent cost of fifty cents per minute, that is another eight hundred thousand dollars.
+## Key Facts to Memorize
+- Data Cloud enrichment adds real-time cross-channel context to voice calls — requires separate Data Cloud license
+- Outbound calling requires explicit consent management (TCPA/GDPR compliance)
+- PCI-compliant payment: recording pause + DTMF card capture + AWS Transcribe PII redaction = three layers
+- Multi-language: one agent/channel per language is cleanest design; Topics must be written in the target language
+- Enterprise scale: request Amazon Connect quota increases and validate Salesforce API limits pre-launch
+- Max turns configuration must account for multi-intent calls (set higher)
 
-Subtract your implementation cost — typically two hundred thousand to five hundred thousand dollars for a first deployment — and your ongoing licensing costs, and you are looking at a payback period of twelve to eighteen months for a deployment of this scale.
+## Exam Traps
+- "Outbound calling can be triggered directly from a Salesforce Flow with no additional configuration" → False — outbound requires telephony configuration (caller ID, compliance setup, API connection) beyond what a Flow provides
+- "Data Cloud enrichment happens before the call connects to Salesforce" → False — Data Cloud query is invoked WITHIN the Voice Flow or agent action after the VoiceCall is established
+- "PCI recording pause is configured in Salesforce Setup" → False — recording pause is configured in the telephony Contact Flow (Amazon Connect)
+- "One Agentforce agent can handle multiple languages with the same Topics" → Partially — one agent can have multiple voice channels, but Topics must be written in the language of the callers for that channel
+- "After-hours calls are handled automatically by Agentforce Voice with no routing configuration" → False — after-hours behavior requires business hours configuration in Routing Configuration + configured overflow behavior
 
-This is the framework. The inputs will vary significantly by industry, geography, call complexity, and existing contact center maturity. But the structure — baseline cost, containment savings, AHT savings, infrastructure and implementation costs, payback period — is the right way to build the business case.
+## Practice Questions
 
----
+**Q:** A healthcare organization wants to use Agentforce Voice to send appointment reminders to patients 24 hours before their appointments. Patients should be able to confirm, reschedule, or cancel. Which use case type is this, and what regulatory consideration must be addressed?
+**A:** This is an outbound proactive voice notification use case. The key regulatory consideration is TCPA (in the US) or equivalent consent regulations — patients must have given explicit consent to receive automated outbound calls. Additionally, HIPAA compliance applies since appointment data is PHI — the outbound call logic and transcription storage must be in a HIPAA-eligible environment with appropriate BAAs in place.
 
-## Exam Tips
-- Predictive dialing dials more numbers than available agents; progressive dialing matches one call to one available agent — know the distinction and its compliance implications
-- TCPA compliance is the US regulatory framework for outbound autodialed calls; prior consent is required
-- Data Cloud integration enriches call context at the moment of call arrival; latency of profile lookup must be designed for
-- PCI-DSS requires recording pause during DTMF payment capture AND DTMF-only (not speech) input for card data
-- Multi-language routing uses Language as a Routing Skill; Amazon Transcribe automatic language detection eliminates the need for language-selection menus
-- ROI calculation for voice automation: (calls contained × cost per call) + (AHT reduction × cost per minute × volume) − (licensing + implementation)
+**Q:** A retail company wants their voice agent to greet returning callers by name and mention their last order. What Salesforce feature enables this personalization beyond standard ANI lookup?
+**A:** Data Cloud integration. While ANI lookup retrieves the basic Contact record, Data Cloud provides a unified customer profile including cross-channel interaction history. A Data Cloud Query action in the voice agent or Voice Flow retrieves the last order context, enabling personalized greetings. Standard Salesforce ANI lookup only retrieves the Contact record and any open cases.
 
----
-
-## Lecture Summary
-- Outbound voice with Agentforce supports autonomous and human-assisted modes; predictive dialing maximizes efficiency while progressive dialing reduces abandoned call risk
-- Blended inbound/outbound campaigns use the same agent pool and Omni-Channel capacity model; inbound priority configuration determines when agents shift between modes
-- Data Cloud integration enriches VoiceCall context at call arrival with unified customer profile attributes including churn score, LTV, and cross-channel behavior
-- Multi-language voice requires language-specific TTS prompts, STT language configuration, routing skills, and Knowledge article tagging
-- PCI-DSS compliance for voice requires recording pause during payment capture, DTMF-only card entry, transcript redaction, and engagement of a Qualified Security Assessor
-- ROI modeling for voice automation uses containment rate improvement and AHT reduction as the primary value drivers against licensing and implementation costs
-
----
-
-## Mini Quiz
-
-**Q1:** A company wants Agentforce Voice to automatically call customers with appointment reminders and allow them to confirm or cancel by pressing 1 or 2. Which dialing mode is most appropriate for this low-volume, structured use case?
-
-A) Predictive dialing with AI abandon rate management  
-B) Progressive dialing with Agentforce autonomous agent  
-C) Inbound queue with DTMF menu  
-D) Blended inbound/outbound with human agents  
-
-**Answer:** B — Progressive dialing (one call per session) combined with an Agentforce autonomous agent is appropriate for structured outbound interactions like appointment reminders. The autonomous agent handles the scripted interaction, and DTMF responses (press 1/press 2) collect the confirmation. Predictive dialing's higher efficiency is unnecessary for low-volume campaigns and adds compliance risk.
-
----
-
-**Q2:** A financial services company wants to capture credit card numbers via voice for phone payments. What is the required configuration to maintain PCI-DSS compliance?
-
-A) Store card numbers in an encrypted custom field on the VoiceCall object  
-B) Use speech recognition to capture card numbers with sentiment-based masking  
-C) Pause call recording, require DTMF-only card entry, and enable transcript redaction  
-D) Restrict access to VoiceCall recording playback to compliance officers only  
-
-**Answer:** C — PCI-DSS requires that cardholder data not be stored in recordings or transcripts. The correct technical implementation is: pause recording during the payment segment, require DTMF-only entry (no speech capture of card numbers), and enable Amazon Transcribe automatic redaction as a defense-in-depth measure.
-
----
-
-**Q3:** A voice architect is building the business case for Agentforce Voice. The contact center handles 500,000 calls/year at $10/call. The projected autonomous containment rate is 25%. Agentforce Voice fully loaded cost is $3/contained call. What is the approximate annual gross savings from containment?
-
-A) $500,000  
-B) $875,000  
-C) $1,250,000  
-D) $375,000  
-
-**Answer:** B — 25% of 500,000 calls = 125,000 contained calls. Savings per contained call = $10 (avoided agent cost) − $3 (AI cost) = $7 net savings per call. 125,000 × $7 = $875,000 annual gross containment savings.
+**Q:** A financial services voice agent is being designed to handle payment collection calls. What three technical layers are required to ensure the credit card number is never stored in Salesforce?
+**A:** (1) Configure recording pause in the Amazon Connect Contact Flow before the card entry step — prevents the audio from being recorded. (2) Use DTMF-only input for card entry — the telephony layer captures keypad tones without transcribing them. (3) Enable AWS Transcribe PII redaction as a backup layer to automatically remove any card numbers that inadvertently appear in transcript text. These three layers combine to ensure the card number never reaches Salesforce.

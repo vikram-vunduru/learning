@@ -1,307 +1,130 @@
-# L13: Object Manager & Fields
+# Object Manager & Standard Objects
 
-## 🎯 Learning Objectives
-- Navigate the Object Manager in Salesforce Setup and identify its key components
-- Distinguish between standard objects and custom objects, including naming conventions and API names
-- Identify the most important standard objects and their relationships in the Salesforce data model
+## Exam Domain
+Object Manager & Lightning App Builder — 20% of exam
 
-## 📊 SLIDES
+## Core Concepts
 
-### Slide 1: What Is the Object Manager?
-**Visual:**
+Object Manager is the central admin UI for working with all objects — standard and custom. Think of it as the schema browser and configuration hub for the Salesforce data model.
+
+**Getting there:** Setup → Object Manager (or use the quick find: "Object Manager")
+
+**Standard Objects:** Pre-built objects included with Salesforce — Account, Contact, Lead, Opportunity, Case, Campaign, etc. You cannot delete standard objects. You can customize them (add fields, change layouts, add validation rules).
+
+**Custom Objects:**
+- Created by admins/developers to model unique business data
+- Always end in `__c` (API name)
+- Examples: `Project__c`, `Invoice__c`, `Custom_Product__c`
+- You can create, modify, and (carefully) delete custom objects
+- Custom object API names also use `__c`: `Project__c.Budget__c`
+
+**Object limits by edition:**
+| Edition | Custom Objects |
+|---|---|
+| Professional | 50 |
+| Enterprise | 200 |
+| Unlimited | 2,000 |
+| Developer Edition | 400 |
+
+**Key Object Manager capabilities:**
+- Fields & Relationships — all fields on the object
+- Page Layouts — which fields/buttons on record pages
+- Validation Rules — conditions that block saves
+- Record Types — segment records for different processes
+- Triggers — Apex code that runs on events
+- Field Sets — named collections of fields (for dynamic UIs)
+- Search Layouts — what shows in search results
+
+**Standard objects you need to know for the exam:**
+- **Account** — organization or individual (if Person Accounts enabled)
+- **Contact** — individual associated with an Account
+- **Lead** — unqualified prospect; can be converted to Account + Contact + Opportunity
+- **Opportunity** — sales deal in progress
+- **Case** — customer service request
+- **Campaign** — marketing initiative; members tracked
+- **Product (Product2)** — item for sale; tied to Price Books
+- **Task / Event** — activity records
+- **User** — Salesforce users
+
+## PTA / SA Relevance
+
+Object Manager is where you see the data model of a Salesforce org. In an architecture assessment, one of the first things to check is:
+- How many custom objects are in use vs the edition limit?
+- Are custom objects well-named (namespace conventions)?
+- Are there orphaned custom objects (built, never deployed, never deleted)?
+
+**Data model debt:** Enterprise customers accumulate custom objects over years. Objects get built for one project and abandoned. An org with 185 custom objects approaching the 200-limit in Enterprise Edition is a real problem — upgrading to Unlimited edition costs money and requires contract changes. Always flag object count in org assessments.
+
+**Standard object customization limits:** You can add up to 500 custom fields to most standard objects. This also accumulates — an Account object with 300 custom fields is a maintenance and performance problem.
+
+## Architecture / How It Works
+
 ```
-  ┌─────────────────────────────────────────────────────────────────────┐
-  │  Salesforce Setup                                                   │
-  │  ┌──────────┬─────────────────┬──────────────┬───────────────────┐  │
-  │  │  Home    │  Object Manager │  Environments│  ...              │  │
-  │  └──────────┴─────────────────┴──────────────┴───────────────────┘  │
-  │                    ↑ highlighted / active tab                        │
-  │  ┌───────────────────────────────────────────────────────────────┐  │
-  │  │  Object Manager                                   [ Search ]  │  │
-  │  ├────────────────────────┬───────────────────────┬─────────────┤  │
-  │  │  Label                 │  API Name             │  Type        │  │
-  │  ├────────────────────────┼───────────────────────┼─────────────┤  │
-  │  │  Account               │  Account              │  Standard    │  │
-  │  │  Contact               │  Contact              │  Standard    │  │
-  │  │  Opportunity           │  Opportunity          │  Standard    │  │
-  │  │  Case                  │  Case                 │  Standard    │  │
-  │  │  Expense Report        │  Expense_Report__c    │  Custom      │  │
-  │  └────────────────────────┴───────────────────────┴─────────────┘  │
-  └─────────────────────────────────────────────────────────────────────┘
+Object Architecture in Salesforce
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  STANDARD OBJECTS (pre-built)
+  ┌────────────────────────────────────────┐
+  │  Account, Contact, Lead, Opportunity  │
+  │  Case, Campaign, User, Task, Event    │
+  │  (cannot delete; can customize)       │
+  └────────────────────────────────────────┘
+
+  CUSTOM OBJECTS (admin-created)
+  ┌────────────────────────────────────────┐
+  │  [Name]__c (API name ends in __c)      │
+  │  Project__c, Invoice__c, etc.          │
+  │  (can delete with data loss warning)   │
+  └────────────────────────────────────────┘
+
+  Object Manager per object:
+  ┌────────────────────────────────────────┐
+  │  Details        → Object properties   │
+  │  Fields & Rel.  → Schema definition   │
+  │  Page Layouts   → UI configuration    │
+  │  Validation Rules → Save conditions   │
+  │  Record Types   → Process segments    │
+  │  Triggers       → Apex code           │
+  │  Buttons/Links  → Custom actions      │
+  └────────────────────────────────────────┘
 ```
-**Content:**
-- Object Manager is the central hub in Setup for managing all Salesforce objects — standard and custom
-- Access via: **Setup > Object Manager** (or directly from the Setup home tab navigation)
-- Replaced the older "Customize" menu in Classic; available in all Lightning editions
-- Shows all objects, their API names, custom/standard indicator, and status
-**Speaker Notes:** Before Object Manager existed, admins had to navigate to each object type individually through deeply nested menus. Object Manager consolidates everything — fields, page layouts, record types, validation rules, and more — into a single searchable list. It is where you will spend a significant portion of your admin time.
 
-### Slide 2: Object Manager Navigation
-**Visual:**
-```
-  ┌─────────────────────────────────────────────────────────────────────┐
-  │  Account  │  Standard Object  │  API Name: Account                  │
-  ├────────────────────┬────────────────────────────────────────────────┤
-  │  SIDEBAR           │  MAIN PANEL                                    │
-  │                    │                                                │
-  │ ▶ Fields &         │  Fields & Relationships                        │
-  │   Relationships    │  ┌──────────────────────────────────────────┐ │
-  │                    │  │ Field Label      │ API Name   │ Type      │ │
-  │   Page Layouts     │  ├──────────────────────────────────────────┤ │
-  │                    │  │ Account Name     │ Name       │ Text      │ │
-  │   Lightning        │  │ Annual Revenue   │ AnnualRev… │ Currency  │ │
-  │   Record Pages     │  │ Industry         │ Industry   │ Picklist  │ │
-  │                    │  └──────────────────────────────────────────┘ │
-  │   Record Types     │                                                │
-  │                    │                                                │
-  │   Validation       │                                                │
-  │   Rules            │                                                │
-  │                    │                                                │
-  │   Buttons, Links   │                                                │
-  │   & Actions        │                                                │
-  │                    │                                                │
-  │   Search Layouts   │                                                │
-  │                    │                                                │
-  │   Related Lookup   │                                                │
-  │   Filters          │                                                │
-  └────────────────────┴────────────────────────────────────────────────┘
-```
-**Content:**
-- Click any object in Object Manager to open its detail page
-- Left sidebar tabs include: **Fields & Relationships**, **Page Layouts**, **Lightning Record Pages**, **Record Types**, **Validation Rules**, **Buttons, Links and Actions**, **Search Layouts**
-- All object-level customization happens from this single page
-- The header shows the object's label, API name, and object type (Standard/Custom)
-**Speaker Notes:** Knowing the Object Manager sidebar is practical for the exam. Questions will ask you where to go to add a custom field, create a record type, or add a validation rule — the answer is always Object Manager, then the appropriate tab in the left sidebar.
+**Limitations:**
+- Cannot delete standard objects
+- Deleting a custom object permanently deletes ALL data in that object (with 15-day recovery window in recycle bin)
+- Custom object limits vary by edition — Enterprise = 200, Unlimited = 2,000
+- API names are permanent — you can change the label but NOT the API name of a deployed custom object (without disrupting integrations/code)
+- `__c` suffix is reserved for custom components — you cannot name a standard field with `__c`
 
-### Slide 3: Standard Objects — The Core CRM Objects
-**Visual:**
-```
-  ┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐
-  │     ACCOUNT       │  │     CONTACT       │  │      LEAD         │
-  │                   │  │                   │  │                   │
-  │  Companies and    │  │  People at        │  │  Unqualified      │
-  │  individuals you  │  │  Accounts;        │  │  prospects; not   │
-  │  do business with │  │  linked via       │  │  yet in your      │
-  │                   │  │  Lookup to Acct   │  │  sales pipeline   │
-  └───────────────────┘  └───────────────────┘  └───────────────────┘
+## Key Facts to Memorize
 
-  ┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐
-  │   OPPORTUNITY     │  │      CASE         │  │    CAMPAIGN       │
-  │                   │  │                   │  │                   │
-  │  Potential        │  │  Customer service │  │  Marketing        │
-  │  revenue-         │  │  issues and       │  │  initiatives and  │
-  │  generating deals │  │  support requests │  │  programs         │
-  └───────────────────┘  └───────────────────┘  └───────────────────┘
+- Custom objects: API name ends in `__c`
+- Standard objects: no `__c` suffix
+- Custom field API names also end in `__c`
+- Cross-object references in formulas use `__r` (relationship traversal): `Account__r.Name`
+- Enterprise Edition: 200 custom objects max
+- Unlimited Edition: 2,000 custom objects max
+- Object Manager: Setup → Object Manager (access for all standard + custom objects)
+- Cannot delete standard objects
+- Can add up to 500 custom fields per object
 
-  ┌───────────────────┐  ┌───────────────────┐
-  │   TASK / EVENT    │  │  PRODUCT          │
-  │                   │  │  (Pricebook Entry)│
-  │  Activities       │  │  Products and     │
-  │  related to any   │  │  pricing for      │
-  │  Salesforce       │  │  Opportunities    │
-  │  record           │  │  and Orders       │
-  └───────────────────┘  └───────────────────┘
-```
-**Content:**
-- **Account** — companies or individuals you do business with
-- **Contact** — people associated with Accounts
-- **Lead** — unqualified prospects (convert to Account + Contact + Opportunity)
-- **Opportunity** — potential revenue-generating deals
-- **Case** — customer service issues and support requests
-- **Campaign** — marketing initiatives and programs
-- **Task/Event** — activities related to any record
-**Speaker Notes:** These seven objects are the backbone of Salesforce CRM. The exam assumes you understand their purpose and basic relationships. An Account can have many Contacts and Opportunities. Leads are separate until converted. Cases belong to Accounts and Contacts. Know these cold before exam day.
+## Exam Traps
 
-### Slide 4: Standard Object Relationships
-**Visual:**
-```
-  ┌──────────┐    1:M     ┌──────────┐
-  │ CAMPAIGN │──────────▶ │   LEAD   │
-  └──────────┘            └────┬─────┘
-                               │ [Convert]
-                               ▼
-                    ┌──────────────────────┐
-                    │ Creates THREE records│
-                    └──┬───────┬───────────┘
-                       │       │       │
-                       ▼       ▼       ▼
-                  ┌────────┐ ┌─────────┐ ┌─────────────┐
-                  │ACCOUNT │ │ CONTACT │ │ OPPORTUNITY │
-                  └───┬────┘ └────┬────┘ └─────────────┘
-                      │           │
-    Account ──(1:M)──▶ Contact    (Lookup — Contact can exist without Account)
-    Account ──(1:M)──▶ Opportunity (Lookup)
-    Account ──(1:M)──▶ Case        (Lookup)
-    Contact ──(M:1)──▶ Case        (also linked to Case)
-```
-**Content:**
-- **Account → Contact:** one Account to many Contacts (Contact has a lookup to Account)
-- **Account → Opportunity:** one Account to many Opportunities
-- **Contact → Account:** Contact's Account field is a lookup, not master-detail (Account is not required)
-- **Lead Conversion:** converts Lead into Account, Contact, and Opportunity in one step
-- **Case:** can be related to both Account and Contact
-**Speaker Notes:** The Lead-to-Opportunity conversion flow trips up many exam takers. A Lead does not become an Opportunity directly — it converts into three separate records: Account, Contact, and Opportunity. The original Lead record is then marked as Converted and closed off from normal user views.
+- **"You can delete the Account object"** — FALSE. Standard objects cannot be deleted.
+- **"Deleting a custom object only removes the object definition, not the data"** — FALSE. Deleting a custom object deletes all data in it (it goes to the Recycle Bin first).
+- **"Custom object names can use any characters"** — FALSE. Must follow API naming rules: no spaces, no special characters except underscores, cannot start with a number or underscore.
+- **"All editions have the same number of custom objects"** — FALSE. Varies by edition (50 for Professional, 200 for Enterprise, 2,000 for Unlimited).
 
-### Slide 5: Custom Objects — Naming Conventions
-**Visual:**
-```
-  BUSINESS CONCEPT              SALESFORCE API NAME
-  ─────────────────             ──────────────────────────────────────
-  "Expense Report"   ────────▶  Expense_Report__c
-                                │       │      ││└─ "c"  = custom
-                                │       │      │└── "_"  = namespace separator
-                                │       │      └─── "_"  = namespace separator
-                                │       └────────── underscore replaces space
-                                └────────────────── words from label preserved
+## Practice Questions
 
-  MORE EXAMPLES:
-  "Project Milestone"  ──────▶  Project_Milestone__c
-  "My Widget"          ──────▶  My_Widget__c
-  "SLA Breach"         ──────▶  SLA_Breach__c
+**Q:** An admin creates a custom object to track project budgets. The label is "Project Budget." What would its API name be?
+**A:** `Project_Budget__c` — spaces become underscores in the API name, and `__c` is appended for all custom objects.
 
-  RULE:  Label spaces → underscores  +  append  __c
-```
-**Content:**
-- Custom objects are created by admins to store business-specific data not covered by standard objects
-- API name format: **Object_Name__c** (spaces replaced by underscores, suffix is double underscore + lowercase c)
-- Label: human-readable name (e.g., "Expense Report")
-- API name: used in code, formulas, integrations (e.g., "Expense_Report__c")
-- Custom object records have a unique 15- or 18-character Salesforce ID like all other records
-**Speaker Notes:** The __c suffix is critical. It tells you immediately that something is custom — whether it is an object, a field, or a relationship. Any time you see __c in Salesforce, it means a developer or admin created it. Standard objects and fields never have __c in their API names.
+**Q:** A company is on Enterprise Edition and has 195 custom objects. A new project requires 10 more custom objects. What is the issue?
+**A:** Enterprise Edition is limited to 200 custom objects. They only have 5 slots left. They would need to either delete unused objects or consider upgrading to Unlimited Edition.
 
-### Slide 6: API Names vs. Labels
-**Visual:**
-```
-  ┌──────────────────────────────┬──────────────────────────────┐
-  │  LABEL  (user-facing)        │  API NAME  (system / code)   │
-  ├──────────────────────────────┼──────────────────────────────┤
-  │  Account                     │  Account                     │
-  │  Annual Revenue              │  AnnualRevenue               │
-  │  My Custom Field             │  My_Custom_Field__c          │
-  │  Support Case                │  Support_Case__c             │
-  ├──────────────────────────────┼──────────────────────────────┤
-  │  ✓  Can contain spaces       │  ✗  No spaces allowed        │
-  │  ✓  Can be renamed freely    │  ⚠  Renaming breaks code     │
-  │  Standard: no __c suffix     │  Custom: always has __c      │
-  │  Relationship accessor: —    │  Lookup traversal uses __r   │
-  │                              │  (e.g., Account__r.Name)     │
-  └──────────────────────────────┴──────────────────────────────┘
-```
-**Content:**
-- **Label** — the user-facing display name; can contain spaces and special characters; can be changed freely
-- **API Name** — used in code, formulas, reports, integrations; no spaces; cannot be changed after data is in the field without impact
-- Standard objects and fields: no __c suffix (e.g., "AccountId", "AnnualRevenue")
-- Custom objects and fields: always have __c suffix
-- Relationship fields: end in **__r** for the relationship name (e.g., "Account__r.Name")
-**Speaker Notes:** Changing a label is always safe — it only affects what users see on screen. Changing an API name is dangerous — it breaks any formulas, Apex code, integrations, or reports that reference the old API name. Treat API names as permanent once the org is in production.
+**Q:** Where does an admin go to add a new custom field to the Account object?
+**A:** Setup → Object Manager → Account → Fields & Relationships → New.
 
-### Slide 7: Custom Object Limits per Edition
-**Visual:**
-```
-  ┌─────────────────────┬───────────────┬──────────────────────────────┐
-  │  EDITION            │  MAX OBJECTS  │  (relative scale)            │
-  ├─────────────────────┼───────────────┼──────────────────────────────┤
-  │  Essentials         │       5       │  ██                          │
-  │  Professional       │      50       │  ████████                    │
-  │  Enterprise         │     200       │  ████████████████████        │
-  │  Unlimited          │   2,000       │  ████████████████████████... │
-  │  Developer          │     400       │  ████████████████████████    │
-  └─────────────────────┴───────────────┴──────────────────────────────┘
-  ⚠  Deleted custom objects still count toward the limit
-     until permanently erased from the Recycle Bin
-```
-**Content:**
-- **Essentials:** 5 custom objects
-- **Professional:** 50 custom objects
-- **Enterprise:** 200 custom objects
-- **Unlimited:** 2,000 custom objects
-- **Developer:** 400 custom objects
-- Deleted custom objects count toward the limit until permanently erased from the Recycle Bin
-**Speaker Notes:** The Enterprise limit of 200 custom objects is the most commonly cited on the exam — that is the edition most large companies use. Know that deleting an object does not immediately free up the count — you must purge it from the Recycle Bin for the limit to decrease.
-
-### Slide 8: Finding and Searching in Object Manager
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────────┐
-  │  Object Manager                                                  │
-  │  ┌────────────────────────────────────────────────────────────┐  │
-  │  │ 🔍  Search: "Case"                              [x clear]  │  │  ← search box highlighted
-  │  └────────────────────────────────────────────────────────────┘  │
-  │  [All Objects ▼]  [Standard Objects]  [Custom Objects]           │
-  │                                                                  │
-  │  ┌──────────────────────┬──────────────────────┬──────────────┐  │
-  │  │  Label               │  API Name            │  Type        │  │
-  │  ├──────────────────────┼──────────────────────┼──────────────┤  │
-  │  │  Case                │  Case                │  Standard    │  │
-  │  │  Case Comment        │  CaseComment         │  Standard    │  │
-  │  │  Case Team Member    │  CaseTeamMember      │  Standard    │  │
-  │  └──────────────────────┴──────────────────────┴──────────────┘  │
-  │                                                                  │
-  │  ▶ Deleted Objects (2)  ← objects here still consume the limit   │
-  └──────────────────────────────────────────────────────────────────┘
-```
-**Content:**
-- Use the **search box** at the top of Object Manager to filter objects by label or API name
-- Toggle between **Standard Objects** and **Custom Objects** using filter buttons
-- Sort by Label, API Name, Object Type, or Status
-- Deleted objects go to the **Deleted Objects** section — restore or permanently delete them from there
-- From Object Manager, click an object and use **Edit** to modify object-level settings like label, description, and record name format
-**Speaker Notes:** In a large org with dozens of custom objects, search is your best friend. Rather than scrolling through hundreds of objects, type the first few characters of the object name. The Deleted Objects section is important during cleanup — objects sitting in that state still consume your org's custom object limit.
-
-## 🎙️ RECORDING SCRIPT
-
-Welcome to Section 4. We are shifting from security to the building blocks of data in Salesforce — objects, fields, and the tools you use to manage them. Lecture 13 starts with Object Manager.
-
-Object Manager, found in Setup, is the single place where you manage everything about any object in your org. Standard objects, custom objects, fields, page layouts, record types, validation rules — all of it is accessible from one organized interface. Before Object Manager, admins had to navigate through dozens of separate menus. Now it is all in one place.
-
-Navigate to Setup and click Object Manager in the top navigation. You will see a list of every object in your org. Click any object and you get a detail page with a left sidebar containing tabs for Fields and Relationships, Page Layouts, Record Types, Validation Rules, and more. That sidebar is your roadmap for customizing any object.
-
-Now let's talk about the objects themselves. Standard objects come with Salesforce out of the box. The core CRM objects you absolutely must know are Account, Contact, Lead, Opportunity, Case, and Campaign. Account is companies you do business with. Contact is the people at those companies. Lead is an unqualified prospect — someone you are not sure you want to do business with yet. When a Lead becomes qualified, you convert it — which creates an Account, a Contact, and an Opportunity in one step. Opportunity is a deal in progress. Case is a customer service issue. Campaign is a marketing program.
-
-Custom objects are objects you create yourself. Maybe you need to track Project Milestones, or Expense Reports, or Equipment Inventory — things Salesforce does not have standard objects for. When you create a custom object, Salesforce generates an API name using your label with spaces replaced by underscores, plus the double underscore lowercase c suffix. So "Expense Report" becomes "Expense_Report__c."
-
-That __c suffix is a universal signal. Any time you see __c in Salesforce — on an object, a field, a relationship — it means custom, user-created. Standard Salesforce components never have __c.
-
-One important distinction: labels are for humans, API names are for machines. You can rename a label any time without breaking anything. Renaming an API name in production breaks every formula, code reference, and integration that uses the old name. Treat API names as permanent once you go live.
-
-Finally, know your limits. Enterprise Edition — which most large orgs use — supports 200 custom objects. Unlimited Edition goes up to 2,000. Deleted objects still count until you empty the Recycle Bin.
-
-## 🔔 EXAM TIPS
-- **Object Manager location:** Setup > Object Manager is the correct navigation for any object customization question. Not App Manager, not Schema Builder — Object Manager.
-- **__c suffix:** Any custom object or field ends in __c. Standard objects and fields do not. The relationship accessor ends in __r. These distinctions appear frequently in scenario questions.
-- **Lead conversion output:** A converted Lead creates an Account, Contact, and Opportunity — three records, not just one. The original Lead record is marked Converted.
-- **Enterprise = 200 custom objects:** This specific limit appears on the exam. Know it along with Unlimited = 2,000.
-- **API name vs. label:** Labels can be changed freely. API names should be treated as permanent in production because changing them breaks code, formulas, and integrations.
-
-## ✅ LECTURE SUMMARY
-- Object Manager (Setup > Object Manager) is the central hub for managing all object-level customization in Salesforce Lightning
-- Standard objects like Account, Contact, Lead, Opportunity, and Case come pre-built; custom objects are admin-created and end in __c
-- API names use underscores instead of spaces and have __c for custom components; labels are user-facing and can be changed freely
-- Key standard object relationship: Account → Contact (lookup), Account → Opportunity (lookup), Lead converts into Account + Contact + Opportunity
-- Custom object limits by edition: Essentials = 5, Professional = 50, Enterprise = 200, Unlimited = 2,000
-
-## ❓ MINI QUIZ
-
-**Q1:** An admin creates a custom object called "Project Milestone." What will the API name be?
-- A) ProjectMilestone
-- B) Project_Milestone__c
-- C) ProjectMilestone__c
-- D) project_milestone__c
-
-**Answer:** B — Custom object API names replace spaces with underscores and append __c. "Project Milestone" becomes "Project_Milestone__c."
-
-**Q2:** A sales rep converts a Lead record in Salesforce. Which records are created as a result of Lead conversion?
-- A) Opportunity only
-- B) Account and Contact only
-- C) Account, Contact, and Opportunity
-- D) Contact and Opportunity only
-
-**Answer:** C — Lead conversion creates three records: an Account, a Contact, and an Opportunity. The original Lead is marked as Converted.
-
-**Q3:** An organization is on Enterprise Edition. How many custom objects can they create?
-- A) 50
-- B) 100
-- C) 200
-- D) 2,000
-
-**Answer:** C — Enterprise Edition allows up to 200 custom objects. Unlimited Edition allows up to 2,000.
+**Q:** An admin needs to reference a field from a parent Account on a custom formula field on Contact. What syntax is used?
+**A:** `Account.FieldName__c` (for standard relationship) or `RelationshipName__r.FieldName__c` (for custom lookup relationships). The `__r` suffix is used for traversing relationships in formulas.

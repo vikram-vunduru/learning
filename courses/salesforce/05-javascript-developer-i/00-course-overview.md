@@ -48,6 +48,23 @@ JSI tests JavaScript at the language level — the stuff that causes real bugs i
 - Take 2 full practice exams timed. Review every wrong answer.
 - Final day: light review of `this` binding and Promise ordering only.
 
+## PTA / SA Relevance
+
+**Why this exam matters as a Partner Technical Architect:**
+- JavaScript is the language of LWC — the dominant UI framework for Salesforce custom development. Every enterprise org I advise will have LWC components. This exam proves I understand the language at the engine level, not just the Salesforce layer.
+- In partner technical reviews, I assess ISV and SI code quality. JavaScript bugs (missing `?.`, wrong `this` binding, unhandled Promises) are the most common cause of LWC production incidents.
+- CRT-600 covers the exact concepts I use when advising customers: event loop for async patterns, closures for state management, prototype chain for debugging unexpected behavior.
+
+**What I review in partner architecture sessions:**
+- LWC component structure: lifecycle hook usage, `@api`/`@wire` decorator correctness, shadow DOM awareness
+- Async patterns: proper `try/catch/finally` with `await`, `Promise.allSettled` for batch operations
+- Security: no `innerHTML` with user data, no `eval()`, no `document.querySelector` bypassing shadow DOM
+- Performance: debounced inputs, non-mutating array methods for reactive state, `Set` for O(1) lookups
+
+**Customer advisory context:**
+- When customers ask "should we use LWC, Aura, or Visualforce?" → LWC for all new custom UI, Aura only if extending existing Aura app with significant existing investment, Visualforce only for PDF generation or legacy page layouts
+- When advising on custom component vs AppExchange: build custom for domain-specific logic; buy AppExchange for horizontal features (document generation, e-signature, CPQ)
+
 ## Practice Questions
 
 **Q:** Which keyword creates a block-scoped binding that cannot be reassigned?

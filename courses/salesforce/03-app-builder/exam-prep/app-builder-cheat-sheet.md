@@ -1,252 +1,243 @@
-# CRT-403 App Builder Cheat Sheet
+# CRT-403 App Builder — Personal Cheat Sheet
 
-**Salesforce Certified Platform App Builder — Quick Reference**
+**Dense reference for exam day review. One pass through this should refresh everything.**
 
 ---
 
 ## 1. Automation Tool Decision Matrix
 
-| Tool | Use When | Cannot Do | Replaces / Notes |
-|---|---|---|---|
-| **Validation Rule** | Prevent saving a record when data doesn't meet criteria | Cannot update fields, send emails, or create records | Still current — not deprecated |
-| **Formula Field** | Display a calculated read-only value on a record; cross-object references | Cannot write/store a value that changes independently of the formula; ISNULL on text always false | Still current — not deprecated |
-| **Roll-Up Summary** | Count, sum, min, or max values from child records (Master-Detail only) | Cannot span Lookup relationships; cannot use date arithmetic as the roll-up itself | Only on Master side of Master-Detail |
-| **Before-Save Flow** | Derive/update fields on the triggering record efficiently before commit (no DML cost) | Cannot create/update/delete other records; cannot send emails; no record ID for new records before insert | Fastest automation for self-field updates |
-| **After-Save Flow** | Create/update/delete related records, send emails, call Apex, publish platform events | Cannot update triggering record fields without a separate DML (causes re-trigger risk) | Use "Recursion" guard if updating triggering record |
-| **Screen Flow** | Collect user input through a guided wizard; multi-step forms; launched by button/action | Cannot run autonomously; requires user interaction | Launch via Quick Action, button, or embedded in App Builder |
-| **Scheduled Flow** | Run batch automation at a specified time/frequency (e.g., nightly updates, reminders) | Cannot respond to real-time record events; no user interface | Replaces scheduled Apex for many use cases |
-| **Approval Process** | Formal multi-step human approval workflows (Submit → Approve/Reject → Final outcome) | Cannot run without a human approver decision; limited conditional branching | No direct replacement — unique for human-in-the-loop |
-| **Platform Event Flow** | React to a published platform event message (event-driven architecture) | Cannot be triggered by record changes directly; requires a platform event to be published | Enables event-driven integrations |
-| **Apex Trigger** | Complex logic that Flow cannot handle; bulkified cross-object operations; callouts in transactions | Requires developer; harder to maintain | Last resort after exhausting declarative options |
-| **Workflow Rules** | ~~Send email alerts, update fields, outbound messages on record save~~ | ~~Cross-object field updates only 1 level deep; no user interaction~~ | **DEPRECATED** — Replaced by Record-Triggered Flow |
-| **Process Builder** | ~~Multi-criteria automation with multiple actions~~ | ~~Complex logic; performance issues at scale~~ | **DEPRECATED** — Replaced by Record-Triggered Flow |
+| Tool | Use When | Limitations / Exam Traps |
+|---|---|---|
+| **Formula Field** | Display/calculate read-only value on a record; cross-object references (up to 5 levels) | Read-only — users can't edit; cannot aggregate across records; `&` not `+` for string concat; ISNULL unreliable on text |
+| **Roll-Up Summary** | COUNT/SUM/MIN/MAX of child records (Master-Detail only, on master object) | Master-Detail ONLY — Lookup = use Flow; cannot reference formula fields on child |
+| **Validation Rule** | Prevent saving when data is bad; TRUE = error fires | TRUE = error (not "validation passes"); use ISPICKVAL not `=` for picklists; doesn't prevent API writes unless FLS also set |
+| **Before-Save RTF** | Update fields on the triggering record before DB write; 0 extra DML | Cannot create/update other records; cannot send email; no $Record__Prior |
+| **After-Save RTF** | Create/update/delete other records; send emails; post-save logic | DML counts against limits; $Record__Prior available; can trigger other object's flows |
+| **Screen Flow** | User-driven wizard; collect input; multi-screen process | Cannot auto-trigger; must be launched by user; cannot be called by Apex with screens |
+| **Approval Process** | Formal human approve/reject; record locking during review | Record locked on submit; entry criteria failure = submission fails (no step rejection) |
+| **Schedule-Triggered Flow** | Time-based batch processing on a schedule | Not real-time; runs against batches of 2,000 records |
+| **Platform Event RTF** | React to integration event message | Requires Platform Event to be published; no direct record trigger |
+| **Auto-launched Flow** | Reusable logic called by Apex/other Flows/API | No Screen elements; no trigger |
+| **Apex Trigger** | Complex logic Flow can't handle; dynamic SOQL; HTTP callouts in same transaction | Last resort; requires test coverage; harder to maintain |
+| **Workflow Rules** | LEGACY/DEPRECATED | Replace with Record-Triggered Flow |
+| **Process Builder** | LEGACY/DEPRECATED | Replace with Record-Triggered Flow |
 
 ---
 
-## 2. Relationship Types Comparison
+## 2. Relationship Types
 
-| Relationship | Parent Delete Behavior | Lookup Filter Supported | Roll-Up Summary Available | Is Child Required? | Max per Object |
+| Type | Cascade Delete? | Roll-Up? | Child Required? | Max per Object | Key Fact |
 |---|---|---|---|---|---|
-| **Master-Detail** | Cascade delete — all child records deleted with parent | Yes | Yes (on master object) | Yes — child cannot exist without parent | 2 Master-Detail fields per custom object |
-| **Lookup** | Parent deleted; child lookup field cleared (or blocked if "Required" + restrict delete configured) | Yes | No — use Flow instead | No — lookup field is optional by default (can be made required) | 40 total relationship fields (combined) |
-| **Hierarchical** | Standard Lookup behavior (no cascade) | No | No | No | 1 — only on User object |
-| **Many-to-Many (Junction)** | Cascade delete if junction object uses Master-Detail to both parents; depends on configuration | Yes (on junction) | Yes (on both parent masters via junction) | Yes for Master-Detail sides | Achieved via a junction object with 2 Master-Detail fields |
+| **Master-Detail** | YES | YES (on master) | YES | 2 | OWD = Controlled by Parent; enables junction objects |
+| **Lookup** | NO (field cleared) | NO | NO (optional) | ~40 | Can be converted to MD if no null parents exist |
+| **Hierarchical** | NO | NO | NO | 1 | User object only |
+| **Junction (2xMD)** | YES (both parents) | YES (on both masters) | YES | N/A | Delete either parent → all junction records deleted |
 
-**Key facts:**
-- A custom object can have **at most 2** Master-Detail relationships.
-- Roll-Up Summary fields are created on the **master** and summarize **detail** records.
-- Standard object relationships (e.g., Account-Case, Account-Contact) are Lookup — no native roll-up available without Flow.
-
----
-
-## 3. Flow Types Reference
-
-| Flow Type | Triggered By | Common Use Case | Can Update Triggering Record? |
-|---|---|---|---|
-| **Record-Triggered Flow (Before-Save)** | A record being created or updated, runs before the record is written to DB | Derive field values, auto-calculate, set defaults without extra DML | Yes — directly via {!$Record} assignments (no DML needed) |
-| **Record-Triggered Flow (After-Save)** | A record being created, updated, or deleted, runs after the record is committed | Create related records, send emails, update other objects, call Apex | Yes — but requires an explicit Update Records element (watch for recursion) |
-| **Screen Flow** | User interaction (button click, Quick Action, embedded in App Builder) | Guided wizards, data collection forms, multi-step processes | Yes — via Update Records element |
-| **Scheduled Flow** | Date/time trigger (scheduled start + optional recurrence) | Nightly batch jobs, sending reminders, archiving old records | No triggering record — operates on retrieved record collections |
-| **Autolaunched Flow (No Trigger)** | Called by another flow, Apex code, REST API, or Process Builder | Sub-flow logic reuse, API-invoked automation | Depends on what records are passed into it |
-| **Platform Event-Triggered Flow** | A Platform Event message being published | Event-driven integrations, real-time cross-system reactions | No — operates on event data, not a record context |
-
-**Before-Save vs After-Save Decision Guide:**
-- Use **Before-Save** when: updating fields on the same record, no other records need to change, performance matters.
-- Use **After-Save** when: creating/updating/deleting related records, sending emails, calling Apex, publishing platform events.
+**Limitations:**
+- Cannot have 3+ Master-Detail relationships on one object
+- Converting Lookup to MD fails if any child records have null parent
+- Roll-Up cannot reference formula fields on child records
 
 ---
 
-## 4. Deployment Methods Comparison
+## 3. Flow Types Quick Reference
 
-| Method | Best For | Rollback | Version Control Friendly | Apex Test Requirement |
+| Type | Triggered By | Before/After Save | $Record__Prior? | Can have Screens? |
 |---|---|---|---|---|
-| **Change Sets** | Sandbox-to-production migrations without developer tooling; admin-driven deployments | Manual — must redeploy old version; no built-in rollback | No — metadata must be re-retrieved; not source-tracked | Yes — 75% coverage required for Apex in production; Validate before Deploy recommended |
-| **Unmanaged Package** | Sharing a one-time snapshot of metadata; templates or starter configurations | No version history; reinstall or manually remove | No — no versioning mechanism | Yes — 75% if Apex is included |
-| **Managed Package** | ISV/AppExchange distribution; protecting IP; multi-customer upgrades | Upgrade by deploying new package version; cannot easily remove locked components | No native VCS; ISV manages versions internally | Yes — tests must pass during package upload |
-| **Unlocked Package** | Modular internal deployment; team-based development; source-controlled releases | Deploy a previous package version; package can be deleted in non-production orgs | Yes — designed for Salesforce DX source-tracked projects | Yes — 75% for production deploys |
-| **Salesforce DX / CLI (sf deploy)** | Developer-driven CI/CD pipelines; source tracking; large team development | Redeploy prior commit from VCS | Yes — purpose-built for source control (Git) integration | Yes — 75% coverage; all tests must pass |
+| RTF Before-Save | Record create/update | Before DB write | NO | NO |
+| RTF After-Save | Record create/update/delete | After commit | YES | NO |
+| Screen Flow | User action | N/A | N/A | YES |
+| Schedule-Triggered | Time/date schedule | N/A | N/A | NO |
+| Platform Event | Platform Event published | N/A | N/A | NO |
+| Auto-launched | Apex / Flow / REST API | N/A | N/A | NO |
 
-**Key deployment facts:**
-- Change Sets require a **Deployment Connection** to be established between orgs.
-- Always **Validate** before deploying a change set — this runs tests without committing changes.
-- Managed Packages **require a namespace prefix**.
-- Unlocked Packages do **not** require a namespace.
+**Order of execution on record save:**
+System Validations → Apex Before → Validation Rules → Duplicate Rules → **Before-Save Flows** → DB Write → **After-Save Flows** → Apex After → Workflow
+
+**Limitations per flow type:**
+- Before-Save: field updates on triggering record ONLY; no other DML; no emails
+- Auto-launched: no Screen elements; no pause
+- Schedule-Triggered: runs in 2,000 record batches; scheduled paths re-evaluate conditions at run time
+- One active version per Flow at a time
+
+---
+
+## 4. Security Model Layers (Additive Only)
+
+```
+OWD (most restrictive baseline)
+  + Role Hierarchy (upward visibility, automatic)
+  + Sharing Rules (horizontal expansion, ownership or criteria-based)
+  + Manual Sharing (ad hoc, lost when owner changes)
+= User's effective record access
+```
+
+| OWD Setting | Who Sees the Record |
+|---|---|
+| Public R/W | All users |
+| Public Read Only | All users (edit by owner/above only) |
+| Private | Owner + roles above + Sys Admin |
+| Controlled by Parent | Inherits master record's OWD (MD only) |
+
+**FLS vs. Page Layout:**
+- FLS: enforced everywhere (UI, API, reports) — the real security control
+- Page Layout: UI-only — removing a field from layout doesn't hide it from API
+- New custom fields: hidden for all profiles by default (except Sys Admin)
 
 ---
 
 ## 5. Sandbox Types
 
-| Type | Production Data Included | Storage (Config/Data) | Refresh Interval | Best For |
-|---|---|---|---|---|
-| **Developer** | No (metadata only) | 200 MB config / 200 MB data | 1 day | Individual developer builds; unit testing; quick experiments |
-| **Developer Pro** | No (metadata only) | 1 GB config / 1 GB data | 1 day | Larger developer projects; integration testing with more data volume |
-| **Partial Copy** | Yes — subset (up to 10,000 records per object based on sandbox template) | 5 GB config / 5 GB data | 5 days | QA testing with realistic (but not full) data sets |
-| **Full** | Yes — complete copy of all production data and metadata | Same as production | 29 days | Final UAT, performance/load testing, regression testing before major releases |
-
----
-
-## 6. Lightning App Builder Quick Reference
-
-### Page Types
-
-| Page Type | When to Use | Notes |
-|---|---|---|
-| **App Page** | Custom landing/home page within a Lightning App; tabs showing dashboards, reports, or custom components | Added as a tab in App Manager |
-| **Record Page** | Customizing the layout for a specific object's record detail view | Can be activated for org, app, profile, or record type |
-| **Home Page** | Customizing the standard Home tab for users | Can be activated org-wide or per profile |
-
-### Activation Priority (lowest → highest)
-1. **Org Default** — applies to all users with no more-specific override
-2. **App Default** — applies to users of a specific app
-3. **App + Profile** — applies to users of a specific app who have a specific profile
-4. **Profile-Specific** — applies to all users with a specific profile regardless of app
-5. **Record-Type-Specific** (for Record Pages) — applies to records of a specific record type
-
-A more specific activation always overrides a less specific one. Profile-specific beats Org Default.
-
-### Dynamic Forms
-- **What it does:** Migrates field sections from the traditional page layout canvas into the Lightning App Builder, giving each field and section its own visibility rules.
-- **When to use:** When you have multiple page layouts that exist solely to show/hide different fields for different users or conditions. Dynamic Forms consolidates them into one page with conditional visibility.
-- **Limitation:** Currently supported on custom objects and select standard objects (Account, Contact, Opportunity, Lead, Case). Not available on all standard objects.
-
-### Dynamic Actions
-- **What it does:** Moves action buttons from the page layout into the Lightning App Builder, allowing visibility rules on each individual action button (show/hide based on field values, profile, etc.).
-- **When to use:** When you want to show different action buttons to different users or under different record conditions without creating multiple page layouts.
-
----
-
-## 7. Record Types vs Page Layouts vs Dynamic Forms
-
-| Feature | Record Types | Multiple Page Layouts | Dynamic Forms |
+| Type | Storage | Refresh | Data |
 |---|---|---|---|
-| **Primary purpose** | Segment records into categories with different picklist values and layout assignments | Show different field arrangements, sections, and buttons to different users/roles | Show/hide individual fields and sections based on conditions without separate layouts |
-| **When to use** | When different categories of the same object need different business processes, picklist values, or entirely different forms (e.g., Customer vs. Partner Accounts) | When different user profiles need a fundamentally different set of fields (combined with Record Types for segmentation) | When the only reason you have multiple layouts is to conditionally show/hide fields — Dynamic Forms replaces that complexity with one layout + visibility rules |
-| **Requires Record Type?** | Record Types drive layout assignment per record category | Layouts are assigned via Record Type + Profile matrix | No — Dynamic Forms visibility rules work at the field/section level, independent of record types |
-| **Picklist value control** | Yes — each Record Type defines its own active picklist values | No — layouts don't control picklist values | No |
-| **Replaces other feature?** | No | Dynamic Forms can reduce the number of layouts needed | Reduces need for multiple page layouts for field visibility |
+| Developer | 200MB | Daily | No prod data |
+| Developer Pro | 1GB | Daily | No prod data |
+| Partial Copy | 5GB | 5 days | Sample of prod |
+| Full | Full copy | 29 days | Full prod copy |
 
-**Rule of thumb:** If different record categories need different picklist values → use Record Types. If the only goal is to show/hide fields based on data → use Dynamic Forms.
+**Limitations:**
+- Sandbox refresh wipes all sandbox customizations
+- Full sandbox = 29-day minimum between refreshes (no daily refresh possible)
+- Preview instance sandboxes get Salesforce releases 4–6 weeks before production
 
 ---
 
-## 8. Key Salesforce Limits to Know
+## 6. Deployment
 
-| Limit | Value | Notes |
+| Method | Rollback? | Version Control? | AppExchange? | Namespace? |
+|---|---|---|---|---|
+| Change Sets | No | No | No | No |
+| Unmanaged Package | No (uninstall+reinstall) | No | No | No |
+| Managed Package | Upgrade to new version | 2GP: Yes | YES | Required |
+| Unlocked Package | Install prior version | Yes (DX) | No | Optional |
+| Salesforce CLI (sf deploy) | Re-deploy from git | Yes | No | Optional |
+
+**Change Set facts:**
+- Outbound in source org; inbound in target org
+- Deployment connection authorized in TARGET org
+- Validate = dry run, no changes; passes = 10-day Quick Deploy window
+- 75% Apex coverage required if ANY Apex in the change set (org-wide metric)
+- Declarative-only change sets: no coverage requirement
+
+**Package facts:**
+- Managed: obfuscated Apex, upgradeable, namespace `ns__ComponentName__c`
+- Unmanaged: no upgrade path (uninstall+reinstall); no namespace
+- Unlocked: visible code, upgradeable, no namespace required; not AppExchange
+- Uninstall any package = data in package custom objects DELETED
+- AppExchange security review: mandatory for all public listings
+
+---
+
+## 7. Lightning App Builder
+
+| Page Type | Record Context? | Key Components Available |
 |---|---|---|
-| Custom objects per org (Enterprise Edition) | 200 custom objects (standard metadata limit for Enterprise) | Increases with add-ons; Unlimited Edition = 2,000 |
-| Custom fields per object | 800 custom fields | Varies slightly by field type and indexing rules |
-| Roll-Up Summary fields per object | 25 | Only on master side of Master-Detail relationships |
-| Master-Detail relationships per custom object | 2 | Enables junction objects for many-to-many |
-| Lookup relationships per object | 25 | Combined with other relationship fields |
-| Field History Tracking fields per object | 20 (standard); up to 60 with Field Audit Trail add-on | Tracks old/new value, user, date |
-| Validation rules per object | 500 | Practical limits are much lower for performance |
-| Approval process steps | No hard limit | Each step can have multiple approvers |
-| Flows per org | No hard limit | Governor limits apply at runtime (CPU time, queries, DML) |
-| Apex code coverage for production deploy | 75% overall | Every test method must pass; no single class requirement (but best practice = 75% per class) |
-| Sandbox refresh — Developer | 1 day | Requires re-configuration of features that don't copy |
-| Sandbox refresh — Full | 29 days | Most restrictive; costly to refresh frequently |
-| Data Import Wizard record limit | 50,000 records per import | Use Data Loader for larger volumes |
-| Data Loader batch size | Up to 200 records per API call | Configurable; Default = 200 |
-| List view records per page | 200 | Standard pagination limit |
+| App Page | No | Report Chart, Dashboard, Recent Items, Rich Text, Flow |
+| Record Page | YES | + Related List, Chatter, Record Form, Highlights Panel |
+| Home Page | No | Report Chart, Dashboard, Tasks, News, Flow |
+
+**Activation hierarchy (most specific wins):**
+Org Default → App Default → Profile → **App + Profile + Record Type** (most specific)
+
+**Dynamic Forms:** fields become independent components with visibility rules; replaces multiple page layouts; FLS still enforces security.
+
+**Dynamic Actions:** control button visibility in Highlights Panel by conditions; Record Pages only.
+
+**Component visibility conditions:** Field Value / Profile / Form Factor (Desktop vs. Mobile) / Custom Permission
 
 ---
 
-## 9. Common Formula Functions Reference
+## 8. Record Types, Page Layouts, Compact Layouts
 
-| Function | Description | Example Usage |
+**Record Type controls 3 things:**
+1. Business Process (only Opportunity/Lead/Case/Solution)
+2. Page Layout Assignment (per Profile + RecordType)
+3. Picklist Value Filtering
+
+**Business Process objects (4 only):** Opportunity (Stage) / Lead (Status) / Case (Status) / Solution (Status)
+
+**Compact Layout surfaces (4):** Highlights Panel / Kanban cards / Lookup hover cards / Mobile summaries
+
+**Required on layout vs. field definition:**
+- Layout required: UI only — API (Data Loader) bypasses it
+- Field definition required: everywhere including API
+
+---
+
+## 9. Data Management Tools
+
+| Feature | Data Import Wizard | Data Loader |
 |---|---|---|
-| `ISBLANK(field)` | Returns TRUE if field is null or empty string. Works correctly on Text fields. | `ISBLANK(Description)` → TRUE if Description is empty |
-| `ISNULL(field)` | Returns TRUE if field is null. **Does NOT work correctly on Text fields** (always returns false for text). Use for number, date, checkbox fields. | `ISNULL(Amount)` → TRUE if Amount has no value |
-| `ISPICKVAL(field, "value")` | Returns TRUE if a picklist field equals the specified value | `ISPICKVAL(Stage, "Closed Won")` |
-| `ISCHANGED(field)` | Returns TRUE if the field value has changed during the current save. **Only available in validation rules, workflow criteria, and flow conditions — NOT in standard formula fields.** | `ISCHANGED(Owner)` |
-| `ISNEW()` | Returns TRUE if the record is being created for the first time (insert context) | Used in validation rules to skip checks on updates |
-| `PRIORVALUE(field)` | Returns the value of a field before the current save. Same context restriction as ISCHANGED. | `PRIORVALUE(Status__c)` |
-| `NOT(logical)` | Negates a boolean expression | `NOT(ISBLANK(Phone))` → TRUE if Phone has a value |
-| `AND(cond1, cond2)` | Returns TRUE only if all conditions are true. Equivalent to `&&` operator. | `AND(ISBLANK(Email), ISPICKVAL(Status,"Active"))` |
-| `OR(cond1, cond2)` | Returns TRUE if any condition is true. Equivalent to `\|\|` operator. | `OR(ISBLANK(Phone), ISBLANK(Email))` |
-| `LEN(text)` | Returns the number of characters in a text string | `LEN(Description) > 500` |
-| `CONTAINS(text, search)` | Returns TRUE if the text contains the search string (case-sensitive) | `CONTAINS(Name, "Test")` |
-| `REGEX(text, pattern)` | Returns TRUE if text matches the regular expression pattern | `NOT(REGEX(Phone,"\\(\\d{3}\\) \\d{3}-\\d{4}"))` |
-| `TODAY()` | Returns today's date (Date type) | `CloseDate < TODAY()` |
-| `NOW()` | Returns current date and time (DateTime type) | `NOW() - CreatedDate > 2` (days old) |
-| `DATEVALUE(datetime)` | Converts a DateTime to a Date | `DATEVALUE(CreatedDate)` |
-| `TEXT(value)` | Converts a number, date, or picklist value to text | `TEXT(AnnualRevenue)` or `TEXT(Stage)` |
-| `VALUE(text)` | Converts a text string to a number | `VALUE(ZipCode__c)` |
-| `IF(condition, true_result, false_result)` | Returns one value if condition is true, another if false | `IF(Amount > 100000, "High Value", "Standard")` |
-| `CASE(field, val1, result1, val2, result2, ..., else)` | Returns a different result based on the field's value — like a switch statement | `CASE(Rating, "Hot","High","Warm","Medium","Low")` |
+| Max records | 50,000 | 5,000,000 |
+| Interface | Browser | Desktop app |
+| All objects? | No (select objects) | Yes |
+| Delete/Hard Delete? | No | Yes |
+| Bypass duplicate rules? | No | YES |
+| Bypass validation rules? | No | No |
+| Upsert (External ID)? | Yes | Yes |
+
+**External ID:** custom field with External ID checkbox = unique key from external system; enables upsert (insert-if-new, update-if-match).
 
 ---
 
-## 10. Quick Action Types
+## 10. Formula Functions — Quick Reference
 
-### Object-Specific Quick Actions
-- Created on a **specific object** (e.g., Account, Opportunity)
-- Appear in the action bar on that object's **record pages**
-- Automatically pre-populate related fields (e.g., creating a Contact from an Account pre-fills the Account lookup)
-
-### Global Quick Actions
-- Created at the org level (not tied to an object)
-- Appear in the **global action bar** (available from any page, including Home)
-- Cannot pre-populate parent record fields (no context record)
-
-### Action Types
-
-| Action Type | What It Does |
+| Function | When to Use |
 |---|---|
-| **Create Record** | Opens a form to create a new record of a specified object type |
-| **Update Record** | Opens a form to update fields on the current record |
-| **Log a Call** | Creates a completed Task (call log) associated with the current record |
-| **Custom (LWC)** | Launches a custom Lightning Web Component in a modal |
-| **Custom (Visualforce)** | Launches a Visualforce page in a modal |
-| **Send Email** | Opens the email composer to send an email from the record |
-| **Flow** | Launches a Screen Flow from the action button |
-
-**Where to add Quick Actions to a page:** Quick Actions must be added to the **Page Layout** (in the "Quick Actions in the Salesforce Mobile and Lightning Experience Actions" section) OR controlled via **Dynamic Actions** in the Lightning App Builder.
-
----
-
-## 11. Key Exam Tips Summary
-
-1. **Roll-Up Summary on Lookup = IMPOSSIBLE.** If a relationship is Lookup (not Master-Detail), you cannot create a Roll-Up Summary field. The answer is always: use a Record-Triggered Flow (After-Save) to maintain a counter/sum field instead.
-
-2. **ISNULL on Text fields always returns FALSE.** For any Text, Text Area, or Long Text Area field, use `ISBLANK()`. ISNULL only works correctly on Date, Number, Checkbox, and Picklist fields.
-
-3. **Validation rule fires when formula = TRUE.** Write the formula to represent the BAD condition. If you want to require a field, write `ISBLANK(Field__c)` — this is TRUE (= error) when the field is empty.
-
-4. **Before-Save flows cannot perform DML on other objects.** Before-save flows are limited to updating the triggering record's fields. Any creation or update of other records requires an After-Save flow.
-
-5. **Workflow Rules are LEGACY (deprecated).** Never recommend them as a new solution on the exam. The correct replacement is Record-Triggered Flow.
-
-6. **Process Builder is LEGACY (deprecated).** Never recommend it as a new solution. The correct replacement is Record-Triggered Flow.
-
-7. **Validate a change set before deploying.** Validation runs tests and checks without committing — best practice before any production deployment.
-
-8. **Managed Packages require a namespace prefix.** Unmanaged and Unlocked Packages do not require a namespace.
-
-9. **75% Apex coverage for production deployments.** This is the org-wide threshold. Individual classes don't each need 75%, but overall coverage must be at or above 75%.
-
-10. **Dynamic Forms = field-level visibility without multiple page layouts.** If the question describes showing different fields to different users, Dynamic Forms (with component visibility rules) is the modern answer that avoids layout proliferation.
-
-11. **Component Visibility in App Builder is NOT the same as Field-Level Security.** Component visibility rules conditionally show/hide components based on field values or user attributes. FLS completely removes access to a field at the profile level.
-
-12. **Profile-specific App Builder activation overrides Org Default.** Activation priority: Org Default → App Default → App+Profile → Profile-Specific (highest wins).
-
-13. **Change Sets need a Deployment Connection.** You cannot deploy a change set between two orgs that don't have an established deployment connection in Setup.
-
-14. **Master-Detail cascade delete.** If a parent in a Master-Detail relationship is deleted, ALL child records are also deleted — automatically. Lookup relationships do NOT cascade delete.
-
-15. **Full Sandbox refresh = 29 days.** Developer Sandbox refresh = 1 day. This is a common exam question about sandbox planning.
-
-16. **Data Import Wizard limit = 50,000 records.** For anything larger, use Data Loader. Also, Data Loader supports upsert operations using External ID fields; the Wizard does not have native upsert.
-
-17. **Hierarchical relationship is User-only.** No other standard or custom object can use a Hierarchical relationship type.
-
-18. **A custom object can have max 2 Master-Detail relationships.** This limit enables the junction object pattern for many-to-many.
-
-19. **ISCHANGED() and PRIORVALUE() require a save context.** These functions are only valid in validation rules, workflow criteria, and flow entry conditions — not in standard formula fields.
-
-20. **Screen Flows require user interaction and cannot run automatically.** If the business process needs to run autonomously (without a user clicking something), use a Record-Triggered Flow or Scheduled Flow — not a Screen Flow.
+| `IF(c, t, f)` | Two-branch conditional |
+| `CASE(v, v1, r1, ..., else)` | Switch on discrete values |
+| `BLANKVALUE(f, default)` | Null safety — return default if blank |
+| `ISBLANK(f)` | Is field empty? — ALL types including text |
+| `ISNULL(f)` | Is field null? — numbers/dates ONLY (not text) |
+| `ISPICKVAL(f, v)` | Picklist = value — never use `=` on picklists |
+| `ISCHANGED(f)` | Did this field change? (validation rules only) |
+| `ISNEW()` | Record being created (not updated)? |
+| `PRIORVALUE(f)` | Value before this save (update context only) |
+| `TEXT(v)` | Convert number/date/picklist to text |
+| `VALUE(t)` | Convert text to number |
+| `TODAY()` | Current date (Date type) |
+| `NOW()` | Current date+time (DateTime type) |
+| `DATEVALUE(dt)` | Strip time from DateTime → Date |
+| `&` | String concatenation (NOT `+`) |
+| `NOT(c)` | Negate boolean |
 
 ---
 
-*Last updated for CRT-403 exam objectives. Always verify against the latest Salesforce Exam Guide at trailhead.salesforce.com/credentials/platformappbuilder.*
+## 11. Approval Process
+
+**5 components:** Entry Criteria / Submission Actions / Approval Steps / Recall Actions / Final Actions
+
+**Approver types:** Assigned User / Related User (field on record) / Queue / Apex
+
+**Step types:** Sequential (one at a time) vs. Parallel (simultaneous)
+
+**Parallel vote:** Unanimous (all must approve) vs. First Response (first vote wins)
+
+**Record locking:** default on submission; only Sys Admin and approver can edit locked records
+
+**Per-step actions ≠ Final Actions:** step approval fires when that step is approved; final actions fire when the entire process completes.
+
+---
+
+## 20 Exam Traps (The Most Tested)
+
+1. **TRUE = error in validation rules.** Write the bad-data condition.
+2. **Roll-Up Summary = Master-Detail only.** Lookup relationship → use Flow.
+3. **ISBLANK for text, ISNULL for numbers/dates.** ISNULL on text always returns false.
+4. **`&` for string concat, not `+`.** Using `+` with text causes a type error.
+5. **Before-Save = field updates on triggering record only.** No related records, no emails.
+6. **After-Save = full DML, $Record__Prior available.**
+7. **Validation rules fire before Before-Save Flows.** Flows never run if validation blocks the save.
+8. **Screen Flows cannot auto-trigger.** Must be launched by user action.
+9. **New fields hidden by default** for all profiles except Sys Admin.
+10. **Page layout required ≠ API required.** Data Loader bypasses layout-required fields.
+11. **Deployment connection in TARGET org.** Source org creates change set; target authorizes.
+12. **Validate = dry run.** No changes committed; 10-day Quick Deploy window opened.
+13. **75% coverage = org-wide.** Not just the code in your change set.
+14. **Full sandbox = 29-day refresh.** Cannot refresh daily.
+15. **Only managed packages on AppExchange.** Unmanaged and unlocked cannot be listed.
+16. **Uninstall = data deleted.** All records in package custom objects are gone.
+17. **Most specific activation wins.** App+Profile+RecordType beats Org Default.
+18. **Dynamic Forms ≠ FLS.** Hiding a section doesn't secure the field — FLS does.
+19. **Business Processes: 4 objects only.** Opp/Lead/Case/Solution. Not Account/Contact.
+20. **Compact Layout = 4 surfaces.** Highlights Panel + Kanban + Hover + Mobile.

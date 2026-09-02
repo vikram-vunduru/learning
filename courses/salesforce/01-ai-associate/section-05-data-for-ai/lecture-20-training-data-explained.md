@@ -1,602 +1,231 @@
-# Lecture 20: Training Data Explained
-**Duration:** 15 minutes | **Exam Weight:** 17% (Data for AI)
+# Training Data Explained
+
+**Exam Domain:** Data for AI (17%)
+**Study Priority:** HIGH — labeled vs. unlabeled, train/validation/test split, overfitting vs. underfitting are all directly tested
 
 ---
 
-## Learning Objectives
+## Core Concepts
 
-1. Define training data and explain its role as the foundation of machine learning
-2. Distinguish between labeled and unlabeled data using concrete analogies
-3. Describe general data volume thresholds for machine learning models
-4. Explain the three-way data split — training set, validation set, and test set — and the purpose of each
-5. Define overfitting and underfitting and explain their causes
-6. Describe how Salesforce uses customer data to train Einstein models
+### Labeled vs. Unlabeled Data
 
----
+| Type | Definition | Used For | Example |
+|------|-----------|---------|---------|
+| **Labeled data** | Records where the outcome is KNOWN and annotated | Supervised learning (training models that predict known outcomes) | Lead records marked "Converted = True" or "Converted = False" |
+| **Unlabeled data** | Records where outcomes are NOT pre-annotated | Unsupervised learning (finding patterns without guidance) | Customer transaction records used to find behavioral clusters |
 
-## SLIDES
+**Creating labels requires effort:** Someone (or an automated process) must mark each record with the correct outcome. This is expensive for large datasets — which is why labeled data is often the bottleneck for supervised ML.
 
-### Slide 1: Title Slide
-**Visual:**
-```
-╔══════════════════════════════════════════════════════════╗
-║         LECTURE 20: TRAINING DATA EXPLAINED             ║
-║                                                          ║
-║  [TEXTBOOK] → Study patterns   (Training Set)            ║
-║  [PRACTICE ] → Tune & adjust   (Validation Set)          ║
-║  [FINAL EXAM] → True measure   (Test Set)                ║
-║                                                          ║
-║  "A model is only as good as what it learned from"       ║
-╚══════════════════════════════════════════════════════════╝
-```
-**Content:**
-- Lecture 20: Training Data Explained
-- "A model is only as good as what it learned from"
-- Section 5: Data for AI
-
-**Speaker Notes:** Welcome to Lecture 20. We're going deeper into the technical side of AI data — specifically, training data. This is one of those topics where understanding the concepts well lets you answer multiple exam questions across different sections.
+**Einstein's approach:** For predictive features like Lead Scoring, Einstein trains on your org's historical records where outcomes already exist (Converted field = True/False). The "label" is the actual historical outcome stored in the CRM field — no manual annotation needed.
 
 ---
 
-### Slide 2: What Is Training Data?
-**Visual:**
-```
-   TRAINING DATA — THE ML LEARNING PROCESS
+### The Training / Validation / Test Split
 
-   ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
-   │  TRAINING DATA   │    │  LEARNING        │    │  TRAINED MODEL   │
-   │                  │    │  PROCESS         │    │  (artifact)      │
-   │ Historical       │───▶│                  │───▶│                  │
-   │ records with     │    │ Algorithm scans  │    │ Encoded pattern: │
-   │ KNOWN outcomes   │    │ thousands of     │    │ "Industry=Tech   │
-   │                  │    │ examples, finds  │    │  + Revenue>$1M   │
-   │ Ex: 4,200 leads  │    │ patterns that    │    │  + Pricing visit │
-   │ labeled          │    │ predict the      │    │  → 80% conv.     │
-   │ Converted: 842   │    │ label            │    │  probability"    │
-   │ Not Conv.: 3,358 │    │                  │    │                  │
-   └──────────────────┘    └──────────────────┘    └──────────────────┘
-                                                             │
-                                                             ▼
-                                                   NEW LEAD ARRIVES
-                                                   → Prediction: 78%
-```
-**Content:**
-- **Training data** is the dataset used to teach a machine learning model
-- The model studies this data to find patterns, correlations, and rules
-- After training, the model uses these learned patterns to make predictions on new data it has never seen
-- Analogy: Training data is like the thousands of math problems a student solves before a test — the more varied and high-quality the practice problems, the better prepared they are
-- **Key insight:** The model does not "remember" individual training records — it learns generalized patterns
+Before training an ML model, the dataset is split into three parts:
 
-**Speaker Notes:** Training data is the raw material of machine learning. When you train an Einstein model, you're giving it historical records where you already know the outcome — for example, leads that either converted or didn't — and letting it find the patterns that distinguish the two groups. It might discover that leads from certain industries who visited the pricing page with high Annual Revenue tend to convert. It encoded that as a pattern. Now when a new lead arrives, it uses that pattern to predict.
+| Set | % of Data | Purpose | Analogy |
+|-----|-----------|---------|---------|
+| **Training set** | ~70-80% | The model learns from this data — parameters are updated based on these examples | Textbook you study from |
+| **Validation set** | ~10-15% | Used DURING training to tune hyperparameters and check for overfitting — model doesn't train on this | Practice exams you check yourself on |
+| **Test set** | ~10-15% | Used ONCE after training is complete — provides an unbiased estimate of real-world performance | Final exam you haven't seen before |
+
+**Critical rule for test set:** The test set must NEVER be seen by the model during training or hyperparameter tuning. If you adjust the model based on test set results, you've "contaminated" the test set and your performance estimate is no longer unbiased.
+
+**In Salesforce Prediction Builder:** Salesforce automatically handles this split — you don't manually divide the data. It holds back approximately 20% for evaluation. The model accuracy shown in the dashboard reflects test set performance.
 
 ---
 
-### Slide 3: Labeled vs. Unlabeled Data
-**Visual:**
-```
-   LABELED vs. UNLABELED DATA
+### Overfitting vs. Underfitting
 
-   ┌──────────────────────────────┬──────────────────────────────┐
-   │       LABELED DATA           │      UNLABELED DATA          │
-   ├──────────────────────────────┼──────────────────────────────┤
-   │ Each record has the          │ Records without assigned     │
-   │ "right answer" attached      │ outcomes — no labels         │
-   │                              │                              │
-   │ Lead: {...}  → Converted ✓   │ Customer: {...}  → ???       │
-   │ Email: {...} → Spam ✓        │ Transaction: {...} → ???     │
-   │ Image: {...} → Cat ✓         │                              │
-   │                              │                              │
-   │ Required for:                │ Used for:                    │
-   │ SUPERVISED LEARNING          │ UNSUPERVISED LEARNING        │
-   │                              │                              │
-   │ Expensive to produce         │ Cheaper — no human          │
-   │ (humans must label it)       │ labeling required            │
-   │                              │                              │
-   │ Salesforce advantage:        │ Ex: Customer segmentation    │
-   │ CRM data has implicit        │ (AI finds its own groups)    │
-   │ labels (Converted,           │                              │
-   │ Closed Won, etc.)            │                              │
-   └──────────────────────────────┴──────────────────────────────┘
-```
-**Content:**
-**Labeled Data:**
-- Each record has a **label** — the "right answer" the model is trying to learn
-- Examples:
-  - Lead record + label: "Converted" or "Not Converted"
-  - Email + label: "Spam" or "Not Spam"
-  - Image + label: "Cat" or "Dog"
-- Required for **supervised learning**
-- More expensive to produce (humans must label it)
+| Condition | What Happened | Training Performance | Test Performance | Problem |
+|-----------|--------------|---------------------|-----------------|---------|
+| **Overfitting** | Model memorized training data — learned noise/specifics instead of general patterns | HIGH | LOW | Model won't generalize to new records |
+| **Underfitting** | Model is too simple — didn't capture meaningful patterns | LOW | LOW | Model isn't useful at all |
+| **Good fit (goal)** | Model learned real patterns that generalize | HIGH | Also HIGH (or close) | |
 
-**Unlabeled Data:**
-- Records without assigned outcomes
-- The model must find its own patterns without guidance
-- Used for **unsupervised learning** (e.g., customer segmentation)
-- Cheaper to produce — no human labeling required
+**How to think about it:**
+- Overfitting: The student memorized every practice question verbatim but fails on slightly different final exam questions
+- Underfitting: The student barely studied and fails both practice and final exam
 
-**Speaker Notes:** The distinction between labeled and unlabeled data maps directly to the supervised vs. unsupervised learning distinction. For Einstein Lead Scoring, the labeled data is your historical lead records — and the label is whether the lead converted. Salesforce uses your own org's conversion history to train a model specific to your business. This is why Einstein Lead Scoring gets more accurate over time: it accumulates more labeled examples.
+**Diagnosing from performance numbers:**
+- Training accuracy: 96%, Test accuracy: 71% → **OVERFITTING** (large gap between train and test)
+- Training accuracy: 62%, Test accuracy: 60% → **UNDERFITTING** (low on both)
+- Training accuracy: 88%, Test accuracy: 84% → **GOOD FIT** (small gap, both reasonable)
+
+**Causes of overfitting in Salesforce context:**
+- Too little training data (model memorizes the few examples)
+- Too many features relative to records
+- Training on data with noise/errors that the model memorized
+
+**Remediation:**
+- Overfitting: more training data, fewer features, regularization
+- Underfitting: more training data, more/better features, more complex model
 
 ---
 
-### Slide 4: The Labeling Analogy
-**Visual:**
-```
-   THE GRADING ANALOGY FOR LABELED DATA
+### Data Volume Considerations
 
-   ┌────────────────────────────┬────────────────────────────┐
-   │    LABELED DATA            │    UNLABELED DATA          │
-   │    = GRADED EXAM           │    = UNGRADED ESSAYS       │
-   ├────────────────────────────┼────────────────────────────┤
-   │                            │                            │
-   │  Q1: Paris ✓               │  Essay A: [no grade]       │
-   │  Q2: 1776  ✓               │  Essay B: [no grade]       │
-   │  Q3: Newton ✓              │  Essay C: [no grade]       │
-   │  Q4: H₂O   ✗               │                            │
-   │                            │  Can group by: length,     │
-   │  You know which            │  topic, writing style      │
-   │  answers are right         │  But NOT which are "good"  │
-   │                            │                            │
-   │ Annotation: Human labels   │ Clustering: AI finds       │
-   │ each record (expensive)    │ groups without guidance    │
-   │                            │                            │
-   │ Salesforce advantage:      │                            │
-   │ CRM history = pre-labeled  │                            │
-   └────────────────────────────┴────────────────────────────┘
-```
-**Content:**
-**The Grading Analogy:**
-- **Labeled data** = a graded exam — you know which answers were right and wrong
-- **Unlabeled data** = a stack of essays with no grades — you can group them by topic, writing style, or length, but you don't know which were "good"
-- Human labeling is called **annotation**
-- Large labeled datasets are expensive:
-  - ImageNet: 14 million images labeled by humans
-  - GPT training: web text used with implicit labels (next-word prediction)
-- Salesforce advantage: your **historical CRM data already has implicit labels** — closed-won/closed-lost opportunities, converted/unconverted leads
+| Einstein Feature | Minimum Data Requirement |
+|----------------|--------------------------|
+| Einstein Lead Scoring | Requires sufficient converted leads — ~200+ per segment recommended |
+| Einstein Prediction Builder (binary) | ~200-400+ records that hit the outcome condition |
+| Einstein Prediction Builder (numeric) | ~500+ records with the numeric field populated |
+| LLM pre-training | Billions of documents (handled by LLM provider — not your concern) |
 
-**Speaker Notes:** One of Salesforce's clever design choices is leveraging implicit labels that already exist in your CRM. Your Opportunity records have a Stage field — won or lost. Your Lead records have an IsConverted field. These ARE labels. You don't need to do expensive human annotation to train Einstein models — the history of your business already contains the signal.
+**Key principle:** More high-quality labeled data = better models. But quality matters more than quantity. 500 accurately-labeled records outperform 5,000 poorly-labeled records.
 
 ---
 
-### Slide 5: How Much Data Do You Need?
-**Visual:**
-```
-   HOW MUCH DATA DO YOU NEED?
+### How Einstein Learns from Org-Specific Data
 
-   ├─────────────────────────────────────────────────────────────────┤
-   │                                                                 │
-   │  TOO LITTLE          MINIMUM          GOOD            MASSIVE   │
-   │  (unreliable)        VIABLE           STARTING        (LLMs)    │
-   │                                       POINT                     │
-   │       │                  │               │               │      │
-   │       ▼                  ▼               ▼               ▼      │
-   │  <500 examples      ~1,000 examples   10,000+      Billions of  │
-   │                     (simple,          examples     tokens       │
-   │  Poor model         clean data)                                  │
-   │  Low confidence                      Reliable     GPT-4, Claude │
-   │  May not activate   Basic model      Business ML  Foundation    │
-   │  Einstein features  possible         models       models        │
-   │                                                                 │
-   │  Einstein Lead Scoring minimum: several hundred converted leads │
-   │  More data → more accurate → up to point of diminishing returns │
-   └─────────────────────────────────────────────────────────────────┘
-```
-**Content:**
-**General thresholds (rules of thumb — not exact science):**
-- **Minimum viable:** ~1,000 labeled examples (for simple classification with clean data)
-- **Good starting point:** 10,000+ labeled examples (for business ML models)
-- **Robust model:** 100,000+ labeled examples (for high-stakes decisions)
-- **Foundation models (LLMs):** Billions to trillions of tokens
+Einstein predictive features (Lead Scoring, Prediction Builder) train a **personalized model** for each org:
 
-**For Einstein specifically:**
-- Einstein Lead Scoring: Salesforce recommends having at least several hundred converted leads in the training window
-- Einstein Opportunity Scoring: needs historical closed-won and closed-lost opportunities
-- More data = more confident, accurate scores — up to a point (diminishing returns)
+1. Einstein analyzes your org's historical records
+2. Finds correlations between features (field values) and the outcome (converted, closed, escalated)
+3. Trains a model specific to your org's patterns
+4. Applies that model to score new records in your org
 
-**Speaker Notes:** "How much data do I need?" is one of the most common questions in ML, and the honest answer is "it depends." It depends on the complexity of the problem, the quality of the data, the number of input features, and the acceptable error rate. But for the exam, understand that more historical data generally improves Einstein model quality — and that some Einstein features won't activate at all until you hit minimum data thresholds.
+**Implication:** Two companies using Einstein Lead Scoring get DIFFERENT models, even if they're in the same industry. Your org's specific historical patterns determine the model. This is why data quality matters — your model is only as good as your history.
 
 ---
 
-### Slide 6: The Three-Way Data Split — Overview
-**Visual:**
-```
-   THREE-WAY DATA SPLIT
+## PTA / SA Relevance
 
-   Full Dataset (100%)
-   ┌─────────────────────────────────────────────────────────────┐
-   │                                                             │
-   │  ┌──────────────────────────┐ ┌──────────┐  ┌──────────┐  │
-   │  │                          │ │          │  │          │  │
-   │  │     TRAINING SET         │ │VALIDATION│  │  TEST    │  │
-   │  │                          │ │  SET     │  │  SET     │  │
-   │  │        ~70%              │ │  ~15%    │  │  ~15%    │  │
-   │  │                          │ │          │  │          │  │
-   │  │ Model LEARNS from this   │ │TUNE &    │  │ FINAL    │  │
-   │  │                          │ │EVALUATE  │  │ HONEST   │  │
-   │  │ Patterns, weights,       │ │during    │  │ EVAL     │  │
-   │  │ correlations extracted   │ │training  │  │(untouched│  │
-   │  │                          │ │          │  │ until    │  │
-   │  │                          │ │          │  │ end)     │  │
-   │  └──────────────────────────┘ └──────────┘  └──────────┘  │
-   └─────────────────────────────────────────────────────────────┘
-```
-**Content:**
-**Why split data into three sets?**
-- We need to train the model, tune it, AND evaluate it honestly
-- Using the same data for all three introduces bias
-- The three-split approach gives us a clean, unbiased estimate of real-world performance
+**The most common implementation mistake for Einstein predictive features:**
 
-**The Three Sets:**
-1. **Training Set** — the model learns from this
-2. **Validation Set** — used to tune the model and prevent overfitting
-3. **Test Set** — the final, unbiased performance evaluation
+"I enabled Lead Scoring but the scores don't seem accurate."
 
-**Speaker Notes:** This is where we get to a really powerful analogy that will help you remember this for the exam. Think about how you prepare for the Salesforce AI Associate exam itself.
+Diagnosis checklist:
+1. How many converted leads does the org have? (If < 200, model is unreliable)
+2. What's the completion rate for key fields (Industry, Revenue, Lead Source, Title)?
+3. Is the training data time-period representative of current business? (Old data from a different business model?)
+4. Are there duplicate leads inflating the training set?
+
+**Overfitting in practice:**
+- Org with 50 converted leads trains Lead Scoring → model may overfit to characteristics of those 50 specific leads
+- New leads from different sources score very differently from what reps expect
+- Solution: get more training data before deploying (either wait for more history or import historical data from other systems)
+
+**Enterprise data pipeline design:**
+- For optimal AI outcomes, design a historical data preservation strategy: don't delete or archive old records — keep them for training
+- Clean historical data using batch Apex or Data Loader before training, not after
+
+**CTO framing:**
+- "Every Einstein model is trained specifically on your business data. This means the AI learns your patterns — how YOUR customers behave, what YOUR reps have seen. This personalization is the core advantage vs. generic AI."
+- "But it also means: your model quality = your data quality × your data volume. Both need investment."
 
 ---
 
-### Slide 7: The Textbook/Practice Exam/Final Exam Analogy
-**Visual:**
+## Training Data Architecture
+
 ```
-   STUDY ANALOGY → DATA SPLIT MAPPING
-
-   ┌────────────────┬──────────────────┬───────────────────────────┐
-   │  YOUR STUDYING │  DATA SPLIT      │  PURPOSE                  │
-   ├────────────────┼──────────────────┼───────────────────────────┤
-   │                │                  │                           │
-   │  📚 TEXTBOOK   │  TRAINING SET    │ Model/student LEARNS      │
-   │  Study the     │  (70%)           │ the material              │
-   │  material      │                  │                           │
-   ├────────────────┼──────────────────┼───────────────────────────┤
-   │                │                  │                           │
-   │  📝 PRACTICE   │  VALIDATION SET  │ Identify weak spots,      │
-   │  EXAM          │  (15%)           │ tune and adjust           │
-   │  Check progress│                  │ (hyperparameter tuning)   │
-   │                │                  │                           │
-   ├────────────────┼──────────────────┼───────────────────────────┤
-   │                │                  │                           │
-   │  🎓 FINAL EXAM │  TEST SET        │ HONEST unbiased measure   │
-   │  Real test —   │  (15%)           │ of true performance       │
-   │  never seen it │  NEVER TOUCHED   │ (never seen during train) │
-   │  before        │  during training │                           │
-   └────────────────┴──────────────────┴───────────────────────────┘
+╔═══════════════════════════════════════════════════════════════════════╗
+║              EINSTEIN MODEL TRAINING PIPELINE                          ║
+╠═══════════════════════════════════════════════════════════════════════╣
+║                                                                       ║
+║  ORG HISTORICAL DATA                                                  ║
+║  ┌──────────────────────────────────────────────────────────────┐    ║
+║  │ 10,000 Lead records (5 years)                                │    ║
+║  │   • 1,500 labeled Converted = True                           │    ║
+║  │   • 8,500 labeled Converted = False                          │    ║
+║  │ Features: Industry, AnnualRevenue, LeadSource, Title, etc.   │    ║
+║  └──────────────────────────────────────────────────────────────┘    ║
+║                          │                                            ║
+║  DATA SPLIT                                                           ║
+║  ┌──────────────────────────────────────────────────────────────┐    ║
+║  │ Training Set (80%): 8,000 records  → model learns patterns   │    ║
+║  │ Validation Set (10%): 1,000 records → hyperparameter tuning  │    ║
+║  │ Test Set (10%): 1,000 records       → final accuracy report  │    ║
+║  └──────────────────────────────────────────────────────────────┘    ║
+║                          │                                            ║
+║  MODEL TRAINING                                                       ║
+║  ┌──────────────────────────────────────────────────────────────┐    ║
+║  │ Salesforce Auto-ML tests multiple algorithms                 │    ║
+║  │ Selects best-performing on validation set                    │    ║
+║  │ No overfitting check: Train: 94% / Validation: 91% → OK      │    ║
+║  └──────────────────────────────────────────────────────────────┘    ║
+║                          │                                            ║
+║  MODEL EVALUATION (Test Set)                                          ║
+║  ┌──────────────────────────────────────────────────────────────┐    ║
+║  │ Test accuracy: 89%                                           │    ║
+║  │ Top predictors: Annual Revenue, Lead Source, Industry        │    ║
+║  │ Accuracy dashboard shown to admin                            │    ║
+║  └──────────────────────────────────────────────────────────────┘    ║
+║                          │                                            ║
+║  DEPLOYMENT (Ongoing scoring of new records)                          ║
+║  ┌──────────────────────────────────────────────────────────────┐    ║
+║  │ Each new Lead record scored automatically                    │    ║
+║  │ Scores update on schedule (not real-time)                    │    ║
+║  │ Model retrained periodically as new outcomes accumulate      │    ║
+║  └──────────────────────────────────────────────────────────────┘    ║
+╚═══════════════════════════════════════════════════════════════════════╝
 ```
-**Content:**
 
-| Data Split | Exam Analogy | Purpose |
-|------------|--------------|---------|
-| **Training Set** | Studying the textbook | Model learns the material |
-| **Validation Set** | Taking practice exams | Identify weak areas, adjust, tune |
-| **Test Set** | The real final exam | Unbiased measure of true knowledge |
-
-**Key rule:** The test set must NEVER be seen during training or tuning — just like the real exam should not be seen before you take it.
-
-If you practice on the final exam itself, your score looks great — but it doesn't tell you if you actually learned the material. That's **overfitting.**
-
-**Speaker Notes:** This analogy is the cleanest way I know to explain the data split. You study the textbook — that's training. You take practice exams — that's validation, and if you fail certain sections you go back and study more (that's hyperparameter tuning). Then you take the final exam — that's the test set. Your score on the final exam is the honest measure of how well you learned. The same logic applies to ML: the test set is the honest, untouched evaluation.
+**Limitations:**
+- Einstein handles the train/validation/test split automatically — but admins can't inspect the exact split or validate it
+- Prediction Builder doesn't expose the model's algorithm type — it uses AutoML internally; no visibility into which algorithm was chosen
+- Models trained on historical data become stale as business patterns change — schedule periodic retraining (quarterly or when business significantly changes)
+- Class imbalance: if 98% of records are "not converted," the model may learn to predict "not converted" for everyone and still show 98% accuracy. Einstein handles this internally but it's important to understand.
 
 ---
 
-### Slide 8: Overfitting — The Memorization Problem
-**Visual:**
-```
-   OVERFITTING — The Memorization Problem
+## Key Facts to Memorize
 
-   OVERFITTED MODEL:              GOOD FIT MODEL:
-   Training data points ●         Training data points ●
-   Model curve ═══                Model curve ───
-
-         ●                              ●  ●
-        ●●●                            ●      ●
-       ●   ●●                         ●    ●   ●
-      ●     ●                        ●           ●
-     ●       ●●                     ●             ●
-             ═══ (wiggly, hits       ─────────────── (smooth,
-               every point)              captures trend)
-
-   Training Accuracy: 99%        Training Accuracy: 87%
-   Test Accuracy: 52%            Test Accuracy: 84%
-   → OVERFIT (big gap)           → GOOD (gap is small)
-
-   The overfit model memorized noise, not patterns.
-```
-**Content:**
-**Overfitting:**
-- Model performs **extremely well on training data** but **poorly on new data**
-- The model memorized the training data instead of learning generalizable patterns
-- Analogy: A student who memorizes every past exam question verbatim — gets 100% on practice tests, fails on the real exam with slightly different questions
-
-**Causes:**
-- Training on too little data
-- Model is too complex (too many parameters)
-- Training for too many iterations
-
-**Signs:** Training accuracy much higher than validation/test accuracy
-
-**Speaker Notes:** Overfitting is one of the most important concepts in machine learning — and it shows up in the real world constantly. An overfitted Einstein model might look spectacular on historical data — 98% accuracy! — but when you deploy it on new leads, it performs no better than chance. The model learned the quirks and noise of the training set rather than the real underlying patterns. Think of it as memorization vs. understanding.
+- **Labeled data** = known outcomes annotated on training records (for supervised learning)
+- **Unlabeled data** = no pre-annotated outcomes (for unsupervised learning)
+- **Train/Validation/Test split**: ~70-80% / 10-15% / 10-15%
+- **Training set** = what the model learns from
+- **Validation set** = used during training to prevent overfitting
+- **Test set** = used ONCE at the end for final performance estimate
+- **Overfitting** = high train accuracy, LOW test accuracy (model memorized training data)
+- **Underfitting** = low train AND test accuracy (model too simple)
+- Einstein trains a personalized model on YOUR org's historical data
+- More quality data = better models; Einstein requires minimum ~200-400 outcome records for binary predictions
 
 ---
 
-### Slide 9: Underfitting — The Generalization Failure
-**Visual:**
-```
-   UNDERFITTING — The Too-Simple Model
+## Exam Traps
 
-   Data points ●  and model line ─ ─ ─
+**Trap 1:** "High training accuracy means the model is good." NOT necessarily. High training accuracy combined with much lower test accuracy = overfitting. Always check both.
 
-        ●  ●
-       ●    ●●
-   ─ ─ ─ ─ ─ ─ ─ ─ (flat line — model too simple)
-     ●         ●
-               ●● ●
+**Trap 2:** "The test set is used to improve the model." WRONG. The test set is used ONLY to evaluate final performance. Using it to improve the model invalidates it as an unbiased evaluation.
 
-   The model used a straight line for curved data.
-   It missed the actual pattern entirely.
+**Trap 3:** "Einstein Lead Scoring uses global Salesforce data from all customers." WRONG. Einstein Lead Scoring trains a personalized model specific to each individual org's historical data.
 
-   Training Accuracy: 61%        ← also poor
-   Test Accuracy: 59%            ← both are bad
-
-   Signs: LOW accuracy on BOTH training AND test data
-   Cause: Model too simple, too few features, too little data
-   Fix: More complex model, more features, train longer
-```
-**Content:**
-**Underfitting:**
-- Model performs **poorly on both training data AND new data**
-- The model hasn't learned enough patterns — too simple for the problem
-- Analogy: A student who studied for only 30 minutes — doesn't know enough to answer questions from any exam
-
-**Causes:**
-- Model is too simple (not enough capacity)
-- Training data is too small or too noisy
-- Too few features provided
-
-**Signs:** Both training accuracy and test accuracy are low
-
-**The goal: find the Goldilocks zone** — a model that generalizes well (not too memorized, not too simple).
-
-**Speaker Notes:** Underfitting is the opposite problem. The model hasn't learned enough. This can happen when you train on too little data, use too few features, or choose a model that's too simple for the complexity of the problem. The sweet spot is a model that has learned the real underlying patterns — it won't nail every training example perfectly, but it will generalize well to new examples.
+**Trap 4:** "Labeled data is better than unlabeled data." Depends on the use case. Labeled data enables supervised learning (specific outcome prediction). Unlabeled data enables unsupervised learning (pattern discovery). Neither is inherently better — they serve different purposes.
 
 ---
 
-### Slide 10: Visual — Overfitting vs. Underfitting vs. Good Fit
-**Visual:**
-```
-   MODEL FIT SPECTRUM
+## Practice Questions
 
-   UNDERFITTING          GOOD FIT              OVERFITTING
-   ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
-   │    ─ ─ ─     │      │    ╭────╮    │      │  ╭─╮ ╭─╮    │
-   │  ● ● ● ●     │      │  ●╱      ╲●  │      │ ●╱ ╲╱ ╲●    │
-   │              │      │           ●  │      │ ╱       ╲    │
-   │ Too simple   │      │ Captures      │      │●           ●│
-   │ line, misses │      │ trend well    │      │ Memorized   │
-   │ the pattern  │      │               │      │ every point │
-   └──────────────┘      └──────────────┘      └──────────────┘
-   Train: Poor           Train: Good           Train: Excellent
-   Test:  Poor           Test:  Good           Test:  Poor
-```
-**Content:**
-| | Training Performance | Test Performance |
-|---|---|---|
-| **Underfitting** | Poor | Poor |
-| **Overfitting** | Excellent | Poor |
-| **Good Fit** | Good | Good |
+**Q1: An Einstein Prediction Builder model for lead conversion shows Training Accuracy: 95% and Test Accuracy: 68%. What is the most likely explanation and recommended action?**
 
-**How to fix overfitting:**
-- Get more training data
-- Simplify the model
-- Use regularization techniques
-- Use dropout (neural networks)
+A) The model is performing well; both scores should be used together for evaluation
+B) The model is underfitting; adding more features will resolve the problem
+C) The model is overfitting; it has memorized the training data and doesn't generalize. Consider gathering more training data and checking for noisy or overly specific features.
+D) The Test Set was configured incorrectly and should be removed from the evaluation
 
-**How to fix underfitting:**
-- Add more features
-- Use a more complex model
-- Train longer
-
-**Speaker Notes:** This table is your cheat code for exam questions about model performance. If a question says a model performs great on training data but poorly on new data — that's overfitting. If performance is poor on both — that's underfitting. If someone describes an AI model that "worked perfectly on historical data but fails in production" — that is almost certainly overfitting.
+**Answer: C** — A large gap between training accuracy (95%) and test accuracy (68%) indicates overfitting. The model learned the training examples too specifically. Solutions: more diverse training data, feature reduction, or regularization. The test set should NOT be removed — it's the unbiased evaluation mechanism.
 
 ---
 
-### Slide 11: How Salesforce Trains Einstein Models
-**Visual:**
-```
-   HOW EINSTEIN TRAINS ON YOUR ORG DATA
+**Q2: Einstein Lead Scoring requires historical lead data to train its model. A startup has been using Salesforce for 3 months and has 45 converted leads. What is the expected quality of Einstein Lead Scoring predictions for this org?**
 
-   ┌─────────────────────────────────────────────────────────────┐
-   │                YOUR SALESFORCE ORG                          │
-   │                                                             │
-   │  Leads with IsConverted field   Opps with Stage Closed Won │
-   │  (historical labeled data)      (historical labeled data)  │
-   └────────────────────────┬────────────────────────────────────┘
-                            │
-                            ▼ (isolated training pipeline)
-   ┌─────────────────────────────────────────────────────────────┐
-   │              SALESFORCE TRAINING INFRASTRUCTURE             │
-   │                                                             │
-   │  Your data is used in ISOLATION — never commingled         │
-   │  with other customer orgs                                   │
-   │                                                             │
-   │  ML algorithm trains on your specific conversion patterns  │
-   └────────────────────────┬────────────────────────────────────┘
-                            │
-                            ▼
-   ┌─────────────────────────────────────────────────────────────┐
-   │           EINSTEIN MODEL DEPLOYED TO YOUR ORG               │
-   │                                                             │
-   │  Calibrated to YOUR business, YOUR customers, YOUR reps    │
-   │  Gets more accurate over time as more data accumulates     │
-   └─────────────────────────────────────────────────────────────┘
-```
-**Content:**
-**Two training approaches in Einstein:**
+A) Einstein will train a highly accurate model because it also uses Salesforce's global data
+B) Einstein Lead Scoring will be unreliable because 45 converted leads is insufficient training data for a meaningful model; at least several hundred are recommended
+C) The training will fail and Einstein Lead Scoring cannot be activated
+D) The model will perform well because lead conversion patterns are universal
 
-**1. Org-Specific Models (Personalized Einstein)**
-- Trained on YOUR Salesforce data
-- Examples: Einstein Lead Scoring, Einstein Opportunity Scoring
-- Advantages: tailored to your business patterns, industry, and customer base
-- Requires sufficient historical data in your org
-
-**2. Pre-trained Base Models (General Einstein)**
-- Trained on broad datasets or Salesforce aggregate patterns
-- Used as starting point when orgs lack sufficient data
-- Examples: some Einstein language features, out-of-the-box sentiment analysis
-
-**Privacy note:** Salesforce uses org data in isolated training pipelines — customer data is NOT commingled with other customers' data for org-specific models.
-
-**Speaker Notes:** This is an important distinction. When you enable Einstein Lead Scoring, Salesforce is training a model specifically for your organization using your own lead conversion history. It's not using a model pre-trained on everyone else's data and applying it to yours. This is why the feature requires a minimum amount of historical data — there needs to be enough of YOUR data to train a meaningful model. And Salesforce is very clear that your data is not shared with other orgs during this process.
+**Answer: B** — With only 45 converted leads, the model lacks sufficient training examples. Einstein Lead Scoring trains on each org's own data (not global data). Fewer examples mean higher overfitting risk and lower generalization quality. The recommendation is to accumulate more history before relying on these scores.
 
 ---
 
-### Slide 12: Data Bias in Training Data
-**Visual:**
-```
-   TRAINING DATA BIAS — THE AMPLIFICATION FUNNEL
+**Q3: Before training an Einstein Prediction Builder model for customer churn, a data team uses a set of 1,000 records to adjust the model's hyperparameters and compare different configurations. What is this set of records called?**
 
-   HISTORICAL HUMAN DECISIONS
-   (may contain conscious or unconscious bias)
-            │
-            ▼
-   ┌────────────────────────────┐
-   │   COLLECTED AS             │
-   │   TRAINING DATA            │
-   │   (bias encoded as data)   │
-   └──────────────┬─────────────┘
-                  │
-                  ▼ (AI learns the pattern)
-   ┌────────────────────────────┐
-   │   MODEL TRAINED            │
-   │   (bias learned as         │
-   │   "signal")                │
-   └──────────────┬─────────────┘
-                  │
-                  ▼ (deployed at scale)
-   ┌────────────────────────────┐
-   │   BIASED DECISIONS         │
-   │   MADE AT SCALE            │
-   │   (millions per day)       │
-   └────────────────────────────┘
+A) Test set
+B) Training set
+C) Validation set
+D) Feature set
 
-   Human bias: affects 1 decision at a time
-   AI bias: amplifies it across every decision
-```
-**Content:**
-**Training data bias:**
-- If training data over-represents or under-represents certain groups, the model learns those biases
-- Example: If your historical lead conversion data shows that leads from certain industries never converted — but that's because your sales team never prioritized them — Einstein will score those industries low forever (perpetuating the bias)
-- This is **historical bias encoded as intelligence**
-- Relevance for exam: Ethical AI questions often trace bias back to training data
-
-**Speaker Notes:** We'll go deep on AI ethics in Section 4, but I want to plant this seed here: the training data is where many AI biases originate. The model learns what it's shown. If historical decisions were biased — and human decisions often are — the model learns that bias and amplifies it at scale. This is one reason why data governance and diversity in training data are considered ethical imperatives, not just technical best practices.
-
----
-
-## RECORDING SCRIPT
-
-Welcome to Lecture 20. In the last lecture we talked about data quality — today we're going one level deeper into the mechanics of how AI actually learns from data. This topic is called training data, and understanding it well will help you with questions across multiple sections of the exam — not just the Data for AI section.
-
-Let's start from the beginning. What is training data? Training data is the historical dataset that a machine learning model learns from. Think of it this way: before an AI model can make predictions, it needs to study thousands — sometimes millions — of examples where the right answer is already known. It finds the patterns that distinguish one outcome from another, and it encodes those patterns as mathematical relationships. After training, when a new example arrives, the model applies those learned patterns to generate a prediction.
-
-Now, a critical distinction: the model does not memorize individual training records. It generalizes from them. This is the difference between memorization and learning, and it's central to a concept we'll discuss shortly called overfitting.
-
-Let's talk about labeled versus unlabeled data. This distinction maps directly to supervised versus unsupervised learning, which was covered in Section 1.
-
-Labeled data is data where each record includes the correct answer — the label. For Einstein Lead Scoring, the label is "Converted" or "Not Converted." For a spam filter, the label is "Spam" or "Not Spam." The model's job is to learn which input features predict each label.
-
-Unlabeled data has no predefined answers. You have a bunch of customer records, but you haven't told the model what it should find. In this case, the model looks for its own structure — groupings, clusters, anomalies. That's unsupervised learning. Customer segmentation — where an AI groups customers by behavior without you defining the groups in advance — is a classic unlabeled data use case.
-
-Here's a clever analogy: labeled data is like a stack of graded exams — you know which answers were right. Unlabeled data is like a stack of ungraded essays — you can organize them by length or topic, but you don't know which were excellent.
-
-One of Salesforce's advantages is that your CRM data already contains implicit labels. Your Opportunity records have Closed Won and Closed Lost stages — those ARE labels. Your Lead records have IsConverted — that IS a label. You don't need to hire human annotators to label your data. The history of your business already provides the training signal.
-
-Now, how much data do you need? This is a common question and there's no single universal answer. The amount depends on problem complexity, data quality, and how many input features you're using. But as general rules of thumb: simple classification problems can work with a thousand or so clean, labeled examples. Business ML models typically need tens of thousands of examples for reliable performance. And the foundation models powering large language models are trained on hundreds of billions to trillions of tokens — orders of magnitude beyond traditional ML.
-
-For Einstein specifically, features like Lead Scoring and Opportunity Scoring require enough historical conversion data to find meaningful patterns. Salesforce sets minimum thresholds before these features will activate. If your org is new or you haven't been tracking conversions carefully, you may not have enough data to generate a reliable model yet.
-
-Now let's talk about one of the most elegant concepts in machine learning: the training-validation-test split. And I have the perfect analogy.
-
-Think about how you're preparing for the Salesforce AI Associate exam. You study from the course materials — that's your training data. You take practice exams — that's your validation set. And finally, you sit the real Salesforce exam — that's the test set.
-
-Here's why this matters: imagine if you took the real exam before studying, figured out all the answers, and then studied specifically to pass that exact test. You'd ace it — but you wouldn't actually know the material. Your result would be inflated and dishonest.
-
-The same problem exists in machine learning. If you train a model and evaluate it on the same data it was trained on, you get an inflated performance score. The model has essentially "seen the answers." The test set must be held back, completely untouched, until you want a final honest evaluation.
-
-The validation set is the practice exam — it's used during the training process to check how the model is doing and make adjustments, called hyperparameter tuning. But because the model is indirectly exposed to the validation data through this tuning process, you still need a separate test set for the final evaluation.
-
-This brings us to two of the most important failure modes in machine learning: overfitting and underfitting.
-
-Overfitting happens when a model performs extremely well on training data but poorly on new, unseen data. The model memorized the training examples instead of learning generalizable patterns. It's like a student who memorized past exam papers word for word — they'd ace a repeat of those exact papers but fail when the questions are slightly rephrased.
-
-How can you tell if a model is overfitting? Training accuracy is high, but validation or test accuracy is significantly lower. That gap is the tell.
-
-Underfitting is the opposite — the model performs poorly on both training data and new data. It hasn't learned enough patterns. The model is too simple for the complexity of the problem. This is like the student who studied for 30 minutes — they don't know enough to answer questions from any version of the exam.
-
-The goal is the middle ground — a model that has learned the real patterns in the training data and applies them confidently to new examples. Machine learning practitioners call this good generalization.
-
-Finally, let's talk about how Salesforce uses your data to train Einstein models. For features like Einstein Lead Scoring, Salesforce trains a model specifically on your org's data — your own historical lead conversions. This personalized approach means the model is calibrated to your specific business context: your industry, your sales process, your customer base. That's why the scores get more accurate over time as more conversion data accumulates.
-
-Salesforce also maintains data isolation — your data is not combined with other customers' data in these personalized training pipelines. This is part of the Einstein Trust Layer, which we'll cover in detail in the ethics section.
-
-The final concept I want to plant in your mind today is training data bias. If your historical data reflects biased human decisions — for example, if certain lead types were never pursued not because they were bad fits, but because of conscious or unconscious bias — the model will learn and perpetuate that bias. AI doesn't correct for human bias; it amplifies it. This is why the quality and representativeness of training data is considered an ethical issue, not just a technical one.
-
-Alright — let's wrap up with exam tips and the mini quiz.
-
----
-
-## EXAM TIPS
-
-- **Know labeled vs. unlabeled data** — and which type of learning each supports (supervised vs. unsupervised).
-- **The data split analogy is memorable and testable** — textbook (training), practice exam (validation), final exam (test). Know the purpose of each.
-- **Overfitting vs. underfitting identification:** "High training accuracy, low test accuracy" = overfitting. "Low accuracy on both" = underfitting. Expect scenario questions.
-- **Einstein uses YOUR org data** for personalized models — not a generic pre-built model. This is a frequent exam trap.
-- **Data bias origins** — the exam may ask where AI bias originates; training data is a primary answer.
-- **Minimum data requirements** — know that Einstein features require sufficient historical data to train; a new Salesforce org with minimal history will not get good scores.
-
----
-
-## LECTURE SUMMARY
-
-- **Training data** is the historical dataset used to teach an ML model to find patterns.
-- **Labeled data** has correct answers attached (required for supervised learning); **unlabeled data** does not (used in unsupervised learning).
-- **Data volume thresholds:** rough minimums range from hundreds to thousands for simple models; foundation models use billions of tokens.
-- **The three-way split:** Training set (learn) → Validation set (tune) → Test set (evaluate honestly). Like textbook → practice exam → final exam.
-- **Overfitting:** great on training data, bad on new data — model memorized instead of generalizing.
-- **Underfitting:** bad on both — model too simple or insufficient data.
-- **Einstein models** are trained on your own org's historical CRM data for personalized predictions.
-
----
-
-## MINI QUIZ
-
-**Question 1:** A machine learning model has 99% accuracy on the training set but only 58% accuracy on the test set. What problem does this indicate?
-
-- A) Underfitting
-- B) Overfitting
-- C) Data bias
-- D) Insufficient training data
-
-**Correct Answer: B**
-**Explanation:** This pattern — high training accuracy, low test accuracy — is the classic signature of overfitting. The model memorized the training data rather than learning generalizable patterns. Underfitting (A) would show poor performance on both sets. Data bias (C) would manifest differently. Insufficient training data (D) typically causes underfitting, not this specific gap between training and test performance.
-
----
-
-**Question 2:** Which type of data is required to train a supervised machine learning model?
-
-- A) Unstructured data only
-- B) Unlabeled data with many features
-- C) Labeled data with known outcomes
-- D) Real-time streaming data
-
-**Correct Answer: C**
-**Explanation:** Supervised learning requires labeled data — historical examples where the correct output (label) is already known. The model learns to predict the label from the input features. Unlabeled data (B) is used in unsupervised learning. Unstructured data (A) can be used in ML but it must be converted to a format the model can process. Real-time streaming data (D) is unrelated to this distinction.
-
----
-
-**Question 3:** In the textbook-practice exam-final exam analogy for ML data splits, what does the practice exam represent?
-
-- A) The training set
-- B) The test set
-- C) The validation set
-- D) The feature engineering set
-
-**Correct Answer: C**
-**Explanation:** The practice exam maps to the validation set — it's used during the learning process to check progress and make adjustments, but it's not the final measure of performance. The textbook = training set. The final exam = test set. There is no "feature engineering set" in standard ML terminology.
+**Answer: C** — The Validation Set is used during the model development process to tune hyperparameters and compare configurations. The training set is what the model learns from. The test set is the held-out final evaluation. Feature set refers to the input variables, not a data split.

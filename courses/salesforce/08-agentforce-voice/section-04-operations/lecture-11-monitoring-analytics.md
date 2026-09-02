@@ -1,383 +1,279 @@
-# Lecture 11: Monitoring & Analytics
+# Monitoring & Analytics for Voice Agents
 
-## Learning Objectives
-- Use Einstein Conversation Mining to analyze voice call topics, resolution rates, and containment rates
-- Describe the VoiceCall object schema and the data it captures for analytics and reporting
-- Configure call recording storage, access controls, and playback in Service Cloud Voice
-- Set up Flow-based SLA breach alerts and CRM Analytics dashboards for voice operations
-- Define and apply governance policies for recording and transcript retention
+## Exam Domain
+Use Cases & Business Value / Operations — Agentforce Specialist (CRT-271)
 
----
+## Core Concepts
 
-## Slides
+### The Monitoring Stack for Service Cloud Voice
 
-### Slide 1: The Voice Analytics Ecosystem
-**Visual:**
 ```
-  VOICE ANALYTICS ECOSYSTEM
-                        ┌─────────────────────┐
-         ┌──────────────│    VoiceCall         │──────────────┐
-         │              │    (object anchor)   │              │
-         │              └──────────┬──────────┘              │
-         │                         │                          │
-         ▼                         │                          ▼
-  ┌──────────────────┐             │              ┌──────────────────┐
-  │ Einstein Conv.   │             │              │ CRM Analytics    │
-  │ Mining           │             │              │ Dashboards       │
-  │ • Topic clusters │             │              │ • AHT, FCR       │
-  │ • Containment    │             │              │ • CSAT trends    │
-  │ • Escalation rate│             │              │ • Cohort analysis│
-  └──────────────────┘             │              └──────────────────┘
-         ▲                         │                          ▲
-         │               ┌─────────▼─────────┐               │
-  ┌──────────────────┐   │  Call Recording   │   ┌──────────────────┐
-  │ Agentforce       │   │  Storage          │   │ SLA Alert Flows  │
-  │ Analytics        │   │  (Amazon S3 /     │   │ • Real-time      │
-  │ • Containment    │   │   provider)       │   │   notifications  │
-  │ • Intent dist.   │   └───────────────────┘   │ • Threshold      │
-  │ • Resolution     │             │              │   breach alerts  │
-  └──────────────────┘             │              └──────────────────┘
-                          ┌────────▼────────┐
-                          │ Post-Call       │
-                          │ Surveys         │
-                          │ (CSAT data)     │
-                          └─────────────────┘
-  3 analytics layers: Operational | Quality | AI Performance
+┌─────────────────────────────────────────────────────────────────┐
+│  MONITORING LAYER                   │  TOOL / FEATURE           │
+├─────────────────────────────────────┼───────────────────────────┤
+│  Real-time call monitoring          │  Supervisor Console        │
+│  (agent status, queue depth,        │  (Omni-Channel widget)    │
+│  live call listen/barge/whisper)    │                           │
+├─────────────────────────────────────┼───────────────────────────┤
+│  Post-call transcript + summary     │  VoiceCall record         │
+│  + intent classification            │  ConversationEntry        │
+├─────────────────────────────────────┼───────────────────────────┤
+│  Voice agent performance metrics    │  Einstein Conversation    │
+│  (containment, escalation,          │  Insights (ECI)           │
+│  out-of-scope, topic hit rate)      │                           │
+├─────────────────────────────────────┼───────────────────────────┤
+│  Historical call analytics          │  CRM Analytics (Tableau   │
+│  (call volume, AHT, resolution,     │  CRM) + standard reports  │
+│  CSAT correlation)                  │                           │
+├─────────────────────────────────────┼───────────────────────────┤
+│  Retrospective call pattern mining  │  Einstein Conversation    │
+│  (trend identification, topic gap   │  Mining                   │
+│  analysis from historical data)     │                           │
+└─────────────────────────────────────┴───────────────────────────┘
 ```
 
-**Content:**
-- Every call generates a VoiceCall record — the anchor for all voice analytics
-- Multiple analytics layers operate on that data
-- Operational metrics: queue wait time, handle time, ACW, abandonment rate
-- Quality metrics: first-contact resolution, customer satisfaction, escalation rate
-- AI metrics: containment rate, intent accuracy, autonomous resolution rate
-- Voice analytics is not a single dashboard — it is a layered analytics architecture
+**Key point:** Real-time = Supervisor Console + ECI alerts. Post-call = VoiceCall records + ECI insights + CRM Analytics reports. Retrospective trend analysis = Einstein Conversation Mining.
 
-**Speaker Notes:** When clients ask "how do we measure the success of Agentforce Voice?" the answer requires distinguishing between three layers: operational metrics that tell you if the system is running efficiently, quality metrics that tell you if customers are satisfied, and AI metrics that tell you if the Agentforce automation is working. Each layer requires different data sources and different analytical tools. Understanding all three is what separates a voice architect from a voice technician.
+### Primary KPIs for Voice Agent Operations
 
----
-
-### Slide 2: The VoiceCall Object
-**Visual:**
 ```
-  VoiceCall (object)
-  ┌──────────────────────────────────────────────────────────┐
-  │  Id              CallType (Inbound/Outbound/Transfer)    │
-  │  Status          FromPhoneNumber (ANI)                   │
-  │  Duration        ToPhoneNumber (DNIS)                    │
-  │  StartTime       RelatedRecordId (linked Case/Contact)   │
-  │  EndTime         OwnerId (assigned agent)                │
-  │  CallDisposition CallResolution                          │
-  └──────────────────────────────────────────────────────────┘
-           │
-           ▼
-  VoiceCallRecording               ConversationEntry
-  ┌────────────────────┐           ┌────────────────────────┐
-  │  AudioFile (link)  │           │  TranscriptText        │
-  │  Duration          │           │  Speaker (agent/cust.) │
-  │  ConsentStatus     │           │  Timestamp             │
-  └────────────────────┘           │  Confidence            │
-                                   └────────────────────────┘
-  AI fields: Intent (detected by Agentforce agent)
-             SentimentScore (from real-time analysis)
-  Custom fields: add for disposition codes, escalation reason, IVR data
-```
+VOICE AGENT KPI FRAMEWORK
 
-**Content:**
-- VoiceCall is a standard Salesforce object created for every inbound and outbound call
-- Key fields: `CallerId` (ANI), `CalledNumber` (DNIS), `Duration`, `Status` (Completed, Transferred, Abandoned)
-- AI fields: `Intent` (detected by Agentforce agent), `SentimentScore` (from real-time analysis)
-- Recording fields: `RecordingUrl`, `TranscriptAvailable`, `TranscriptBody`
-- Related records: linked to Contact, Account, Case via lookup fields (populated by screen pop match)
-- Custom fields: add custom fields to capture IVR-collected data, escalation reason, disposition codes
-- Reportable: use in Salesforce Reports, CRM Analytics, and Tableau
+Containment Rate (PRIMARY ROI METRIC)
+  ────────────────────────────────
+  = Calls resolved by AI agent / Total calls handled by AI agent × 100
+  Target: 30–60% for typical self-service use cases
+  Low containment → agent Topics too narrow or STT quality poor
+  High containment → right use case + well-designed Topics
 
-**Speaker Notes:** The VoiceCall object is the foundation of every voice analytics initiative. Get familiar with its schema — particularly the distinction between standard fields populated automatically by the platform versus fields you must populate manually via Flow (like escalation reason or custom disposition codes). In the exam, questions about reporting on voice data will reference the VoiceCall object, so knowing what it contains is directly tested.
+Escalation Rate
+  = Calls escalated to human / Total calls handled × 100
+  Inverse of containment; track reason codes (customer request,
+  max turns, out-of-scope, error)
 
----
+Average Handle Time (AHT)
+  = Total call time / Number of calls handled
+  For autonomous agent: should be significantly lower than human AHT
+  Increase in AHT → agent asking for clarifications repeatedly (topic issue)
 
-### Slide 3: Einstein Conversation Mining for Voice
-**Visual:**
-```
-  EINSTEIN CONVERSATION MINING — VOICE ANALYTICS
-  ┌──────────────────────────────────────────────────────────┐
-  │  TOPIC CLUSTERS                                          │
-  │  ┌──────────────────┬─────────┬────────────┬──────────┐  │
-  │  │ Topic            │ Calls   │ Resolution │ Escalate │  │
-  │  ├──────────────────┼─────────┼────────────┼──────────┤  │
-  │  │ Billing Dispute  │  3,210  │   71 %     │  18 %    │  │
-  │  │ Tech Support     │  2,400  │   58 %     │  31 %  ◀─┤  │ automation gap
-  │  │ Account Cancel   │  1,800  │   48 %     │  44 %  ◀─┤  │ automation gap
-  │  │ New Service Req  │  1,500  │   89 %     │   6 %    │  │
-  │  │ Plan Changes     │    900  │   76 %     │  12 %    │  │
-  │  └──────────────────┴─────────┴────────────┴──────────┘  │
-  │                                                          │
-  │  CONTAINMENT RATE TREND (key ROI metric)                 │
-  │  Month 1  ████░░░░░░░░░░░░░░░  22%                       │
-  │  Month 3  ███████░░░░░░░░░░░░  35%                       │
-  │  Month 6  ██████████░░░░░░░░░  51%                       │
-  └──────────────────────────────────────────────────────────┘
-  Containment rate = % of calls resolved without human agent transfer
-  Use output to: find automation gaps, train Knowledge articles, ID agent training needs
+Out-of-Scope Rate
+  = Calls where agent said "I'm not set up for that" / Total calls
+  High out-of-scope → missing Topics (coverage gap)
+  Track which utterances triggered out-of-scope → Topic backlog
+
+First Contact Resolution (FCR)
+  = Calls where issue resolved without callback / Total calls
+  Harder to measure for voice; requires follow-up callback tracking
+
+CSAT (Customer Satisfaction)
+  Post-call survey score (if configured)
+  Correlate with call outcomes (containment, escalation, AHT)
 ```
 
-**Content:**
-- Analyzes call transcripts stored on VoiceCall records
-- Groups similar conversations into topic clusters using NLP
-- Reports per topic: call volume, average handle time, resolution rate, containment rate, escalation rate
-- Containment rate: percentage of calls resolved by autonomous agent without human transfer — key ROI metric
-- Resolution rate: percentage of calls resulting in caller's issue being resolved (autonomous + agent)
-- Use Conversation Mining to: find automation gaps, train Knowledge articles, identify agent training needs
-- Runs on a configurable schedule; re-trains as new transcripts accumulate
+**Limitations:**
+- Containment rate is self-reported by the system — "contained" means the call ended without escalating, not necessarily that the issue was resolved
+- CSAT correlation requires a post-call survey mechanism (separate configuration); not included in base SCV
 
-**Speaker Notes:** Containment rate is the headline ROI metric for autonomous voice deployments. Every call contained by the autonomous agent represents a call that did not require an agent's time. At fifty cents to two dollars per live agent interaction (depending on your contact center model), a ten-percentage-point improvement in containment rate on a million calls per year represents hundreds of thousands of dollars in operating cost reduction. Conversation Mining is how you track containment rate over time and identify the next set of calls to automate.
+### Einstein Conversation Insights (ECI) — Key Metrics
 
----
-
-### Slide 4: Call Recording — Storage, Access, and Playback
-**Visual:**
 ```
-  CALL RECORDING ARCHITECTURE
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │  Live Call (Amazon Connect deployment)                   │
-  │       │                                                  │
-  │       ├──audio stream──▶ Amazon Connect                  │
-  │       │                        │                         │
-  │       │                        ▼                         │
-  │       │                  Amazon S3                       │
-  │       │                  (recording storage)             │
-  │       │                        │                         │
-  │       │                 RecordingUrl stored              │
-  │       │                 on VoiceCall record              │
-  │       │                        │                         │
-  │       ▼                        ▼                         │
-  │  Agent Desktop         SERVICE CONSOLE                   │
-  │                         ┌──────────────────────┐         │
-  │                         │  Call Recording Tab  │         │
-  │                         │  [▶ Play]  [⬇ DL]   │         │
-  │                         │  No download req.    │         │
-  │                         └──────────────────────┘         │
-  │                                                          │
-  │  PCI-DSS:                                                │
-  │  Recording ON ──▶ payment section ──▶ Recording PAUSED  │
-  │  DTMF entry ──▶ payment complete ──▶ Recording RESUMED  │
-  │                                                          │
-  │  ACCESS: Permission Set controls playback                │
-  │  Restrict to: Supervisors, QA analysts, Compliance only  │
-  └──────────────────────────────────────────────────────────┘
-  Genesys / NICE CXone: recordings stored in provider; URL still in VoiceCall
+ECI METRICS DASHBOARD
+
+Trend Metrics (week-over-week):
+  ┌──────────────────────────────────────────────────┐
+  │  Containment Rate  ████████████░░░  62%           │
+  │  vs. last week     ▲ +4%                          │
+  │                                                   │
+  │  Avg Handle Time   ████████░░░░░░  2:14           │
+  │  vs. last week     ▼ -0:12                        │
+  │                                                   │
+  │  Out-of-Scope Rate ███░░░░░░░░░░░  12%            │
+  │  vs. last week     ▼ -3%                          │
+  └──────────────────────────────────────────────────┘
+
+Top Out-of-Scope Utterances (this week):
+  1. "I need to upgrade my plan"          → 238 occurrences
+  2. "When is my renewal date?"           → 119 occurrences
+  3. "Transfer my account to a new email" → 87 occurrences
+
+Action: Create Topics for the top out-of-scope utterances
 ```
 
-**Content:**
-- Amazon Connect stores call recordings in Amazon S3 by default
-- Salesforce surfaces recordings via a URL stored in VoiceCall.RecordingUrl
-- Playback available in Service Console's Call Recording tab — no download required
-- Access control: Recording playback controlled by Salesforce permissions (profile/permission set)
-- Recommended: restrict recording playback to supervisors and QA roles, not all agents
-- Recording pause/resume: for PCI-DSS compliance, configure Amazon Connect to pause recording during DTMF payment capture
-- Genesys and NICE CXone: recordings stored in provider storage; URL still surfaced in VoiceCall record
+**This is the continuous improvement loop.** Monitor out-of-scope utterances weekly. Each one is a new Topic or action to add. Most voice agents improve containment rate by 10–20% in the first 90 days post-launch through this monitoring process.
 
-**Speaker Notes:** Call recording access control is a compliance topic that often surfaces in audits. The principle of least privilege applies here: only roles that have a legitimate business need — supervisors, QA analysts, compliance officers — should have access to call recordings. Front-line agents should generally not have playback access to their own or others' calls. This both protects privacy and prevents gaming of quality scores. Configure this through permission sets before go-live.
+**Limitations:**
+- ECI is retroactive — it shows what happened, not what is currently happening in real-time
+- ECI dashboards require ECI license; not included in base Service Cloud Voice
+- Keyword alerting is separate from containment analytics — both are part of ECI but configured independently
 
----
+### Einstein Conversation Mining — When to Use
 
-### Slide 5: Post-Call Surveys and Satisfaction Metrics
-**Visual:**
 ```
-  POST-CALL SURVEY FLOW
-  ┌──────────┐  Status=       ┌────────────────┐  initiates  ┌─────────────────┐
-  │VoiceCall │──Completed────▶│  Flow Trigger  │────────────▶│  IVR Survey     │
-  │ (object) │                └────────────────┘             │  Call / SMS /   │
-  └──────────┘                                               │  Email link     │
-                                                             └───────┬─────────┘
-                                                                     │
-                                                             Caller responds
-                                                                     │
-                                                                     ▼
-                                                          ┌──────────────────────┐
-                                                          │  Survey Responses    │
-                                                          │  stored on:          │
-                                                          │  • VoiceCall custom  │
-                                                          │    fields (CSAT,     │
-                                                          │    resolved Y/N,     │
-                                                          │    agent rating)     │
-                                                          │  • Survey object     │
-                                                          └───────────┬──────────┘
-                                                                      │
-                                                                      ▼
-                                                          ┌──────────────────────┐
-                                                          │  CRM Analytics       │
-                                                          │  CSAT Dashboard      │
-                                                          │  Voice vs Chat vs    │
-                                                          │  Email comparison    │
-                                                          └──────────────────────┘
-  Sample rate: 20-30% of calls to avoid survey fatigue while maintaining data quality
+Einstein Conversation Mining (ECM) ≠ Einstein Conversation Insights (ECI)
+
+ECI: per-call metrics + keyword alerts + agent performance (OPERATIONAL)
+    Use during: post-go-live monitoring, weekly KPI review
+
+ECM: unsupervised ML on call transcript corpus (STRATEGIC / RETROSPECTIVE)
+    Use during: pre-build discovery (what Topics to build?)
+                quarterly review (what new patterns have emerged?)
+    NOT real-time — processes batches of historical transcripts
+
+ECM Output:
+  ┌────────────────────────────────────────────────────────┐
+  │  Cluster 1: Billing disputes   → 28% of call volume   │
+  │  Cluster 2: Account changes    → 21% of call volume   │
+  │  Cluster 3: Tech support       → 19% of call volume   │
+  │  Cluster 4: [Unclassified]     → 12% of call volume   │
+  │  Cluster 5: Plan information   → 11% of call volume   │
+  └────────────────────────────────────────────────────────┘
+  Build Topics in priority order of call volume
 ```
 
-**Content:**
-- Post-call surveys: initiated automatically via a triggered Flow when call status = Completed
-- Survey delivery: IVR callback (most common), SMS link, email link
-- Common questions: overall satisfaction (1-5), resolution achieved (yes/no), agent rating (1-5)
-- Data storage: survey responses stored as custom fields on VoiceCall or related Survey object
-- CSAT by channel: compare voice CSAT to chat/email CSAT in unified CRM Analytics dashboard
-- Survey fatigue: configure sampling rate (e.g., survey 30% of calls, not all) to reduce abandonment
+**Limitations:**
+- Einstein Conversation Mining requires existing call transcript data — cannot be used before calls have been recorded
+- ECM uses unsupervised clustering — clusters need human interpretation (business analyst must label each cluster)
+- ECM is not available in all editions — check license requirements
 
-**Speaker Notes:** Post-call surveys are valuable but must be designed carefully. Survey fatigue is real — if callers receive a survey request after every single call, response rates drop and the data becomes biased toward callers with strong emotions (very happy or very unhappy). A sampling rate of 20 to 30 percent of calls, combined with a single-question initial survey with optional follow-up, tends to produce representative data with reasonable response rates.
+### VoiceCall Reports — Standard Object Reporting
 
----
-
-### Slide 6: SLA Breach Alerts and Agentforce Voice Dashboards
-**Visual:**
 ```
-  SLA BREACH ALERT FLOW              CRM ANALYTICS VOICE DASHBOARD
-  ┌─────────────────────────┐        ┌───────────────────────────────┐
-  │  Trigger:               │        │  KEY VOICE KPIs               │
-  │  VoiceCall created      │        │  ─────────────────────────    │
-  │          │              │        │  AHT:        4m 32s   ✓       │
-  │          ▼              │        │  FCR:          73 %   ✓       │
-  │  Decision:              │        │  Containment:  41 %   ✓       │
-  │  Wait Time > SLA?       │        │  CSAT:        4.2/5   ✓       │
-  │  ┌────────┴────────┐    │        │  Escalation:   18 %   ✓       │
-  │  │                │     │        │  Abandonment:  6.2 %  ⚠       │
-  │  No              Yes    │        │  ─────────────────────────    │
-  │  │                │     │        │  90-Day Trend                 │
-  │  End      Notification  │        │  AHT   ▄▄▄▃▃▃▂▂▂              │
-  │           to supervisor │        │  CSAT  ▂▂▃▃▄▄▄▄▄              │
-  │           (Chatter /    │        │        improving →             │
-  │            Email / SMS) │        └───────────────────────────────┘
-  └─────────────────────────┘        Refresh: hourly (configurable)
-  Alert threshold: set to match SLA  Key metric: containment rate trend
-  (e.g., 80% answered in 20 seconds) post-launch week-over-week
+STANDARD REPORTS (via Salesforce Reports tab)
+
+VoiceCall with ConversationEntry:
+  Filters: Date range + Status = Completed
+  Columns: Duration, Direction, Channel, AI Disposition,
+           Contact (matched), Escalated (Y/N), Out-of-Scope (Y/N)
+
+Out-of-Scope Utterances Report:
+  Source: ConversationEntry where Disposition = Out-of-Scope
+  Used for: Topic backlog (what to build next)
+
+Containment by Topic:
+  Group by: Topic Name
+  Measure: % resolved without escalation
+  Used for: identify which Topics have poor containment
+
+Low Confidence Transcript Analysis:
+  Source: ConversationEntry where Confidence < 0.75
+  Used for: STT quality assessment, Custom Vocabulary gaps
 ```
 
-**Content:**
-- **SLA alert Flow:** triggered on VoiceCall creation; monitors queue wait time field; fires notification when threshold exceeded
-- Alert channels: Salesforce Notification, Chatter post to supervisor group, Email, SMS via External Credential
-- **Agentforce Analytics Dashboard:** native voice metrics dashboard — containment rate, average handle time, intent distribution, escalation rate
-- **CRM Analytics (Tableau CRM) voice dashboards:** deeper analysis — trend over time, cohort analysis, agent performance benchmarking
-- **Key KPIs to dashboard:** containment rate, AHT (average handle time), FCR (first contact resolution), CSAT, escalation rate, queue abandonment rate
-- Dashboard refresh: CRM Analytics datasets refresh on a schedule (hourly is common for operational monitoring)
+**Limitations:**
+- Standard reports rely on VoiceCall and ConversationEntry field population — if some fields are not populated (misconfiguration), reports show empty data
+- Custom reports require CRM Analytics (Tableau CRM) for complex multi-metric analysis
+- Report data is not real-time — it reflects committed data, which may lag by minutes for voice call records
 
-**Speaker Notes:** Flow-based SLA alerts are a practical, no-code solution for operational monitoring. Instead of waiting for a supervisor to check a dashboard, you push an alert to them the moment a queue threshold is breached. The key is to set thresholds that are actionable — an alert that fires every five minutes because the threshold is too aggressive creates alert fatigue. Set thresholds to match your service level agreement: if your SLA is that 80% of calls are answered within 20 seconds, your alert threshold might be when queue depth reaches a level that will cause a breach.
+### Call Quality Metrics — MOS Score
 
----
-
-### Slide 7: Governance — Retention Policies for Recordings and Transcripts
-**Visual:**
 ```
-  VOICE DATA GOVERNANCE MATRIX
-  ┌──────────────────┬─────────────────┬─────────────┬──────────────────┬──────────────────┐
-  │  Data Type       │ Retention       │ Legal Hold  │ Access Control   │ Deletion Method  │
-  ├──────────────────┼─────────────────┼─────────────┼──────────────────┼──────────────────┤
-  │  Call            │ 1-3 years       │ Flag on     │ Supervisors,     │ S3 lifecycle     │
-  │  Recordings      │ Fin svcs: 7 yr  │ VoiceCall   │ QA, Compliance   │ rules            │
-  │                  │ Healthcare: per │ record      │ only             │                  │
-  │                  │ HIPAA           │             │                  │                  │
-  ├──────────────────┼─────────────────┼─────────────┼──────────────────┼──────────────────┤
-  │  Call            │ Longer than     │ Flag on     │ Supervisors,     │ Flow-based field │
-  │  Transcripts     │ recordings      │ VoiceCall   │ QA, Compliance   │ deletion         │
-  │                  │ (text is cheaper│             │                  │                  │
-  │                  │  to store)      │             │                  │                  │
-  ├──────────────────┼─────────────────┼─────────────┼──────────────────┼──────────────────┤
-  │  PII in          │ Apply masking / │  —          │ Masked before    │ Redaction at     │
-  │  Transcripts     │ redaction       │             │ archiving        │ transcription    │
-  │  (SSN, DOB,      │                 │             │                  │ (Transcribe)     │
-  │   payment info)  │                 │             │                  │                  │
-  └──────────────────┴─────────────────┴─────────────┴──────────────────┴──────────────────┘
-  GDPR: right to erasure applies to voice recordings containing personal data
-  Legal Hold: suspend deletion for calls related to active litigation
-  Annual Review: re-evaluate retention schedules with Legal and Compliance yearly
+MOS (Mean Opinion Score) — audio quality assessment
+Scale: 1.0 (unusable) → 5.0 (excellent)
+Target for voice agent: MOS ≥ 3.5 (acceptable; ≥ 4.0 preferred)
+
+MOS Range   │ Caller Experience    │ Impact on STT
+────────────┼──────────────────────┼──────────────────────────────
+4.5 – 5.0  │ Excellent            │ Minimal transcription errors
+3.5 – 4.4  │ Good                 │ Occasional errors, manageable
+2.5 – 3.4  │ Fair / Acceptable    │ Noticeable errors, re-prompts
+1.5 – 2.4  │ Poor                 │ High WER, frequent failures
+1.0 – 1.4  │ Unusable             │ STT cannot produce reliable output
+
+MOS is typically measured at the telephony provider layer, not in Salesforce.
+Amazon Connect provides MOS data in Contact Trace Records (CTR).
 ```
 
-**Content:**
-- Call recordings: typical retention 1-3 years; financial services may require 7 years; healthcare may require longer under HIPAA
-- Call transcripts: often retained longer than recordings as text is cheaper to store and more searchable
-- Legal hold: suspend normal retention deletion for calls related to active litigation; requires a Legal Hold flag on VoiceCall
-- PII in transcripts: transcripts may contain SSNs, DOBs, payment info — apply data masking or redaction before archiving
-- Deletion: S3 lifecycle rules for Amazon Connect recordings; custom Flow for deleting Salesforce VoiceCall transcript fields
-- Regulatory considerations: GDPR right to erasure applies to voice recordings containing personal data
-- Annual governance review: recommended to re-evaluate retention schedules with Legal and Compliance annually
+**Limitations:**
+- Salesforce does not natively surface MOS scores — access via Amazon Connect Contact Trace Records (CTR) or a CTI integration that writes MOS to VoiceCall
+- MOS varies per call based on network conditions, device, and environment — monitor as a distribution, not a single value
+- Low MOS is a network/device issue, not a Salesforce configuration issue — fix at source (network routing, device upgrade)
 
-**Speaker Notes:** Retention governance for voice is one of those topics that seems administrative until you have a legal hold request or a regulatory audit, at which point it becomes urgent. Build your retention policies before go-live, document them in a data dictionary, and configure the technical enforcement mechanisms — S3 lifecycle rules, Salesforce data retention policies — at the same time you configure the recording itself. Retrofitting governance after the fact, when you have months of recordings in storage, is far more complex than getting it right from day one.
+### Monitoring Dashboard Design
 
----
+```
+RECOMMENDED MONITORING VIEWS
 
-## Recording Script
+Daily Operations Dashboard:
+  - Real-time: calls in queue, agent availability, queue wait time
+  - Today: containment rate, escalation rate, avg handle time
+  - Alerts: calls above 5-min queue wait, error-status VoiceCalls
 
-In this lecture, we are looking at monitoring and analytics for Agentforce Voice — how you measure what is happening, how you identify what is going wrong, and how you govern the data your voice system generates.
+Weekly Management Dashboard:
+  - This week vs. last week: containment, AHT, out-of-scope rate
+  - Top 10 out-of-scope utterances (Topic backlog input)
+  - Confidence score distribution (STT quality trend)
+  - Escalation reason code breakdown
 
-Let me start with the VoiceCall object, because it is the anchor for everything else. Every call — inbound or outbound — generates a VoiceCall record in Salesforce. This record stores the ANI (caller phone number), the DNIS (number dialed), call duration, status, and links to related records like the Contact, Account, or Case that was matched by screen pop. It also stores AI-generated fields: the detected intent from the Agentforce agent and the sentiment score from real-time analysis. And it stores recording and transcript data — or at least the URL pointer to where those are stored.
+Monthly Executive Dashboard:
+  - Containment rate trend (month-over-month improvement)
+  - Cost per call (autonomous vs. human agent)
+  - Estimated FTE savings from automation
+  - CSAT scores (if post-call survey configured)
+```
 
-If you want to report on voice performance, you start with the VoiceCall object. Build reports on VoiceCall to see call volume by day, average duration, escalation rates, and intent distribution. Use custom fields on VoiceCall to capture data that the platform does not populate automatically — like disposition codes the agent selects at the end of a call, or the escalation reason written by the Agentforce agent before transferring.
+**Limitations:**
+- Real-time dashboards use Salesforce Streaming API or Live Agent data — they have polling latency, not instantaneous display
+- Building the recommended dashboards requires CRM Analytics (Tableau CRM) — standard Reports & Dashboards are sufficient for basic views but limited for complex multi-metric analysis
+- "Estimated FTE savings" requires baseline measurement before deployment — always capture pre-deployment metrics for ROI reporting
 
-Now let us talk about Einstein Conversation Mining, which is the retrospective analytics engine for voice transcripts. Conversation Mining reads through your historical call transcripts and uses NLP to cluster them by topic. It then reports on each topic cluster: how many calls, what is the average handle time, what percentage were resolved, what percentage escalated.
+## PTA / SA Relevance
 
-The containment rate metric from Conversation Mining is the headline KPI for autonomous voice deployments. Containment rate measures the percentage of calls that were handled entirely by the autonomous Agentforce agent without any human agent involvement. This is the metric that translates directly to operational cost savings. Track it weekly after launch, and use Conversation Mining to identify which topics are failing containment — meaning the autonomous agent is frequently escalating on those topics. That is your roadmap for improvement.
+**Monitoring and analytics are where voice AI projects demonstrate business value post-launch.** As a PTA or SA, you need to help customers define success metrics BEFORE go-live so you can demonstrate ROI after. Without pre-defined baselines and targets, the project cannot show business value.
 
-Call recording storage and access is a topic that interacts with both operations and compliance. For Amazon Connect deployments, call recordings are stored in Amazon S3. Salesforce surfaces the recording URL in the VoiceCall record, and the recording is playable directly in the Service Console's Call Recording tab. Access to recordings is controlled by Salesforce permissions — configure this carefully. Supervisors and QA analysts need playback access; front-line agents typically should not.
+**The continuous improvement loop is the ongoing value driver:**
+1. Monitor out-of-scope utterances weekly
+2. Prioritize new Topics by call volume
+3. Build and deploy new Topics
+4. Measure containment rate improvement
+5. Report improvement to business stakeholders
+6. Repeat
 
-For compliance, specifically PCI-DSS, you must configure recording pause when the call enters a DTMF payment capture segment. Amazon Connect has native pause and resume recording capabilities that you invoke from the Contact Flow at the point where payment digits are being entered. This is non-negotiable if your voice system captures any payment card information.
+**Common partner mistakes:**
+- Delivering the project and not configuring ongoing monitoring — leaving the customer without visibility into agent performance
+- Not establishing baseline metrics before go-live — impossible to prove ROI retroactively
+- Using ECI for real-time monitoring (it's not real-time) — use Supervisor Console for real-time
 
-For SLA monitoring, the practical tool is a Flow-based alert. Create a Flow triggered on VoiceCall creation that monitors queue wait time, and when wait time exceeds your SLA threshold, fires a notification to the supervisor group. This is more actionable than a dashboard — instead of a supervisor discovering a breach after the fact, they receive a real-time alert and can take action: pull in additional agents, redirect to a different queue, or reach out to callers in the queue.
+**Enterprise monitoring considerations:**
+- For large contact centers, ECI dashboards should integrate with existing WFM and BI tools — data export to Tableau or Power BI is common
+- Escalation reason code tracking requires adding a mandatory field to the VoiceCall record for agents to capture reason at wrap-up time
+- MOS monitoring should be included in the telephony partner's SLA — not an after-thought
 
-The CRM Analytics voice dashboards are where you do deeper operational analysis. The key metrics to build into your voice dashboard are: average handle time (AHT), first contact resolution rate (FCR), containment rate, CSAT from post-call surveys, escalation rate broken out by escalation reason, and queue abandonment rate. These five or six metrics tell you almost everything you need to know about whether your voice operation is performing well.
+**For a customer executive review:** "In the first 90 days post-launch, we improved containment rate from 38% to 52% by adding 6 new Topics based on the top out-of-scope utterances. At your call volume of 50K calls/month, that's 7,000 additional calls handled by the AI agent — saving approximately $56K/month in human handling cost."
 
-Finally, governance. Every call recording and transcript contains personal information, and you are legally obligated to manage that information responsibly. Define a retention policy before you go live — how long do you keep recordings? How long do you keep transcripts? For most industries, one to three years for recordings is appropriate. Financial services and healthcare have longer requirements. Configure S3 lifecycle rules to enforce automated deletion at the end of the retention period. And build a legal hold mechanism — a flag on the VoiceCall record that pauses deletion for calls involved in active litigation.
+## Customer Advisory Tips
 
-I will leave you with one principle for voice governance: what you do not think about before go-live, you will have to think about under pressure after go-live. Build the governance framework alongside the technical implementation.
+**Define success metrics before go-live and get stakeholder alignment on targets.** Common metrics and typical targets:
+- Containment rate: 30–50% Year 1, 50–70% Year 2 (as Topics mature)
+- AHT reduction for AI-handled calls vs. human-handled: 40–60% is typical
+- CSAT for AI-handled calls: within 5 points of human-handled CSAT
 
----
+**Einstein Conversation Mining for initial Topic discovery:** If the customer has existing call recordings or chat transcripts, run ECM before building Topics. This prevents building the wrong Topics and dramatically reduces post-launch out-of-scope rates.
 
-## Exam Tips
-- The VoiceCall object is the standard Salesforce object that anchors all voice reporting — know its key fields including Intent, SentimentScore, RecordingUrl, and TranscriptAvailable
-- Containment rate = percentage of calls handled by autonomous agent without human transfer — this is the primary ROI metric for autonomous voice
-- Einstein Conversation Mining is retrospective (analyzes historical transcripts), not real-time — do not confuse with real-time sentiment analysis
-- PCI-DSS compliance for voice requires recording pause during DTMF payment capture — this is configured in Amazon Connect Contact Flow, not in Salesforce Flow
-- Retention policies for recordings and transcripts should be configured at go-live, not added later; S3 lifecycle rules enforce automated deletion for Amazon Connect recordings
-- Post-call survey sampling rates of 20-30% are recommended to avoid survey fatigue while maintaining representative data
+**Post-launch success review cadence:** Monthly for the first 6 months, quarterly thereafter. Each review should include: containment rate trend, top out-of-scope utterances, STT quality metrics, and ROI calculation. If containment is not improving, check STT quality and out-of-scope analysis first.
 
----
+## Key Facts to Memorize
+- Containment rate = primary ROI metric for voice AI; target 30–60%
+- ECI = per-call metrics + keyword alerts + post-call coaching (operational monitoring)
+- ECM = Einstein Conversation Mining = retrospective ML on corpus of transcripts (strategic, NOT real-time)
+- Out-of-scope utterances = Topics to build next; monitor weekly via ECI
+- MOS score = audio quality metric; measured at telephony layer (Amazon Connect CTR), not Salesforce
+- VoiceCall + ConversationEntry = basis of all post-call reporting
+- Continuous improvement loop: monitor out-of-scope → build Topics → measure containment improvement
 
-## Lecture Summary
-- The VoiceCall object is created for every call and stores ANI, DNIS, duration, status, intent, sentiment score, recording URL, and related record links
-- Einstein Conversation Mining analyzes historical transcripts to cluster topics and report containment rate, resolution rate, and escalation rate
-- Call recordings are stored in Amazon S3 (for Connect), surfaced via VoiceCall.RecordingUrl, and played back in Service Console; access is controlled by permission set
-- Flow-based SLA alerts provide real-time breach notifications to supervisors when queue thresholds are exceeded
-- CRM Analytics dashboards surface key KPIs: AHT, FCR, containment rate, CSAT, escalation rate, and abandonment rate
-- Retention governance policies for recordings (1-3 years typical) and transcripts must be defined at go-live; S3 lifecycle rules automate enforcement
+## Exam Traps
+- "Einstein Conversation Mining provides real-time call analytics" → False — ECM is retrospective batch analysis on historical transcripts
+- "ECI and ECM are the same feature" → False — ECI is operational monitoring; ECM is strategic retrospective mining
+- "Containment rate of 95% means the voice agent is performing excellently" → Not necessarily — if it means callers can't reach a human when needed, that's a UX problem; balance containment with CSAT
+- "MOS scores are available in Salesforce VoiceCall records by default" → False — MOS is a telephony-layer metric from Amazon Connect CTR; must be written to Salesforce via integration if needed
+- "Out-of-scope calls represent failures" → Not exactly — out-of-scope means a caller asked for something the agent wasn't built for; it's a gap, not a bug. Treat it as the Topic backlog.
 
----
+## Practice Questions
 
-## Mini Quiz
+**Q:** A voice agent went live 30 days ago. The business team wants to understand which call types the AI agent couldn't handle so they can prioritize the next set of Topics to build. Which feature provides this data?
+**A:** Einstein Conversation Insights (ECI) — specifically the out-of-scope utterance report. ECI aggregates calls where the agent responded "I'm not set up for that" and shows the actual utterances that triggered out-of-scope responses, ranked by frequency. These become the input for the Topic backlog.
 
-**Q1:** A Salesforce admin wants to report on how many calls were resolved without involving a human agent. Which metric and data source should they use?
+**Q:** A contact center has 3 years of call recordings from a legacy IVR. Before building an Agentforce Voice agent, the architect wants to understand the distribution of call types and common caller language. What Salesforce feature is best suited for this analysis?
+**A:** Einstein Conversation Mining (ECM). ECM processes batches of historical call transcripts using unsupervised ML to cluster calls by topic and identify common phrases. The output shows call type distribution by volume, which drives Topic prioritization for the voice agent build.
 
-A) Average Handle Time from the Agent Console  
-B) Containment Rate from Einstein Conversation Mining  
-C) Resolution Rate from the Case object  
-D) Escalation Rate from Omni-Channel Queue reports  
-
-**Answer:** B — Containment rate, derived from Einstein Conversation Mining analysis of VoiceCall transcripts, measures the percentage of calls handled entirely by the autonomous agent without human transfer. This is the correct metric for measuring autonomous resolution.
-
----
-
-**Q2:** A compliance officer requires that call recordings for payment-related interactions have DTMF digits redacted. Where is this configured?
-
-A) Salesforce Voice Flow Speak element settings  
-B) Amazon Connect Contact Flow pause/resume recording configuration  
-C) VoiceCall object field-level security settings  
-D) CRM Analytics dataset schema  
-
-**Answer:** B — Recording pause for PCI-DSS DTMF payment capture is configured in the Amazon Connect Contact Flow using the native pause and resume recording capabilities. This is a telephony-layer control, not a Salesforce Flow configuration.
-
----
-
-**Q3:** An operations manager wants to receive an immediate notification when call queue wait times exceed 3 minutes. What is the recommended implementation approach?
-
-A) Schedule a daily CRM Analytics report refresh  
-B) Configure Einstein Conversation Mining to flag long-wait calls  
-C) Create a Flow triggered on VoiceCall creation that monitors wait time and fires a Salesforce notification when the threshold is exceeded  
-D) Enable the Amazon Connect real-time metrics dashboard  
-
-**Answer:** C — A Flow triggered on VoiceCall creation, with a Decision element checking queue wait time against the SLA threshold and a Notification action, provides real-time alerting within Salesforce. This is more actionable than a dashboard because it pushes the alert rather than requiring the supervisor to pull it.
+**Q:** A voice agent's containment rate has been flat at 38% for 8 weeks post-launch with no improvement. What should be investigated first?
+**A:** Review the top out-of-scope utterances from ECI. If callers are frequently asking about topics not covered by current Topics, build those Topics first. If out-of-scope rate is low and containment is still flat, investigate STT accuracy (WER) — callers may be failing in the speech recognition layer before reaching Topics.

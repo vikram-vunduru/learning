@@ -1,256 +1,119 @@
-# L05: User Setup & Management
+# User Setup & Management
 
-## 🎯 Learning Objectives
-- Identify the required fields for creating a new Salesforce user
-- Distinguish between freezing and deactivating a user account
-- Explain the difference between user licenses and feature licenses
+## Exam Domain
+Configuration & Setup — 20% of exam
 
-## 📊 SLIDES
+## Core Concepts
 
-### Slide 1: User Records in Salesforce
-**Visual:**
+Users are the foundation of access control. Every person who logs into Salesforce needs a user record, and that record determines who they are, what they can do, and when they can log in.
+
+**Required fields when creating a user:**
+- First Name, Last Name
+- Email (must be unique across all Salesforce orgs — globally unique)
+- Username (must be unique globally; format: email format, but doesn't have to be a real email)
+- Alias (short display name)
+- Profile (exactly 1 required)
+- Role (optional, but critical for record visibility)
+- License Type (determines available profiles and features)
+
+**User License Types (common ones):**
+| License | What It Gets You |
+|---|---|
+| Salesforce | Full CRM access; standard + custom objects |
+| Salesforce Platform | Custom objects only; no standard CRM objects (Leads, Opps) |
+| Chatter Free | Chatter collaboration only; no CRM records |
+| Chatter External | External (non-employee) Chatter access |
+
+**Freeze vs Deactivate:**
+| | Freeze | Deactivate |
+|---|---|---|
+| Can log in? | No | No |
+| License consumed? | Yes | No |
+| Can reactivate? | Yes (immediate) | Yes |
+| When to use? | Temporary, urgent block | Permanent departure |
+| Automation triggered? | No | Possibly (ownership rules) |
+
+Key point: You **cannot delete** users in Salesforce. You can only deactivate them. This is because their records (records they created, owned, modified) would have no owner.
+
+**Deactivating a user triggers:**
+- Remove from all groups and queues
+- Remove from approval processes (if sole approver, you get a warning)
+- Running automations that reference the user still execute if the user is the running user
+
+## PTA / SA Relevance
+
+User management seems simple but creates real enterprise problems:
+
+**License audit:** Many large customers overpay because they have hundreds of deactivated users who were never reviewed. Deactivated users don't consume licenses, but licenses purchased vs licenses in-use is a critical cost optimization area. In every org assessment, run a license utilization report.
+
+**Username uniqueness (global):** This catches customers off guard. If an employee has a username in one org (even a sandbox), they can't reuse it in another org. This is why orgs typically use naming conventions like `user@company.com.sandbox` for sandbox users. This matters for sandbox management — when you refresh a sandbox, usernames are changed to prevent conflicts.
+
+**Profile assignment:** Every user gets exactly one profile. This is where the access control design starts. In mature orgs, profiles are lean (minimal permissions) and Permission Sets handle additional access. The Salesforce roadmap is moving toward Permission Set Groups as the primary access mechanism.
+
+## Architecture / How It Works
+
 ```
-  ┌─────────────────────────────────────────────────────────────┐
-  │  USER RECORD                                                │
-  ├──────────────────────────┬──────────────────────────────────┤
-  │ First Name               │ [Jane]                          │
-  │ Last Name *              │ [Doe]                           │
-  │ Email *                  │ [jane.doe@company.com]          │
-  │ Username *               │ [jane.doe@company.prod]         │
-  │ Alias *                  │ [jdoe]                          │
-  │ Profile *                │ [Standard User ▼]               │
-  │ Role                     │ [Sales Rep ▼]                   │
-  │ User License *           │ [Salesforce ▼]                  │
-  ├──────────────────────────┴──────────────────────────────────┤
-  │ ☑ Active                 ← controls login access           │
-  └─────────────────────────────────────────────────────────────┘
-  * = Required field
+User Record — Access Chain
+━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  USER RECORD
+  ┌─────────────────────────────────────────┐
+  │  Username (globally unique)             │
+  │  Email (globally unique)                │
+  │  License Type ──────────┐               │
+  │  Profile (required) ────┤──► What you   │
+  │  Role (optional)        │    CAN DO +   │
+  │  Permission Sets (0+) ──┘    CAN SEE    │
+  └─────────────────────────────────────────┘
+
+  License → gates which Profiles are available
+  Profile → controls: CRUD, FLS, app access, login hours, IP ranges
+  Role → controls: record visibility (upward in hierarchy)
+  Permission Sets → additive permissions on top of Profile
+
+  Freeze vs Deactivate:
+  ┌────────────────────────────────────────────┐
+  │  FREEZE: User blocked, license still used  │
+  │  DEACTIVATE: User blocked, license freed   │
+  └────────────────────────────────────────────┘
 ```
-**Content:**
-- Every person who accesses Salesforce needs a **user record**
-- Path to create: **Setup > Users > New User**
-- User records control identity, access, and authentication
-- The **Active** checkbox determines whether the user can log in
-- A user record can exist without being Active (frozen or deactivated records)
-**Speaker Notes:** User records are the foundation of identity and access in Salesforce. Every setting that governs what a person can see and do ultimately traces back to their user record — through the profile assigned, the role selected, the license type, and the active status. Creating a user is straightforward, but knowing the required fields and their implications is what the exam tests.
 
-### Slide 2: Required Fields for New Users
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │  NEW USER — REQUIRED FIELDS                                  │
-  ├──────────────────────────────────────────────────────────────┤
-  │  ► Last Name *       │ Required for display                 │
-  │  ► Email *           │ For notifications & password resets  │
-  │  ► Username *        │ Globally unique; email format        │
-  │  ► Alias *           │ Max 8 chars; used in list views      │
-  │  ► Profile *         │ Defines base permissions             │
-  │  ► User License *    │ Defines feature & object access      │
-  └──────────────────────────────────────────────────────────────┘
-  * = Required field
-```
-**Content:**
-- **Last Name:** Required; used for display
-- **Email:** Required; used for notifications, password resets, and must be a valid address
-- **Username:** Required; must be unique across ALL Salesforce orgs; formatted like an email address
-- **Alias:** Required; 8-character max shortname used in list views
-- **Profile:** Required; determines base permissions and settings
-- **User License:** Required; determines which features and objects the user can access
-**Speaker Notes:** The username is a common source of confusion. It must look like an email address — but it does NOT have to be a real email address. What it must be is globally unique across every Salesforce org on the planet. A common convention is to append the org name to the email — like "jane.doe@mycompany.prod" — so it stays unique when you have multiple orgs. The exam loves to test that username uniqueness is global, not just org-wide.
+**Limitations:**
+- Users cannot be deleted — only deactivated
+- Usernames must be unique across all Salesforce orgs (production + sandboxes) globally
+- You cannot change a user's license type if it would conflict with their current profile/permission sets
+- A deactivated user who is the sole approver in an approval process must be replaced before deactivating
 
-### Slide 3: User Licenses vs. Feature Licenses
-**Visual:**
-```
-  ┌────────────────────────────────────────────────────────┐
-  │            USER LICENSE (Foundation)                   │
-  │   e.g., Salesforce | Salesforce Platform | Chatter     │
-  │         Defines core access to objects & features      │
-  └─────────────────────────┬──────────────────────────────┘
-                            │ add-ons assigned per user
-                            ▼
-  ┌────────────────────────────────────────────────────────┐
-  │            FEATURE LICENSES (Add-ons)                  │
-  │  ☑ Marketing User   ☑ Knowledge User   ☑ Flow User    │
-  │  ☑ Offline User     ☑ Chatter Answers User             │
-  │       Unlock specific features on top of base license  │
-  └────────────────────────────────────────────────────────┘
-```
-**Content:**
-- **User License:** The base license assigned to every user; determines core access (e.g., Salesforce, Salesforce Platform, Chatter Only)
-- **Feature License:** An add-on to a user license; unlocks a specific feature (e.g., Marketing User, Knowledge User, Flow User)
-- A user can have one User License + multiple Feature Licenses
-- Feature licenses are assigned on the user record (checkboxes in the "Additional Information" section)
-- Examples of feature licenses: Marketing User, Offline User, Knowledge User, Chatter Answers User
-**Speaker Notes:** Think of the user license as the foundation and feature licenses as optional upgrades. A Salesforce license lets you use the full CRM, but if that user also needs to create campaigns and mass email, they need the Marketing User feature license checked on their record. Feature licenses don't cost extra in all cases — some are included with your edition — but they do have to be explicitly enabled per user.
+## Key Facts to Memorize
 
-### Slide 4: Active Users, Inactive Users, and Freezing
-**Visual:**
-```
-        ┌─────────────────────────────────────────────────────┐
-        │                   ACTIVE USER                       │
-        │              Can log in normally                     │
-        └──────────────┬──────────────────┬───────────────────┘
-                       │                  │
-              [Freeze] ▼                  ▼ [Deactivate]
-   ┌──────────────────────────┐  ┌──────────────────────────────┐
-   │         FROZEN           │  │        DEACTIVATED           │
-   │ Login:   Blocked         │  │ Login:   Blocked             │
-   │ Status:  Still Active    │  │ Status:  Inactive            │
-   │ License: Consumed        │  │ License: Freed               │
-   │ Use:     Emergency block │  │ Use:     Full offboarding    │
-   └──────────────────────────┘  └──────────────────────────────┘
-```
-**Content:**
-- **Active user:** Can log in and use Salesforce normally
-- **Frozen user:** Login is blocked immediately; user record stays Active; license is still consumed
-- **Deactivated user:** Cannot log in; license is freed and can be reassigned; record is kept permanently
-- Use **Freeze** when you need to quickly lock access (e.g., terminated employee) and haven't fully offboarded
-- Use **Deactivate** after you've transferred owned records and are ready to release the license
-**Speaker Notes:** This is one of the most tested user management topics on the exam. Freezing is fast and reversible — great for emergencies like an immediate termination. But because the user record stays active, you're still consuming a license. Deactivating permanently blocks login and frees the license, but it's not reversible in the same quick way. Important: you cannot delete user records in Salesforce — you can only deactivate them. Records and history remain intact.
+- Email = globally unique across all Salesforce orgs
+- Username = globally unique, email format (doesn't need to be real email)
+- Profile = required (exactly 1 per user)
+- Role = optional, controls record visibility up the hierarchy
+- Cannot DELETE users; only deactivate
+- Freeze = blocks login, keeps license; Deactivate = blocks login, frees license
+- Deactivated users' records remain; their data/records persist
+- Salesforce license = full CRM; Platform license = custom objects only
+- Chatter Free = collaboration only, no CRM objects
 
-### Slide 5: Deactivating Users — Key Rules
-**Visual:**
-```
-  ┌──────────────────────────────────┬──────────────────────────────────┐
-  │      BEFORE DEACTIVATING         │      WHAT HAPPENS AFTER          │
-  ├──────────────────────────────────┼──────────────────────────────────┤
-  │ ☐ Transfer open Tasks            │ Login is permanently blocked     │
-  │ ☐ Transfer open Cases            │ License is freed                 │
-  │ ☐ Transfer open Opportunities    │ Owned records remain intact      │
-  │ ☐ Confirm another Sys Admin      │ User visible in history/reports  │
-  │   exists (if applicable)         │ Workflows/Flows may still run    │
-  │                                  │ Record cannot be deleted         │
-  └──────────────────────────────────┴──────────────────────────────────┘
-```
-**Content:**
-- Before deactivating: transfer open tasks, cases, opportunities to another user
-- A deactivated user's owned records stay in the system — records are not deleted
-- Deactivated users remain visible in record history and reports
-- You **cannot deactivate** a user who is the sole system administrator
-- Automated processes (Workflows, Flows) created by a deactivated user may still run
-**Speaker Notes:** Deactivating a user doesn't erase their footprint — their past activity, record ownership on closed records, and audit history all remain. Open records they owned need to be transferred first to avoid orphaned work. The rule about not being able to deactivate the last system admin is important — Salesforce enforces this to prevent orgs from being locked out. Always ensure at least one other active system admin exists before deactivating one.
+## Exam Traps
 
-### Slide 6: Login History and Password Management
-**Visual:**
-```
-  Setup > Users > Login History
-  ┌─────────────────┬──────────────────┬───────────┬─────────┬─────────┐
-  │ Username        │ Login Date/Time  │ Source IP │ Browser │ Status  │
-  ├─────────────────┼──────────────────┼───────────┼─────────┼─────────┤
-  │ jane@corp.prod  │ 2024-03-15 09:21 │ 10.0.1.5  │ Chrome  │ Success │
-  │ john@corp.prod  │ 2024-03-15 08:47 │ 10.0.2.11 │ Firefox │ Success │
-  │ tom@corp.prod   │ 2024-03-15 08:31 │ 10.0.3.7  │ Edge    │ Failed  │
-  │ tom@corp.prod   │ 2024-03-15 08:32 │ 10.0.3.7  │ Edge    │ Failed  │
-  └─────────────────┴──────────────────┴───────────┴─────────┴─────────┘
-  Shows last 6 months of login attempts
+- **"You can delete a user in Salesforce"** — FALSE. Users can only be deactivated, never deleted.
+- **"Freezing a user frees up their license"** — FALSE. Only deactivating frees the license. Freeze just blocks login.
+- **"A user's username can be reused across orgs"** — FALSE. Usernames are globally unique across all Salesforce orgs.
+- **"A user can have multiple profiles assigned"** — FALSE. Exactly one profile per user. Multiple Permission Sets are OK.
+- **"Deactivating a user removes all records they owned"** — FALSE. Their records remain and keep the user as owner until reassigned.
 
-  User Record ──▶  [ Reset Password ]  ──▶  Reset email sent to user
-```
-**Content:**
-- **Login History:** Setup > Users > Login History; shows last 6 months of login attempts
-- Shows: username, timestamp, IP address, browser, status (success, failed attempt, challenge required)
-- Password Reset: Admin can click **Reset Password** on any user record to send a reset email
-- **Password Policy:** Setup > Security > Password Policies — set complexity, expiry, lockout rules
-- Admins with the "Reset User Passwords and Unlock Users" permission can reset and unlock
-**Speaker Notes:** Login History is your first stop when a user reports trouble logging in or when security asks for an audit. You can see exactly when someone logged in, from where, and whether any failed attempts preceded a successful login. Password reset is straightforward — one button on the user record. Password policies apply org-wide and can enforce complexity requirements, expiration intervals, and maximum failed attempts before lockout.
+## Practice Questions
 
-### Slide 7: Mass User Management
-**Visual:**
-```
-  Setup > Users                                  [ Mass Email Users ▼ ]
-  ┌───┬─────────────────┬──────────────────┬────────────────┬──────────┐
-  │ ☑ │ Name            │ Profile          │ User License   │ Active   │
-  ├───┼─────────────────┼──────────────────┼────────────────┼──────────┤
-  │ ☑ │ Jane Doe        │ Standard User    │ Salesforce     │ ✓        │
-  │ ☑ │ John Smith      │ Standard User    │ Salesforce     │ ✓        │
-  │ ☑ │ Alice Brown     │ Marketing User   │ Salesforce     │ ✓        │
-  │ □ │ Bob Lee         │ Read Only        │ Salesforce     │ ✓        │
-  ├───┴─────────────────┴──────────────────┴────────────────┴──────────┤
-  │  Bulk Actions ▼  [ Reset Passwords | Freeze | Deactivate ]         │
-  └─────────────────────────────────────────────────────────────────────┘
-```
-**Content:**
-- Admins can manage multiple users simultaneously from the user list view
-- Available bulk actions: **Reset Passwords**, **Freeze**, **Deactivate** (when applicable)
-- Use filters in the list view to find users by profile, role, license type, or active status
-- **Mass Email Users:** Send a message to a group of users (e.g., announce a system change)
-- **Data Export / User Reports:** Use reports to audit user data (last login, license type, profile)
-**Speaker Notes:** When onboarding a new team or doing a periodic audit, bulk user actions save significant time. The user list view with filters is your tool for slicing users by any attribute. Run a report on users who haven't logged in for 90 days to identify inactive licenses that can be freed up. This is a practical admin skill and occasionally appears as a scenario question on the exam.
+**Q:** A sales rep leaves the company immediately under suspicious circumstances. The admin needs to prevent them from logging in RIGHT NOW while the offboarding process is handled. What is the quickest action?
+**A:** Freeze the user. This immediately prevents login without the overhead of deactivation. Deactivate later once offboarding is complete.
 
-### Slide 8: Key User Management Exam Facts
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────────┐
-  │          KEY USER MANAGEMENT EXAM FACTS                         │
-  ├──────────────────────┬───────────────────────────────────────────┤
-  │ Username uniqueness  │ Unique across ALL Salesforce orgs globally│
-  │ Freeze               │ Login blocked; license still consumed     │
-  │ Deactivate           │ Login blocked; license freed              │
-  │ Delete Users?        │ NOT possible — only deactivate            │
-  │ Last Sys Admin       │ Cannot be deactivated                     │
-  │ Required Fields      │ Last Name, Email, Username, Alias,        │
-  │                      │ Profile, User License                     │
-  │ Feature License      │ Add-on per user (e.g. Marketing User)     │
-  └──────────────────────┴───────────────────────────────────────────┘
-```
-**Content:**
-- Username must be unique across **all Salesforce orgs globally**, not just your org
-- Freeze = login blocked, license still consumed; Deactivate = login blocked, license freed
-- You cannot delete user records — only deactivate them
-- The last active System Administrator cannot be deactivated
-- Required user fields: Last Name, Email, Username, Alias, Profile, User License
-- Feature licenses (e.g., Marketing User) are in addition to the base user license
-**Speaker Notes:** Lock in these facts before exam day. The global uniqueness of usernames is the most commonly tested user management detail. The freeze vs. deactivate distinction is a close second — especially the fact that freezing still consumes a license. And remember: user records in Salesforce are permanent. They can be deactivated but never deleted.
+**Q:** A company has 100 Salesforce licenses but only 75 active users. What happened to the remaining 25 licenses?
+**A:** They are freed by deactivated users. Deactivated users do not consume licenses.
 
-## 🎙️ RECORDING SCRIPT
+**Q:** What field format is required for a Salesforce username?
+**A:** Email format (e.g., user@domain.com), but it doesn't have to be a real email address. It must be unique across ALL Salesforce orgs globally.
 
-Welcome to Lecture 5 — User Setup and Management. This is the first lecture of Section 2, and it covers the practical fundamentals of creating and managing user accounts in Salesforce.
-
-Every person who needs to access Salesforce gets a user record. You create these at Setup > Users > New User. Several fields are required, and knowing all of them is a common exam topic. Let me walk through the key ones.
-
-Last Name and Email are obvious requirements. Username is where it gets interesting: the username must look like an email address, but it doesn't have to be one. More importantly, it has to be globally unique — not just in your org, but across every single Salesforce org on the planet. If someone already has the username "jane.doe@mycompany.com" in any org anywhere, you can't use it. A practical workaround is to append your org name or environment to the email address: "jane.doe@mycompany.prod" for production, "jane.doe@mycompany.dev" for development. The Alias field is an eight-character shortname used in list views. And Profile and User License are required because they define what the person can do.
-
-Let's talk about licenses. A User License is the base license — it determines the fundamental access level. Salesforce license gives you full CRM access. Salesforce Platform is for users who only need your custom apps plus Accounts and Contacts. There are also Chatter and Community licenses for collaboration and external users. Then there are Feature Licenses, which are add-ons on top of the base license. If a user needs to send mass emails and manage campaigns, you check the Marketing User box on their record. Feature licenses are granted individually per user, in addition to their base license.
-
-Now let's cover one of the most tested user management scenarios: what do you do when an employee leaves the company? You have two options: freeze or deactivate. Freezing a user immediately blocks their login but leaves the user record in an active state — meaning the license is still being consumed. Freeze is your emergency lever when HR calls and says someone was just terminated. Deactivating a user permanently blocks login and frees up the license so it can be reassigned to someone else. Use deactivation after you've transferred their open records and you're ready to permanently remove their access.
-
-Here's a critical detail the exam tests: you cannot delete user records in Salesforce. Period. You can deactivate them, but they persist forever. That means past activity, record history, and field audit trails stay intact. Also, you cannot deactivate the last active System Administrator in an org — Salesforce enforces this to prevent complete lockout.
-
-For security auditing, Login History at Setup > Users > Login History shows you six months of login activity: timestamps, IP addresses, browser types, and success or failure status. When a user reports they're locked out, start here. Password resets are done directly from the user record via the Reset Password button — the user receives an email with a link to set a new password.
-
-In the next lecture, we go deeper into Profiles and Permission Sets — the core of Salesforce's access control model.
-
-## 🔔 EXAM TIPS
-- **Username global uniqueness:** A username must be unique across all Salesforce orgs worldwide, not just within your org. This is the single most tested user management fact.
-- **Freeze vs. Deactivate:** Freezing is fast but still consumes a license. Deactivating frees the license but requires you to transfer open records first.
-- **Cannot delete users:** User records are permanent in Salesforce — you can only deactivate them. This is a hard rule that the exam has tested.
-
-## ✅ LECTURE SUMMARY
-- Required user fields: Last Name, Email, Username (globally unique, email format), Alias, Profile, User License
-- User Licenses define base access (Salesforce, Platform, Chatter); Feature Licenses are per-user add-ons (Marketing User, Knowledge User, etc.)
-- Freezing blocks login immediately but keeps the user active and the license consumed; Deactivating blocks login and frees the license
-- User records cannot be deleted — only deactivated; the last System Admin cannot be deactivated
-- Login History (Setup > Users > Login History) shows six months of login data for security auditing
-
-## ❓ MINI QUIZ
-
-**Q1:** An employee is terminated unexpectedly during the workday. The admin needs to immediately block access. The HR team will complete the formal offboarding process next week. What should the admin do?
-- A) Deactivate the user record
-- B) Freeze the user record
-- C) Remove the user's Profile assignment
-- D) Change the user's password
-**Answer:** B — Freezing immediately blocks login while leaving the user record active. This is the right choice when an emergency block is needed but the full offboarding (records transfer, license release) hasn't been completed yet.
-
-**Q2:** A Salesforce username must be unique in which scope?
-- A) Within the user's department
-- B) Within the current org only
-- C) Within all orgs owned by the same company
-- D) Across all Salesforce orgs globally
-**Answer:** D — Usernames must be globally unique across all Salesforce orgs worldwide. Two users in completely different companies cannot share the same username.
-
-**Q3:** A user needs to send mass emails to leads and manage marketing campaigns. Their current Salesforce license does not include this capability. What should the administrator do?
-- A) Assign the user a new Salesforce CRM Content license
-- B) Enable the Marketing User feature license on the user record
-- C) Create a custom profile with campaign management permissions
-- D) Upgrade the entire org to the Unlimited edition
-**Answer:** B — The Marketing User feature license, enabled on the individual user record, grants access to campaign management and mass email features. It is an add-on to the existing user license, not a replacement.
+**Q:** An admin tries to create a new user with the username john.smith@company.com but gets an error saying it already exists. The admin knows no one in their org uses that username. What is the likely cause?
+**A:** The username exists in another Salesforce org (even a sandbox or a different company's org). Salesforce usernames are globally unique across all orgs.

@@ -1,323 +1,126 @@
-# L16: Relationships & Junction Objects
+# Relationships & Junction Objects
 
-## 🎯 Learning Objectives
-- Compare Lookup and Master-Detail relationships and select the appropriate type for a given scenario
-- Explain how to implement a many-to-many relationship using a junction object
-- Identify relationship limits and special relationship types including self-relationships and external lookups
+## Exam Domain
+Object Manager & Lightning App Builder — 20% of exam
 
-## 📊 SLIDES
+## Core Concepts
 
-### Slide 1: Why Relationships Matter
-**Visual:**
+Relationships define how Salesforce objects connect to each other. Getting this right is foundational to the data model.
+
+**Lookup Relationship:**
+- Creates a loose link between two objects
+- The child record can exist without a parent (optional relationship)
+- Deleting the parent does NOT delete child records — the lookup field is set to null
+- No Roll-Up Summary field capability
+- Child has its own OWD (independent access)
+- Each object can have many lookups (no strict limit)
+
+**Master-Detail Relationship:**
+- Creates a tight parent-child bond
+- The child MUST have a parent — the relationship field is required
+- Deleting the parent DOES cascade-delete all children
+- Enables Roll-Up Summary fields on the parent
+- Child inherits the parent's OWD (Controlled by Parent)
+- Max 2 per object (cannot create a third Master-Detail)
+- The parent object in M-D controls the child's sharing
+
+**Many-to-Many with Junction Objects:**
+- Salesforce doesn't have a native M:M field type
+- Solution: create a third "junction" object with two Master-Detail relationships, one to each "parent"
+- Example: Student ←→ Course (a student can enroll in many courses; a course has many students)
+- Create `Enrollment__c` with `Student__c` (M-D) and `Course__c` (M-D)
+- The junction object record represents the relationship instance
+
+**Hierarchical Relationship:**
+- Special Lookup to the same object
+- Only available on the User object
+- Used for: Manager field on User (who is this user's manager?)
+- Creates a self-referential hierarchy on User records
+
+**Self-Relationship (Lookup):**
+- A Lookup that points to the same object
+- Example: Account → Parent Account (Account hierarchy)
+- Used for hierarchical structures like Account parent/child organizations
+
+## PTA / SA Relevance
+
+Relationship design is schema design. The decisions made here affect:
+
+**Integration complexity:** Every relationship creates a foreign key join in SOQL. Deep relationship traversals (Account → Contact → Custom → Related Custom) impact query performance. SOQL has a 5-level relationship traversal limit for child-to-parent queries in formulas.
+
+**Data migration complexity:** When loading data with relationships, you need to load parents before children. If you're migrating to a junction object pattern, you need to load both "parent" objects first, then the junction records. This is why External ID fields are critical in data loads.
+
+**Cascade delete risk:** Master-Detail cascade delete is powerful but dangerous during data migrations. If you delete a parent record by accident in a M-D relationship, all children are gone too (they go to Recycle Bin, 15-day recovery). In data management operations on Production, be very careful with M-D parent deletions.
+
+**Junction object limits:** A junction object with two M-D relationships is limited to 2 M-D fields max (same as any other object). If you need three "parents," one of them must be a Lookup instead. This affects roll-up summary availability.
+
+## Architecture / How It Works
+
 ```
-  LOOKUP                        MASTER-DETAIL                  MANY-TO-MANY
-  ─────────────────────         ──────────────────────         ─────────────────────────────
-  Account ◀╌╌╌╌ Contact        Invoice ◀══════ Invoice Line   Student ◀══ Enrollment ══▶ Course
-  (optional link)               (required link)                (Junction Object)
+Relationship Types
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  - Loosely coupled             - Tightly coupled              - Junction object with
-  - Child survives              - Cascade delete                 two Master-Details
-    parent deletion               applies                      - Extra data on junction
-  - No roll-ups                 - Roll-ups enabled               (Grade, Enroll Date)
-  - Separate OWD                - Child OWD from Master        - Delete either parent
-  Max: 40/object                Max: 2/object                    deletes all junctions
+  LOOKUP (loose)                 MASTER-DETAIL (tight)
+  ┌────────────┐                 ┌────────────┐
+  │  Account   │                 │  Account   │
+  └──────┬─────┘                 └──────┬─────┘
+         │ 0..1                         │ 1 (required)
+         │ lookup                       │ master-detail
+         ▼                              ▼
+  ┌────────────┐                 ┌────────────┐
+  │  Contact   │                 │  Case      │
+  └────────────┘                 └────────────┘
+  Parent deleted? → null field   Parent deleted? → Children deleted
+  Roll-Up? No                    Roll-Up? YES (on Account)
+  Child OWD? Independent         Child OWD? Controlled by Parent
+
+  MANY-TO-MANY via Junction Object:
+  ┌───────────┐   ┌─────────────────┐   ┌──────────┐
+  │ Student   │   │  Enrollment__c  │   │ Course   │
+  │ (object)  ◄───┤ Student__c (M-D)│   │ (object) │
+  └───────────┘   │ Course__c  (M-D)├───►          │
+                  └─────────────────┘   └──────────┘
+  Delete Student → deletes their Enrollment records
+  Delete Course  → deletes all Enrollment records for that course
 ```
-**Content:**
-- Relationships link records across objects so related data can be viewed, reported, and rolled up together
-- Choosing the wrong relationship type causes data integrity problems, unexpected deletions, and missing roll-up calculations
-- Two primary relationship types: **Lookup** and **Master-Detail**
-- Many-to-many relationships require a **Junction Object** with two master-detail relationships
-**Speaker Notes:** Before creating any relationship, ask three questions: Is the parent required? Should deleting the parent delete the child? Do you need roll-up summaries? The answers determine which relationship type to use.
 
-### Slide 2: Lookup Relationships
-**Visual:**
-```
-  ┌──────────────────┐                       ┌──────────────────────┐
-  │    ACCOUNT       │ ◀╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌  │     CONTACT          │
-  │    (Parent)      │    Lookup (optional)   │     (Child)          │
-  └──────────────────┘                       └──────────────────────┘
+**Limitations:**
+- Maximum 2 Master-Detail relationships per object (hard limit)
+- Maximum 25 Roll-Up Summary fields per object (on M-D parent)
+- Lookup relationships cannot have Roll-Up Summary fields
+- Junction objects with two M-D parents: deleting either parent cascades through the junction
+- Converting a Lookup to Master-Detail requires: all existing records have a value (no nulls), no existing owner-based sharing rules, relationship must not be shared with another org (no portals on that sharing model)
+- SOQL parent-to-child traversal: you can traverse 5 levels up (child-to-parent); 1 level down (parent-to-child) in subqueries
 
-  SCENARIO: Account is deleted
-  ──────────────────────────────────────────────────────────────────
-  ┌──────────────────┐                       ┌──────────────────────┐
-  │    ACCOUNT       │   [DELETED]           │     CONTACT          │
-  │    (gone)        │                       │  Account: (blank)    │
-  └──────────────────┘                       │  ← lookup cleared,   │
-                                             │    record SURVIVES   │
-                                             └──────────────────────┘
-  Key behaviors:
-  - Parent field on child is OPTIONAL (can be left blank)
-  - No cascade delete — child lives on if parent is removed
-  - No roll-up summary fields available
-  - Child record shares independently (own OWD)
-```
-**Content:**
-- **Loosely coupled** — the child record can exist without a parent (parent field is optional)
-- **No cascade delete** — deleting the parent does not delete child records; the lookup field is cleared
-- **No roll-up summaries** — cannot aggregate child record data onto the parent via Roll-Up Summary fields
-- Sharing is independent — the child record's OWD applies independently of the parent
-- API name of the field ends in **Id** (e.g., AccountId); relationship accessor ends in **__r**
-**Speaker Notes:** Lookup is the right choice when the relationship is optional or when you want child records to survive independently if the parent is deleted. Contact and Account use a Lookup — a Contact can exist without an Account, and deleting an Account does not automatically delete all its Contacts.
+## Key Facts to Memorize
 
-### Slide 3: Master-Detail Relationships
-**Visual:**
-```
-  ┌──────────────────┐                       ┌──────────────────────┐
-  │    INVOICE       │ ◀═══════════════════  │   INVOICE LINE       │
-  │    (Master)      │  Master-Detail         │   (Detail)           │
-  │                  │  (required)            │                      │
-  │  Roll-Up         │                        │  OWD = Controlled    │
-  │  Summary ✓       │                        │    by Parent         │
-  │  (COUNT, SUM,    │                        │  Master field is     │
-  │   MIN, MAX)      │                        │  REQUIRED            │
-  └──────────────────┘                        └──────────────────────┘
+- Lookup: optional, no cascade, no roll-up, independent OWD
+- Master-Detail: required, cascade delete, roll-up enabled, child inherits parent OWD
+- Max 2 M-D relationships per object
+- Junction object = two M-D fields to create M:M relationship
+- Hierarchical = self-referential Lookup on User object only
+- M-D cascade delete: delete parent → all children deleted (go to Recycle Bin first)
+- Roll-Up Summary only on M-D parent — count/sum/min/max of child values
+- Converting Lookup → M-D: existing null values in the field will block the conversion
 
-  SCENARIO: Invoice is deleted
-  ──────────────────────────────────────────────────────────────────
-  ┌──────────────────┐   cascade             ┌──────────────────────┐
-  │    INVOICE       │   delete              │   INVOICE LINE       │
-  │    [DELETED]     │ ─────────────────────▶│   [DELETED]          │
-  └──────────────────┘                       │   [DELETED]          │
-                                             │   [DELETED]          │
-                                             └──────────────────────┘
-                                             All detail records auto-deleted
-```
-**Content:**
-- **Tightly coupled** — the detail record cannot exist without a master; the master field is required and cannot be blank
-- **Cascade delete** — deleting the master deletes all detail records automatically
-- **Roll-Up Summary fields** — COUNT, SUM, MIN, MAX on detail records can be placed on the master
-- **Sharing follows master** — detail record's OWD is set to Controlled by Parent; sharing is determined by master's sharing settings
-- Maximum **2 master-detail relationships** per object
-**Speaker Notes:** Master-Detail is the right choice when the child record has no independent existence — a line item on an invoice, a task on a project, a product component. The cascade delete is powerful but dangerous: deleting a master in bulk data operations can silently delete thousands of detail records. Always warn users before deleting master records.
+## Exam Traps
 
-### Slide 4: Lookup vs. Master-Detail — Side-by-Side
-**Visual:**
-```
-  LOOKUP RELATIONSHIP            MASTER-DETAIL RELATIONSHIP
-  ───────────────────            ──────────────────────────
-  Account ◀╌╌╌╌ Contact         Account ◀═══ Contract
-  (optional link)                (required link)
+- **"Roll-Up Summary fields can be created on Lookup relationships"** — FALSE. Only M-D parents.
+- **"You can have multiple Master-Detail relationships on one object"** — TRUE up to 2; FALSE for more than 2.
+- **"Deleting a Lookup parent deletes all child records"** — FALSE. Deleting a Lookup parent just nulls the field on children.
+- **"Junction objects use two Lookup relationships"** — FALSE. Standard junction object pattern uses two M-D relationships (for cascade delete behavior and roll-up capability).
+- **"Hierarchical relationship can be used on any object"** — FALSE. Only available on the User object.
 
-  ┌──────────────────────┬─────────────────────┬───────────────────────┐
-  │  FEATURE             │  LOOKUP             │  MASTER-DETAIL        │
-  ├──────────────────────┼─────────────────────┼───────────────────────┤
-  │  Parent Required     │  No (optional)      │  Yes (mandatory)      │
-  │  Cascade Delete      │  No                 │  Yes                  │
-  │  Roll-Up Summary     │  No                 │  Yes (on master)      │
-  │  Child OWD           │  Independent        │  Controlled by Parent │
-  │  Max per Object      │  40                 │  2                    │
-  │  Reparenting         │  Always allowed     │  Allowed if enabled   │
-  ├──────────────────────┼─────────────────────┼───────────────────────┤
-  │  Line style          │  ◀╌╌╌╌ (dashed)    │  ◀════ (solid/bold)   │
-  └──────────────────────┴─────────────────────┴───────────────────────┘
-```
-**Content:**
-- | Feature | Lookup | Master-Detail |
-- | Parent Required | No | Yes |
-- | Cascade Delete | No | Yes |
-- | Roll-Up Summary | No | Yes (on master) |
-- | Child OWD | Independent | Controlled by Parent |
-- | Max per Object | 40 | 2 |
-- | Reparenting | Yes (owner can change) | Allowed if enabled in setup |
-**Speaker Notes:** Print this table in your mind. The exam will give you a scenario and ask which relationship type is correct. If roll-up summaries are mentioned, it must be Master-Detail. If the child should survive parent deletion, it must be Lookup. If you see "cascade delete," that is Master-Detail.
+## Practice Questions
 
-### Slide 5: Many-to-Many — Junction Objects
-**Visual:**
-```
-  MANY-TO-MANY via JUNCTION OBJECT
+**Q:** A company tracks Students and Courses, and students can enroll in multiple courses. Courses can have multiple students. How should this be modeled in Salesforce?
+**A:** Create a junction object `Enrollment__c` with two Master-Detail relationships: one to Student and one to Course. This creates the many-to-many relationship.
 
-  ┌───────────────┐                                   ┌───────────────┐
-  │    STUDENT    │                                   │    COURSE     │
-  │   (Master)    │                                   │   (Master)    │
-  └───────┬───────┘                                   └───────┬───────┘
-          ║                                                   ║
-          ║  Master-Detail                    Master-Detail  ║
-          ╚══════════════════╗       ╔══════════════════════╝
-                             ▼       ▼
-                  ┌───────────────────────────────┐
-                  │         ENROLLMENT__c         │
-                  │        [Junction Object]      │
-                  │                               │
-                  │  Student__c  (Master-Detail)  │
-                  │  Course__c   (Master-Detail)  │
-                  │  Grade__c    (extra field)    │
-                  │  EnrollDate__c (extra field)  │
-                  └───────────────────────────────┘
+**Q:** An admin needs to count the total number of open Cases related to each Account. What type of field should be created, and where?
+**A:** Roll-Up Summary field on the Account object (parent of the M-D relationship with Case). Function: COUNT, filtered by Case Status = Open.
 
-  - Deleting Student deletes ALL its Enrollment junction records
-  - Deleting Course deletes ALL its Enrollment junction records
-  - Enables: many Students enrolled in many Courses
-  - Standard example: Campaign Member = junction of Campaign + Contact
-```
-**Content:**
-- A **junction object** implements a many-to-many relationship using two master-detail relationships
-- Example: A Student can enroll in many Courses; a Course can have many Students → Enrollment__c is the junction
-- The junction object has two master-detail fields (one to each parent) and any additional data about the relationship (e.g., Grade, Enrollment Date)
-- Deleting either parent deletes all junction records related to it (cascade delete from both sides)
-**Speaker Notes:** Junction objects are a core Salesforce design pattern. The relationship between Contact and Campaign in standard Salesforce is implemented this way — Campaign Member is the junction object. Whenever you hear "a record can belong to many of X, and X can have many of those records," think junction object.
+**Q:** What happens to Opportunity records when their parent Account is deleted, given that Account-Opportunity is a Lookup relationship?
+**A:** The Account lookup field on Opportunities is set to null. Opportunities are NOT deleted — they remain as unassociated records.
 
-### Slide 6: Self-Relationships
-**Visual:**
-```
-  SELF-RELATIONSHIP: Account → Parent Account
-
-                ┌──────────────────────────────┐
-                │          ACCOUNT             │
-                │  Parent Account field        │◀──────┐
-                │  (Lookup to Account itself)  │       │
-                └──────────────────────────────┘       │
-                          same object ─────────────────┘
-
-  REAL-WORLD HIERARCHY EXAMPLE:
-  ┌───────────────────┐
-  │  Global HQ        │  ← no Parent Account (top of hierarchy)
-  └────────┬──────────┘
-           │ Parent Account
-           ▼
-  ┌───────────────────┐
-  │  North America    │  ← Parent Account = Global HQ
-  └────────┬──────────┘
-           │ Parent Account
-           ▼
-  ┌───────────────────┐
-  │  Canada Sub       │  ← Parent Account = North America
-  └───────────────────┘
-
-  User object equivalent: Hierarchy field type → Manager field
-```
-**Content:**
-- A self-relationship is a Lookup from an object back to itself
-- Standard example: **Account → Parent Account** — allows building an account hierarchy
-- Used for organizational hierarchies, category trees, and parent-child structures within a single object
-- The **Hierarchy** field type is a special self-relationship reserved for the User object (manager hierarchy)
-- Only one Hierarchy field type is allowed per object (User already uses it for the Manager field)
-**Speaker Notes:** Account hierarchies built with the Parent Account field are a great example of self-relationships in practice. Headquarters accounts link to regional subsidiaries. You can navigate up and down the hierarchy from any Account record and roll up data across the account hierarchy using reports.
-
-### Slide 7: External Lookups and Indirect Lookups
-**Visual:**
-```
-  SALESFORCE ORG              SALESFORCE CONNECT           EXTERNAL SYSTEM
-  ─────────────────           ─────────────────────        ─────────────────
-  ┌──────────────┐            ┌───────────────────┐        ┌───────────────┐
-  │  Custom or   │  External  │   External        │ OData  │  External     │
-  │  Standard    │  Lookup    │   Object          │◀──────▶│  Database     │
-  │  Object (SF) │──────────▶ │   (read-only      │        │  / ERP        │
-  └──────────────┘            │    virtual data)  │        └───────────────┘
-                              └───────────────────┘
-                                        │
-                                        │  Indirect Lookup
-                                        ▼
-                              ┌──────────────┐
-                              │  Standard or │
-                              │  Custom      │
-                              │  Object (SF) │
-                              │  (via custom │
-                              │  external ID)│
-                              └──────────────┘
-
-  External Lookup:  SF/Custom Object  ──▶  External Object
-  Indirect Lookup:  External Object   ──▶  SF Object (using external ID field)
-  Use case: connect Salesforce to live external ERP data without importing it
-```
-**Content:**
-- **External Lookup** — child object (standard or custom in Salesforce) looks up to an **External Object** (data outside Salesforce accessed via Salesforce Connect)
-- **Indirect Lookup** — External Object looks up to a standard or custom Salesforce object using a custom unique external ID field
-- External Objects are read-only by default and are accessed via Salesforce Connect (OData, REST, etc.)
-- These relationship types are less common but may appear on the exam as a "what is this used for" question
-**Speaker Notes:** External Lookups and Indirect Lookups are niche but exam-testable. If you see a question about linking Salesforce records to data that lives in an external ERP or database without importing it, the answer involves Salesforce Connect, External Objects, and these special relationship types.
-
-### Slide 8: Relationship Limits Per Object
-**Visual:**
-```
-  KEY RELATIONSHIP LIMITS
-  ──────────────────────────────────────────────────────────────────────
-  ┌────────────────────────────────────────────────┬────────────────────┐
-  │  LIMIT                                         │  VALUE             │
-  ├────────────────────────────────────────────────┼────────────────────┤
-  │  Master-Detail relationships per object        │  2                 │
-  │  Lookup relationships per object               │  40                │
-  │    (MD counts toward this 40)                  │                    │
-  │  Master-Detail nesting levels                  │  3                 │
-  │  Child records before sharing recalc slows     │  10,000            │
-  └────────────────────────────────────────────────┴────────────────────┘
-
-  NESTING LEVELS EXAMPLE (3 max):
-  ┌───────────────┐
-  │  Project      │  ← Level 1 (Master)
-  └───────┬───────┘
-          │ Master-Detail
-          ▼
-  ┌───────────────┐
-  │  Phase        │  ← Level 2 (Detail of Project, Master of Task)
-  └───────┬───────┘
-          │ Master-Detail
-          ▼
-  ┌───────────────┐
-  │  Task         │  ← Level 3 (Sub-Detail — maximum depth)
-  └───────────────┘
-```
-**Content:**
-- Maximum **2** Master-Detail relationships per object
-- Maximum **40** Lookup relationships per object (including master-detail)
-- Maximum **3** levels in a master-detail hierarchy (master → detail → subdetail)
-- Maximum **10,000** child records per parent before sharing recalculation performance degrades
-- Junction objects count toward both parent objects' relationship limits
-**Speaker Notes:** The 2 master-detail limit is the most exam-relevant. If a design requires a third master-detail, the solution is to convert one to a Lookup and compensate for the lost functionality (no cascade delete from that parent, no roll-up summaries from that side). The 40 lookup limit is very rarely hit in practice.
-
-## 🎙️ RECORDING SCRIPT
-
-Welcome to Lecture 16. Relationships are the connective tissue of your Salesforce data model, and understanding them deeply is one of the marks of a skilled admin.
-
-Let's start with the two primary types. A Lookup relationship is a loose connection between two objects. The parent field on the child record is optional — the child can exist without a parent. If you delete the parent, the child survives and the lookup field is simply cleared. There are no cascade deletes and no roll-up summary fields available. Contact's relationship to Account is a Lookup — you can have a Contact with no Account, and deleting an Account does not wipe out all its Contacts.
-
-Master-Detail is the opposite. It is a tight, required relationship. The detail record cannot exist without the master. The master field is mandatory. Delete the master and all its detail records are automatically deleted — cascade delete. The detail record's sharing is controlled by the master. And critically, Roll-Up Summary fields become available on the master, letting you COUNT, SUM, MIN, or MAX values across all child records.
-
-The decision between them comes down to three questions. Is the parent required? If yes, lean toward Master-Detail. Should deleting the parent delete the child? If yes, Master-Detail. Do you need roll-up summaries? If yes, you must use Master-Detail.
-
-Now, many-to-many relationships. Sometimes a record needs to be related to many records of another type, and those records also need to be related to many of the first type. A Student enrolls in many Courses; a Course has many Students. You solve this with a Junction Object. The junction — let's call it Enrollment — has two master-detail relationships, one pointing to Student and one pointing to Course. Enrollment can also carry additional fields like Grade or Enrollment Date. Campaign Member in standard Salesforce is exactly this pattern — it is the junction between Campaign and Contact.
-
-For the exam, know these key limits: 2 master-detail relationships per object (after that, you must use Lookup), 40 lookups per object, and 3 levels of master-detail nesting.
-
-Two special types worth knowing: Self-Relationships (like Account's Parent Account field, which creates an account hierarchy) and the Hierarchy field type on User (which powers the manager chain). External Lookups and Indirect Lookups connect Salesforce to external data sources via Salesforce Connect — less common but exam-testable.
-
-When a scenario question describes cascade delete or roll-up summaries, the answer is always Master-Detail. When it says the relationship is optional or the child should survive independently, the answer is Lookup.
-
-## 🔔 EXAM TIPS
-- **Roll-Up Summary requires Master-Detail:** If a scenario mentions needing roll-up summaries, the answer always involves Master-Detail, not Lookup.
-- **Cascade delete:** Deleting a master record automatically deletes all its detail records. This is a Master-Detail behavior — not Lookup. Be careful with this in bulk operations.
-- **2 Master-Detail limit:** Each object can have at most 2 master-detail relationships. If a third is needed, convert one to Lookup and accept the limitations (no roll-up, no cascade delete from that side).
-- **Junction object pattern:** Many-to-many = junction object with two master-detail relationships. Know the standard example: Campaign Member (Campaign + Contact). Deleting either parent cascades to delete all junction records.
-- **Reparenting:** In a Master-Detail relationship, reparenting (changing the master record on a detail record) is allowed by default but can be disabled. In a Lookup, changing the parent is always allowed.
-
-## ✅ LECTURE SUMMARY
-- Lookup relationships are loosely coupled: parent is optional, no cascade delete, no roll-up summaries, child shares independently
-- Master-Detail relationships are tightly coupled: parent is required, cascade delete applies, roll-up summaries enabled, child sharing follows master, maximum 2 per object
-- Many-to-many relationships are implemented using a junction object with two master-detail relationships pointing to each parent
-- Self-relationships (like Account's Parent Account) allow hierarchical structures within a single object
-- Key limits: 2 master-detail per object, 40 lookups per object, 3 levels of master-detail nesting
-
-## ❓ MINI QUIZ
-
-**Q1:** An admin is designing a data model for a Project object and a Task object. Each Task must belong to a Project, and deleting a Project should delete all its Tasks. Roll-up summary fields are also needed on Project to count Tasks. Which relationship type should be used?
-- A) Lookup from Task to Project
-- B) Master-Detail from Task (detail) to Project (master)
-- C) Master-Detail from Project (detail) to Task (master)
-- D) Self-relationship on the Task object
-
-**Answer:** B — Master-Detail from Task to Project satisfies all three requirements: parent is required (Task cannot exist without Project), cascade delete applies (deleting Project deletes all Tasks), and roll-up summary fields are available on Project (the master side).
-
-**Q2:** A Salesforce Admin is asked to model the relationship between Students and Courses — a student can enroll in many courses and a course can have many students. What is the correct approach?
-- A) Create a Lookup from Student to Course
-- B) Create a Master-Detail from Student to Course
-- C) Create a junction object (Enrollment) with two Master-Detail relationships — one to Student and one to Course
-- D) Use a Multi-Select Picklist on Student listing Course names
-
-**Answer:** C — Many-to-many relationships require a junction object. Creating an Enrollment object with a Master-Detail to Student and a Master-Detail to Course implements the relationship correctly, with the ability to add enrollment-specific data (Grade, Enrollment Date) to the junction.
-
-**Q3:** An object already has two Master-Detail relationship fields. The admin needs to add a third parent relationship. What is the only option available?
-- A) Add a third Master-Detail relationship field
-- B) Add a Lookup relationship field instead
-- C) Delete one of the existing Master-Detail fields and replace it with the new one
-- D) Use an External Lookup to the third parent object
-
-**Answer:** B — Each object is limited to a maximum of 2 Master-Detail relationships. When a third parent relationship is needed, the only option is to use a Lookup relationship, which means losing cascade delete and roll-up summary capabilities for that particular relationship.
+**Q:** A developer needs to convert a Lookup relationship to a Master-Detail. What must be true before the conversion can happen?
+**A:** All existing records must have a value in the Lookup field (no null values). There cannot be existing owner-based sharing rules on the child object. The field must not be referenced in portals/communities with sharing.

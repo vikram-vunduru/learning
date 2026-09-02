@@ -1,253 +1,138 @@
-# Lab 02: Create a Record Summary Prompt Template and Wire it as an Agent Action
+# Lab 02 — What You Need to Be Able to Do: Build a Flex Template and Wire It as an Agent Action
 
-## Lab Overview
-Build a Flex Prompt Template in Prompt Builder that generates a personalized case summary response for customers, then connect it to the Agentforce agent from Lab 01 as a Prompt Template Action. This lab covers merge fields, template testing, and the integration between Prompt Builder and Agentforce.
+## What This Tests
+Building a Flex Prompt Template in Prompt Builder, testing it, activating it, and connecting it to an Agentforce agent as a Prompt Template Action. Covers the full Prompt Builder → Agentforce integration path.
 
-**Time Estimate:** 75 minutes  
-**Difficulty:** Intermediate  
-**Prerequisites:** Lab 01 completed (Aria agent exists with at least one active Topic)
-
----
-
-## Lab Objectives
-- Navigate Prompt Builder and understand the three-section template anatomy
-- Write a Flex Prompt Template with merge fields referencing Case and Account objects
-- Test the template with multiple records using the Prompt Builder preview panel
-- Activate the template and add it as a Prompt Template Action to the Aria agent
-- Write an effective Action description for the Prompt Template Action
-- Verify the Action works correctly in the agent simulator
+## Prerequisites
+- [ ] Lab 01 completed (Aria agent exists with Order Inquiry and Product/Policy Topics)
+- [ ] At least 3–4 Case records exist in the org for testing
+- [ ] Einstein features enabled (Prompt Builder available)
 
 ---
 
-## Part 1: Create Sample Case Data
+## Part 1 — Create Test Cases
 
-### Step 1: Create Test Cases
-
-Before building the template, create 3 sample Case records in your org for testing. If your org already has Cases, you can skip this step.
-
-Navigate to the App Launcher → Cases → New:
-
-**Case 1:**
-- Subject: `Order delivered to wrong address`
-- Status: New
-- Priority: High
-- Description: `Customer received a package that was meant for a different address. The correct package has not arrived yet. Order number ORD-2024-001.`
-- Account: (create or select any Account)
-- Contact: (optional)
-
-**Case 2:**
-- Subject: `Request for refund on damaged electronics`
-- Status: In Progress
-- Priority: Medium
-- Description: `Customer received a laptop that arrived with a cracked screen. Customer has photos. Purchased within the 15-day electronics return window.`
-
-**Case 3:**
-- Subject: `Cannot apply promotional discount code`
-- Status: New
-- Priority: Low
-- Description: `Customer has a promo code SAVE20 from a marketing email but the checkout system rejects it. Customer has tried multiple times.`
+### Create Three Test Cases in Salesforce
+- [ ] Case 1: Subject "Order arrived damaged", Status "In Progress", recent description
+- [ ] Case 2: Subject "Billing charge not recognized", Status "Waiting on Customer"
+- [ ] Case 3: Subject "Product not working as described", Status "Escalated"
+- [ ] Note the Case Numbers — you'll need them for testing
 
 ---
 
-## Part 2: Build the Flex Prompt Template
+## Part 2 — Build the Flex Prompt Template
 
-### Step 2: Open Prompt Builder
+### Navigate to Prompt Builder
+- [ ] Setup → Prompt Builder → New Prompt Template
+- [ ] Template type: **Flex** ← NOT Field Generation, NOT Record Summary
+- [ ] Name: `Case Summary for Customer`
+- [ ] API Name: `Case_Summary_for_Customer`
 
-Navigate to: Setup → Einstein → Prompt Builder → New Prompt Template
+### Write the System Prompt
+- [ ] In the System Prompt field, enter:
+  > "You are a helpful customer service AI. Generate a concise, empathetic 2–3 sentence summary of the following support case suitable to read to a customer. Focus on what the issue is and what is currently happening to resolve it. Be professional and reassuring."
 
-Select template type: **Flex**
+### Write the Template Body
+- [ ] In the Template Body, enter:
+  ```
+  Case Details:
+  Subject: {!Case.Subject}
+  Description: {!Case.Description}
+  Status: {!Case.Status}
+  Priority: {!Case.Priority}
+  Last Updated: {!Case.LastModifiedDate}
 
-**Template Details:**
-- Template Name: `Case Summary for Customer`
-- API Name: `Case_Summary_For_Customer`
-- Description: `Generates a professional, empathetic case status summary for a customer, based on the case subject, description, status, and account context.`
-- Primary Object: Case
+  Additional context from agent conversation:
+  {!additionalContext}
+  ```
+- [ ] Verify: each `{!Case.Field}` merge field is in the correct `{!ObjectName.FieldName}` format
+- [ ] Verify: `{!additionalContext}` is your custom input parameter
 
-### Step 3: Add Related Objects
-
-In the "Related Objects" section, add:
-- Account (via Case.AccountId lookup)
-- Contact (via Case.ContactId lookup — optional, for greeting personalization)
-
-### Step 4: Write the System Prompt
-
-In the System Prompt section, enter:
-
-```
-You are a professional customer service representative for Acme Corp. Your role is to communicate case status and progress to customers clearly, empathetically, and helpfully. Write in a warm, professional tone. Be specific — reference actual case details rather than giving generic responses. Always acknowledge any inconvenience and confirm the next step.
-```
-
-### Step 5: Write the Template Body
-
-In the Template Body section, enter:
-
-```
-Please write a clear, empathetic case status update for this customer based on the following case information:
-
-Case Details:
-- Case Number: {!Case.CaseNumber}
-- Subject: {!Case.Subject}
-- Current Status: {!Case.Status}
-- Priority: {!Case.Priority}
-- Description: {!Case.Description}
-
-Account Information:
-- Account Name: {!Case.Account.Name}
-- Account Type: {!Case.Account.Type}
-
-Instructions for the response:
-1. Open with a brief acknowledgment of the issue (1-2 sentences)
-2. Summarize the current status of the case in plain language (1-2 sentences)
-3. Describe what the next step is or what the customer can expect (1-2 sentences)
-4. Close with a supportive statement and contact information
-
-Keep the total response under 150 words. Use a warm, professional tone. Do NOT use generic phrases like "I understand your frustration" — be specific to this case's details.
-```
-
-### Step 6: Add Input Parameters
-
-For the Prompt Template to receive data from the Agentforce agent (beyond just the Case record), add a text input parameter:
-
-- Parameter Name: `additionalContext`
-- Data Type: Text
-- Description: `Any additional context provided by the customer or retrieved by prior agent actions (optional)`
-
-Update the template body to include:
-```
-Additional Customer Context (if provided): {!additionalContext}
-```
-(Add this line after the Account Information section)
+### Add the Custom Input Parameter
+- [ ] Add an input parameter to the template:
+  - Name: `additionalContext`
+  - Type: Text
+  - Required: No (optional context)
+- [ ] This parameter can be passed at runtime by the agent from conversation context
 
 ---
 
-## Part 3: Test the Template
+## Part 3 — Test the Template in Prompt Builder
 
-### Step 7: Run Preview Tests
+### Test with Representative Cases
+- [ ] Select test record: **Case 1** (damaged order)
+- [ ] Click Generate / Preview
+- [ ] Review: Is the summary accurate? Empathetic? Under 3 sentences?
+- [ ] Verify: No PII is visible in generated output that wasn't in the case
+- [ ] Test with **Case 2** (billing) — verify summary is contextually appropriate
+- [ ] Test with **Case 3** (product issue) — verify summary handles different status values
+- [ ] Test with a **null Description** case — verify template handles gracefully (empty field = blank in output)
 
-In the Prompt Builder preview panel:
-
-**Test 1 — High Priority Case:**
-- Select Case 1 (Order delivered to wrong address)
-- additionalContext: `Customer has been waiting 5 days and is expecting the package urgently`
-- Run Preview
-- Evaluate: Does the response acknowledge the specific issue (wrong address)? Is the tone appropriate for High priority? Does it mention next steps?
-- Grade: Pass / Fail / Needs Improvement
-- Notes: _______________
-
-**Test 2 — Medium Priority Case:**
-- Select Case 2 (Damaged electronics)
-- additionalContext: `Customer has photos of the damage`
-- Run Preview
-- Evaluate: Does the response reference the electronics return policy window? Does it acknowledge the photo evidence?
-- Grade: _______________
-
-**Test 3 — Low Priority Case:**
-- Select Case 3 (Promo code issue)
-- additionalContext: (leave empty to test null handling)
-- Run Preview
-- Evaluate: Does the template handle the empty additionalContext gracefully? Is the tone appropriate for a low-priority discount issue?
-- Grade: _______________
-
-**Test 4 — Edge Case: Missing Account:**
-- Create a Case with no Account associated
-- Run Preview
-- Evaluate: Does the template produce an error, or does it handle the missing Account.Name gracefully?
-- Observation: _______________
-
-### Step 8: Fix Any Issues Found in Testing
-
-Common fixes:
-- If the response is too generic → make the template body more specific: "Reference the exact case subject in the acknowledgment"
-- If null Account.Name causes an error → add null handling instruction: "If account name is not available, omit account-specific references"
-- If the response is too long → add explicit length constraint: "Strictly limit your response to 120 words or fewer"
-- If the tone is wrong → adjust the System Prompt with more specific tone guidance
+### Iterate if Needed
+- [ ] If output is too long: tighten System Prompt ("limit to 2 sentences")
+- [ ] If output lacks empathy: add empathy instruction to System Prompt
+- [ ] If merge field renders literally (e.g., `{Case.Subject}` appears): check for missing `!`
+- [ ] After changes: re-test with all records
 
 ---
 
-## Part 4: Activate and Connect to the Agent
+## Part 4 — Activate the Template
 
-### Step 9: Activate the Template
-
-Once all test cases pass, click **Activate** in the Prompt Builder.
-
-Verify the template status shows **Active** before proceeding.
-
-### Step 10: Add a New Topic to the Aria Agent
-
-Navigate to Setup → Agentforce → Agents → Aria → Edit → Topics → Add Topic.
-
-**Topic: Case Status**
-- Label: `Case Status`
-- Description: `Provides customers with a clear status update on their existing service case. Use when a customer asks about the progress, status, or current state of a case they have open with Acme Corp. Can generate a personalized case summary based on case details.`
-
-### Step 11: Add the Prompt Template Action
-
-Within the Case Status Topic, add an Action:
-- Action Type: Prompt Template
-- Select Template: `Case Summary for Customer`
-- Label: `Generate Case Status Summary`
-
-**Input Mapping:**
-- Case record: "Agent extracts Case from context" (or look up by case number via a prior Flow Action if needed)
-- additionalContext: "Agent extracts from conversation" — anything the customer mentions about their case
-
-**Action Description:**
-```
-Generates a professional, personalized case status update for the customer based on their case details. Invoke when a customer asks about the current status or progress of their open case, or asks what is happening with their issue. Requires the Case record to be identified (ask for case number if not provided). Returns a complete, ready-to-use case status summary message.
-```
-
-### Step 12: Optionally Add a Case Lookup Flow Action
-
-For full end-to-end functionality, add a Flow Action to the Case Status Topic that looks up the Case record by case number before the Prompt Template Action runs.
-
-Create a simple Autolaunched Flow `Agent_Get_Case_By_Number`:
-- Input variable: `caseNumber` (Text, Available for Input, Description: "The case number provided by the customer")
-- Get Records: Case WHERE CaseNumber = `{!caseNumber}` LIMIT 1
-- Output variables: `caseId` (ID, Available for Output), `caseFound` (Boolean, Available for Output)
-
-Add this Flow Action before the Prompt Template Action in the Topic with the description: "Looks up a case by case number. Invoke first when a customer provides a case number and wants a status update. Returns the case record ID for use by subsequent actions."
+- [ ] Once output quality is satisfactory, click **Activate**
+- [ ] Template status changes from Draft to Active
+- [ ] Know: only Active templates appear in the Agentforce Action picker
+- [ ] Know: if you deploy via Change Set, template arrives INACTIVE in destination — must activate there too
 
 ---
 
-## Part 5: Test the Complete Workflow
+## Part 5 — Add as Agentforce Prompt Template Action
 
-### Step 13: Test in Agent Simulator
+### Open Aria Agent in Agentforce Studio
+- [ ] Setup → Agentforce → Agents → Aria → Edit
 
-Open the Aria agent in Agentforce Builder → Preview panel.
+### Add New Topic or Use Existing
+- [ ] Decision: Does the Case Summary fit in an existing Topic, or does it need a new one?
+  - If the agent already has a "Case Management" Topic → add Action there
+  - If not → create new Topic "Case Status and Summaries"
+- [ ] New Topic description (if creating): "Handles requests for case status updates and summaries. Activate when the customer asks about the status of their support case, what's happening with their issue, or for a summary of their case. Requires a case number."
 
-**Test 1 — Full Flow:**
-Input: `"Can you tell me what's happening with case 00001234?"`
-Expected path: Case Status Topic → (Case Lookup Flow) → Generate Case Status Summary template → returns personalized status
-Result: _______________
+### Add Prompt Template Action
+- [ ] Within the Topic: Add Action → Prompt Template
+- [ ] Template picker: select **Case Summary for Customer** (Active Flex templates only appear)
+- [ ] If template doesn't appear: it's either not Active, or not Flex type
+- [ ] Action Label: `Summarize Case for Customer`
+- [ ] Action Description: "Generates an empathetic, concise summary of a support case in natural language. Call when the customer asks for a summary, update, or status of their support case. Requires the case number."
+- [ ] Map input parameter: `additionalContext` → Conversation Context (Atlas extracts any relevant details the customer mentioned)
 
-**Test 2 — Missing Case Number:**
-Input: `"What's the status of my case?"`
-Expected: Agent asks "Could you please provide your case number?"
-Result: _______________
-
-**Test 3 — With Additional Context:**
-Input: `"What's happening with case 00001234? I've been waiting a week and need this resolved today."`
-Expected: additionalContext captures the urgency; template response acknowledges the wait time
-Result: _______________
-
----
-
-## Lab Deliverables
-
-- [ ] Three test Case records created in the org
-- [ ] `Case Summary for Customer` Flex template created with System Prompt, Template Body with merge fields, and `additionalContext` input parameter
-- [ ] Template tested with 4 records (3 standard + 1 edge case) with documented results
-- [ ] Template Activated
-- [ ] "Case Status" Topic added to the Aria agent
-- [ ] Prompt Template Action added with Action description and input mapping
-- [ ] Optional: Case Lookup Flow Action added and tested
-- [ ] 3 end-to-end simulator tests completed
+### Save the Action
 
 ---
 
-## Reflection Questions
+## Part 6 — Test End-to-End in Simulator
 
-1. Why was a Flex template used here instead of a Record Summary template?
-2. What would happen if the `additionalContext` input parameter were left unmapped in the Action configuration? How does the template handle an empty string for that parameter?
-3. If the organization later wants to use the same `Case Summary for Customer` template in a Flow for automated follow-up emails, can they do so? What changes are needed?
-4. What is the advantage of having a separate Case Lookup Flow Action before the Prompt Template Action, rather than trying to look up the case within the template itself?
+### Test the Prompt Template Action via Agent
+- [ ] Open Agentforce Simulator for Aria
+- [ ] **Test 1:** "Can you give me a summary of what's happening with my case #00001234?"
+  - Reasoning Trace: check Template Action was invoked
+  - Response: verify it's a natural language summary (not raw field data)
+- [ ] **Test 2:** "What's the status of case 1235?"
+  - Verify routing to same Action
+  - Verify template produces different output for different case
+- [ ] **Test 3:** "My case is urgent, I'm frustrated. Give me an update on case 1234."
+  - Verify emotional context flows into `additionalContext` if configured
+  - Verify response tone is appropriately empathetic
+- [ ] **Test 4:** "What's case 9999?" (case that doesn't exist)
+  - Verify graceful handling (empty case, error state)
+
+---
+
+## What You Must Be Able to Do for the Exam
+- [ ] State which template type is required for Agentforce Actions: **Flex only**
+- [ ] Explain why Field Generation, Record Summary, and Sales Email templates can't be agent Actions
+- [ ] Write correct merge field syntax: `{!ObjectName.FieldName}` with exclamation point
+- [ ] Identify what happens when merge field syntax is wrong (renders as literal text)
+- [ ] Explain custom input parameters and how Atlas passes values to them
+- [ ] State that templates arrive INACTIVE after Change Set deployment
+- [ ] Describe the testing sequence: Prompt Builder → Agentforce Simulator
+- [ ] Explain what the multi-action pattern does (Flow gets data → Prompt Template synthesizes)
+- [ ] Know that only Active Flex templates appear in the Action picker

@@ -1,223 +1,121 @@
-# Lab 03: Build a Segment with Calculated Insight and Create an Activation Target
+# Lab 03: Segment with Calculated Insight + Activation Target
 
-## Lab Overview
+## Lab Domain
+Segmentation & Insights (13%) + Activation & Engagement (10%) — combined 23% of exam
 
-**Objective:** Create a Calculated Insight that computes customer purchase metrics, build a segment that uses the CI in its criteria, and configure an Activation Target to publish the segment.
+## PTA / SA Relevance
 
-**Estimated Time:** 60–75 minutes
+This lab covers the most business-visible part of Data Cloud — the part that produces tangible output (campaign audiences, email sends, ad suppression). In client engagements, the "does it work?" moment is always the first activation: did the right customers show up in Marketing Cloud? Did the Campaign Members appear in CRM? Knowing how to build, troubleshoot, and validate this end-to-end is what separates a credible implementation from a stalled pilot.
 
-**Prerequisites:**
-- Labs 01 and 02 completed (Unified Individual profiles exist)
-- Sales Order DMO populated (either from a Data Stream or test data)
-- Data Cloud Admin or Data Aware Specialist permission set
-- If activating to Marketing Cloud: Marketing Cloud Connector configured
-
-**Exam relevance:** This lab covers Segmentation & Insights (13%) and Activation & Engagement (10%) — combined 23% of the exam.
-
----
-
-## Learning Goals
-
-After completing this lab, you will be able to:
-- Create a Calculated Insight using ANSI SQL with aggregation functions
-- Use a Calculated Insight as a segment criteria source
-- Combine CI criteria with attribute and related attribute filters in a segment
-- Add a consent exclusion to a segment
-- Configure a Salesforce CRM Activation Target
-- Publish a segment to an Activation Target and verify activation
+**Common enterprise failure patterns this lab prevents:**
+- Publishing segments without verifying CI refresh order (stale data activates)
+- Forgetting consent exclusions (compliance incident waiting to happen)
+- Mapping Subscriber Key incorrectly in MC activation (all records rejected)
+- Not checking the activation log, then investigating the wrong layer of the stack
 
 ---
 
-## Lab Steps
+## What You Need to Be Able to Do
 
-### Part 1: Verify Sales Order DMO Data
+### Verify DMO Data Before Building CI
+- [ ] Navigate to Data Cloud → Data Explorer, select the Sales Order DMO
+- [ ] Confirm records exist with IndividualId, TotalAmount, and OrderDate fields populated
+- [ ] Spot-check that IndividualId values in Sales Order DMO match Individual DMO primary keys — mismatched FKs mean CI will produce 0 results even if both DMOs have records
 
-Before creating the CI, verify that Sales Order DMO has records to aggregate.
+### Create a Calculated Insight
+- [ ] Navigate to Data Cloud → Calculated Insights → New Calculated Insight
+- [ ] Write valid ANSI SQL with:
+  - [ ] `__dlm` suffix on every DMO API name in the query
+  - [ ] `GROUP BY` clause present (required — CI won't save without it)
+  - [ ] At least one aggregate function (COUNT, SUM, MAX, AVG)
+  - [ ] Correct JOIN condition using the IndividualId FK between DMOs
+- [ ] Click Preview — verify output columns match expected dimensions and measures
+- [ ] Set refresh schedule AFTER the Data Stream runs (not before — this is a job dependency trap)
+- [ ] Save and Publish the CI — confirm status shows Active (not Draft)
 
-1. Navigate to **Data Cloud** → **Data Explorer**.
-2. Select **Sales Order** from the Object dropdown.
-3. Confirm records exist with `IndividualId`, `TotalAmount`, and `OrderDate` fields populated.
-
-**If Sales Order DMO has no records:**
-Create a simple CSV with columns: `SalesOrderId, IndividualId, TotalAmount, OrderDate, Status`
-Include `IndividualId` values that match existing Individual DMO primary keys.
-Upload to S3 and create a Data Stream (or use the Ingestion API) to populate Sales Order DMO.
-
----
-
-### Part 2: Create a Calculated Insight
-
-1. Navigate to **Data Cloud** → **Calculated Insights** (or Setup → Data Cloud → Calculated Insights).
-2. Click **New Calculated Insight**.
-3. Enter the following metadata:
-   - **Name:** `Customer_Purchase_90d`
-   - **Description:** Computes total orders, total revenue, and last purchase date for each customer in the last 90 days
-
-4. In the SQL editor, enter the following query:
-
+**Example CI structure to know:**
 ```sql
-SELECT
-    i.Id AS IndividualId,
-    COUNT(so.Id) AS TotalOrders_90d,
-    SUM(so.TotalAmount) AS TotalRevenue_90d,
-    AVG(so.TotalAmount) AS AvgOrderValue_90d,
-    MAX(so.OrderDate) AS LastOrderDate_90d
+SELECT i.Id AS IndividualId,
+       COUNT(so.Id) AS TotalOrders_90d,
+       SUM(so.TotalAmount) AS TotalRevenue_90d,
+       MAX(so.OrderDate) AS LastOrderDate_90d
 FROM Individual__dlm AS i
-JOIN SalesOrder__dlm AS so
-    ON so.IndividualId__c = i.Id
+JOIN SalesOrder__dlm AS so ON so.IndividualId__c = i.Id
 WHERE so.OrderDate >= DATEADD(day, -90, CURRENT_DATE)
-    AND so.Status = 'Completed'
 GROUP BY i.Id
 ```
 
-**Note:** Replace `SalesOrder__dlm` and field names with the actual API names for your Sales Order DMO. The `__dlm` suffix is required for all DMOs in CI SQL.
+### Build a Segment Using the CI
+- [ ] Navigate to Data Cloud → Segments → New Segment, set Segment On = Unified Individual
+- [ ] Add a Calculated Insight filter:
+  - [ ] Select the published CI → choose the measure field → set threshold (e.g., TotalRevenue_90d >= 500)
+- [ ] Add an Attribute Filter (direct on Unified Individual, e.g., MailingCountry = "US")
+- [ ] Add an Exclusion criteria: Contact Point Email → HasOptedOutOfEmail = true
+  - [ ] This is non-negotiable for any email-targeted segment
+- [ ] Review Estimated Membership Count — if 0, CI may not have refreshed yet
+- [ ] Save as Draft first, review, then click Publish
+- [ ] Confirm segment status changes to Published
 
-5. Click **Preview** to validate the SQL against a sample of data.
-6. Verify the preview shows columns: `IndividualId`, `TotalOrders_90d`, `TotalRevenue_90d`, `AvgOrderValue_90d`, `LastOrderDate_90d`.
-7. Set **Refresh Schedule**: after the Data Stream refresh (e.g., if Data Stream runs at 2 AM, set CI to 4 AM).
-8. Click **Save and Publish**.
+### Configure a Salesforce CRM Activation Target
+- [ ] Navigate to Data Cloud → Activation Targets → New → select Salesforce CRM
+- [ ] Configure: Connected Org, target Campaign name
+- [ ] Map Unified Individual ID → Campaign Member ContactId (or LeadId)
+- [ ] Save the Activation Target
 
-**Checkpoint:** The CI should show a status of "Active." If the preview shows an error, check: correct DMO API names, proper `__dlm` suffix, and that the JOIN field name matches the actual IndividualId field name in your Sales Order DMO.
+### Configure a Marketing Cloud Activation Target (know the steps even if not running it)
+- [ ] Select Marketing Cloud as target type
+- [ ] Requires MC Connector already configured
+- [ ] Configure Subscriber Key mapping — this is the critical step: maps Data Cloud's contact identifier to MC's Subscriber Key field
+  - [ ] If Subscriber Key is not mapped correctly, all activation records are rejected by MC
+- [ ] Select or name the target Data Extension
 
----
+### Add Segment to Activation Target and Publish
+- [ ] Open the Activation Target → Add Segment → select the Published segment
+- [ ] Configure Contact Point (e.g., Email Address)
+- [ ] Add Activation Attributes — additional CI or DMO fields to include in the payload:
+  - [ ] e.g., TotalRevenue_90d, LastOrderDate_90d (sent alongside membership for personalization)
+- [ ] Set Publish Schedule (24h recommended)
+- [ ] Click Publish Now for an immediate run
 
-### Part 3: Build a Segment Using the Calculated Insight
-
-1. Navigate to **Data Cloud** → **Segments**.
-2. Click **New Segment**.
-3. Enter segment details:
-   - **Name:** `High_Value_Customers_90d`
-   - **Description:** Customers with total revenue > $500 in the last 90 days
-   - **Segment On:** Unified Individual
-
-4. **Add Inclusion Criteria — Calculated Insight filter:**
-   - Click **Add Criteria**.
-   - Select **Calculated Insight** as the criteria source.
-   - Select **Customer_Purchase_90d** as the CI.
-   - Select measure: **TotalRevenue_90d**.
-   - Set operator: **greater than or equal to**.
-   - Set value: **500**.
-
-5. **Add Inclusion Criteria — Attribute filter:**
-   - Click **Add Criteria** (with AND logic).
-   - Select **Unified Individual** → **Individual** → **MailingCountry**.
-   - Set operator: **equals**.
-   - Set value: **US** (or leave this out if your dataset is small).
-
-6. **Add Exclusion Criteria — Consent:**
-   - Click **Add Exclusion**.
-   - Navigate to **Contact Point Email** → **HasOptedOutOfEmail**.
-   - Set operator: **equals**.
-   - Set value: **true**.
-   - This excludes anyone who has opted out of email from this segment.
-
-7. Review the **Estimated Membership Count** — it should show a preview count.
-8. Click **Save** to save as Draft.
+### Verify Activation Results
+- [ ] Check the Activation Log for status: Completed (not Failed / Running)
+- [ ] Navigate to CRM → Campaigns → find the Campaign → check Campaign Members related list
+- [ ] Verify: activation membership count ≤ segment membership count
+  - [ ] Difference = members with no valid email OR HasOptedOutOfEmail = true — this is expected behavior
 
 ---
 
-### Part 4: Preview and Publish the Segment
+## Troubleshooting Checklist
 
-1. Open the `High_Value_Customers_90d` segment.
-2. Click **Preview** to see a sample of the customer records in the segment.
-3. Verify the members shown have `TotalRevenue_90d >= 500` in their CI values (you can spot-check via Data Explorer).
-4. When satisfied with the segment logic, click **Publish** to change the status from Draft to Published.
-
-**Checkpoint:** The segment status should now show **Published**. Only published segments can be added to Activation Targets.
-
----
-
-### Part 5: Create a Salesforce CRM Activation Target
-
-1. Navigate to **Data Cloud** → **Activation Targets**.
-2. Click **New Activation Target**.
-3. Select **Salesforce CRM** as the target type.
-4. Click **Next**.
-5. Configure the Activation Target:
-   - **Name:** `CRM_High_Value_Campaign`
-   - **Connected Org:** Select your CRM org
-   - **Target Object:** Select **Campaign** (you'll be creating a new Campaign or using an existing one)
-   - **Campaign Name:** `Data Cloud High Value Segment 90d`
-
-6. Configure field mappings for Campaign Member:
-   - Map **Unified Individual ID** to Campaign Member's `ContactId` (or `LeadId` depending on your data)
-
-7. Click **Save**.
-
----
-
-### Part 6: Add the Segment to the Activation Target
-
-1. Open the `CRM_High_Value_Campaign` Activation Target.
-2. Click **Add Segment**.
-3. Select **High_Value_Customers_90d** from the segment list.
-4. Configure:
-   - **Contact Point:** Email Address (select the contact point type)
-   - **Activation Attributes:** Add `TotalRevenue_90d` and `LastOrderDate_90d` from the CI to send alongside membership
-5. Set **Publish Schedule**: every 24 hours.
-6. Click **Publish Now** to trigger an immediate activation run.
-
-**Checkpoint:** After a few minutes, the activation should complete. Check the Activation Log for status.
-
----
-
-### Part 7: Verify Activation in CRM
-
-1. Navigate to your Salesforce CRM (or switch to CRM view if in the same org).
-2. Go to **Campaigns** and find the `Data Cloud High Value Segment 90d` Campaign.
-3. Open the Campaign and click on the **Campaign Members** related list.
-4. Verify that Contact or Lead records appear as Campaign Members corresponding to the customers in your segment.
-
-**Expected outcome:** The number of Campaign Members should match the activation membership count (which may be slightly less than segment count if some members lack email addresses or have opted out).
-
----
-
-### Part 8: Review the Full Pipeline
-
-Take a moment to trace the complete pipeline you've built across all three labs:
-
-1. **Lab 01:** Data Stream ingests CRM Contacts → lands in DLO → mapped to Individual and Contact Point Email DMOs
-2. **Lab 02:** Identity Resolution runs → matches Individual records → creates Unified Individual profiles
-3. **Lab 03:**
-   - Calculated Insight computes TotalRevenue_90d per Unified Individual from Sales Order DMO
-   - Segment filters Unified Individuals where TotalRevenue_90d >= $500 AND not opted out
-   - Activation Target publishes segment members as Campaign Members in Salesforce CRM
-
-This is the complete Data Cloud workflow from raw source data to activated customer audience.
-
----
-
-## Troubleshooting Guide
-
-| Problem | What to Check |
+| Symptom | Check |
 |---|---|
-| CI preview shows no results | Sales Order DMO has no records, or the JOIN field name is incorrect |
-| CI preview shows SQL error | Check DMO API names have `__dlm` suffix; verify JOIN field exists |
-| Segment shows 0 estimated members | CI refresh may not have run; check CI status in Data Cloud Admin |
-| Segment can't be added to Activation Target | Segment is still in Draft status — click Publish first |
-| Activation run shows 0 activated members | Segment has consent exclusions removing all members, OR no members have a valid email contact point |
-| Campaign Members not appearing in CRM | Activation completed but check whether the Campaign record was created in the right org |
+| CI Preview = no results | Sales Order DMO has 0 records, or JOIN field name is wrong |
+| CI Preview = SQL error | Check `__dlm` suffix on DMO names; check GROUP BY present |
+| Segment estimated count = 0 | CI refresh hasn't run yet; CI may still be in Draft (not Published) |
+| Segment can't be added to AT | Segment is in Draft — must be Published first |
+| Activation run = 0 members | All members excluded by consent, OR no members have a Contact Point Email |
+| Campaign Members missing in CRM | Activation completed but check Activation Log for correct org; check Campaign was created in right CRM org |
+| MC activation = all records rejected | Subscriber Key mapping is missing or maps to wrong identifier |
 
 ---
 
-## Lab Reflection Questions
+## End-to-End Pipeline Validation
 
-1. You set the CI refresh schedule to 4 AM (after the 2 AM Data Stream). The segment refresh is set to 6 AM. Why is this ordering important, and what would happen if the segment refreshed at 3 AM instead?
+After completing all three labs, trace the complete flow:
 
-2. The activation membership count (50) is lower than the segment membership count (75). What are the two most likely reasons for this discrepancy?
+1. **Lab 01:** Data Stream ingests CRM Contacts → DLO created → Field Mapping → Individual DMO + Contact Point Email DMO populated
+2. **Lab 02:** IR ruleset runs → matches Individual records by email → Unified Individuals created
+3. **Lab 03:** CI computes TotalRevenue_90d per Unified Individual → Segment filters on CI + consent exclusion → Activation Target publishes Unified Individual members as CRM Campaign Members
 
-3. You added TotalRevenue_90d as an Activation Attribute. In the Salesforce CRM Campaign Member, where would this value appear? How could the sales team use it?
-
-4. If you wanted to activate this same segment to Marketing Cloud for email outreach AND to Facebook Custom Audiences for ad targeting simultaneously, what would you need to configure?
-
-5. A new customer made a qualifying purchase yesterday (exceeding $500 in the last 90 days). At what point would they appear in the activated Campaign? Walk through each step with the schedule timings from this lab.
+**The segment membership count will be ≤ the Unified Individual count. The activation count will be ≤ the segment count. Both reductions are correct behavior — not errors.**
 
 ---
 
-## Exam Connection
+## Exam Connections from This Lab
 
-This lab directly reinforces the following exam topics:
-- **Segmentation & Insights (13%):** Creating a Calculated Insight with SQL, using CI in segment criteria, segment publish workflow, consent exclusions
-- **Activation & Engagement (10%):** Configuring a Salesforce CRM Activation Target, activation membership vs. segment membership, publish schedules, activation attributes
-- **Data Cloud Fundamentals (13%):** The end-to-end pipeline from data ingestion through to segment activation
-- **Administration & Governance (13%):** Monitoring activation job status, troubleshooting activation discrepancies
+- CI SQL requires `GROUP BY` and `__dlm` suffix — both are tested in scenario questions
+- Segment must be Published before activation — Draft segments cannot be activated (tested repeatedly)
+- HasOptedOutOfEmail exclusion is the correct consent pattern for email-targeted segments
+- Activation membership < Segment membership is expected, not a bug
+- Subscriber Key mapping is the critical MC activation configuration — wrong mapping = 0 delivered records
+- Job dependency order: Data Stream → CI → Segment → Activation; CI scheduled before Data Stream = stale segment

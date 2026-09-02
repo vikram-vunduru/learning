@@ -1,386 +1,244 @@
-# Lecture 10: Testing Voice Agents
+# Testing Voice Agents
 
-## Learning Objectives
-- Identify the three primary testing modes for Agentforce Voice and when to use each
-- Design test cases across the five key voice test categories: happy path, mishear/low confidence, silence, DTMF, and escalation trigger
-- Interpret Salesforce debug logs to diagnose voice Flow and agent routing issues
-- Understand voice quality metrics including MOS score and latency thresholds
-- Build a user acceptance testing checklist appropriate for a voice agent go-live
+## Exam Domain
+Deployment / Quality Assurance — Agentforce Specialist (CRT-271)
 
----
+## Core Concepts
 
-## Slides
+### Testing Challenges Unique to Voice
 
-### Slide 1: Why Voice Testing Is Different
-**Visual:**
 ```
-  STANDARD TEST PYRAMID          VOICE TEST MATRIX (additional dimensions)
-  ┌─────────────────────┐        ┌─────────────────────────────────────┐
-  │         E2E         │        │  Speech Recognition Accuracy        │
-  │    ─────────────    │        │   Word Error Rate (WER) testing     │
-  │     Integration     │ ──▶    ├─────────────────────────────────────┤
-  │  ───────────────    │  add   │  Audio Quality                      │
-  │       Unit          │  these │   MOS score, latency, jitter        │
-  │  ───────────────    │        ├─────────────────────────────────────┤
-  └─────────────────────┘        │  Latency / Conversational Feel      │
-                                 │   Response time under 2 seconds     │
-                                 ├─────────────────────────────────────┤
-                                 │  Human Factors                      │
-                                 │   Prompt clarity, retry phrasing,   │
-                                 │   natural conversation flow          │
-                                 ├─────────────────────────────────────┤
-                                 │  Voice-Specific Failure Modes       │
-                                 │   Silence, background noise,        │
-                                 │   accents, DTMF timing              │
-                                 └─────────────────────────────────────┘
+┌──────────────────────────────┬──────────────────────────────────────────┐
+│  CHAT AGENT TESTING          │  VOICE AGENT TESTING                     │
+├──────────────────────────────┼──────────────────────────────────────────┤
+│  Type text in a console      │  Must call a phone number                │
+│  Immediately see responses   │  Responses depend on TTS + STT           │
+│  Replay test cases easily    │  Cannot replay without re-calling        │
+│  No acoustic factors         │  Audio quality, background noise affect  │
+│                              │  test results                            │
+│  Format (markdown) visible   │  ALL output is audio — no visual check   │
+│  during test                 │                                          │
+│  No barge-in to test         │  Must test barge-in, silence handling,   │
+│                              │  DTMF fallback as separate scenarios     │
+└──────────────────────────────┴──────────────────────────────────────────┘
 ```
 
-**Content:**
-- Voice adds dimensions that do not exist in traditional software testing
-- Speech recognition accuracy: does the system understand what callers say?
-- Audio quality: is the voice experience clear enough for callers and agents?
-- Latency: is the response time fast enough to feel conversational?
-- Human factors: does the flow feel natural? Are prompts clear and concise?
-- Failure modes unique to voice: silence, background noise, heavy accents, DTMF timing issues
-- Testing approach: structured test cases + real call testing + load simulation
+Voice testing requires both functional testing (does the agent handle intents correctly?) and audio/experience testing (does it SOUND right? does barge-in work?). These are distinct test phases.
 
-**Speaker Notes:** The addition of speech recognition as a variable is the most significant testing challenge in voice automation. A unit test for a Flow passes deterministically. A voice test depends on acoustic conditions, the speaker's accent, background noise, and the STT engine's current model performance. This means your test cases must cover the failure modes of speech recognition explicitly — it is not enough to test the happy path with a clear microphone in a quiet room.
+### Testing Layers
 
----
-
-### Slide 2: Three Testing Modes
-**Visual:**
 ```
-  THREE TESTING MODES — USE IN SEQUENCE
+LAYER 1: Unit Testing (Topics and Actions)
+    Agentforce Studio → Test tab → provide text utterances → observe routing
+    Goal: confirm Topic matching accuracy before adding voice channel
+    No telephony involved yet
 
-  BUILD PHASE              INTEGRATION PHASE         PRE-LAUNCH PHASE
-  ┌─────────────────┐      ┌──────────────────┐      ┌──────────────────┐
-  │  CONVERSATION   │      │  DEBUG LOGS      │      │  AMAZON CONNECT  │
-  │  SIMULATOR      │      │                  │      │  TEST CALLS      │
-  │                 │      │  Enable at FINE  │      │                  │
-  │  Text-based     │      │  level for Voice │      │  Real phone call │
-  │  No phone needed│      │  integration user│      │  Full PSTN stack │
-  │  Fast iteration │      │                  │      │  Audio quality   │
-  │                 │      │  Shows:          │      │  CTI behavior    │
-  │  Tests:         │      │  • Flow element  │      │  Agent desktop   │
-  │  • NLU logic    │      │    execution     │      │  experience      │
-  │  • Intent routing      │  • SOQL results  │      │                  │
-  │  • Agent replies│      │  • DML ops       │      │  Validates:      │
-  │  • Escalation   │      │  • Exceptions    │      │  Full end-to-end │
-  │    paths        │      │                  │      │  Ring time       │
-  └─────────────────┘      └──────────────────┘      └──────────────────┘
-       │                         │                         │
-       └─────────────────────────┴─────────────────────────┘
-                     ────────────────────────────────────▶
-                          Increasing fidelity and effort
+LAYER 2: Voice Channel Integration Testing
+    Actual phone call to the Amazon Connect number
+    Goal: confirm STT → Salesforce transcript pipeline works
+    Check: transcript appears in real-time on VoiceCall record
+
+LAYER 3: Functional Voice Testing (Script-Based)
+    Pre-written test call scenarios → tester reads scripted inputs
+    Goal: verify intent → action → response for each Topic
+    Check: correct action executes, TTS response is intelligible
+
+LAYER 4: Edge Case Testing
+    Low confidence utterances (mumble, speak over TTS, background noise)
+    DTMF fallback (test numeric input at each DTMF prompt)
+    Escalation (trigger all escalation paths)
+    Max turns (verify fallback fires at configured turn limit)
+
+LAYER 5: Load Testing
+    Multiple concurrent calls (test capacity and latency under load)
+    Requires Amazon Connect test environment or scripted call generation
 ```
 
-**Content:**
-- **Amazon Connect Test Calls:** make real calls from the Connect console; tests full phone stack including CTI, routing, and Voice Flow
-- **Salesforce Debug Logs:** enable for specific users or automated processes; captures Flow execution, SOQL queries, DML operations triggered by voice events
-- **Agentforce Conversation Simulator:** text-based simulation of voice agent conversations; no phone required; faster iteration cycle for agent logic testing
-- Each mode serves a different testing phase: Simulator for logic, Debug Logs for integration, Test Calls for full-stack
-- Use Simulator first → Debug Logs for integration issues → Test Calls for final verification
+**Limitations:**
+- There is no Salesforce-native voice call simulator — you must make real phone calls to test voice agents
+- Load testing requires telephony infrastructure capable of generating concurrent inbound calls
+- STT accuracy testing depends on tester voice characteristics — test with multiple voices and accents for production
 
-**Speaker Notes:** Think of these three modes as layers. You start with the Conversation Simulator because it is fast, requires no phone equipment, and lets you iterate on agent logic quickly. When your logic looks correct but behaviors are unexpected in integration, you enable Debug Logs to see exactly what Salesforce is executing behind the scenes. And when you are ready to validate the full end-to-end experience — including audio quality, CTI behavior, and routing — you move to actual test calls through Amazon Connect.
+### Agentforce Studio Test Tab — Pre-Voice Testing
 
----
-
-### Slide 3: Test Case Categories
-**Visual:**
 ```
-  VOICE TEST CASE CATEGORIES
-  ┌─────────────┬──────────────────┬──────────────┬─────────────┬──────────────────┐
-  │ Happy Path  │ Mishear /        │ Silence      │ DTMF Input  │ Escalation       │
-  │             │ Low Confidence   │              │             │ Trigger          │
-  ├─────────────┼──────────────────┼──────────────┼─────────────┼──────────────────┤
-  │ Clear       │ Mumbled speech   │ Caller goes  │ Each key    │ "Speak to agent" │
-  │ intent      │                  │ silent       │ 1-9, *, #   │ phrase           │
-  ├─────────────┼──────────────────┼──────────────┼─────────────┼──────────────────┤
-  │ Expected    │ Background noise │ No-input     │ Unexpected  │ Complaint        │
-  │ resolution  │                  │ timeout      │ key         │ language keyword │
-  │ achieved    │ Ambiguous        │ fires        │             │                  │
-  ├─────────────┤ utterance        ├──────────────┼─────────────┼──────────────────┤
-  │ No errors   │                  │ 3-retry      │ Partial     │ Confidence       │
-  │ or fallback │ Low confidence   │ logic works  │ input       │ threshold retry  │
-  │ needed      │ triggers retry   │              │ (stops mid) │ exhausted        │
-  │             │                  │ Escalate on  ├─────────────┼──────────────────┤
-  │             │ Retry exhausted  │ 3rd silence  │ Digit       │ Specific intent  │
-  │             │ → escalate       │ → Transfer   │ timeout     │ trigger (legal,  │
-  │             │                  │   to Agent   │             │ fraud, billing)  │
-  └─────────────┴──────────────────┴──────────────┴─────────────┴──────────────────┘
+Agentforce Studio → [Agent] → Test tab
+┌─────────────────────────────────────────────────────────────┐
+│  CHAT SIMULATION                                            │
+│                                                             │
+│  Type: "I want to cancel my subscription"                   │
+│  ─────────────────────────────────────────────────────────  │
+│  Agent: "I can help you with subscription cancellation.     │
+│          Could you please confirm your account email?"      │
+│                                                             │
+│  [Inspect] → shows which Topic was matched, which Action    │
+│             was invoked, confidence score, response text    │
+└─────────────────────────────────────────────────────────────┘
+Test tab tests Topic matching and action execution logic
+It does NOT test: STT accuracy, TTS quality, barge-in, DTMF, latency
 ```
 
-**Content:**
-- **Happy Path:** caller states intent clearly, system responds correctly, resolution achieved without errors
-- **Mishear/Low Confidence:** caller mumbles, background noise, ambiguous utterance; system should retry gracefully
-- **Silence:** caller says nothing; system should detect no-input, retry with prompt, then escalate if silence persists
-- **DTMF Input:** test all expected key presses; test unexpected keys; test partial input; test timeout between digits
-- **Escalation Trigger:** verify all escalation conditions fire correctly — "speak to agent," complaint language, confidence threshold, specific intents
+**Always test Topics in text form first.** If Topics aren't matching correctly in text, they won't match in voice either (STT adds additional error on top of any topic matching issues).
 
-**Speaker Notes:** The silence test case is one that many teams overlook until production. Callers go silent for many reasons: they are confused, they put the call on hold, or the line quality is bad. Your Voice Flow must handle silence gracefully — detect it, prompt the caller, retry, and escalate cleanly if silence persists across all retries. An agent receiving a silent escalated call with no context is a terrible experience and a support cost. Test every silence path explicitly.
+**Limitations:**
+- Test tab shows confidence scores and routing decisions — use these to debug misrouting before involving telephony
+- Test tab does not support multi-turn conversation replay — each test is a fresh session
+- Markdown in responses is visible in test tab but will sound wrong when spoken via TTS — deliberately test TTS output via phone call
 
----
+### Test Script Structure
 
-### Slide 4: Verifying Transcription Quality
-**Visual:**
 ```
-  TRANSCRIPTION QUALITY TESTING — WER ANALYSIS
-  ┌──────────────────────────────────────────────────────────┐
-  │  Utterance (intended)           Transcribed Output       │
-  ├─────────────────────────────────┼────────────────────────┤
-  │  "Check my account balance"     │ "Check my account      │  ✓ Correct
-  │                                 │  balance"              │
-  ├─────────────────────────────────┼────────────────────────┤
-  │  "KloudSync subscription"       │ "cloud sync            │  ✗ WER: 2/3
-  │                                 │  subscription"         │    ← add to vocab
-  ├─────────────────────────────────┼────────────────────────┤
-  │  "BCMS billing portal"          │ "be cms billing portal"│  ✗ WER: 2/4
-  │                                 │                        │    ← add acronym
-  ├─────────────────────────────────┼────────────────────────┤
-  │  "Account number 90210"         │ "Account number 90210" │  ✓ Correct
-  ├─────────────────────────────────┼────────────────────────┤
-  │  "I'd like to upgrade my plan"  │ "I'd like to upgrade   │  ✓ Correct
-  │                                 │  my plan"              │
-  └──────────────────────────────────────────────────────────┘
+VOICE AGENT TEST SCENARIO (template)
 
-  Fix: Amazon Transcribe Custom Vocabulary
-       Add product names, acronyms, industry jargon with phonetic hints
-  Target: Word Error Rate (WER) < 15% for English
-  Test with: diverse speaker profiles (accents, ages, speech rates)
-```
+Scenario ID: VS-001
+Topic Under Test: Subscription Cancellation
+Preconditions: Test Contact exists with matching phone number
+Test Method: Call Amazon Connect number, speak test utterances
 
-**Content:**
-- Test transcription quality by comparing spoken phrases to Amazon Transcribe output in Call Recordings/Transcripts
-- Focus areas: product names, account numbers, proper nouns, industry jargon, accented speech
-- Transcription accuracy metric: Word Error Rate (WER) — lower is better; target WER under 15% for English
-- Customize transcription vocabulary: Amazon Transcribe Custom Vocabulary for domain-specific terms
-- Test with diverse speaker profiles: different accents, genders, ages, speech rates
-- When WER is high for specific terms: add those terms to Custom Vocabulary with phonetic hints
+Step 1 - Happy Path:
+  Input: "I want to cancel my subscription"
+  Expected: Agent routes to SubscriptionCancellation Topic
+  Expected response: asks for account verification
+  Verify: transcript shows correct utterance + correct TTS response
 
-**Speaker Notes:** Product names and industry jargon are the most common sources of transcription errors. If your company sells a product called "KloudSync" or uses an acronym like "BCMS," Amazon Transcribe will not know how to spell those correctly until you add them to a Custom Vocabulary list. Building and testing this vocabulary list is a critical pre-launch step that many implementations skip, only to discover post-launch that the intent engine is failing because transcriptions contain garbled versions of key terms.
+Step 2 - Variant Phrasing:
+  Input: "cancel my account" / "end my plan" / "stop my service"
+  Expected: same topic match as Step 1
+  Verify: all variants match without re-prompt
 
----
+Step 3 - Low Confidence Simulation:
+  Input: [mumble, background noise, non-native accent]
+  Expected: confidence below threshold → re-prompt or DTMF fallback
+  Verify: agent doesn't act on low-confidence input
 
-### Slide 5: Debugging Misrouted Intents
-**Visual:**
-```
-  MISROUTED INTENT DEBUGGING PATH
-  ┌──────────────────────────────────────────────────────────┐
-  │  Symptom: caller routed to wrong queue                   │
-  └──────────────────────┬───────────────────────────────────┘
-                         │
-                         ▼
-  Step 1: Check VoiceCall record ──▶ Intent field value
-                         │
-          ┌──────────────┴──────────────┐
-          │                             │
-   Intent CORRECT                Intent WRONG or EMPTY
-   but routing failed                   │
-          │                    ┌────────┴────────┐
-          ▼                    │                 │
-   Problem: Flow Decision   Intent wrong    Intent empty
-   logic or queue assignment      │               │
-          │                       ▼               ▼
-          ▼                  NLU config      Transcription /
-  Step 2: Enable Debug Log   in Agent       STT integration
-  FINE level for Voice       Studio         layer issue
-  integration user                │               │
-          │                       ▼               ▼
-          ▼              Check: Agentforce   Check: Amazon
-  Step 3: Check Flow     conversation log   Connect CTR
-  execution order,       (Agent Studio >    (Contact Trace
-  SOQL results,          Conversation       Record)
-  exceptions             History)
+Step 4 - Escalation Path:
+  Input: "speak to a human"
+  Expected: warm transfer to fallback queue
+  Verify: human agent receives VoiceCall with transcript context
 
-  COMMON ROOT CAUSES:
-  ┌─────────────────────────────────────────────────────────┐
-  │  • Intent name mismatch between Flow and Agent config   │
-  │  • Missing entity extraction in agent definition        │
-  │  • Flow Decision criteria logic error                   │
-  └─────────────────────────────────────────────────────────┘
+Step 5 - Post-Call Verification:
+  Check VoiceCall record: Status = Completed
+  Check ConversationEntry records: transcript accuracy
+  Check linked records: Case / Contact association correct
 ```
 
-**Content:**
-- Symptom: caller routed to wrong queue or agent fails to understand intent correctly
-- Step 1: Check the VoiceCall record — review the `Intent` field populated by the Agentforce agent
-- Step 2: Enable Debug Logs at FINE level for the Voice integration user; reproduce the call
-- Step 3: Review Debug Log for: Flow element execution order, SOQL query results, any unhandled exceptions
-- Step 4: Review Agentforce conversation log in Agent Studio > Conversation History for the call
-- Step 5: Review Amazon Connect Contact Trace Record (CTR) for telephony-layer events
-- Common causes: intent name mismatch, missing entity extraction, Flow Decision criteria error
+### Measuring STT Accuracy — Word Error Rate
 
-**Speaker Notes:** Intent misrouting is the most common issue in voice deployments and also one of the most methodical to diagnose. The key is to narrow down which layer the failure occurred at. If the VoiceCall intent field shows the correct intent but routing still failed, the problem is in the Flow's Decision element or the queue assignment logic. If the intent field is wrong or missing, the problem is in the Agentforce agent's NLU configuration. If the intent field is empty, the problem is in the transcription or the integration between telephony and Salesforce.
-
----
-
-### Slide 6: Voice Quality Metrics
-**Visual:**
 ```
-  VOICE QUALITY METRICS DASHBOARD (Amazon CloudWatch — Connect deployments)
-  ┌──────────────────────────┐  ┌──────────────────────────┐
-  │   MOS SCORE              │  │  ROUND-TRIP LATENCY      │
-  │                          │  │                          │
-  │   4.1 / 5.0    ✓         │  │   285 ms         ✓       │
-  │   Target: ≥ 4.0          │  │   Target: < 400 ms       │
-  │   ████████████░          │  │   ░░░████░░░░░░░░░       │
-  │   Below 3.6: unacceptable│  │   > 600ms: talk-overs    │
-  └──────────────────────────┘  └──────────────────────────┘
-  ┌──────────────────────────┐  ┌──────────────────────────┐
-  │   PACKET LOSS            │  │   JITTER                 │
-  │                          │  │                          │
-  │   0.3 %        ✓         │  │   12 ms          ✓       │
-  │   Target: < 1 %          │  │   Target: < 30 ms        │
-  │   > 1%: audible artifacts│  │   > 30ms: choppy audio   │
-  │   ░░░░░░░░░░░░░░░░       │  │   ░░░░░░░░░░░░░░░░       │
-  └──────────────────────────┘  └──────────────────────────┘
-  MOS score is derived from latency + packet loss + jitter
-  Most common root cause for failures: agent-side Wi-Fi quality
-  Best practice: wired connections for voice agents
+Word Error Rate (WER):
+WER = (Substitutions + Deletions + Insertions) / Total Words in Reference
+
+Reference:  "I want to cancel my subscription"          → 6 words
+Transcript: "I want to cancel my subscription"          → 0 errors → WER = 0%
+Transcript: "I want to cancel my script"                → 1 substitution → WER = 17%
+Transcript: "I wanna cancel subscription"               → 1 del, 1 sub → WER = 33%
+
+Target WER for production voice agents: < 10%
+
+WER Assessment Method:
+1. Record 50+ test calls across different speakers
+2. Compare AWS Transcribe output to manual transcriptions
+3. WER > 15%: add Custom Vocabulary (product names, industry terms)
+WER 10-15%: tune confidence threshold, add example phrases to Topics
+WER < 10%: production-ready transcription baseline
 ```
 
-**Content:**
-- **MOS Score (Mean Opinion Score):** 1-5 scale for perceived voice quality; 4.0+ = acceptable, 3.6+ = minimum for business use
-- **Round-Trip Latency:** time for voice packet to travel to server and back; target <400ms for conversational feel; >600ms causes talk-over issues
-- **Packet Loss:** percentage of audio data lost in transmission; >1% causes audible artifacts
-- **Jitter:** variation in packet arrival time; causes choppy audio; >30ms noticeable to callers
-- Amazon Connect provides real-time quality metrics in CloudWatch
-- Quality issues are often network-related: VPN, poor Wi-Fi, throttled bandwidth
+**Limitations:**
+- WER is an average — a WER of 8% might hide 40% error rate on a specific product name that is common in your calls
+- WER testing with a single tester is misleading — must test across multiple speakers, accents, and acoustic environments
 
-**Speaker Notes:** MOS score is the headline metric for voice quality, but it is derived from the other three. If MOS is below 4.0 in your tests, look at latency, packet loss, and jitter individually to find the root cause. In contact center environments, poor Wi-Fi on the agent side is one of the most common quality culprits — agents on wireless connections in a busy office environment may see intermittent jitter spikes that callers experience as choppy audio. Wired connections for voice agents are still the best practice.
+### Confidence Score Distribution Analysis
 
----
-
-### Slide 7: User Acceptance Testing Checklist
-**Visual:**
 ```
-  USER ACCEPTANCE TESTING CHECKLIST
-  ┌──────────────────────────────────────────────────────┬────────┬──────────┐
-  │  Test Area / Description                             │ Pass?  │ Notes    │
-  ├──────────────────────────────────────────────────────┼────────┼──────────┤
-  │  ANI lookup fires, screen pop for known caller       │ [ ]    │          │
-  │  No-match: new caller flow works correctly           │ [ ]    │          │
-  │  DTMF input accepted and stored on VoiceCall record  │ [ ]    │          │
-  │  Speech recognition: all vocabulary utterances pass  │ [ ]    │          │
-  │  Happy path: autonomous resolution, no agent needed  │ [ ]    │          │
-  │  Silence: 3-retry logic, escalation fires on 3rd     │ [ ]    │          │
-  │  "Speak to an agent" routes to correct queue         │ [ ]    │          │
-  │  Escalated call: agent receives conversation history │ [ ]    │          │
-  │  Agent Assist: suggestions appear within 3 seconds   │ [ ]    │          │
-  │  Call recording starts/stops, accessible in console  │ [ ]    │          │
-  │  Post-call survey fires after call disconnects       │ [ ]    │          │
-  │  ACW timer starts automatically; agent transitions   │ [ ]    │          │
-  │  Supervisor: monitor calls, see sentiment gauge      │ [ ]    │          │
-  │  Call reporting populates VoiceCall object correctly │ [ ]    │          │
-  │  Load test: 20 concurrent calls, no degradation      │ [ ]    │          │
-  └──────────────────────────────────────────────────────┴────────┴──────────┘
-  Include actual agents in UAT at least 2 weeks before go-live
+After running test calls, analyze confidence score distribution:
+
+Confidence    # of utterances    Interpretation
+0.0 - 0.50         15           Critical: likely misheard / poor audio
+0.50 - 0.70        22           Risky: approaching threshold edge
+0.70 - 0.80        31           Near-threshold: examine each case
+0.80 - 0.90        88           Good: mostly reliable
+0.90 - 1.00       144           Excellent: reliable STT
+
+Action: utterances in 0.50-0.75 range → listen to recording → is it a
+vocabulary gap? → add to Custom Vocabulary
+                → is it an accent issue? → add more training examples
+                → is it background noise? → customer-side audio quality
 ```
 
-**Content:**
-- ANI lookup and screen pop fires correctly for known caller
-- ANI lookup returns no match — new caller flow works correctly
-- DTMF input accepted and stored correctly on VoiceCall record
-- Speech recognition acceptable for all required utterances in testing vocabulary
-- Happy path call resolved in autonomous mode without agent involvement
-- Silence handling: three-retry logic works, escalation fires on third silence
-- Escalation phrase "speak to an agent" routes to correct queue
-- Escalated call: agent receives screen pop with conversation history
-- Agent Assist mode: suggestions appear within 3 seconds of caller utterance
-- Call recording starts and stops correctly; accessible in Call Recording tab
-- Post-call survey fires after call disconnects (if configured)
-- ACW timer starts automatically; agent transitions to Available when expired
-- Supervisor can monitor active calls and see sentiment gauge
-- Call reporting populates VoiceCall object correctly
-- Load test: 20 concurrent calls handled without degradation
+### VoiceCall Record Post-Test Checklist
 
-**Speaker Notes:** User acceptance testing for a voice system needs to involve actual users — both agents and a sample of callers. Agent UAT is often overlooked in favor of technical testing, but agents are the users of the Agent Assist panel, the screen pop, and the ACW workflow. If agents find the screen pop confusing, if suggestions appear too slowly, or if ACW time is too short, they will work around the system. UAT is your opportunity to find those usability issues before they become training problems and performance metrics problems.
+```
+After every test call, verify the VoiceCall record:
 
----
+VoiceCall:
+  ☐ Status = Completed (not Abandoned / Error)
+  ☐ Duration = reasonable (matches actual call length)
+  ☐ Direction = Inbound
+  ☐ AI Summary generated (if post-call summary is configured)
+  ☐ Linked Contact/Account = correct match (screen pop worked)
 
-## Recording Script
+ConversationEntry:
+  ☐ # of records = # of transcript segments
+  ☐ Speaker labels = CUSTOMER vs AGENT (or VOICE_BOT) correct
+  ☐ Confidence scores are visible
+  ☐ No PII visible in transcript if PII redaction is enabled
 
-In this lecture we are covering testing for Agentforce Voice — which is a significantly different discipline from testing a standard Salesforce application. Let me walk you through the three testing modes, the test case categories you need to cover, how to diagnose the most common issues, and what your go-live UAT checklist should include.
+VoiceCallRecording:
+  ☐ Recording URL populated (if recording is enabled)
+  ☐ Recording accessible (test the URL — confirms S3 permission)
+```
 
-The first thing to understand is that voice testing has dimensions that do not exist in standard software testing. Speech recognition accuracy is variable — it depends on the speaker, the acoustic environment, the microphone quality, and the current state of the STT model. Latency matters for conversational feel in a way it never does for a form submission. And failure modes like silence, background noise, and DTMF timing issues simply do not exist in a traditional web application.
+**Limitations:**
+- VoiceCall record may take 30–60 seconds to fully populate after call ends — don't check immediately after hanging up
+- If ConversationEntry records are missing: check if transcription is enabled in Setup → Service Cloud Voice Settings
+- If VoiceCall shows "Error" status: check Named Credential validity and Amazon Connect Contact Flow configuration
 
-Let us start with the three testing modes and when to use each.
+## PTA / SA Relevance
 
-The Agentforce Conversation Simulator is your fastest iteration tool. It lets you simulate a conversation with your voice agent entirely in text — no phone call required. You type what a caller would say, and the agent responds as it would on a real call. This is perfect for testing your agent's NLU, intent routing, and conversational logic without the overhead of making actual calls. Use the Simulator during the build phase to iterate quickly on agent behavior.
+**Testing voice agents is fundamentally different from testing chat agents — partners who skip real phone call testing until late in the project almost always discover STT accuracy issues that require rework.** The right approach: test with real phone calls starting in Sprint 1, not Sprint 5.
 
-Salesforce Debug Logs are your integration diagnostic tool. When something works in the Simulator but behaves unexpectedly in a real call context, you enable Debug Logs at FINE level for the Voice integration user and reproduce the issue with a test call. The logs show you exactly which Flow elements executed, what SOQL queries ran, what DML operations fired, and where any exceptions occurred. Debug Logs are not a testing mode per se — they are a diagnostic tool you use when something is not working.
+**Common partner mistakes:**
+- Assuming text-based Test tab results translate directly to voice — they do not; STT adds a layer of variability
+- Not testing with representative speakers — a tester who speaks perfect standard American English will see much better STT accuracy than the actual customer population
+- Not verifying post-call record integrity (VoiceCall, ConversationEntry) — this is the data foundation for all analytics and reporting
 
-Amazon Connect Test Calls are your full-stack validation mode. From the Amazon Connect console, you can place actual test calls to your configured contact flow, which exercises the complete telephone stack: PSTN → Amazon Connect → CTI adapter → Salesforce Voice Flow → Omni-Channel routing → agent desktop. This is the only mode that validates audio quality, ring time, CTI behavior, and the agent experience end to end.
+**Enterprise delivery considerations:**
+- For 50+ Topic voice agents, create a test matrix (Topics × phrasings × edge cases) early — this becomes the acceptance test criteria
+- Regression testing after Topic updates requires re-running affected test calls — maintain call recordings from initial testing for comparison
+- Performance testing under load (100+ concurrent calls) should be a formal gate before production launch for large contact centers
 
-Now let me walk through the five test case categories that every voice implementation should cover.
+**For a customer in UAT:** "The acceptance criteria for voice isn't just 'does it work' — it's 'what is the STT accuracy baseline, what is the containment rate target, and what is the maximum acceptable escalation rate.' Define those numbers now, measure them in UAT, and confirm before go-live."
 
-Happy path tests verify that the system works when everything goes right. A caller states their intent clearly, the transcription is accurate, the agent or Flow understands correctly, and the resolution is achieved. Happy path tests are necessary but not sufficient.
+## Customer Advisory Tips
 
-Mishear and low confidence tests are where voice testing gets interesting. Simulate callers who mumble, who have background noise on their line, who say something ambiguous or off-topic. Your Get Input element should handle these with graceful retries — "I didn't catch that, could you repeat?" — and your Agentforce agent should have a fallback path when confidence is below threshold. Test that the retry logic works and that the escalation path fires when retries are exhausted.
+**Custom Vocabulary for Amazon Transcribe is almost always needed in B2B environments.** Company names, product names, internal terminology, and industry acronyms routinely transcribe incorrectly. Add these to Amazon Transcribe Custom Vocabulary before STT accuracy testing — otherwise the baseline WER is artificially inflated.
 
-Silence tests cover what happens when the caller says nothing. This can happen because the caller is confused, because they put you on hold, or because of an audio problem. Your Voice Flow should detect silence — the Get Input element's no-input timeout — retry with a prompt, and escalate to a human agent after a configured number of failed attempts. Test every step of this path.
+**Test call realism matters.** Test from mobile phones in real-world acoustic conditions (car, open-plan office, home). Tests from a quiet conference room via a desk phone will show better STT accuracy than production calls.
 
-DTMF tests exercise your keypad input logic. Test each expected key, unexpected keys, partial inputs (caller stops dialing mid-number), and timeout between digits. Also test the PCI-DSS payment capture path if your implementation includes it — verify that recording pauses when the DTMF payment capture begins.
+**Define a "go/no-go" STT accuracy threshold** before UAT starts. Typical enterprise standard: WER < 10% overall, WER < 15% for domain-specific terms with Custom Vocabulary. Get customer sign-off on this standard before testing — don't let accuracy be judged subjectively at UAT sign-off.
 
-Escalation trigger tests verify every configured escalation path. The caller says "speak to an agent" — does routing fire correctly? The caller mentions "legal action" — does the configured keyword trigger fire? The autonomous agent exceeds its confidence threshold retry count — does it escalate? Each of these escalation paths needs its own test case.
+## Key Facts to Memorize
+- No native Salesforce voice call simulator — must make real phone calls to test
+- Test order: Topics in text (Test tab) → voice channel integration → functional → edge cases → load
+- WER (Word Error Rate) = measure of STT accuracy; target < 10% for production
+- Custom Vocabulary in Amazon Transcribe reduces WER for domain-specific terms
+- VoiceCall record populates 30–60 seconds after call ends — don't check immediately
+- Test barge-in, DTMF fallback, silence handling, and escalation as separate explicit test scenarios
+- ConversationEntry records = post-call transcript storage; verify count = transcript segment count
 
-For diagnosing misrouted intents — one of the most common post-launch issues — follow this debugging sequence: first, check the VoiceCall record and look at the Intent field. If the intent is correctly identified but routing failed, the problem is in your Flow Decision logic or queue assignment. If the intent field is wrong, the problem is in the NLU configuration. If the intent field is empty, the problem is in the transcription-to-Salesforce integration layer.
+## Exam Traps
+- "Agentforce Studio Test tab validates voice agent behavior completely" → False — it tests text-based Topic matching only; does not test STT, TTS, barge-in, or DTMF
+- "Word Error Rate is measured in Salesforce" → False — WER is calculated by comparing AWS Transcribe output to reference transcripts (manual comparison)
+- "Low confidence utterances in testing mean the Topic descriptions are wrong" → Not necessarily — low confidence often means STT quality issue (Custom Vocabulary gap), not Topic design problem
+- "VoiceCall record shows all test data immediately after the call" → False — there is a 30–60 second delay for record population
 
-For voice quality metrics, your primary target is a MOS score of 4.0 or above. This corresponds to round-trip latency below 400 milliseconds, packet loss below 1%, and jitter below 30 milliseconds. These metrics are available in Amazon CloudWatch for Connect deployments. If you are seeing quality issues, check agent network connections first — poor Wi-Fi is by far the most common quality issue in contact center deployments.
+## Practice Questions
 
-For UAT, my strong recommendation is to involve actual agents in the testing process at least two weeks before go-live. Agents will find usability issues that technical testers miss: screen pop that is hard to read, agent assist suggestions that appear too slowly, ACW timer that is too short for complex call types. Fix those issues in UAT, not after launch.
+**Q:** During voice agent testing, the Test tab in Agentforce Studio shows the correct Topic matching for all utterances, but during actual phone call testing, the agent frequently asks callers to repeat themselves. What is the most likely cause?
+**A:** The Test tab uses typed text input, bypassing Speech-to-Text transcription. During real phone calls, STT adds variability — low confidence scores trigger re-prompts. The STT accuracy needs to be assessed (WER calculation), and Amazon Transcribe Custom Vocabulary should be configured for domain-specific terms.
 
----
+**Q:** A tester completes 50 test calls. Post-call review shows VoiceCall records are created but ConversationEntry records are missing for all calls. What is the most likely cause?
+**A:** Transcription is not enabled. Go to Setup → Service Cloud Voice Settings and verify Real-Time Transcription is turned on. ConversationEntry records are only created when transcription is active.
 
-## Exam Tips
-- The Agentforce Conversation Simulator tests agent logic in text mode — no phone call required; use it during the build phase
-- Debug Logs should be enabled at FINE level for the Voice integration user when diagnosing integration issues
-- Amazon Connect Contact Trace Records (CTRs) provide telephony-layer event data independent of Salesforce logs
-- MOS score target for business voice: 4.0 or above; below 3.6 is unacceptable for most contact center use cases
-- Silence handling in the Get Input element requires explicit configuration of no-input timeout, retry count, and escalation branch
-- Custom Vocabulary in Amazon Transcribe should be populated with product names, acronyms, and industry jargon before go-live
-
----
-
-## Lecture Summary
-- Voice testing requires additional dimensions beyond standard software testing: speech recognition accuracy, audio quality, latency, and human factors
-- Three testing modes serve different phases: Conversation Simulator for logic, Debug Logs for integration diagnostics, Amazon Connect Test Calls for full-stack validation
-- Five test case categories — happy path, mishear/low confidence, silence, DTMF, escalation trigger — must all be covered before go-live
-- Transcription quality testing should use Word Error Rate (WER) and custom vocabulary configuration for domain-specific terms
-- MOS score (target ≥4.0), latency (<400ms), packet loss (<1%), and jitter (<30ms) are the core voice quality metrics
-- UAT must include actual agent users to surface usability issues with screen pop, agent assist, and ACW workflow
-
----
-
-## Mini Quiz
-
-**Q1:** A developer is iterating on Agentforce voice agent intent logic and wants to test quickly without making phone calls. Which testing mode is most appropriate?
-
-A) Amazon Connect Test Calls  
-B) Salesforce Debug Logs  
-C) Agentforce Conversation Simulator  
-D) Amazon CloudWatch monitoring  
-
-**Answer:** C — The Agentforce Conversation Simulator allows text-based conversation testing with no phone call required. It is ideal for rapid iteration on agent intent logic during the build phase before moving to full-stack test call validation.
-
----
-
-**Q2:** A voice agent is routing callers to the wrong queue. The first debugging step is to check which Salesforce record?
-
-A) The Contact record's Activity History  
-B) The VoiceCall record's Intent field  
-C) The Omni-Channel Queue configuration  
-D) The Amazon Connect Contact Flow logs  
-
-**Answer:** B — Checking the VoiceCall record's Intent field immediately tells you whether the NLU correctly identified the intent. If the intent field shows the correct value but routing still failed, the problem is in the Flow logic. If the intent field is wrong or empty, the problem is upstream in NLU or transcription.
-
----
-
-**Q3:** During load testing, agents report choppy audio on calls. Network monitoring shows 2.5% packet loss. What is the recommended immediate action?
-
-A) Increase ACW time to reduce agent call volume  
-B) Reduce the number of concurrent voice channels in Omni-Channel  
-C) Investigate and remediate network quality — 2.5% packet loss exceeds the 1% threshold  
-D) Upgrade Amazon Connect to a higher service tier  
-
-**Answer:** C — A packet loss rate of 2.5% exceeds the acceptable threshold of 1% and will cause audible audio artifacts and choppy voice quality. The correct action is to investigate the network path (Wi-Fi quality, VPN bottlenecks, ISP issues) and remediate the packet loss rather than adjusting application configuration.
+**Q:** An administrator needs to verify that the voice agent correctly handles callers who try to interrupt (barge-in) the TTS output. Which test layer addresses this?
+**A:** Layer 4 — Edge Case Testing. The tester must make a real phone call and deliberately speak over the TTS output while the agent is responding, then verify the agent stops its output and processes the new input. This cannot be tested in the Agentforce Studio Test tab.
