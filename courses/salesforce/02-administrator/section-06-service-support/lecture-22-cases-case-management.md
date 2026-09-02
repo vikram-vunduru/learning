@@ -1,342 +1,116 @@
-# L22: Cases & Case Management
+# Cases & Case Management
 
-## 🎯 Learning Objectives
-- Describe the Case object fields, status lifecycle, and case origin channels
-- Configure Web-to-Case and Email-to-Case (on-demand vs. standard)
-- Set up Case Auto-Response Rules and Case Escalation Rules
+## Exam Domain
+Service & Support Apps — 11% of exam
 
-## 📊 SLIDES
+## Core Concepts
 
-### Slide 1: The Case Object
-**Visual:**
+**Case:** The central service object. Represents a customer issue, question, or request. Every customer interaction in Service Cloud starts (or ends up) as a Case.
+
+**Key Case fields:**
+- **Subject** (required): short description of the issue
+- **Status**: New → In Progress → Escalated → Closed (configurable picklist)
+- **Priority**: Low, Medium, High, Urgent
+- **Case Origin**: how it arrived (Phone, Email, Web, Chat, etc.)
+- **Account + Contact**: who the case is for
+- **Case Owner**: current owner (user or queue)
+
+**Web-to-Case:**
+- HTML form that creates Cases directly from your website
+- Similar to Web-to-Lead but creates Cases
+- Daily limit: 5,000 cases per day (much higher than Web-to-Lead's 500)
+
+**Email-to-Case:**
+- Inbound emails sent to a specific address automatically create Case records
+- Two modes:
+  - **Standard Email-to-Case:** Emails route through Salesforce's servers
+  - **On-Demand Email-to-Case:** Emails stay on your own mail server; Salesforce provides an email relay (keeps email behind your firewall)
+- Reply-to threads update the existing case (email threading)
+
+**Case Auto-Response Rules:**
+- Automatically send an email to the customer when a Case is created
+- Criteria-based: different templates for different case types
+- One active auto-response rule at a time (same as assignment rules)
+
+**Escalation Rules:**
+- Automatically escalate cases that haven't been resolved/responded to within a time window
+- Can change case owner, reassign to queue, or send notification email
+- Time-based: after X hours without activity/status change, escalate
+
+**Case Assignment Rules:**
+- Route cases to users or queues based on criteria
+- Same mechanics as Lead Assignment Rules: one active, entries in order, first match wins
+
+## PTA / SA Relevance
+
+Case management is where the ROI of Salesforce Service Cloud is measured. The key metrics: First Response Time, Average Handle Time, CSAT, Case Resolution Rate. Everything in case management design should optimize for these.
+
+**Omni-Channel:** Enterprise Service Cloud implementations use Omni-Channel to route work items (cases, chats, leads) to agents based on capacity and skills. This replaces manual assignment rules with real-time intelligent routing. For the admin exam, know Assignment Rules; in customer architecture conversations, recommend Omni-Channel for anything beyond basic routing.
+
+**Case escalation vs SLA milestones:** Escalation Rules are the basic form of SLA enforcement. Entitlements + Milestones are the full SLA framework (covered in lecture-24). Many customers start with escalation rules and graduate to Entitlements as they mature their service operations.
+
+## Architecture / How It Works
+
 ```
-  ┌──────────────────────────────────────────────────────────────┐
-  │                      CASE RECORD                             │
-  ├────────────────────────┬─────────────────────────────────────┤
-  │ Case Number            │ 00001042  (auto-generated, unique)  │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Subject                │ Login page not loading              │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Status                 │ Working                             │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Priority               │ High                                │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Case Origin            │ Web                                 │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Account Name           │ Acme Corporation                    │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Contact Name           │ Jane Doe                            │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Description            │ Cannot log in since 8am today       │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Assigned To            │ Tier 1 Support Queue                │
-  └────────────────────────┴─────────────────────────────────────┘
-  Status lifecycle: New ──▶ Working ──▶ Escalated ──▶ Closed
-  Priority: Low │ Medium │ High │ Critical
-```
-**Content:**
-- Case represents a customer issue, complaint, question, or service request
-- Case Number is auto-generated and cannot be changed
-- Key fields: Subject, Status, Priority, Case Origin, Account Name, Contact Name, Description, Type
-- Status lifecycle: New → Working → Escalated → Closed (customizable)
-- Priority: Low, Medium, High, Critical
-- Case Origin: Web, Phone, Email, Chat, Social (tracks channel the case came from)
-**Speaker Notes:** The Case object is the foundation of Salesforce Service Cloud. Admins configure the Status and Priority picklists to match their organization's support process. Case Number is a system-generated auto-number field — it's unique, sequential, and cannot be edited.
+Case Management Flow
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-### Slide 2: Case Origin Channels
-**Visual:**
-```
-  Web Form ──────────────────────────────────┐
-                                             │
-  Email ─────────────────────────────────────┤
-                                             │
-  Phone (manual) ────────────────────────────┼──▶  ┌──────────────────────┐
-                                             │      │     CASE RECORD      │
-  Chat / Live Agent ─────────────────────────┤      │  Case Number: 00042  │
-                                             │      │  Case Origin: [value]│
-  Social Media ──────────────────────────────┘      │  Status: New         │
-                                                    └──────────────────────┘
-
-  Case Origin = picklist field (admins can add custom values)
-  ─────────────────────────────────────────────────────────────
-  Used in:
-  • Reports — analyze support volume by channel
-  • Assignment Rules — route cases based on origin
-  • Auto-Response Rules — send different templates per channel
-```
-**Content:**
-- **Web:** Customer submits via Web-to-Case form on your website
-- **Email:** Customer sends an email to a support address (Email-to-Case)
-- **Phone:** Agent manually creates the case while on a call
-- **Chat:** Case created via Live Agent / Messaging channel
-- **Social:** Case created from social media monitoring (Social Studio integration)
-- Case Origin is a picklist — admins can add custom values for their channels
-**Speaker Notes:** Case Origin is purely informational — it tells your support team HOW the customer reached out. This field can be used in reports to analyze channel volume and in assignment rules to route cases based on how they arrived.
-
-### Slide 3: Web-to-Case
-**Visual:**
-```
-  ┌──────────────────────────────┐
-  │       Company Website        │
-  │  ┌─────────────────────────┐ │
-  │  │     Support Form        │ │
-  │  │  Name:        ________  │ │
-  │  │  Email:       ________  │ │
-  │  │  Subject:     ________  │ │
-  │  │  Description: ________  │ │
-  │  │       [Submit]          │ │
-  │  └──────────────┬──────────┘ │
-  └─────────────────┼────────────┘
-                    │  HTTP POST
+  CASE CREATION CHANNELS:
+  ┌──────────────────────────────────────────┐
+  │  Web-to-Case (web form) → 5,000/day      │
+  │  Email-to-Case (inbound email)           │
+  │  Manual (agent entry)                    │
+  │  API / Integration                       │
+  │  Social channels (Social Studio)         │
+  └─────────────────┬────────────────────────┘
+                    │ Assignment Rule
                     ▼
-  ┌──────────────────────────────────┐
-  │    Salesforce Web-to-Case        │
-  │    Endpoint                      │
-  │    Limit: 5,000 cases/day        │
-  │    (10x higher than Web-to-Lead) │
-  └──────────────────┬───────────────┘
-                     │
-                     ▼
-  ┌──────────────────────────────────┐
-  │      Case Record Created         │
-  │      Status: New                 │
-  │      Origin: Web                 │
-  └──────────────────┬───────────────┘
-                     │
-                     ▼
-  Auto-Response Email ──▶ Customer (if Auto-Response Rule set up)
+  CASE ASSIGNED TO USER OR QUEUE
+  ┌──────────────────────────────────────────┐
+  │  Status: New → Working → Escalated       │
+  │  Escalation Rule runs on timer           │
+  │  Auto-Response sends acknowledgment      │
+  └─────────────────┬────────────────────────┘
+                    │
+                    ▼
+  CASE CLOSED
+  ┌──────────────────────────────────────────┐
+  │  Status: Closed                          │
+  │  CSAT survey triggered (if configured)   │
+  └──────────────────────────────────────────┘
 ```
-**Content:**
-- Web-to-Case generates an HTML form that creates cases directly from website submissions
-- Setup path: Setup → Web-to-Case
-- Limit: 5,000 cases per day (default)
-- Configure a default case origin, case owner, and auto-response rule
-- Cases created via Web-to-Case have Case Origin = "Web"
-- reCAPTCHA integration available to reduce spam submissions
-**Speaker Notes:** Web-to-Case is similar to Web-to-Lead but for the support side. The 5,000 per day limit is significantly higher than Web-to-Lead's 500. Remember to configure an auto-response rule so customers get an immediate acknowledgment that their case was received.
 
-### Slide 4: Email-to-Case
-**Visual:**
-```
-  ┌──────────────────────────────┬──────────────────────────────────┐
-  │  ON-DEMAND EMAIL-TO-CASE     │  STANDARD EMAIL-TO-CASE          │
-  ├──────────────────────────────┼──────────────────────────────────┤
-  │  Customer Email              │  Customer Email                  │
-  │       │                      │       │                          │
-  │       ▼                      │       ▼                          │
-  │  Salesforce-Hosted           │  Company Mail Server             │
-  │  Email Service               │  (stays behind firewall)         │
-  │  (no install needed)         │       │                          │
-  │       │                      │  On-Premise Agent                │
-  │       ▼                      │  (installed locally)             │
-  │  Case Created                │       │                          │
-  │  in Salesforce               │       ▼                          │
-  │                              │  Case synced to Salesforce       │
-  ├──────────────────────────────┼──────────────────────────────────┤
-  │ ✓ Simple setup               │ ✓ Email stays on-premise         │
-  │ ✓ No agent installation      │ ✓ Meets strict compliance        │
-  │ ✗ Email routes through SF    │ ✗ Requires agent install         │
-  └──────────────────────────────┴──────────────────────────────────┘
-  Both: routing addresses → set queue, default priority, origin, status
-```
-**Content:**
-- **On-Demand Email-to-Case:** Salesforce hosts the email service; no software installation needed; email sent to a Salesforce-hosted address
-- **Standard Email-to-Case:** Agent installed behind your firewall; email stays on-premise before syncing to Salesforce; more secure for sensitive data
-- Setup path: Setup → Email-to-Case → Enable Email-to-Case
-- Each routing address maps to a case queue and sets default priority/origin/status
-- Email threads are linked to the Case via the Email Message object
-- File attachments in emails become Case attachments
-**Speaker Notes:** The key distinction between On-Demand and Standard Email-to-Case is where the email processing happens. On-Demand is simpler to set up and sufficient for most orgs. Standard requires an agent installation but keeps email data within your firewall — used when compliance or security requires it.
+**Limitations:**
+- Web-to-Case: 5,000 cases/day (default limit)
+- Email-to-Case threading requires the case number in the email subject to match the existing case
+- Only ONE auto-response rule active at a time per object
+- Escalation Rules: time calculations pause when business hours are set and it's outside business hours
+- Assignment rules: first-match only — order of rule entries matters
 
-### Slide 5: Case Teams
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │                       CASE TEAM                              │
-  ├────────────────────────┬───────────────────────┬─────────────┤
-  │ Member Name            │ Role                  │ Case Access │
-  ├────────────────────────┼───────────────────────┼─────────────┤
-  │ Alex Torres            │ Case Manager          │ Read/Write  │
-  ├────────────────────────┼───────────────────────┼─────────────┤
-  │ Priya Nair             │ Technical Specialist  │ Read/Write  │
-  ├────────────────────────┼───────────────────────┼─────────────┤
-  │ Sam Okafor             │ Tier 2 Support        │ Read Only   │
-  ├────────────────────────┼───────────────────────┼─────────────┤
-  │ Lauren Kim             │ Customer Success Mgr  │ Read Only   │
-  └────────────────────────┴───────────────────────┴─────────────┘
+## Key Facts to Memorize
 
-  Setup: Setup → Case Team Roles (configure role values)
-  Predefined Case Teams can be saved and applied in one click
-  Similar concept to Opportunity Teams — same pattern, different object
-```
-**Content:**
-- Case Teams allow multiple agents to collaborate on a single case
-- Each member has a Role (e.g., Case Manager, Technical Specialist, Tier 2 Support)
-- Members can be granted Case Access: Read Only or Read/Write
-- Predefined Case Teams can be created and applied with one click
-- Case Teams are similar in concept to Opportunity Teams
-- Admins configure Case Team Roles at: Setup → Case Team Roles
-**Speaker Notes:** Case Teams are useful for complex support issues requiring multiple people. A major incident might need a front-line agent, a technical engineer, and a customer success manager all working together on the same Case record. Each person gets appropriate access through their team role.
+- Web-to-Case daily limit = 5,000 (vs Web-to-Lead = 500)
+- Email-to-Case: Standard vs On-Demand (on-demand keeps email on your server)
+- Auto-Response Rules: one active at a time; sends email on case creation
+- Escalation Rules: time-based; escalate if not resolved/responded within X hours
+- Assignment Rules: one active, first-match wins
+- Cases can be owned by a User or a Queue
+- Case Origin tracks how the case was created (Phone, Email, Web, etc.)
 
-### Slide 6: Case Auto-Response Rules
-**Visual:**
-```
-  Inbound Case Created (Web-to-Case / Email-to-Case / Manual)
-                │
-                ▼
-  ┌──────────────────────────────────────────────────────┐
-  │          CASE AUTO-RESPONSE RULE (one active)        │
-  ├──────────────────────────────────────────────────────┤
-  │  Entry 1: Case Origin = Web                          │
-  │           ──▶ Send "Web Submission Received" template│
-  ├──────────────────────────────────────────────────────┤
-  │  Entry 2: Priority = High or Critical                │
-  │           ──▶ Send "Urgent Case Received" template   │
-  ├──────────────────────────────────────────────────────┤
-  │  Entry 3: (All Others)                               │
-  │           ──▶ Send "Case Received" template          │
-  └──────────────────────┬───────────────────────────────┘
-                         │  First matching entry wins
-                         ▼
-  Email Template ──▶ sent to Case Contact's email address
+## Exam Traps
 
-  ⚠ No match → NO auto-response is sent (no default fallback)
-  Setup: Setup → Auto-Response Rules → Case Auto-Response Rules
-```
-**Content:**
-- Auto-Response Rules automatically send email replies when a Case is created
-- Useful for Web-to-Case and Email-to-Case to acknowledge receipt
-- Setup path: Setup → Auto-Response Rules → Case Auto-Response Rules
-- Structure: One active rule → multiple rule entries → criteria → email template
-- If no rule entry matches, no auto-response is sent (no default fallback)
-- Works with HTML email templates and merge fields
-**Speaker Notes:** Auto-Response Rules are a courtesy mechanism — they let customers know their case was received and assigned. The rule structure mirrors Assignment Rules: one active rule with multiple entries evaluated top-to-bottom. Entries use criteria to match cases and specify which email template to send.
+- **"Web-to-Case has the same daily limit as Web-to-Lead (500)"** — FALSE. Web-to-Case limit is 5,000/day.
+- **"Multiple auto-response rules can be active simultaneously"** — FALSE. Only one.
+- **"Email-to-Case Standard mode keeps emails on the company's mail server"** — FALSE. Standard Email-to-Case routes through Salesforce servers. On-Demand mode keeps emails on the company's server.
+- **"Escalation rules delete cases if not resolved"** — FALSE. They escalate (reassign, notify, change priority) but never delete cases.
 
-### Slide 7: Case Escalation Rules
-**Visual:**
-```
-  ──────────────────────────────────────────────────────────────▶ Time
+## Practice Questions
 
-  T=0 hrs       T=4 hrs                        T=8 hrs
-  │             │                              │
-  ▼             ▼                              ▼
-  Case        Escalation                   Second
-  Created     Rule Fires                   Escalation
-  │           │                            (if configured)
-  │           ├── Actions:
-  │           │   • Reassign to Tier 2 Queue
-  │           │   • Email: Support Manager notified
-  │           │
-  ├── Status: New ──────────────────────────────────────────────
-  │
-  Clock PAUSES when Status = "Waiting on Customer"
+**Q:** A company wants cases submitted via their website to automatically create Salesforce Cases. Which feature should they use?
+**A:** Web-to-Case. Generate the HTML form in Setup → Web-to-Case, embed it on the company website.
 
-  ┌──────────────────────────────────────────────────────────────┐
-  │  Setup → Escalation Rules → Rule Entries                     │
-  │  Criteria:  Priority = High                                  │
-  │  Age Over:  4 hours (from case created / last modified)      │
-  │  Actions:   Reassign to queue + Email notification           │
-  └──────────────────────────────────────────────────────────────┘
-```
-**Content:**
-- Escalation Rules automatically escalate cases that have not been resolved within a time threshold
-- Setup path: Setup → Escalation Rules
-- Rule entries define: criteria for which cases are covered, time trigger, and escalation action
-- Escalation actions: reassign to a user/queue, send email notification
-- **Age Over:** How many hours since the case was created or since it was last modified
-- Escalation clocks can pause when case status is in certain statuses (e.g., "Waiting on Customer")
-**Speaker Notes:** Escalation Rules enforce your SLA commitments. The time threshold (Age Over) tells Salesforce when to escalate. Admins can configure the clock to pause when cases are in statuses like "Pending Customer Response," so your SLA timer doesn't count time waiting on the customer.
+**Q:** A support manager wants cases that aren't responded to within 4 hours to automatically be reassigned to a senior support queue. What should the admin configure?
+**A:** Escalation Rules. Set a rule entry for cases with no response within 4 hours → reassign to the senior support queue.
 
-### Slide 8: Case Related Lists & Activity
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │                  CASE RECORD — RELATED LISTS                 │
-  ├──────────────────────┬───────────────────────────────────────┤
-  │ Case Comments        │ Notes on the case; can be            │
-  │                      │ Public (customer portal visible) or  │
-  │                      │ Internal (agents only)               │
-  ├──────────────────────┼───────────────────────────────────────┤
-  │ Emails               │ Email thread from Email-to-Case or   │
-  │                      │ manually sent agent emails           │
-  ├──────────────────────┼───────────────────────────────────────┤
-  │ Attachments / Files  │ Documents related to the case        │
-  ├──────────────────────┼───────────────────────────────────────┤
-  │ Case History         │ Audit trail — field change log       │
-  ├──────────────────────┼───────────────────────────────────────┤
-  │ Related Cases        │ Parent-child case grouping           │
-  │                      │ (e.g., product defect → many cases)  │
-  ├──────────────────────┼───────────────────────────────────────┤
-  │ Case Team            │ Agents collaborating on this case    │
-  └──────────────────────┴───────────────────────────────────────┘
-```
-**Content:**
-- **Case Comments:** Internal notes and customer-facing comments on the case
-- **Emails:** Email messages sent/received related to the case (from Email-to-Case or manual emails)
-- **Attachments/Files:** Documents related to the case
-- **Case History:** Audit trail of field changes
-- **Related Cases:** Parent-child relationship for grouping related issues
-- **Contact Roles / Case Team:** People involved in the case
-**Speaker Notes:** Understanding the Case related lists helps you configure appropriate page layouts. Case Comments can be marked Public (visible to customers via portal) or Internal (agents only). Related Cases are useful for grouping a product defect's individual customer cases under one parent master case.
-
-## 🎙️ RECORDING SCRIPT
-
-Welcome to Lecture 22 — Cases and Case Management. Cases are the core of Salesforce Service Cloud, and this topic is well-represented on the Administrator exam. Let's work through it systematically.
-
-A Case represents a customer support interaction — a question, a complaint, a request, or a bug report. Every case has a Subject, a Status, a Priority, and a Case Origin. The Case Number is auto-generated by Salesforce — it's a sequential number you can reference in communications, but it can never be edited.
-
-Case Origin tells you how the customer reached out: Web, Email, Phone, Chat, or Social. This is a picklist you can customize. It's used in reports and can be used in assignment rules to route cases appropriately.
-
-Let's talk about how cases get in. Web-to-Case works just like Web-to-Lead — you generate an HTML form in Setup, publish it on your website, and when a customer submits it, Salesforce creates a case automatically. The limit is 5,000 cases per day, much higher than Web-to-Lead.
-
-Email-to-Case is the mechanism for turning support emails into cases. There are two variants. On-Demand Email-to-Case routes email through Salesforce's servers — easiest to set up, no software needed. Standard Email-to-Case processes email behind your firewall using an installed agent — required when you have strict data security requirements. Both let you configure routing addresses, where each address maps to a queue, sets default priority, and assigns a case origin.
-
-Once a case exists, who handles it? Case Teams let multiple agents collaborate. Like Opportunity Teams, each team member gets a role and a level of access. You can create predefined Case Teams that agents apply with a single click.
-
-Auto-Response Rules send an acknowledgment email to the customer when a case is created. This is especially important for Web-to-Case and Email-to-Case so customers aren't left wondering if their submission went through. The rule structure is the same as Assignment Rules — one active rule, multiple entries evaluated top-to-bottom, each with criteria and an email template.
-
-Escalation Rules enforce your SLAs. If a case isn't resolved or updated within a specified number of hours, the escalation rule fires. It can reassign the case to a different user or queue and send notification emails. You can configure the escalation clock to pause when cases are in certain statuses — like "Waiting on Customer" — so your SLA timer only counts time when your team is actually responsible for the next action.
-
-On the Case record itself, the related lists you need to know are Case Comments for notes, Emails for email thread history, Attachments for files, and Case History for the audit trail. Case Comments can be marked Public — which means customers can see them through a self-service portal — or Internal, which is agent-only.
-
-Case management in Salesforce is a well-designed system, and understanding these components gives you the foundation to support any service organization. Next, we'll go deeper into Queues and Assignment Rules.
-
-## 🔔 EXAM TIPS
-- **Web-to-Case limit is 5,000/day:** Much higher than Web-to-Lead's 500/day limit.
-- **On-Demand vs Standard Email-to-Case:** On-Demand uses Salesforce servers; Standard uses an on-premise agent — choose Standard for data security requirements.
-- **Auto-Response Rules have no default fallback:** If no rule entry matches the case criteria, no email is sent.
-- **Escalation Rule clock can pause:** Configure "Business Hours" and pause statuses so SLA timers don't count customer-wait time.
-- **Case Comments can be Public or Internal:** Public comments are visible in customer portals; Internal are agent-only.
-- **Activated Cases follow the same sharing model as Accounts:** If you can see the Account, you can typically see related Cases.
-
-## ✅ LECTURE SUMMARY
-- Case object tracks customer issues with fields: Case Number (auto), Subject, Status, Priority, Case Origin
-- Case Origin values: Web, Email, Phone, Chat, Social — customizable picklist
-- Web-to-Case generates an HTML form; limit 5,000 cases/day; configure auto-response rule
-- Email-to-Case: On-Demand (Salesforce servers) vs Standard (on-premise agent for compliance)
-- Case Teams allow multi-agent collaboration with roles and access levels
-- Auto-Response Rules send acknowledgment emails on case creation; no automatic fallback if no rule matches
-- Escalation Rules fire time-based escalation actions (reassign, notify) when cases aren't resolved within a threshold; clock can pause on certain statuses
-
-## ❓ MINI QUIZ
-
-**Q1:** A company's compliance team requires that all support emails remain on the company's internal mail servers and never route through Salesforce servers. Which Email-to-Case option should the administrator configure?
-- A) On-Demand Email-to-Case
-- B) Standard Email-to-Case
-- C) Email-to-Case is not possible with this requirement
-- D) Web-to-Case as an alternative to Email-to-Case
-**Answer:** B — Standard Email-to-Case uses an agent installed behind the company's firewall. Emails are processed on-premise before case data is synced to Salesforce, keeping raw email content on internal servers and satisfying compliance requirements.
-
-**Q2:** A support manager reports that customers are not receiving any acknowledgment when they submit cases via the web form. Web-to-Case is enabled and working. What is the most likely issue?
-- A) The Web-to-Case daily limit has been reached
-- B) No Case Auto-Response Rule has been configured, or no rule entries match the submitted cases
-- C) The Contact on the case does not have a valid email address field
-- D) Auto-response emails require a paid add-on license
-**Answer:** B — Auto-Response Rules must be configured separately. Enabling Web-to-Case does not automatically send acknowledgment emails. The admin must create an Auto-Response Rule with at least one entry that matches incoming cases and specifies an email template.
-
-**Q3:** An administrator needs to automatically reassign any case that has been open for more than 8 hours without resolution. Which feature should be configured?
-- A) Case Assignment Rules with a time-based criteria
-- B) Workflow Rule with a time-based workflow action
-- C) Case Escalation Rules
-- D) Case Auto-Response Rules
-**Answer:** C — Case Escalation Rules are specifically designed for time-based case escalation. They monitor case age and fire configured actions (such as reassigning to a queue and sending an email notification) when the age threshold is exceeded.
+**Q:** What is the difference between Standard Email-to-Case and On-Demand Email-to-Case?
+**A:** Standard Email-to-Case routes emails through Salesforce's servers. On-Demand Email-to-Case (via email relay) keeps emails on the company's mail server and sends a notification to Salesforce — useful for companies with strict email security requirements.

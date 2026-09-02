@@ -1,204 +1,245 @@
-# Agentforce Voice Cheat Sheet
+# Agentforce Voice — Exam Cheat Sheet
 
-## Architecture Quick Reference
+## Architecture in One Diagram
 
-The Agentforce Voice stack has three distinct layers. Understanding which layer owns which capability is a frequent exam topic.
+```
+[PSTN] → [Telephony Partner] → [Service Cloud Voice] → [Agentforce Agent]
+          Amazon Connect          VoiceCall record         Topics / Actions
+          Genesys                 ConversationEntry         TTS via Amazon Polly
+          NICE CXone              Omni-Channel routing      Escalation → Human Queue
 
-| Layer | Component | Role |
+Three-tier architecture:
+  Tier 1: Telephony Network (PSTN, SIP, carrier)
+  Tier 2: Service Cloud Voice (SCV) — Salesforce + Amazon Connect glue layer
+  Tier 3: Agentforce Platform (LLM, Topics, Actions, Einstein NLP)
+```
+
+---
+
+## Telephony Integration Quick Reference
+
+| Mode | Description | Who manages it |
 |---|---|---|
-| Telephony | Amazon Connect / Genesys / NICE CXone | Carries the actual phone call; hosts IVR/contact flows |
-| Integration | Service Cloud Voice (native or Partner API) | Bridges telephony to Salesforce; creates VoiceCall records |
-| AI / CRM | Agentforce Agent + Einstein features | Autonomous handling, agent assist, transcription, summarization |
+| Amazon Connect (managed) | Salesforce manages CTI adapter via managed package | Salesforce manages |
+| Partner Telephony (BYOT) | Customer brings Genesys / NICE via Open CTI | Customer/partner manages |
+| Amazon Connect ARN format | `arn:aws:connect:<region>:<account>:instance/<id>` | Copied from AWS console |
 
-**Call flow (inbound):** PSTN → Telephony Provider → IVR/Contact Flow → Agentforce Bot OR Omni-Channel Queue → Agent Console (with Screen Pop + Transcript)
-
----
-
-## Setup Checklist
-
-Steps must generally occur in this order. Skipping or reordering causes common exam scenarios about "what went wrong."
-
-1. Provision telephony: set up Amazon Connect instance (or configure Partner telephony connector)
-2. Enable Service Cloud Voice in Salesforce Setup
-3. Create a Contact Center — link to the telephony provider
-4. Configure permissions: assign Voice User permission set to agents
-5. Enable real-time transcription (if using)
-6. Set up Omni-Channel: create a Service Channel for Voice, create a Queue, assign agents
-7. Associate the Contact Center with the Omni-Channel queue
-8. Build Voice Flows (for IVR logic, data lookup, routing)
-9. Build Agentforce Agent: create Topics, add Actions, write Instructions
-10. Configure Screen Pop rules
-11. Configure After Call Work (ACW) state in Omni-Channel
-12. Enable Einstein Call Summarization (optional)
-13. Test using Agent Tester and sandbox telephony
-14. Deploy and monitor via Omni-Channel Supervisor + Service Intelligence
+**License layers:**
+- Org: Service Cloud Voice feature license (Company Information)
+- User: SCV (Partner Telephony) permission set license (per agent)
 
 ---
 
-## Voice vs. Chat — Key Differences
+## Voice Channel Configuration
 
-| Dimension | Voice | Chat (Messaging) |
+```
+Location: Agentforce Studio → [Agent] → Channels → Voice
+NOT: Service Cloud Voice Setup, NOT: Omni-Channel Setup
+
+Key settings:
+  Connected Telephony → Amazon Connect integration
+  Enable Agentforce Voice → ON
+  Persona Name → must EXACTLY match system prompt agent name
+  TTS Voice → Amazon Polly options (depend on telephony partner)
+  Fallback Queue → MANDATORY
+  Transfer Type → Warm (not Cold)
+  Max Turns → default 20 (increase for multi-intent calls)
+  Barge-in → ON by default
+
+Changes → Draft version → must PUBLISH to take effect
+```
+
+---
+
+## Flow Types — Voice Compatibility
+
+| Flow Type | Voice? | Notes |
 |---|---|---|
-| Real-time medium | Audio via telephony provider | Text via Messaging for In-App, Web, etc. |
-| Transcription | Required intermediary step — speech → text | Native text; no transcription needed |
-| Latency tolerance | Low — responses must feel conversational | Higher — typing delay is normal |
-| DTMF input | Supported via Collect Digits flow element | Not applicable |
-| Bot invocation | Triggered in telephony IVR/contact flow | Triggered by messaging channel routing |
-| Screen Pop | Surfaced in agent's softphone/console panel | Surfaced as chat window with record sidebar |
-| Call recording | Stored in telephony provider (e.g., S3) | Chat logs stored in Salesforce MessagingSession |
-| Escalation | Transfer call + create work item for human | Transfer messaging session to human queue |
+| Screen Flow | NO | Requires UI surface — no screen on a phone call |
+| Autolaunched Flow | YES | Headless |
+| Voice Call Flow (subtype) | YES ← use this | Has Speak, Get Input, Transfer, Pause elements |
+| Scheduled Flow | NO | Not triggered by real-time events |
+| Record-Triggered Flow | LIMITED | Can react to VoiceCall creation, not direct voice |
+
+**Voice Flow elements:**
+- `Speak` — inject TTS message; bypasses LLM
+- `Get Input` — capture speech or DTMF; configure retries + timeout
+- `Transfer` — warm (passes context) or cold (no context)
+- `Pause` — timed silence; use after questions to prevent VAD false trigger
+- `Decision`, `Get Record`, `Update Record`, `Subflow` — standard Flow elements work
 
 ---
 
-## Amazon Connect Integration
+## Topic Design Rules for Voice
 
-**What it is:** Native, first-party integration — no middleware needed. Amazon Connect Contact Control Panel (CCP) is embedded directly in Salesforce Agent Console.
-
-**Key steps:**
-- Create Amazon Connect instance in AWS (or use existing)
-- In Salesforce Setup, navigate to Contact Centers → New → Amazon Connect
-- Authenticate using AWS IAM credentials
-- Map Amazon Connect queues to Omni-Channel queues in Salesforce
-- Configure Contact Flows in Amazon Connect to invoke Salesforce Lambda functions (for data lookup) or route to the Salesforce-connected queue
-
-**Gotchas:**
-- One Amazon Connect instance can connect to only one Salesforce Contact Center, but one Salesforce org supports up to 5 Amazon Connect instances
-- Call recordings go to Amazon S3 — Salesforce stores the link, not the file
-- Real-time transcription is powered by Amazon Transcribe under the hood
-- IAM user permissions must include Connect, Transcribe, and Lambda access
-- Test by linking a separate Amazon Connect test instance to your Salesforce sandbox
+```
+BAD (written style):                    GOOD (conversational):
+"This topic handles billing inquiries   "Customer says they got charged wrong,
+ and dispute resolution requests."       wants to dispute a charge, or asks about
+                                         their bill. Example: 'I was charged twice,'
+                                         'this charge doesn't look right.'"
+Rules:
+  - First-person, caller's perspective
+  - Include 2–5 example spoken phrases
+  - No jargon, no formal language
+  - Keep topics semantically distinct (no overlap)
+```
 
 ---
 
-## Voice Agent Configuration
+## Action Compatibility
 
-| Setting | Location in Setup | Purpose |
+| Action Type | Voice? | Notes |
 |---|---|---|
-| Agent Name & Description | Agentforce → Agents → New | Identifies the agent; description guides LLM behavior |
-| Agent Type | Agent Config | Set to "Voice" for voice-specific agents |
-| Topics | Agent → Topics | Defines what intents the agent handles |
-| Actions | Topic → Actions | What the agent can do (lookup, transfer, end call) |
-| Instructions | Topic or Agent level | Guardrails, tone, escalation guidance |
-| Grounding (Knowledge) | Topic → Knowledge Sources | Links Knowledge Articles for accurate answers |
-| System Prompt Override | Advanced Agent Settings | Org-specific behavioral constraints |
-| Channel Assignment | Contact Center config | Binds the agent to the voice channel/Contact Center |
+| Autolaunched Flow action | YES | Must be autolaunched, not Screen Flow |
+| Apex action | YES | Returns text for TTS |
+| Knowledge Article retrieval | YES | Plain text only — HTML will be spoken |
+| External Service callout | CONDITIONAL | Latency must be <2s; add Speak wait message |
+| Screen Flow | NO | Requires UI |
+| Email Send actions | NO | Output is visual |
+| Lightning Component actions | NO | Requires browser DOM |
 
 ---
 
-## Autonomous vs. Agent Assist
+## Key Behavioral Differences (Voice vs. Chat)
 
-| Dimension | Autonomous Voice Agent | Agent Assist |
+| Behavior | Voice | Chat |
 |---|---|---|
-| Human involvement | None (unless escalated) | Human agent is always on the call |
-| AI role | Conducts the full conversation | Suggests responses, articles, actions to human |
-| Best for | Routine, structured inquiries (status, FAQs) | Complex calls needing human judgment |
-| Escalation | Transfers to human queue when needed | Human is already handling the call |
-| Configuration | Full Agentforce Agent with Topics + Actions | Agent Assist panel in console; lighter config |
-| Risk if misconfigured | Customer ends up in unhandled loop | Agent ignores suggestions; low AI value |
-| Monitoring metric | Bot Containment Rate | Suggestion Acceptance Rate |
-| License requirement | Agentforce Voice license | Included in broader Agent Assist entitlements |
+| Markdown in responses | BROKEN — spoken verbatim | Supported |
+| Response length | Short, conversational | Long OK |
+| Barge-in | Supported (on by default) | N/A |
+| Silence detection | ~3 seconds → re-prompt or disconnect | N/A |
+| Error recovery | Re-prompt or DTMF fallback | Ask to rephrase |
 
 ---
 
-## Voice Flows — Element Reference
+## Transcription Pipeline
 
-Voice Flows (built in Flow Builder) control the IVR/bot experience before and during routing. These elements are voice-specific.
+```
+Audio → Telephony → AWS Transcribe → Salesforce → Einstein NLP
 
-| Element | What It Does | Common Use |
-|---|---|---|
-| Play Message | Plays TTS or audio file to caller | Greetings, hold music, announcements |
-| Collect Digits | Captures keypad (DTMF) input | Legacy IVR menus, PIN entry |
-| Ask Question | Prompts caller for spoken response; captures transcription | Collecting name, account number, reason for call |
-| Get Records | Queries Salesforce data | Account lookup, case check, contract status |
-| Decision | Branches flow based on conditions | Route by account tier, case status, intent |
-| Transfer to Queue | Routes caller to Omni-Channel queue | Escalation to human, specialty routing |
-| End Call | Terminates the call | Resolution, after self-service completes |
-| Start Bot Session | Invokes an Agentforce autonomous agent | Handing off from IVR to AI agent |
-| Set Variable | Stores data for downstream steps | Capture intent, account number for screen pop |
-| Send SMS | Sends text to caller's number | Confirmation numbers, article links post-call |
+Salesforce = CONSUMER of transcript, NOT the producer
+
+is_partial: true  = streaming (incomplete) — don't act on this
+is_partial: false = finalized utterance — act on this
+
+Two-channel mode = near-100% speaker accuracy (default on Amazon Connect)
+Single-channel = ML diarization = less reliable
+Confidence ~0.75 threshold (default): below → DTMF fallback; above → process
+
+Cascade failure: bad audio → low confidence → poor NLP → wrong Topic → bad experience
+```
+
+---
+
+## VoiceCall Object Model
+
+```
+VoiceCall (parent)
+├── VoiceCallRecording (URL to S3 recording)
+├── ConversationEntry (each utterance: speaker, text, confidence, timestamp)
+└── related Contact / Case (via screen pop match)
+
+VoiceCall.Status values: Active, Completed, Abandoned, Error
+ConversationEntry.Speaker: CUSTOMER, AGENT, VOICE_BOT
+ANI lookup field: {!$Record.CallerId} (available in Voice Call Flow)
+```
 
 ---
 
 ## Omni-Channel for Voice
 
-**Key concepts:**
-
-- **Service Channel**: A Voice-type Service Channel must exist — this tells Omni-Channel that voice calls are a workable channel type
-- **Queue**: Calls waiting for a human agent sit in an Omni-Channel queue. Each queue has a priority (lower number = higher priority)
-- **Routing Configuration**: Sets capacity (how many simultaneous calls an agent can take — typically 1 for voice) and routing model (Most Available, Least Active)
-- **Presence Status**: Agents must be in an "Available for Voice" presence status to receive calls. After-call Work (ACW) temporarily removes them from routing
-- **Supervisor Tab**: Real-time view of queue depth, agent status, and active calls — critical for operations questions on the exam
-
-**Routing priority exam tip:** If a question asks why voice calls aren't being delivered before chats, check the queue priority number — voice queue should have a lower number (higher urgency).
-
----
-
-## Monitoring Metrics
-
-| Metric | Where to Find It | What It Measures |
-|---|---|---|
-| Bot Containment Rate | Service Intelligence / Voice Analytics | % of calls resolved by bot without human escalation |
-| Average Handle Time (AHT) | Service Intelligence, Omni-Channel Report | Total time per call (talk + hold + ACW) |
-| Escalation Rate | Custom VoiceCall Report / Service Intelligence | % of bot calls transferred to human |
-| Queue Wait Time | Omni-Channel Supervisor (real-time), Analytics | Time callers wait before agent answers |
-| Agent Utilization | Omni-Channel Supervisor / Analytics | % of time agents are handling work vs. available |
-| Suggestion Acceptance Rate | Agent Assist Analytics | % of AI suggestions the human agent acted on |
-| First Call Resolution (FCR) | Custom report on VoiceCall + Case | % of calls that resolve the issue without callback |
-| Transcription Accuracy | Spot-check via VoiceCall records | Quality of STT output — affects bot and summarization |
-| Call Volume by Topic | Einstein Conversation Mining | Breakdown of call reasons across periods |
-| Sentiment Score | Einstein Conversation Insights | Positive/negative tone signals in transcript |
+| Concept | Value |
+|---|---|
+| Voice capacity cost | 100% (agent can't take other work by default) |
+| Routing models | Most Available / Least Active / Skills-Based |
+| Bot capacity units | Separate from human agent slots |
+| ACW (After Call Work) | Timed wrap-up; returns agent to Available when timer expires |
+| Skill relaxation | Removes skill requirements after N seconds if no skilled agent available |
+| Queue overflow | Must be explicitly configured — no default behavior |
+| Fallback Queue | MANDATORY in voice agent config |
 
 ---
 
-## Common Exam Traps
+## PCI / Compliance
 
-1. **Recording storage location**: Call recordings are NOT stored in Salesforce. They live in the telephony provider's storage (S3 for Amazon Connect). Salesforce holds a reference URL only.
+```
+Four-layer PCI compliance for voice:
+1. Recording pause → Amazon Connect Contact Flow (NOT Salesforce Flow)
+2. DTMF-only input for card numbers → telephony layer
+3. AWS Transcribe PII redaction → removes card numbers from transcript text
+4. Retention policy on VoiceCall + S3 lifecycle rules → coordinated deletion
 
-2. **IVR routing controls bot invocation**: Whether a call goes to the Agentforce bot is decided in the telephony IVR/contact flow, not in Salesforce Omni-Channel or Agent configuration.
-
-3. **Queue priority is inverse**: A queue with priority "1" is higher priority than a queue with priority "10." Questions about why voice isn't prioritized over chat often hinge on this.
-
-4. **Partner Telephony vs. Native**: Amazon Connect = native integration. Genesys and NICE CXone = Partner Telephony via the Partner API. Setup steps, feature support, and limitations differ between them.
-
-5. **Agent Tester ≠ telephony test**: The Agentforce Agent Tester lets you test conversation logic but doesn't simulate real phone calls. For end-to-end testing, you need a telephony sandbox.
-
-6. **VoiceCall is auto-created, not manually created**: A VoiceCall record is created automatically when a call begins. Admins don't create them; they configure what gets written to them.
-
-7. **DTMF and NLP are not mutually exclusive**: Voice Flows support both DTMF (Collect Digits) and natural language (Ask Question). A well-designed flow often includes DTMF fallback for NLP failures.
-
-8. **After Call Work is an Omni-Channel presence state**: ACW is configured in Omni-Channel, not in the telephony provider. It's a Salesforce routing state, not a telephony hold or mute feature.
-
-9. **Einstein Conversation Mining is retrospective**: It analyzes historical transcripts to guide future bot design — it does not influence real-time call handling.
-
-10. **"Service Cloud Voice" vs "Agentforce Voice" are layered, not competing**: Service Cloud Voice is the integration foundation. Agentforce Voice is the AI layer on top. You need both for autonomous call handling; Service Cloud Voice alone provides CTI + transcript but no AI agent.
+GDPR:
+- Consent prompt → before transcription starts (IVR layer)
+- PII redaction → AWS Transcribe
+- Right to erasure → delete VoiceCall + ConversationEntry + S3 recording
+- FLS on VoiceCall fields → limit transcript access
+```
 
 ---
 
-## Key Object Reference
+## Analytics & Monitoring
 
-### VoiceCall Object — Core Fields
-
-| Field | Type | Description |
+| Feature | Type | Use For |
 |---|---|---|
-| CallDurationInSeconds | Number | Total call length |
-| CallType | Picklist | Inbound, Outbound, Internal |
-| Status | Picklist | In Progress, Completed, Transferred, Missed |
-| FromPhoneNumber | Phone | Caller's number (ANI) |
-| ToPhoneNumber | Phone | Dialed number (DNIS) |
-| OwnerId | Lookup (User) | Assigned agent |
-| ContactId | Lookup (Contact) | Linked Contact record |
-| CaseId | Lookup (Case) | Linked Case record |
-| CallCenterId | Lookup (CallCenter) | Associated Contact Center |
-| CallDisposition | Text | Outcome/disposition code (often custom) |
-| RecordingUrl | URL | Link to recording in telephony storage |
-| ConversationId | Text | Links to ConversationEntry for transcripts |
+| ECI (Einstein Conversation Insights) | Operational | Per-call metrics, keyword alerts, out-of-scope tracking |
+| ECM (Einstein Conversation Mining) | Retrospective | Batch ML analysis of historical transcripts — NOT real-time |
+| Supervisor Console | Real-time | Queue depth, agent status, listen/barge/whisper |
+| VoiceCall + ConversationEntry reports | Post-call | Transcripts, confidence, containment |
+| WER (Word Error Rate) | STT quality | Target < 10% for production |
+| MOS Score | Audio quality | Measured at telephony layer (Amazon Connect CTR) |
+| Containment Rate | Primary ROI metric | Calls resolved by AI / total AI-handled calls |
 
-### Related Objects
+---
 
-| Object | Relationship | Purpose |
-|---|---|---|
-| VoiceCallRecording | Child of VoiceCall | Metadata about the recording |
-| ConversationEntry | Related via ConversationId | Individual transcript utterances |
-| MessagingSession | Separate (chat) | Do not confuse with VoiceCall |
-| AgentWork (Omni-Channel) | Related | Tracks routing assignment to agent |
-| ServiceChannel | Config object | Defines voice as a channel type |
+## Setup Order (Critical for Exam)
+
+```
+1. Voice Settings (org-level enable)
+2. Named Credentials (AWS authentication)
+3. Voice Call Centers (link Salesforce to Amazon Connect)
+4. Voice Channel (Omni-Channel service channel)
+5. Routing Configuration
+6. Queue
+7. Presence Statuses
+8. Agentforce Agent → Channels → Voice (add voice channel, configure persona)
+9. Voice Call Flow (autolaunched, Voice Call subtype)
+10. App Manager → add softphone widget to Lightning App
+```
+
+---
+
+## Limitations Quick Reference
+
+| Area | Key Limitation |
+|---|---|
+| Telephony | Up to 5 Amazon Connect instances per Salesforce org |
+| Transcription | Language support limited — check current list; English has best accuracy |
+| Screen Flow | Categorically incompatible with voice — no exceptions |
+| Bot capacity | Concurrent bot call limits apply — request increase pre-launch |
+| Agent changes | Draft → Publish required before changes take effect |
+| Barge-in | On by default; if disabled, callers cannot interrupt |
+| Screen pop | E.164 ANI format must match Contact.Phone field format |
+| Data Cloud | Adds ~200–500ms latency to call setup |
+| Amazon Connect | Concurrent transcription stream quotas — request increase 4–6 weeks before launch |
+| MOS < 3.5 | STT accuracy degrades significantly; fix at network/device level, not Salesforce |
+
+---
+
+## Exam Traps Summary
+
+- Screen Flow in voice → NEVER (use autolaunched Voice Call Flow subtype)
+- Voice channel config → Agentforce Studio only (NOT Service Cloud Voice Setup)
+- Persona name mismatch → agent introduces itself with wrong name
+- Recording pause → Amazon Connect Contact Flow (NOT Salesforce Flow)
+- Barge-in default → ON (disabling it causes callers to be unable to interrupt)
+- ECI vs. ECM → ECI = operational per-call; ECM = retrospective batch (not real-time)
+- is_partial: true → streaming; don't act until is_partial: false
+- Out-of-scope ≠ low confidence → out-of-scope: understood but unsupported; low confidence: not understood
+- Two-channel vs. single-channel → two-channel is near-100% speaker accuracy; single-channel uses imperfect ML
+- Fallback queue → mandatory configuration; Salesforce warns if missing
+- Agent Assist → assists human agents AFTER escalation; not available during autonomous bot interaction
+- ANI format → E.164 (+1XXXXXXXXXX) from telephony; must match Contact.Phone format for screen pop
+- Publishing → all agent changes require publish before taking effect
+- WER < 10% → production-ready STT baseline; fix Custom Vocabulary before tuning confidence threshold

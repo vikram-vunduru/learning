@@ -1,186 +1,260 @@
-# Lecture 23: Deployment and Change Management
+# Deployment & Change Management
 
-## Learning Objectives
-- Understand the change set workflow and its role in org-to-org metadata deployments
-- Use Salesforce CLI (sf) commands to deploy, retrieve, push, and pull metadata with source-tracked orgs
-- Describe the scratch org development workflow from creation through package contribution
-- Differentiate unlocked packages from managed packages and explain CI/CD pipeline structure with GitHub Actions
+## Exam Domain
+Testing, Debugging & Deployment — 22% of exam weight
 
-## Slides
+## Core Concepts
 
-### Slide 1: Deployment Overview — The Path from Dev to Production
-**Visual:** Pipeline diagram showing three environments: Developer Sandbox → Full/Partial Sandbox (QA/UAT) → Production, with arrows labeled "Change Set" or "CLI Deploy" between each stage
-**Content:**
-- Salesforce follows an **environment-based deployment model**: code moves through a chain of orgs
-- Common pipeline: Developer Sandbox → QA Sandbox → UAT Sandbox → Production
-- Deployment methods:
-  - **Change Sets** — GUI-driven, org-to-org (no version control required)
-  - **Salesforce CLI** — command-line, file-system based, version-control friendly
-  - **Packages (Unlocked/Managed)** — artifact-based, installable across orgs
-- All deployments to production must pass the **75% Apex code coverage** requirement
-**Speaker Notes:** Every Salesforce developer eventually needs to move code from a sandbox to production. The method you choose matters — change sets are fine for small orgs, but any serious team should be using CLI-based deployments with version control. This lecture covers the full spectrum from change sets through automated CI/CD.
+### Deployment Methods — Three Approaches
+Salesforce has three ways to move metadata between environments: change sets (GUI), CLI (source-format), and packages (artifact-based).
 
----
+| Method | Version Control | Rollback | Use Case |
+|--------|----------------|----------|----------|
+| Change Set | No | Manual | Small teams, occasional deploys |
+| Salesforce CLI | Yes (git) | Git revert | Teams with source control |
+| Unlocked Package | Yes (artifact) | Install prior version | Modular enterprise development |
+| Managed Package | Yes | Version rollback | ISV/AppExchange distribution |
 
-### Slide 2: Change Sets — GUI-Driven Deployment
-**Visual:** Two browser windows showing "Outbound Change Set" in sandbox with components listed, and "Inbound Change Set" in production with a Deploy button highlighted
-**Content:**
-- **Outbound Change Set** (source org): add metadata components → upload to connected target org
-- **Inbound Change Set** (destination org): validate → deploy
-- Requires a **Deployment Connection** configured in Setup between the two orgs
-- Change sets do **not** capture data — metadata only
-- Validate before Deploy to run tests without committing changes
-- Limitation: no version history, no rollback, dependent components must be manually added
+All production deployments require **75% Apex code coverage** and **zero test failures**.
+
+### Change Sets — GUI-Driven Org-to-Org
 ```
-Setup > Deploy > Outbound Change Sets > New > Add Components > Upload
+Setup > Deploy > Outbound Change Sets > New
+  → Add Components (select metadata types and members)
+  → Upload to connected org
+
+Target org > Setup > Deploy > Inbound Change Sets
+  → Validate (runs tests without committing)
+  → Deploy
 ```
-**Speaker Notes:** Change sets are the most accessible deployment method for admins and developers new to Salesforce. The major limitation is that they create no audit trail and cannot be rolled back — if a deployment causes issues, you have to manually revert. For teams of more than two or three people, the lack of version control is a serious problem.
+- Requires **Deployment Connection** configured between source and target orgs
+- Does NOT capture data — metadata only
+- No version history, no rollback, no diff view
+- Dependent components must be manually included
 
----
+### Salesforce CLI — Source-Format Commands
+```bash
+# Authenticate to org
+sf org login web --alias myDev
 
-### Slide 3: Salesforce CLI — Source-Format Commands
-**Visual:** Terminal window showing a sequence of sf commands with output annotations
-**Content:**
-- Install: `npm install --global @salesforce/cli` or download the installer
-- Authenticate: `sf org login web --alias myDev`
-- **Retrieve** metadata from org to local: `sf project retrieve start --metadata ApexClass:MyClass`
-- **Deploy** local metadata to org: `sf project deploy start --source-dir force-app`
-- **Validate** (check only, no commit): `sf project deploy start --dry-run --test-level RunLocalTests`
-- Deploy with test level: `sf project deploy start --test-level RunAllTestsInOrg`
-- Useful flags: `--target-org <alias>`, `--source-dir`, `--metadata`, `--test-level`
-**Speaker Notes:** The Salesforce CLI is the modern developer tool for deployments. It works with standard version control — your metadata lives in a local directory alongside your code, tracked in git. When you're ready to deploy, you run a single command. The --dry-run flag lets you validate without actually deploying, which is essential for CI/CD pipeline checks.
+# Retrieve specific metadata from org
+sf project retrieve start --metadata ApexClass:AccountService
 
----
+# Deploy local directory to org
+sf project deploy start --source-dir force-app
 
-### Slide 4: Scratch Orgs and Source Tracking
-**Visual:** Lifecycle diagram: sfdx-project.json config → sf org create scratch → develop in org → sf project deploy start (pull to local) → git commit → sf project deploy start (push to another scratch org) → test
-**Content:**
-- **Scratch orgs** are temporary, disposable developer environments (expire in 1-30 days)
-- Configured via `config/project-scratch-def.json` — define features, settings, and edition
-- **Source tracking**: CLI automatically tracks which files changed between local and org
-- `sf project deploy start` — push local changes to scratch org
-- `sf project retrieve start` — pull org changes back to local (e.g., after using UI to build a flow)
-- Scratch orgs do **not** contain production data — must seed test data
-- Enables true **package-based development**: each feature in its own branch + scratch org
-**Speaker Notes:** Scratch orgs are one of the most powerful features of the Salesforce DX development model. Because they're disposable, you can create a fresh environment for every feature branch, test in isolation, and throw it away when you're done. Source tracking eliminates the need to manually track what changed — the CLI knows.
+# Validate (dry run) — tests run, nothing committed
+sf project deploy start --dry-run --test-level RunLocalTests --target-org myDev
 
----
+# Deploy with explicit test level
+sf project deploy start --source-dir force-app --test-level RunAllTestsInOrg
+```
 
-### Slide 5: Unlocked Packages vs Managed Packages
-**Visual:** Two-column comparison table with headers "Unlocked Package" and "Managed Package", comparing use case, source visibility, namespace, upgrade model, and AppExchange eligibility
-**Content:**
-| Feature | Unlocked Package | Managed Package |
+### Test Levels for Deployment
+| Test Level | What Runs | When to Use |
+|-----------|-----------|-------------|
+| `NoTestRun` | Nothing | Sandboxes only — never production |
+| `RunSpecifiedTests` | Named classes only | When those classes cover the deployed code |
+| `RunLocalTests` | All non-package tests | Standard for CI/CD sandbox validation |
+| `RunAllTestsInOrg` | Every test in org | Production deployments via API |
+
+Default for production change sets: all local tests run automatically.
+
+### Scratch Orgs and Source Tracking
+Scratch orgs are temporary, disposable developer environments (expire in 1–30 days). Configured via `config/project-scratch-def.json`.
+
+Source tracking: CLI automatically tracks which files changed between local and org.
+```bash
+sf org create scratch --definition-file config/project-scratch-def.json --alias myFeature
+
+# Push local changes to scratch org
+sf project deploy start
+
+# Pull org changes back to local (e.g., flow built in UI)
+sf project retrieve start
+```
+No production data in scratch orgs — seed test data via Apex scripts or plan files.
+
+### Packages — Unlocked vs Managed
+```bash
+# Create unlocked package
+sf package create --name "AccountFeature" --type Unlocked --path force-app
+
+# Create a package version
+sf package version create --package "AccountFeature" --installation-key-bypass --wait 10
+
+# Install in target org
+sf package install --package 04t... --target-org myProd --wait 10
+```
+
+| | Unlocked Package | Managed Package |
 |---|---|---|
-| Use case | Internal org development | ISV distribution on AppExchange |
-| Source code visible | Yes — open source | No — protected/obfuscated |
+| Source visible to subscriber | Yes | No (obfuscated) |
 | Namespace required | No | Yes |
-| Subscriber can modify | Yes | Limited (configuration only) |
-| AppExchange listed | No | Yes |
-- Create: `sf package create --name "MyPackage" --type Unlocked`
-- Create version: `sf package version create --package "MyPackage" --installation-key-bypass`
-- Install: `sf package install --package 04t... --target-org myProd`
-**Speaker Notes:** Unlocked packages are the recommended deployment unit for internal Salesforce teams adopting Salesforce DX. Instead of deploying individual metadata files, you package a set of components and install that package in each target environment. This gives you versioning, dependency tracking, and a rollback story — if a new version breaks something, you install the previous version.
+| Subscriber can modify | Yes | Limited (config only) |
+| AppExchange distribution | No | Yes |
 
----
-
-### Slide 6: CI/CD with GitHub Actions and SFDX
-**Visual:** GitHub Actions workflow YAML diagram showing job stages: checkout → authenticate with SFDX → validate deploy → run tests → deploy if on main branch
-**Content:**
-- CI/CD integrates source control with automated testing and deployment
-- **GitHub Actions** workflow file (`.github/workflows/deploy.yml`):
+### CI/CD with GitHub Actions and JWT Authentication
+JWT Bearer Flow is required for CI/CD — no browser popup, no interactive login.
 ```yaml
-- name: Authenticate to Org
-  run: sf org login sfdx-url --sfdx-url-file ${{ secrets.SFDX_AUTH_URL }}
-- name: Validate Deploy
-  run: sf project deploy start --dry-run --test-level RunLocalTests
-- name: Deploy to Production
-  if: github.ref == 'refs/heads/main'
-  run: sf project deploy start --test-level RunAllTestsInOrg
+# .github/workflows/deploy.yml
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Authenticate via JWT
+        run: sf org login jwt
+               --username ${{ secrets.SF_USERNAME }}
+               --jwt-key-file server.key
+               --client-id ${{ secrets.SF_CLIENT_ID }}
+               --alias prodOrg
+
+      - name: Validate deployment
+        run: sf project deploy start
+               --dry-run
+               --test-level RunLocalTests
+               --target-org prodOrg
+
+      - name: Deploy on merge to main
+        if: github.ref == 'refs/heads/main'
+        run: sf project deploy start
+               --test-level RunAllTestsInOrg
+               --target-org prodOrg
 ```
-- Authentication via **JWT Bearer Flow** (server-side, no browser popup) for CI environments
-- Connected App required with pre-authorized certificate
-**Speaker Notes:** A working CI/CD pipeline means every pull request automatically validates that the code deploys and all tests pass. Developers get fast feedback before merging. The deploy-on-merge-to-main pattern means production only gets code that has already passed every quality gate automatically.
+Connected App must have a pre-authorized certificate. Secret `server.key` (private key) stored in GitHub Secrets.
 
----
+## PTA / SA Relevance
 
-### Slide 7: Test Levels for Deployment
-**Visual:** Pyramid diagram showing four test levels from bottom (NoTestRun) to top (RunAllTestsInOrg) with recommended use cases beside each level
-**Content:**
-- `NoTestRun` — no tests run; only allowed in sandbox deployments
-- `RunSpecifiedTests` — runs only listed test classes; valid if those classes cover the deployed code
-- `RunLocalTests` — runs all tests **not** from installed packages; recommended for most sandbox deploys
-- `RunAllTestsInOrg` — runs every test in the org; required for **production deployments** using the API
-- Default for production via change set: all local tests run automatically
-- `RunLocalTests` is the standard CI/CD pipeline choice for sandbox validation
-**Speaker Notes:** Choosing the right test level matters for both speed and safety. RunLocalTests is the sweet spot for CI validation — it runs your team's tests without running tests from managed packages you have no control over. For production, RunAllTestsInOrg ensures nothing in the entire org is broken by your change, which is why it's required.
+**In partner code reviews, watch for:**
+- Customer teams still using change sets for everything — no version history means no audit trail, no diff, no ability to understand what changed when a deployment caused an incident
+- `NoTestRun` used in CI pipelines because "it's just a sandbox" — tests exist to be run; skipping them in CI defeats the purpose
+- Hardcoded sandbox org IDs or Named Credentials in code that gets promoted to production — deployment fails or silently uses wrong endpoint
+- Managed package components accidentally included in unlocked packages — creates namespace conflicts
 
----
+**Enterprise-scale considerations:**
+- For multi-org enterprises (multiple sandboxes, UAT, production), the deployment pipeline is a critical piece of architecture. Define environment hierarchy, deployment gates (who approves sandbox→UAT, UAT→prod), and rollback procedures before anything ships.
+- Scratch org-based development is the Salesforce-recommended model for teams adopting package-based development. Each feature branch gets its own scratch org, verified in isolation, then the package version is promoted.
+- JWT Bearer Flow is non-negotiable for CI/CD. Store the private key as a CI secret, not in the repo. Rotate certificates on the same schedule as other service account credentials.
+- For large orgs with 1,000+ Apex classes, `RunAllTestsInOrg` can take 20–60 minutes. Use `RunLocalTests` for PR validation and reserve `RunAllTestsInOrg` for production deployments.
 
-### Slide 8: Deployment Checklist and Common Failures
-**Visual:** Checklist with checkboxes and red X icons on common failure reasons: missing dependencies, <75% coverage, compile errors in referenced classes, inactive flows
-**Content:**
-- Common deployment failures:
-  - **Apex compile errors**: all Apex must compile, including classes not in the change set
-  - **Coverage < 75%**: org-wide coverage drops below threshold
-  - **Missing dependencies**: component in change set references something not in target org
-  - **Test failures**: any test in the org fails during deployment validation
-- Pre-deployment checklist:
-  - Run all tests locally: `sf project deploy start --dry-run --test-level RunLocalTests`
-  - Check for references to sandbox-specific configurations
-  - Verify all dependencies are included or already exist in target
-  - Review code coverage report in Setup before deploying
-**Speaker Notes:** Most deployment failures are preventable with a solid pre-deployment checklist. The most common surprise is coverage — a developer adds a class with 0% coverage and the org-wide average dips below 75%. Always run a dry-run validation in a full-copy sandbox before deploying to production, and review the coverage report in Setup to spot at-risk classes ahead of time.
+**For CTO conversations:**
+- "How do we ensure deployments don't break production?" — Validation-only deploy (dry run) on every PR. Automated test runs in CI. Staged promotion: Dev → QA → UAT → Prod with approvals. Feature flags for risky changes.
+- "What's the difference between our sandbox and scratch org strategy?" — Sandboxes are long-lived and share org configuration history; scratch orgs are disposable and start clean from a definition file. Scratch orgs are for development; sandboxes are for QA and UAT.
+- "We had a deployment fail in production after passing in sandbox." — Usually: coverage gap exposed by org-wide test run, dependency missing from the change set, or production-specific data the tests relied on.
 
----
+## Architecture / How It Works
 
-## Recording Script
+```
+ENTERPRISE DEPLOYMENT PIPELINE
 
-Welcome to Lecture 23 — Deployment and Change Management.
+  Developer                    CI/CD Pipeline                 Production
+  ─────────                    ──────────────                 ──────────
+  feature branch
+       │
+       ├─ scratch org          PR opened →
+       │  (dev/test locally)   ┌─────────────────────────────┐
+       │                       │ 1. Checkout code             │
+       ▼                       │ 2. sf org login jwt          │
+  git push                ──►  │ 3. sf project deploy start   │
+  pull request                 │    --dry-run RunLocalTests   │
+                               │ 4. Report pass/fail to PR    │
+                               └─────────────────────────────┘
+                                        │ merge to main
+                                        ▼
+                               ┌─────────────────────────────┐
+                               │ 1. Deploy to QA Sandbox      │
+                               │ 2. Run integration tests     │
+                               │ 3. Approval gate (manual)    │
+                               │ 4. Deploy to UAT Sandbox     │
+                               │ 5. Approval gate (manual)    │
+                               │ 6. Deploy to Production      │  ──► Production
+                               │    RunAllTestsInOrg           │     ✓ 75% coverage
+                               └─────────────────────────────┘     ✓ 0 test failures
+```
 
-Deployments are where development meets reality. Code that works in your sandbox needs to successfully move to production without breaking anything that's already there. This lecture covers the full spectrum of how that happens in Salesforce.
+**Limitations:**
+- Production deployments require RunAllTestsInOrg or change set (all local tests) — no bypass
+- 75% coverage is org-wide: one class at 0% can block deployment if org average drops below threshold
+- Scratch orgs expire after maximum 30 days — don't build long-lived environments on them
 
-The most accessible deployment method is change sets. You define an outbound change set in your sandbox, add the metadata components you want to move, and upload it to your production org. Production receives an inbound change set that you can validate and then deploy. Change sets are perfectly adequate for small teams and occasional deployments, but they have real limitations: no version history, no rollback capability, and dependent components must be manually hunted down and added.
+```
+CHANGE SET vs CLI DEPLOYMENT COMPARISON
 
-The Salesforce CLI is the developer's tool of choice. Your metadata lives in a local directory structure, tracked in git like any other code. When you want to move changes, you run sf project deploy start with the appropriate flags. The --dry-run flag is essential — it validates the deployment without committing any changes, running all your tests and checking for compile errors.
+  Change Set                       CLI (Source Format)
+  ──────────────────────────────   ────────────────────────────────
+  GUI-only, no version control     Files in git — full history
+  Manual component selection       Entire directory or specific files
+  No diff view — blind addition    Git diff before deployment
+  Validate before deploy available Deploy dry-run available
+  No rollback                      Git revert + redeploy
+  Works out of the box             Requires CLI setup + auth
+  Fine for 1-2 person teams        Required for 3+ person teams
+```
 
-Scratch orgs take this further. They're temporary development environments that you spin up from a configuration file, do your work in, then discard. Source tracking means the CLI automatically knows what changed between your local files and the scratch org, so you can sync bidirectionally with simple commands.
+**Limitations:**
+- Change sets cannot deploy data (records) — metadata only
+- Change sets require a pre-configured Deployment Connection between orgs
+- CLI requires SFDX project structure (`sfdx-project.json`, `force-app/` directory)
 
-For teams that want artifact-based deployments, unlocked packages are the answer. Instead of deploying individual files, you define a package containing a set of components, create a versioned package artifact, and install that artifact in each target org. This gives you the versioning and rollback capabilities that change sets lack.
+```
+TEST LEVEL DECISION TREE
 
-CI/CD puts this all together. A GitHub Actions workflow checks out your code on every pull request, authenticates to a sandbox using a JWT Bearer Flow, runs a validate deployment, and reports back whether the code compiles and all tests pass. On merge to main, it deploys automatically. This is how serious Salesforce development teams operate.
+  Deploying to sandbox via CI pipeline?
+    └── RunLocalTests (fast, catches your code, skips managed package tests)
 
-Remember: production deployments require 75% code coverage and all tests must pass. This is enforced by the platform — you cannot override it with flags or workarounds. Build your test suite to exceed 90% per class, and coverage failures will never be a deployment blocker.
+  Validating before production deployment?
+    └── RunLocalTests or RunAllTestsInOrg (prefer RunAll for final validation)
 
----
+  Deploying to production via CLI/API?
+    └── RunAllTestsInOrg (required for 75% coverage check across entire org)
 
-## Exam Tips
-- `NoTestRun` is ONLY valid for sandbox deployments — never for production
-- **Change set validation** runs tests without deploying — this is the safe practice before committing to deploy
-- JWT Bearer Flow (not Web OAuth) is required for CI/CD environments because there's no browser for interactive authentication
-- The 75% coverage requirement applies to the org-wide aggregate, but any class with 0% coverage that is part of the change set can block deployment
-- Unlocked packages can be modified by subscribers (they see and can change the code); managed packages cannot
+  Quick metadata-only change in sandbox (no Apex)?
+    └── NoTestRun (ONLY valid for sandboxes, not production)
 
-## Lecture Summary
-Change sets provide GUI-driven, org-to-org metadata deployments but lack version control and rollback capabilities, making them unsuitable for large or automated team workflows. The Salesforce CLI enables source-format deployments with test level control, and scratch orgs combined with source tracking provide the foundation for package-based development where each feature lives in an isolated environment. Unlocked packages give internal teams versioned, installable deployment artifacts while managed packages serve ISV distribution on AppExchange. CI/CD pipelines using GitHub Actions and JWT authentication automate the validate-and-deploy cycle, enforcing the 75% coverage and zero test-failure requirements on every change.
+  Deploying a hotfix and want fast targeted coverage check?
+    └── RunSpecifiedTests (list the test classes that cover your change)
+```
 
-## Mini Quiz
-**Q1:** Which CLI command validates a deployment against a target org without committing any changes?
-A) sf project deploy start --source-dir force-app
-B) sf project deploy start --dry-run --test-level RunLocalTests
-C) sf project retrieve start --metadata ApexClass
-D) sf org create scratch --definition-file scratch-def.json
-**Answer:** B — The --dry-run flag (formerly --check-only) runs the deployment validation including test execution but does not commit any metadata to the org.
+**Limitations:**
+- `NoTestRun` is never valid for production — the platform rejects it
+- `RunSpecifiedTests` requires that the specified classes actually cover the deployed Apex
+- `RunAllTestsInOrg` in a large org can take 45+ minutes — plan for it in production deployment windows
 
-**Q2:** A team needs CI/CD pipelines that authenticate to Salesforce without a browser popup. Which OAuth flow should they use?
-A) Web Server OAuth Flow
-B) User-Agent Flow
-C) JWT Bearer Token Flow
-D) Device Authorization Flow
-**Answer:** C — JWT Bearer Token Flow is designed for server-to-server authentication without user interaction. It uses a pre-authorized Connected App with a certificate, making it appropriate for CI/CD pipelines that run headlessly.
+## Key Facts to Memorize
+- Production deployments: **75% coverage** + **0 test failures** — enforced by the platform, no bypass
+- `NoTestRun` only valid for **sandbox** deployments, never production
+- `RunLocalTests` = all tests NOT from installed packages
+- `RunAllTestsInOrg` = every test in the org (required for production API deployments)
+- Change set: **Outbound** (source org) → upload → **Inbound** (target org) → Validate → Deploy
+- JWT Bearer Flow: required for CI/CD (no browser, pre-authorized Connected App + certificate)
+- Scratch org: **Deployment Connections** not needed; expires in 1–30 days; source-tracked
+- Unlocked package: subscriber CAN see and modify source; managed package: source is obfuscated
 
-**Q3:** Which test level runs all tests in the org except those from installed managed packages?
-A) RunAllTestsInOrg
-B) RunSpecifiedTests
-C) NoTestRun
-D) RunLocalTests
-**Answer:** D — RunLocalTests executes all tests defined in the org that are not part of installed packages. It is the recommended test level for most sandbox and CI deployments.
+## Customer Advisory Tips
+- **Change sets are a liability at scale:** Any team with more than 2 developers should be on CLI-based deployments with git. Change sets create no audit trail — when something breaks in production, you cannot answer "what changed?"
+- **JWT + Connected App setup upfront:** The one-time effort of configuring JWT Bearer Flow for CI/CD pays for itself the first time a pull request catches a coverage failure before it reaches production. Set it up at project start, not mid-project.
+- **Unlocked packages for modular enterprise orgs:** Large enterprises with multiple teams working on one org benefit from each team owning an unlocked package. Dependency management is explicit; rollback is one CLI command.
+- **Validate, don't assume:** Always run a validation deploy to production before scheduling the actual deployment window. Validation uses production's test suite — what passes in your full-copy sandbox may fail due to production-specific data or configuration.
+
+## Exam Traps
+- `NoTestRun` is ONLY valid for sandbox deployments — the platform rejects it for production
+- Change set **Validate** runs tests without deploying — this is safe to do before scheduling the real deployment window
+- JWT Bearer Flow is for CI/CD (no browser); Web Server OAuth is for interactive user login — know which is which
+- `RunLocalTests` skips managed package tests; `RunAllTestsInOrg` includes them
+- Unlocked packages CAN be modified by the subscriber org; managed packages CANNOT (source is obfuscated)
+
+## Practice Questions
+
+**Q:** Which CLI flag validates a deployment without committing changes?
+**A:** `--dry-run` (previously `--check-only`). Example: `sf project deploy start --dry-run --test-level RunLocalTests`. Tests run and compile errors are checked but no metadata is saved to the org.
+
+**Q:** A CI pipeline needs to authenticate to Salesforce without a browser. Which OAuth flow is correct?
+**A:** JWT Bearer Token Flow. It uses a pre-authorized Connected App with a certificate. The private key is stored as a CI secret. No browser interaction or user consent step required.
+
+**Q:** Which test level runs all org tests EXCEPT those from installed managed packages?
+**A:** `RunLocalTests` — it runs all tests defined directly in the org, skipping tests from installed packages. This is the recommended test level for CI/CD sandbox validation pipelines.
+
+**Q:** A team wants to deploy to production but org-wide coverage is 74%. What must happen first?
+**A:** Write additional test cases to bring org-wide coverage to at least 75%. Coverage cannot be bypassed. The gap may be in any class — review Setup > Apex Classes > Code Coverage to identify uncovered classes.

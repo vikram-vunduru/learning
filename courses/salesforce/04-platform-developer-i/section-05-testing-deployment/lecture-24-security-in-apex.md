@@ -1,262 +1,293 @@
-# Lecture 24: Security in Apex
+# Security in Apex
 
-## Learning Objectives
-- Differentiate with sharing, without sharing, and inherited sharing keywords and when to use each
-- Implement CRUD and FLS checks using Schema.DescribeSObjectResult and DescribeFieldResult
-- Use stripInaccessible() and WITH SECURITY_ENFORCED to enforce field-level security in SOQL
-- Prevent SOQL injection attacks using bind variables and String.escapeSingleQuotes()
+## Exam Domain
+Testing, Debugging & Deployment — 22% of exam weight
 
-## Slides
+## Core Concepts
 
-### Slide 1: Apex Security Context — The Default Behavior
-**Visual:**
-```
-  Running User (e.g., Sales Rep)
-           │
-           ▼
-  ┌────────────────────────────────────────────────────────┐
-  │  Apex Code Layer  (system context by default)          │
-  │  ⚠ Bypasses: sharing rules, OWD, manual shares        │
-  │  ⚠ Bypasses: CRUD permissions, FLS                    │
-  │                                                        │
-  │  FIX: use  with sharing  and explicit CRUD/FLS checks  │
-  └────────────────────────────────────────────────────────┘
-           │
-           ▼
-  Database (ALL records accessible without sharing keyword)
-```
-**Content:**
-- By default, Apex runs in **system context**: it bypasses sharing rules (OWD, sharing rules, manual shares)
-- This means all records are accessible regardless of the running user's sharing access
-- Apex does **not** automatically enforce CRUD or FLS — you must explicitly check
-- Without intentional security enforcement, Apex can expose or modify records the user cannot see in the UI
-- Three keywords control sharing behavior: `with sharing`, `without sharing`, `inherited sharing`
-**Speaker Notes:** This is arguably the most important security concept in Apex development. Unlike the UI, which automatically respects sharing rules and field permissions, Apex runs as system unless you tell it otherwise. Every developer must make a deliberate choice about sharing and field-level security in every class they write.
-
----
-
-### Slide 2: with sharing, without sharing, inherited sharing
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────┐
-  │  Keyword             │ Record Visibility Enforcement      │
-  ├──────────────────────────────────────────────────────────┤
-  │  with sharing        │ Enforces running user's sharing    │
-  │                      │ SOQL returns only accessible rows  │
-  ├──────────────────────────────────────────────────────────┤
-  │  without sharing     │ Bypasses ALL sharing rules         │
-  │                      │ Returns all records regardless     │
-  ├──────────────────────────────────────────────────────────┤
-  │  inherited sharing   │ Uses caller's sharing context      │
-  │                      │ Best for reusable utility classes  │
-  ├──────────────────────────────────────────────────────────┤
-  │  (no keyword)        │ System context — UNSAFE default    │
-  │                      │ ⚠ Always declare explicitly!       │
-  └──────────────────────────────────────────────────────────┘
-```
-**Content:**
-- `with sharing`: enforces **sharing rules** for the running user — SOQL returns only records the user can see
+### Apex Security Context — The Default Is Dangerous
+By default, Apex runs in **system context**: it bypasses sharing rules (OWD, sharing rules, manual shares), CRUD permissions, and FLS. Unlike the UI, which automatically enforces all these, Apex code that omits security keywords can expose or modify records the running user was never supposed to see.
 ```apex
+// DANGEROUS — runs in system context, sees ALL records
+public class AccountService {
+    public List<Account> getAllAccounts() {
+        return [SELECT Id, Name FROM Account];  // returns every Account in the org
+    }
+}
+
+// SAFE — enforces running user's sharing access
 public with sharing class AccountService {
-    public List<Account> getMyAccounts() {
-        return [SELECT Id, Name FROM Account]; // only records user can access
+    public List<Account> getAllAccounts() {
+        return [SELECT Id, Name FROM Account];  // only records user can see
     }
 }
 ```
-- `without sharing`: **bypasses sharing** — returns all records regardless of visibility
-- `inherited sharing`: uses the **calling context's** sharing mode
-  - If called from `with sharing` code → enforces sharing
-  - If called directly from anonymous Apex or a REST endpoint → uses system context
-- Omitting the keyword defaults to **system context** (no sharing enforcement) — this is a security risk
-**Speaker Notes:** The inherited sharing keyword solves an important problem: utility classes and service layers that should respect whatever context they're called from. Instead of hardcoding with or without sharing into a reusable class, inherited sharing delegates that decision to whoever is calling it. Always declare a sharing keyword — never rely on the default.
 
----
+### Sharing Keywords — Three Choices, One Rule
+Always declare a sharing keyword. Never rely on the implicit default.
 
-### Slide 3: CRUD Checks — Object-Level Security
-**Visual:** Code flowchart: user requests data → Apex checks isAccessible() → if false, throw NoAccessException → if true, proceed with SOQL
-**Content:**
-- CRUD = Create, Read, Update, Delete — object-level permissions
-- Check **before** DML or SOQL using `Schema.SObjectType` describe results:
+| Keyword | Behavior |
+|---------|---------|
+| `with sharing` | Enforces running user's sharing access (OWD + sharing rules + manual shares) |
+| `without sharing` | Bypasses ALL sharing rules — sees all records |
+| `inherited sharing` | Uses the calling context's sharing mode |
+| (none) | System context — equivalent to `without sharing` — security risk |
+
+```apex
+// Service layer — use inherited sharing for reusable utility classes
+public inherited sharing class ContactService {
+    public List<Contact> getContacts(Id accountId) {
+        return [SELECT Id, Name FROM Contact WHERE AccountId = :accountId];
+    }
+}
+// Called from with sharing code → enforces sharing
+// Called from without sharing code → bypasses sharing
+// Called from anonymous Apex / Batch start/finish → system context (no sharing)
+```
+
+### CRUD Checks — Object-Level Permissions
+Apex does not automatically check whether the user has Create/Read/Update/Delete permissions on an object. Check explicitly before DML.
 ```apex
 // Check before querying
 if (!Schema.SObjectType.Account.isAccessible()) {
-    throw new SecurityException('No access to Account');
+    throw new AuraHandledException('No read access to Account');
 }
+List<Account> accounts = [SELECT Id, Name FROM Account];
 
 // Check before insert
 if (!Schema.SObjectType.Contact.isCreateable()) {
-    throw new SecurityException('Cannot create Contact');
+    throw new AuraHandledException('Cannot create Contact');
 }
+insert newContact;
 
 // Check before update
 if (!Schema.SObjectType.Account.isUpdateable()) {
-    throw new SecurityException('Cannot update Account');
+    throw new AuraHandledException('Cannot update Account');
 }
+update account;
 
 // Check before delete
 if (!Schema.SObjectType.Account.isDeletable()) {
-    throw new SecurityException('Cannot delete Account');
+    throw new AuraHandledException('Cannot delete Account');
 }
+delete account;
 ```
-**Speaker Notes:** CRUD checks tell you whether the running user has permission to perform an operation on a given object. If your Apex skips these checks and the user lacks access, the DML will succeed but from a security standpoint you've bypassed the user's intended permissions. Always check before you act.
 
----
-
-### Slide 4: FLS Checks — Field-Level Security
-**Visual:** Code snippet showing DescribeFieldResult.isAccessible() being called before using a field value, with a call-out showing how to get the field describe from Schema
-**Content:**
-- FLS = Field-Level Security — controls read/write access to individual fields
-- Get field describe result then check:
+### FLS Checks — Field-Level Security
+Field-level security is independent from CRUD. A user may have read access to Contact but not to a sensitive field like `SSN__c`. Check individual fields before using them.
 ```apex
-Schema.DescribeFieldResult dfr =
-    Schema.SObjectType.Account.fields.AnnualRevenue;
+Schema.DescribeFieldResult dfr = Schema.SObjectType.Account.fields.AnnualRevenue;
 
-// Can the user read this field?
+// Can user read this field?
 if (!dfr.isAccessible()) {
     throw new SecurityException('No read access to AnnualRevenue');
 }
 
-// Can the user write this field?
+// Can user write this field?
 if (!dfr.isUpdateable()) {
     throw new SecurityException('No write access to AnnualRevenue');
 }
 ```
-- Methods: `.isAccessible()`, `.isUpdateable()`, `.isCreateable()`
-- FLS checks are separate from CRUD — a user may have read access to an object but not a specific field
-**Speaker Notes:** Field-level security is often forgotten because the UI handles it automatically — restricted fields simply don't appear. But in Apex, every field in a SOQL query is returned regardless of FLS unless you explicitly check or use stripInaccessible. An attacker who can trigger your Apex via an API could potentially read field values they're not supposed to see.
+Methods: `.isAccessible()` (read), `.isUpdateable()` (update), `.isCreateable()` (create).
 
----
-
-### Slide 5: stripInaccessible() — Automatic FLS Enforcement
-**Visual:** Diagram showing an SObject list entering stripInaccessible() → field values the user can't access are stripped → clean result returned
-**Content:**
-- `Security.stripInaccessible(AccessType, records)` removes inaccessible fields from records
-- More concise than manual FLS checks — operates on entire record sets at once
-- `AccessType` enum values: `READABLE`, `CREATABLE`, `UPDATABLE`
+### stripInaccessible() — Automatic FLS Enforcement
+The most practical tool for FLS enforcement — pass query results through it and inaccessible fields are silently stripped.
 ```apex
 List<Account> accounts = [SELECT Id, Name, AnnualRevenue, SSN__c FROM Account];
+
 SObjectAccessDecision decision = Security.stripInaccessible(
     AccessType.READABLE,
     accounts
 );
 List<Account> safeAccounts = decision.getRecords();
-// safeAccounts only contains field values the running user can read
+// Fields the user cannot read are removed; no exception thrown
 ```
-- Available since API 40.0 (Summer '17)
-- Does NOT throw an exception — silently strips inaccessible fields
-**Speaker Notes:** stripInaccessible is the most elegant solution for enforcing FLS on query results. Instead of writing dozens of individual field checks, you pass the entire result set through stripInaccessible with READABLE, and every field the user can't see is removed. The remaining records are safe to return to the client.
+`AccessType` values: `READABLE`, `CREATABLE`, `UPDATABLE`.
 
----
-
-### Slide 6: WITH SECURITY_ENFORCED in SOQL
-**Visual:** SOQL statement with WITH SECURITY_ENFORCED highlighted, and a branch showing it throws InvalidFieldFaultException if FLS check fails
-**Content:**
-- `WITH SECURITY_ENFORCED` added to SOQL automatically enforces CRUD and FLS at query time
-- If the running user lacks access to any field or object in the query, Salesforce throws `System.QueryException`
-- Simple to add; no extra code needed:
+### WITH SECURITY_ENFORCED in SOQL
+Add to SOQL to enforce CRUD and FLS at query time. Throws `System.QueryException` if any field is inaccessible.
 ```apex
 List<Account> accounts = [
     SELECT Id, Name, AnnualRevenue
     FROM Account
     WITH SECURITY_ENFORCED
 ];
+// Throws if user lacks read access to Account OR AnnualRevenue
 ```
-- Limitation: does **not** work with aggregate queries (`GROUP BY`, `HAVING`, `COUNT()`)
-- Limitation: does **not** check access on relationship fields accessed via dot notation for sub-selects
-- For full control, prefer `stripInaccessible()` — it handles more cases gracefully
-**Speaker Notes:** WITH SECURITY_ENFORCED is the simplest way to add security to a SOQL query. The tradeoff is that it throws an exception — which you then need to catch — rather than silently stripping fields. For simple queries with predictable field access, it's clean and readable. For complex queries or when you need the records regardless of some fields being inaccessible, stripInaccessible is more appropriate.
+Limitation: does NOT work with aggregate queries (`GROUP BY`, `HAVING`, `COUNT()`). For complex scenarios, prefer `stripInaccessible()`.
 
----
-
-### Slide 7: SOQL Injection — Prevention with Bind Variables
-**Visual:** Split diagram — left shows vulnerable code with string concatenation building a dynamic SOQL query with malicious input; right shows safe code using bind variables
-**Content:**
-- SOQL injection occurs when user input is concatenated directly into a dynamic SOQL string
-- Malicious input like `' OR Name != '` can manipulate query logic
-- **Vulnerable pattern** (never do this):
+### SOQL Injection — Bind Variables Are the Fix
+User input concatenated directly into dynamic SOQL is exploitable. An attacker inputs `' OR Name != '` to manipulate the WHERE clause.
 ```apex
+// VULNERABLE — never do this
 String userInput = ApexPages.currentPage().getParameters().get('name');
 String query = 'SELECT Id FROM Account WHERE Name = \'' + userInput + '\'';
-List<Account> results = Database.query(query); // VULNERABLE
-```
-- **Safe — Bind Variables** (preferred):
-```apex
-String userInput = ApexPages.currentPage().getParameters().get('name');
-List<Account> results = [SELECT Id FROM Account WHERE Name = :userInput]; // SAFE
-```
-- **Safe — String.escapeSingleQuotes()** (only when bind variables cannot be used):
-```apex
+List<Account> results = Database.query(query);
+
+// SAFE — bind variable (preferred)
+List<Account> results = [SELECT Id FROM Account WHERE Name = :userInput];
+
+// SAFE — escapeSingleQuotes (fallback for truly dynamic queries)
 String safeInput = String.escapeSingleQuotes(userInput);
 String query = 'SELECT Id FROM Account WHERE Name = \'' + safeInput + '\'';
+List<Account> results = Database.query(query);
 ```
-**Speaker Notes:** SOQL injection is the Apex equivalent of SQL injection in traditional databases. If user-controlled input is directly concatenated into a dynamic query string, an attacker can alter the query's WHERE clause to bypass filters or access records they shouldn't. Bind variables are the complete solution — the user input is never interpreted as SOQL syntax, only as a literal value.
+Bind variables (`:variableName`) treat the value as a literal string — it cannot be interpreted as SOQL syntax.
 
----
+## PTA / SA Relevance
 
-### Slide 8: Security Best Practices Summary
-**Visual:** Icon grid showing 6 best practices: lock icon (use with sharing), shield (check CRUD/FLS), filter icon (stripInaccessible), key (bind variables), no-bypass sign (never without sharing in UI controllers), test tube (test security in unit tests)
-**Content:**
-- Always declare a sharing keyword — never rely on implicit system context
-- **Controllers and @AuraEnabled methods** should use `with sharing` by default
-- Use `without sharing` only with deliberate justification (e.g., administrative background processing)
-- `inherited sharing` for service/utility classes called from multiple contexts
-- Always check CRUD before DML; use stripInaccessible or WITH SECURITY_ENFORCED for FLS
-- Always use bind variables or escapeSingleQuotes for dynamic SOQL
-- Include security scenarios in unit tests: assert that unauthorized users cannot access protected records
-**Speaker Notes:** Security is not a feature you add at the end — it's a discipline you apply throughout development. Every class you write should have a deliberate sharing keyword. Every dynamic SOQL should use bind variables. Every method that returns sensitive data should run through stripInaccessible. The PDI exam tests all of these concepts, and real security incidents in Salesforce orgs almost always trace back to one of these omissions.
+**In partner code reviews, watch for:**
+- Classes with no sharing keyword — the silent default is system context; every class needs an explicit declaration
+- `@AuraEnabled` methods returning data without `stripInaccessible()` or `with sharing` — LWC components backed by these methods leak records to users who shouldn't see them
+- Dynamic SOQL with string concatenation — any user-controlled input in a dynamic query is a SOQL injection vector
+- Utility classes using `without sharing` "because they're shared" — wrong rationale; use `inherited sharing` for shared utilities
+- Missing CRUD checks before DML in `@AuraEnabled` methods — Apex running in system context can insert/update records even when the user lacks object permissions
 
----
+**Enterprise-scale considerations:**
+- Security in Apex is defense in depth. The platform enforces permissions in the UI; Apex is the bypass layer. Any org that allows direct API access or has custom Apex exposed via REST/SOAP must treat Apex security as critical.
+- For ISV/AppExchange packages: AppExchange security review requires explicit CRUD and FLS checks or use of `with sharing` / `stripInaccessible()`. Managed packages failing security review is a common ISV partner issue.
+- In highly regulated industries (healthcare, financial services), FLS enforcement in every `@AuraEnabled` method is a compliance requirement, not just a best practice.
+- The Shield Platform Encryption feature adds another layer — fields encrypted at rest may still be accessible in Apex even without FLS. Encryption + FLS + sharing must all be evaluated together.
 
-## Recording Script
+**For CTO conversations:**
+- "We passed AppExchange Security Review but our customer's security team has concerns." — Security Review checks for obvious vulnerabilities (SOQL injection, missing sharing keywords). A thorough review also checks field-level sensitivity exposure, admin-accessible data in public components, and API-accessible endpoints.
+- "How do we prevent a misconfigured profile from seeing sensitive data through our managed package?" — `with sharing` on all user-facing classes + `stripInaccessible()` on all query results + `WITH SECURITY_ENFORCED` on SOQL where applicable.
 
-Welcome to Lecture 24 — Security in Apex.
+## Architecture / How It Works
 
-This lecture covers one of the most important and most frequently misunderstood aspects of Apex development: security. The platform's UI automatically enforces sharing rules, field-level security, and object permissions. Apex does not. When you write an Apex class, you become responsible for applying those security controls yourself.
+```
+APEX SECURITY ENFORCEMENT LAYERS
 
-Let's start with sharing. By default, Apex runs in system context — it sees all records regardless of the running user's sharing access. This is by design: many operations like trigger logic and scheduled jobs need to process records regardless of who owns them. But it means that Apex code in a user-facing context — a controller, an @AuraEnabled method, a trigger — can return records the user was never supposed to see unless you explicitly enforce sharing.
+  Running User (Sales Rep — private OWD, no AnnualRevenue FLS)
+           │
+           ▼  calls Apex method
+  ┌──────────────────────────────────────────────────────────┐
+  │  Apex Class (with sharing)                               │
+  │                                                          │
+  │  Layer 1: SHARING RULES                                  │
+  │  with sharing → SOQL returns ONLY user-accessible records │
+  │                                                          │
+  │  Layer 2: FLS (must be explicit)                         │
+  │  stripInaccessible(READABLE, results) →                  │
+  │  removes AnnualRevenue from results                      │
+  │                                                          │
+  │  Layer 3: CRUD (must be explicit)                        │
+  │  Schema.SObjectType.Account.isAccessible() check         │
+  └──────────────────────────────────────────────────────────┘
+           │
+           ▼  data returned to LWC
+  User sees: only their accounts, without AnnualRevenue field
+```
 
-The `with sharing` keyword on a class declaration tells Salesforce to apply the running user's sharing access when executing SOQL queries and DML operations. `without sharing` explicitly bypasses it. `inherited sharing` delegates the decision to the calling context — this is ideal for service classes and utility methods that are called from multiple places.
+**Limitations:**
+- `with sharing` enforces sharing rules (record visibility) — it does NOT enforce CRUD or FLS
+- FLS and CRUD checks must be explicitly coded — no automatic enforcement in Apex
+- `inherited sharing` defaults to system context when called from a context with no sharing declaration (e.g., Batch start/finish, anonymous Apex)
 
-The rule is simple: always declare a sharing keyword. Never write a class and leave it to the default. If you consciously decide it needs without sharing, fine — document why. But make it a deliberate choice.
+```
+SHARING KEYWORD DECISION MATRIX
 
-Next: CRUD and FLS. Just because a user has sharing access to a record doesn't mean they have permission to read every field on it. Schema.SObjectType gives you describe methods — isAccessible, isCreateable, isUpdateable, isDeletable — to check object-level permissions before any DML. For individual fields, DescribeFieldResult.isAccessible() checks whether the running user can read that field.
+  Who calls this class?           Recommended keyword
+  ────────────────────────────    ────────────────────────────
+  LWC / VF user-facing UI         with sharing
+  @AuraEnabled REST endpoint      with sharing
+  Administrative batch job        without sharing (explicit, documented)
+  Reusable service / utility      inherited sharing
+  Background scheduled job        without sharing (explicit)
+  Trigger handler                 with sharing (usually)
 
-stripInaccessible is the most practical FLS enforcement tool. Pass your query results through Security.stripInaccessible with AccessType.READABLE, and any fields the user can't read are silently removed from the records. WITH SECURITY_ENFORCED in your SOQL statement does a similar job but throws an exception if any field is inaccessible.
+  RULE: Default to with sharing.
+        Use without sharing only with written justification.
+        Use inherited sharing for utility classes.
+```
 
-Finally, SOQL injection. If you ever build a dynamic SOQL string by concatenating user input directly — never do this. An attacker can inject SOQL operators into that input and alter your query's behavior. The solution is bind variables: use a colon before the variable name in your SOQL, and Salesforce treats the variable's value as a literal string, never as SOQL syntax. If you must use Database.query with string concatenation for some reason, run the input through String.escapeSingleQuotes first.
+**Limitations:**
+- A class declared `without sharing` called from `with sharing` code still bypasses sharing — the keyword is per-class, not inherited unless `inherited sharing` is used
+- `with sharing` only enforces record-level security; field-level security is always a separate check
 
-Security bugs in Salesforce are real, they happen, and they almost always trace back to one of these four things: missing sharing keyword, missing CRUD/FLS check, or SOQL injection. Master these patterns and you'll avoid the most serious security vulnerabilities in Apex development.
+```
+SOQL INJECTION ATTACK vs DEFENSE
 
----
+  ATTACK (vulnerable code):
+  ─────────────────────────
+  userInput = "' OR Name != '"   ← malicious input
 
-## Exam Tips
-- Omitting the sharing keyword does NOT default to `with sharing` — it defaults to system context (no sharing enforcement), which is effectively `without sharing`
-- `with sharing` enforces **sharing rules** (OWD + sharing rules + manual shares) but does NOT enforce CRUD or FLS — these are separate checks
-- `WITH SECURITY_ENFORCED` throws an exception; `stripInaccessible()` silently strips fields — know when to use each
-- Bind variables (`:variableName` in SOQL) are the preferred SOQL injection prevention — `String.escapeSingleQuotes()` is the fallback for dynamic queries
-- `inherited sharing` defaults to **without sharing** when called from a context that has no sharing declaration (e.g., anonymous Apex, Batch Apex start/finish)
+  query = "SELECT Id FROM Account WHERE Name = '" + userInput + "'"
 
-## Lecture Summary
-Apex runs in system context by default, bypassing sharing rules unless `with sharing` is explicitly declared; `inherited sharing` delegates the sharing mode to the calling context. CRUD checks using Schema.SObjectType describe methods must be performed before any DML to verify object-level permissions, while FLS is enforced via DescribeFieldResult.isAccessible(), stripInaccessible(), or WITH SECURITY_ENFORCED in SOQL. SOQL injection is prevented by using bind variables (`:variable` syntax) for any dynamic query incorporating user input, with String.escapeSingleQuotes() as a fallback for truly dynamic string construction. Security controls must be explicitly coded — the Apex runtime does not apply them automatically.
+  Executed: SELECT Id FROM Account WHERE Name = '' OR Name != ''
+            └── returns ALL Accounts (WHERE is always true)
 
-## Mini Quiz
-**Q1:** A developer writes a class with no sharing keyword. What sharing behavior will it have by default?
-A) with sharing — enforces the running user's record visibility
-B) inherited sharing — uses the calling context's sharing mode
-C) System context — bypasses all sharing rules
-D) The deployment fails — sharing keyword is required
-**Answer:** C — Omitting the sharing keyword means the class runs in system context, which bypasses all sharing rules. This is the same as without sharing, and it is a potential security risk in user-facing code.
+  DEFENSE (bind variable):
+  ─────────────────────────
+  [SELECT Id FROM Account WHERE Name = :userInput]
 
-**Q2:** A developer needs to ensure that fields the running user cannot read are removed from SOQL results before returning them to an LWC. Which approach is most appropriate?
-A) Add WITH SECURITY_ENFORCED to the SOQL query
-B) Call Security.stripInaccessible(AccessType.READABLE, records) on the result
-C) Check Schema.SObjectType.Account.isAccessible() before the query
-D) Use @isTest(seeAllData=false) in the calling test
-**Answer:** B — stripInaccessible with AccessType.READABLE removes all field values the running user cannot read, and it handles the entire record set in one call without throwing exceptions for inaccessible fields.
+  Executed with userInput as literal string value:
+  WHERE Name = ''' OR Name != '''    ← the single quotes are part of the value
+  └── returns 0 results (no Account named that literal string)
+  └── injection attempt completely neutralized
+```
 
-**Q3:** Which of the following SOQL patterns prevents SOQL injection?
-A) `Database.query('SELECT Id FROM Account WHERE Name = \'' + userInput + '\'')`
-B) `[SELECT Id FROM Account WHERE Name = :userInput]`
-C) `Database.query('SELECT Id FROM Account WHERE Name = ' + String.valueOf(userInput))`
-D) `[SELECT Id FROM Account WHERE Name = \'' + userInput + '\'']`
-**Answer:** B — Bind variables (`:userInput`) pass the value as a literal parameter to the query engine, preventing user input from ever being interpreted as SOQL syntax. This is the definitive defense against SOQL injection.
+**Limitations:**
+- Bind variables can only be used in static SOQL — not in strings passed to `Database.query()`
+- For `Database.query()` (dynamic SOQL), `String.escapeSingleQuotes()` must be used
+- `String.escapeSingleQuotes()` only escapes single quotes — does not protect against all injection patterns; bind variables are always preferred
+
+```
+FLS ENFORCEMENT: WITH SECURITY_ENFORCED vs stripInaccessible()
+
+  WITH SECURITY_ENFORCED                stripInaccessible()
+  ──────────────────────────────        ─────────────────────────────────
+  Throws QueryException if              Silently removes inaccessible fields
+  any field is inaccessible             Records still returned (minus fields)
+
+  Simple syntax, inline in SOQL         Requires additional code (two lines)
+
+  Does NOT work with:                   Works with all query types including
+  - GROUP BY / HAVING                   aggregates (on the result set)
+  - COUNT() aggregates
+
+  Best for: simple read queries         Best for: complex queries, partial
+  where you want hard failure           field access, returning safe records
+  on any FLS violation
+```
+
+**Limitations:**
+- Neither approach covers sharing rule enforcement — that requires `with sharing`
+- `stripInaccessible()` does not strip fields from records before they are written — use CREATABLE/UPDATABLE `AccessType` for write operations
+
+## Key Facts to Memorize
+- No sharing keyword = **system context** (equivalent to `without sharing`) — security risk
+- `with sharing` = sharing rules enforced; CRUD/FLS still need explicit checks
+- `inherited sharing` = delegates to calling context; defaults to system if no declaration in call chain
+- CRUD check: `Schema.SObjectType.Account.isAccessible()` / `.isCreateable()` / `.isUpdateable()` / `.isDeletable()`
+- FLS check: `Schema.SObjectType.Account.fields.AnnualRevenue.isAccessible()`
+- `Security.stripInaccessible(AccessType.READABLE, records)` — silently strips inaccessible fields
+- `WITH SECURITY_ENFORCED` — throws `QueryException` on FLS violation; does NOT work with GROUP BY
+- Bind variable (`:varName`) = SOQL injection prevention; `escapeSingleQuotes()` = fallback for dynamic queries
+
+## Customer Advisory Tips
+- **Security by default:** Every new class should start with `with sharing`. Changing to `without sharing` should require a comment explaining why. This code review standard prevents the most common Salesforce security vulnerabilities.
+- **AppExchange Security Review prep:** ISV partners should run the Salesforce Security Source Scanner (`sf scanner`) in CI to catch missing sharing keywords, hardcoded credentials, and SOQL injection before the review.
+- **stripInaccessible in all @AuraEnabled methods:** For any `@AuraEnabled` method that returns records to a component, `stripInaccessible(AccessType.READABLE, results)` before returning is non-negotiable. Users accessing the component API directly (via dev tools) can see everything the method returns.
+- **Apex vs Flow security model:** Flows run in system context unless the flow is user-launched (which runs as the running user). This mirrors the `without sharing` default for Apex — the same deliberateness is required.
+
+## Exam Traps
+- Omitting sharing keyword does NOT default to `with sharing` — it defaults to **system context** (no sharing enforcement)
+- `with sharing` enforces sharing rules (record visibility) but does NOT check CRUD or FLS — these are always separate explicit checks
+- `WITH SECURITY_ENFORCED` throws an exception; `stripInaccessible()` silently strips — the question will test whether you know which behavior is which
+- `inherited sharing` called from anonymous Apex or Batch start/finish → system context (no sharing declaration in that context)
+- Bind variables (`:var`) prevent SOQL injection; `String.escapeSingleQuotes()` is the fallback — NOT the primary defense
+
+## Practice Questions
+
+**Q:** A class has no sharing keyword. What sharing behavior does it have?
+**A:** System context — equivalent to `without sharing`. All records are accessible regardless of the running user's sharing access. This is the dangerous default that should always be overridden with an explicit keyword.
+
+**Q:** A developer calls `stripInaccessible(AccessType.READABLE, accounts)`. What does it return?
+**A:** An `SObjectAccessDecision` object. Call `.getRecords()` to get the list with inaccessible field values removed. Records are still returned — only the field values the user cannot read are stripped.
+
+**Q:** `WITH SECURITY_ENFORCED` is added to a SOQL query using `GROUP BY`. What happens?
+**A:** A `QueryException` is thrown at query time because `WITH SECURITY_ENFORCED` does not support aggregate queries. Use `stripInaccessible()` on the AggregateResult instead.
+
+**Q:** A user inputs `' OR Name != '` into a search field. The Apex uses `Database.query('SELECT Id FROM Account WHERE Name = \'' + userInput + '\''`). What is the impact?
+**A:** SOQL injection — the query becomes `WHERE Name = '' OR Name != ''` which is always true and returns all Account records. Fix: use `String.escapeSingleQuotes(userInput)` or redesign to use a static SOQL with a bind variable.

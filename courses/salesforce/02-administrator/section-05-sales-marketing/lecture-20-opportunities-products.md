@@ -1,331 +1,125 @@
-# L20: Opportunities & Products
+# Opportunities & Products
 
-## 🎯 Learning Objectives
-- Explain Opportunity stages, forecast categories, and the probability field
-- Configure Products, Price Books, and Opportunity Products (line items)
-- Describe Opportunity Teams, revenue/quantity schedules, and big deal alerts
+## Exam Domain
+Sales & Marketing Apps — 12% of exam
 
-## 📊 SLIDES
+## Core Concepts
 
-### Slide 1: The Opportunity Object
-**Visual:**
+**Opportunity:** Represents a sales deal in progress. Tracks value, stage, close date, and probability.
+
+**Key Opportunity fields:**
+- **Stage** (required picklist): where in the sales process (Prospecting, Qualification, Proposal, Negotiation, Closed Won, Closed Lost)
+- **Close Date** (required): expected or actual close date
+- **Amount**: deal value
+- **Probability**: auto-populated based on Stage, can be manually overridden
+- **Forecast Category**: determined by Stage (Commit, Best Case, Pipeline, Omitted, Closed)
+
+**The Stage → Probability → Forecast Category relationship:**
+Each Stage value has a default Probability and a Forecast Category. You configure this mapping in: Setup → Opportunity Stages. This is what drives the forecast pipeline view.
+
+**Products & Price Books:**
+- **Product (Product2):** An item you sell. Has a standard price.
+- **Price Book:** A catalog of products with specific prices. 
+  - **Standard Price Book:** The default catalog; every product is added here first
+  - **Custom Price Books:** Alternate pricing for different markets, regions, or customers
+- **Price Book Entry:** The record linking a Product to a Price Book with a specific price
+- **Opportunity Product (OpportunityLineItem):** The specific products added to an Opportunity from a Price Book
+
+**Adding products to an Opportunity:**
+1. Opportunity record → Products related list → "Add Products"
+2. Select a Price Book (if org has multiple)
+3. Choose products from that Price Book
+4. Set quantity and adjust price if needed
+
+**Quotes:**
+- Generated from Opportunity Products
+- Can be synced to the Opportunity (when Quote is "Synced," the Opportunity Amount updates from the Quote total)
+- PDF generation available
+
+## PTA / SA Relevance
+
+Revenue Cloud (formerly CPQ + Billing) extends the basic Products model significantly. But for the admin exam, understanding the standard Products/Price Books model is the foundation.
+
+**Price Book architecture in enterprise:** Global companies typically have: Standard Price Book (USD list price) + Regional Price Books (EUR, GBP, etc.) + Partner Price Books (discounted rates) + Customer-specific Price Books. The architecture decision: manage pricing in Salesforce vs. integrate with an ERP/CPQ system. For complex pricing (bundles, volume discounts, tiered pricing), the native Products model is too simple — that's where Revenue Cloud/CPQ comes in.
+
+**Forecast visibility:** The Stage → Forecast Category mapping is one of the most common configuration conversations with Sales leaders. VPs want their own definition of what goes into Commit vs Best Case. This often leads to customized forecast categories and custom Stage picklist values.
+
+## Architecture / How It Works
+
 ```
-  ┌──────────────────────────────────────────────────────────────┐
-  │                   OPPORTUNITY RECORD                         │
-  ├────────────────────────┬─────────────────────────────────────┤
-  │ Opportunity Name       │ Acme Corp – Platform License        │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Account Name           │ Acme Corporation  [Lookup →]        │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Stage                  │ Proposal/Price Quote                │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Close Date             │ 09/30/2025                          │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Amount                 │ $75,000                             │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Probability            │ 50%   (auto-set from Stage)         │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Forecast Category      │ Best Case  (auto-set from Stage)    │
-  └────────────────────────┴─────────────────────────────────────┘
-  Stage drives both Probability and Forecast Category automatically
+Opportunity → Products → Revenue Model
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  OPPORTUNITY
+  ┌───────────────────────────────────────────┐
+  │  Stage ──────► Probability + Forecast Cat │
+  │  Close Date                               │
+  │  Amount (calculated from products or      │
+  │           manual entry)                   │
+  └─────────────────┬─────────────────────────┘
+                    │ related list
+                    ▼
+  OPPORTUNITY PRODUCTS (Line Items)
+  ┌───────────────────────────────────────────┐
+  │  Product A  │  Qty: 5  │  Unit Price: $100│
+  │  Product B  │  Qty: 2  │  Unit Price: $500│
+  │  Total Amount: $1,500                     │
+  └─────────────────┬─────────────────────────┘
+                    │ pulled from
+                    ▼
+  PRICE BOOKS
+  ┌─────────────────────────────────────────┐
+  │  Standard Price Book (required)         │
+  │    └── All products + list prices       │
+  │  Custom Price Book (optional)           │
+  │    └── Same products + different prices │
+  └─────────────────────────────────────────┘
+
+  Stage → Forecast Pipeline:
+  Prospecting  → Pipeline    → 10%
+  Qualification → Pipeline   → 20%
+  Proposal     → Best Case   → 50%
+  Negotiation  → Commit      → 90%
+  Closed Won   → Closed      → 100%
+  Closed Lost  → Omitted     → 0%
 ```
-**Content:**
-- Opportunity represents a potential revenue deal in progress
-- Required fields by default: Opportunity Name, Close Date, Stage
-- Stage drives Probability (auto-populated based on stage picklist configuration)
-- Amount field can be entered manually or calculated from Products (Opportunity line items)
-- Key related lists: Contact Roles, Opportunity Products, Stage History, Activity History
-**Speaker Notes:** The Opportunity object is the heart of sales pipeline management. Admins must understand how the Stage picklist, Probability, and Forecast Category work together — they're tightly coupled and frequently tested on the Admin exam.
 
-### Slide 2: Opportunity Stages & Probability
-**Visual:**
-```
-  ┌────────────────────────────────────────────────────────────────┐
-  │                    OPPORTUNITY PIPELINE                        │
-  ├──────────────────────────────────────────────┬─────────────────┤
-  │ Stage                                        │ Probability     │
-  ├──────────────────────────────────────────────┼─────────────────┤
-  │ ████████████████████████████  Prospecting    │     10%         │
-  ├──────────────────────────────────────────────┼─────────────────┤
-  │ ██████████████████████████    Qualification  │     20%         │
-  ├──────────────────────────────────────────────┼─────────────────┤
-  │ ████████████████████████      Needs Analysis │     25%         │
-  ├──────────────────────────────────────────────┼─────────────────┤
-  │ ████████████████████          Value Prop     │     50%         │
-  ├──────────────────────────────────────────────┼─────────────────┤
-  │ ██████████████████            Proposal/Quote │     75%         │
-  ├──────────────────────────────────────────────┼─────────────────┤
-  │ ████████████████              Negotiation    │     90%         │
-  ├──────────────────────────────────────────────┼─────────────────┤
-  │ ██████████████████████████████ Closed Won    │    100%         │
-  ├──────────────────────────────────────────────┼─────────────────┤
-  │ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ Closed Lost   │      0%         │
-  └──────────────────────────────────────────────┴─────────────────┘
-  Stage → auto-sets Probability → auto-sets Forecast Category
-  (Probability can be manually overridden by the rep)
-```
-**Content:**
-- Stages are configured in the Stage picklist: Object Manager → Opportunity → Fields → Stage
-- Each stage has: Stage Name, Type (Open/Closed Won/Closed Lost), Probability (%), Forecast Category
-- Probability field auto-populates when a Stage is selected (but can be manually overridden)
-- Stage History related list tracks every stage change with date, previous stage, and amount
-- Closed Won and Closed Lost are special types — records in these stages are excluded from the active pipeline
-**Speaker Notes:** The Stage field is a picklist, but it's special: each value has metadata attached — probability and forecast category. Admins configure this in Object Manager, not just through a normal picklist edit. Remember that probability can always be manually adjusted by the rep regardless of stage.
+**Limitations:**
+- An Opportunity can only use products from ONE Price Book (can switch but must remove existing products first)
+- Standard Price Book cannot be deleted
+- Custom Price Books are not available in Personal/Group Edition
+- If an Opportunity has products, the Amount field is calculated from line items and cannot be manually edited
+- Quote syncing: only ONE quote can be synced to an Opportunity at a time
 
-### Slide 3: Forecast Categories
-**Visual:**
-```
-  ┌────────────────┬──────────────────┬─────────────────────────────────────┐
-  │ Forecast       │ Stage Type       │ Definition                          │
-  │ Category       │                  │                                     │
-  ├────────────────┼──────────────────┼─────────────────────────────────────┤
-  │ Pipeline       │ Open             │ Early-stage; uncertain; being        │
-  │                │ (Low prob)       │ tracked as potential pipeline        │
-  ├────────────────┼──────────────────┼─────────────────────────────────────┤
-  │ Best Case      │ Open             │ Deal is possible if everything       │
-  │                │ (Mid prob)       │ goes right; may or may not close     │
-  ├────────────────┼──────────────────┼─────────────────────────────────────┤
-  │ Commit         │ Open             │ Rep is highly confident this deal    │
-  │                │ (High prob)      │ WILL close this period               │
-  ├────────────────┼──────────────────┼─────────────────────────────────────┤
-  │ Closed         │ Closed Won       │ Deal is finalized (won or lost);     │
-  │                │ Closed Lost      │ included in actuals reporting        │
-  └────────────────┴──────────────────┴─────────────────────────────────────┘
-  Managers review forecasts at Category level, not individual Stage level
-```
-**Content:**
-- Forecast Categories roll up opportunities into sales forecasts
-- Standard categories: **Pipeline** (early stage), **Best Case** (possible if things go well), **Commit** (sales rep is confident), **Closed** (Won or Lost)
-- A stage is assigned to exactly one forecast category
-- Managers review forecasts by forecast category, not by individual stage
-- Collaborative Forecasting allows reps and managers to adjust forecast amounts independently
-**Speaker Notes:** The exam tests the names and meanings of forecast categories. "Commit" means the rep is highly confident the deal will close this period. "Best Case" means it might close. "Pipeline" is early-stage and uncertain. "Closed" applies to both Won and Lost opportunities.
+## Key Facts to Memorize
 
-### Slide 4: Opportunity Teams
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────────┐
-  │                     OPPORTUNITY TEAM                             │
-  ├────────────────────────┬────────────────────┬────────────────────┤
-  │ Team Member            │ Role               │ Opportunity Access │
-  ├────────────────────────┼────────────────────┼────────────────────┤
-  │ Alice Johnson (Owner)  │ Account Executive  │ Read/Write         │
-  ├────────────────────────┼────────────────────┼────────────────────┤
-  │ Carlos Reyes           │ Sales Engineer     │ Read/Write         │
-  ├────────────────────────┼────────────────────┼────────────────────┤
-  │ Maria Santos           │ Sales Manager      │ Read Only          │
-  ├────────────────────────┼────────────────────┼────────────────────┤
-  │ David Park             │ Solutions Architect│ Read Only          │
-  └────────────────────────┴────────────────────┴────────────────────┘
+- Stage, Close Date, and Name are required on Opportunity
+- Stage → Probability (auto) + Forecast Category (configured)
+- Forecast Categories: Pipeline, Best Case, Commit, Closed, Omitted
+- Standard Price Book = default catalog (every Product added here first)
+- An Opportunity uses ONE Price Book at a time
+- Products on Opportunity = Opportunity Line Items (OpportunityLineItem object)
+- To add products: must select a Price Book for the Opportunity first
+- Quote sync = only one quote synced per Opportunity; synced quote updates Opportunity Amount
 
-  Opportunity Teams = deal-specific (per Opportunity)
-  Account Teams     = account-level (persists across all deals)
-  Team Roles = vendor-side roles  ≠  Contact Roles (customer-side)
-```
-**Content:**
-- Opportunity Teams allow multiple users to collaborate on a single opportunity
-- Each team member has a Team Role (e.g., Account Executive, Sales Engineer, Sales Manager)
-- Team members can be granted Opportunity Access: Read Only or Read/Write
-- Default Opportunity Teams: each user can set up a default team that is added automatically
-- Opportunity Teams are different from Account Teams (Account Teams are at the account level)
-**Speaker Notes:** Opportunity Teams solve a common problem: large deals involve multiple people from the vendor side. Adding someone to an Opportunity Team grants them record access and visibility. Remember that the Team Role values are separate from Contact Roles — those are for the people on the CUSTOMER side.
+## Exam Traps
 
-### Slide 5: Products & Price Books
-**Visual:**
-```
-  ┌────────────────────────────────────────────────────────────┐
-  │                    PRODUCT CATALOG                         │
-  │  Product A  │  Product B  │  Product C  │  Product D       │
-  └──────────────────────────┬─────────────────────────────────┘
-                             │  (Every product needs a Standard Price)
-                             ▼
-  ┌────────────────────────────────────────────────────────────┐
-  │          STANDARD PRICE BOOK  (default, auto-created)      │
-  │  Product A: $1,000 │ Product B: $2,500 │ Product C: $500   │
-  └──────────────────────────┬─────────────────────────────────┘
-                             │  (Copy entries at alternate prices)
-                  ┌──────────┴───────────────┐
-                  │                          │
-                  ▼                          ▼
-  ┌───────────────────────────┐  ┌───────────────────────────┐
-  │   PARTNER PRICE BOOK      │  │  ENTERPRISE PRICE BOOK    │
-  │   Product A: $800         │  │  Product A: $900          │
-  │   Product B: $2,000       │  │  Product B: $2,200        │
-  └──────────────┬────────────┘  └─────────────┬─────────────┘
-                 └────────────────┬─────────────┘
-                                  │  One Price Book per Opportunity
-                                  ▼
-                           ┌──────────────┐
-                           │ OPPORTUNITY  │
-                           │  Line Items  │
-                           └──────────────┘
-```
-**Content:**
-- **Product:** An item or service sold by your company (the catalog)
-- **Standard Price Book:** The default system price book; every product must have a standard price
-- **Custom Price Book:** Alternative pricing for specific markets, channels, or segments
-- Adding a product to a Price Book creates a Price Book Entry with the price
-- A product can appear in multiple price books at different prices
-- Setup path: App Launcher → Products (to manage product catalog)
-**Speaker Notes:** Think of Products as the catalog and Price Books as different "menus" with different prices for the same items. The Standard Price Book is automatically created in every Salesforce org. Custom Price Books let you offer partner pricing, regional pricing, or promotional pricing.
+- **"You can have multiple quotes synced to one Opportunity at once"** — FALSE. Only one quote can be synced at a time.
+- **"An Opportunity can have products from multiple Price Books simultaneously"** — FALSE. One Price Book per Opportunity (can change the Price Book by removing existing products first).
+- **"Probability is always calculated automatically and cannot be changed"** — FALSE. The default probability comes from Stage, but sales reps can manually override it.
+- **"Standard Price Book can be deleted"** — FALSE. Standard Price Book is permanent.
+- **"Amount is always a manual field on Opportunity"** — FALSE. When products (line items) are added, Amount is automatically calculated from the product total.
 
-### Slide 6: Opportunity Products (Line Items)
-**Visual:**
-```
-  ┌────────────────────────────────────────────────────────────────────┐
-  │                    OPPORTUNITY PRODUCTS                            │
-  ├──────────────────────┬──────────┬────────────┬─────────────────────┤
-  │ Product Name         │ Quantity │ Unit Price │ Total Price         │
-  ├──────────────────────┼──────────┼────────────┼─────────────────────┤
-  │ Platform License     │    5     │ $10,000    │ $50,000             │
-  ├──────────────────────┼──────────┼────────────┼─────────────────────┤
-  │ Implementation Svc   │    1     │ $15,000    │ $15,000             │
-  ├──────────────────────┼──────────┼────────────┼─────────────────────┤
-  │ Training Package     │    2     │  $5,000    │ $10,000             │
-  ├──────────────────────┼──────────┼────────────┼─────────────────────┤
-  │                      │          │  TOTAL     │ $75,000 ◀── Amount  │
-  └──────────────────────┴──────────┴────────────┴─────────────────────┘
+## Practice Questions
 
-  Line Item Total = Quantity × Unit Price (minus Discount)
-  Once products are added → Amount field is READ-ONLY (calculated)
-  Only ONE Price Book can be selected per Opportunity
-```
-**Content:**
-- Opportunity Products (also called line items) link Products to Opportunities with quantity and price
-- When products are added, the Opportunity Amount auto-calculates from line item totals
-- To add products: Opportunity → Products related list → Add Products → Select Price Book
-- Only one Price Book can be used per Opportunity
-- Product fields on line items: Quantity, Unit Price, Total Price, Discount, Date
-- Line Item Total = Quantity × Unit Price (minus any discount)
-**Speaker Notes:** The relationship between Opportunities and Products is called Opportunity Product (or OpportunityLineItem in the API). When a Price Book is selected on the Opportunity and products are added, the Amount field is locked to the total of the line items — it can no longer be edited manually.
+**Q:** A sales rep adds products to an Opportunity and notices the Amount field is now grayed out and cannot be edited manually. Why?
+**A:** Once products (Opportunity Line Items) are added to an Opportunity, the Amount field is automatically calculated from the sum of the product prices × quantities. It becomes read-only.
 
-### Slide 7: Revenue & Quantity Schedules
-**Visual:**
-```
-  OPPORTUNITY PRODUCT: Platform License — $12,000/year
-  Revenue Schedule Type: Monthly  (12 installments)
+**Q:** A company wants to offer discounted prices to their partners versus list prices for direct customers. How should this be configured?
+**A:** Create a Custom Price Book for partners with discounted prices. Assign the partner Price Book to Opportunities created with partner accounts. Keep Standard Price Book for direct customer Opportunities.
 
-  ┌──────────────────────────────────────────────────────────────────┐
-  │ Jan  │ Feb  │ Mar  │ Apr  │ May  │ Jun  │ Jul  │ Aug  │ Sep ...  │
-  │$1,000│$1,000│$1,000│$1,000│$1,000│$1,000│$1,000│$1,000│$1,000   │
-  └──────────────────────────────────────────────────────────────────┘
-  Each cell = 1 Revenue Schedule Entry
-  Total: 12 × $1,000 = $12,000  (matches line item total)
+**Q:** What is the Forecast Category and how is it determined?
+**A:** Forecast Category indicates how confident the organization is in the deal closing. It's automatically set based on the Opportunity Stage. Each Stage has a mapped Forecast Category (Pipeline, Best Case, Commit, Closed, Omitted). Configurable in Setup → Opportunity Stages.
 
-  ─────────────────────────────────────────────────────────────────
-  QUANTITY SCHEDULE EXAMPLE: 120 units over 12 months
-
-  ┌──────────────────────────────────────────────────────────────────┐
-  │ Jan │ Feb │ Mar │ Apr │ May │ Jun │ Jul │ Aug │ Sep │ Oct ...    │
-  │ 10  │ 10  │ 10  │ 10  │ 10  │ 10  │ 10  │ 10  │ 10  │ 10       │
-  └──────────────────────────────────────────────────────────────────┘
-
-  Enable per product: Product record → Enable Revenue/Quantity Schedule
-  Forecast reports reflect scheduled amounts by period
-```
-**Content:**
-- Schedules allow a single line item to be distributed over time
-- **Revenue Schedule:** Splits revenue from a product across multiple periods (e.g., monthly SaaS fees)
-- **Quantity Schedule:** Splits units shipped over time (e.g., 120 units delivered 10/month)
-- Schedules are enabled per product: Product record → check "Enable Revenue Schedule" / "Enable Quantity Schedule"
-- Forecast and revenue reports reflect scheduled amounts by period
-- Org-wide schedule settings: Setup → Products → Revenue Schedules
-**Speaker Notes:** Schedules are important for recurring revenue businesses. A single Opportunity for an annual contract might have 12 monthly revenue schedule entries so forecasting shows the right amount each month. This feature must be enabled on each product individually.
-
-### Slide 8: Big Deal Alerts
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │  From:    notifications@salesforce.com                       │
-  │  To:      ceo@company.com; cfo@company.com                   │
-  │  Subject: BIG DEAL ALERT — Opportunity Exceeds Threshold     │
-  ├──────────────────────────────────────────────────────────────┤
-  │                                                              │
-  │  A high-value opportunity has met your alert criteria:       │
-  │                                                              │
-  │  Opportunity Name:  Acme Corp – Platform License             │
-  │  Account:           Acme Corporation                         │
-  │  Amount:            $750,000   ──▶ exceeds $500,000 threshold│
-  │  Probability:       80%        ──▶ exceeds 70% threshold     │
-  │  Close Date:        09/30/2025                               │
-  │  Owner:             Alice Johnson                            │
-  │                                                              │
-  ├──────────────────────────────────────────────────────────────┤
-  │  BOTH thresholds must be met simultaneously for alert to fire│
-  │  ✓ Amount ($750K > $500K threshold)                          │
-  │  ✓ Probability (80% > 70% threshold)                         │
-  │  Amount met but Probability low? → NO alert fires            │
-  └──────────────────────────────────────────────────────────────┘
-  Setup → Big Deal Alert  (no Workflow or Process Builder needed)
-```
-**Content:**
-- Big Deal Alerts send automatic email notifications when an Opportunity exceeds a threshold
-- Configuration: Setup → Big Deal Alert
-- Settings: Amount threshold, Probability threshold, notification email recipients
-- An alert fires when BOTH the Amount AND Probability thresholds are met
-- Useful for executive visibility into large, high-confidence deals
-- Does not require workflow rules or Process Builder — it is a native feature
-**Speaker Notes:** Big Deal Alerts are a simple but often forgotten native feature. Both conditions — amount AND probability — must be satisfied simultaneously. If the amount is above the threshold but probability is low, no alert fires. This is a common exam trick question.
-
-## 🎙️ RECORDING SCRIPT
-
-Welcome to Lecture 20 — Opportunities and Products. This is one of the most content-rich topics for the Salesforce Admin exam, so let's break it down carefully.
-
-An Opportunity is a potential sale. It's the record where your sales team tracks a deal from first contact to close. The three required fields out of the box are Opportunity Name, Close Date, and Stage. Stage is the most important field because it drives two other values automatically: Probability and Forecast Category.
-
-Let's talk about stages. Stages are configured as a picklist, but not a regular one. Go to Object Manager, open Opportunity, then Fields and Relationships, then click on Stage. Here you'll see that each stage value has metadata — a Type (Open, Closed Won, or Closed Lost), a default Probability percentage, and a Forecast Category. When a rep picks a stage, the probability auto-populates. Reps can override it manually, but the stage is what the system defaults to.
-
-Forecast Categories are buckets used for sales forecasting. The standard ones are Pipeline, Best Case, Commit, and Closed. Pipeline is early-stage, uncertain deals. Best Case is deals that might close if everything goes right. Commit means the rep is highly confident this deal closes this period. Closed covers both Won and Lost. Managers review forecasts at the category level, not the individual stage level.
-
-Now let's look at who works the deal. Opportunity Teams let multiple people collaborate on a single opportunity. Each team member gets a role — like Account Executive or Sales Engineer — and is granted Read Only or Read/Write access to the opportunity record. Users can also set default Opportunity Teams that are automatically added whenever they create a new opportunity.
-
-On the product side, Salesforce has a three-level structure. Products are your catalog items. Price Books are collections of products with their prices. The Standard Price Book is automatically available in every org and every product must have a standard price before it can be added to a custom Price Book. Custom Price Books let you define alternative prices for specific customer segments, partners, or regions.
-
-When you add products to an Opportunity — through the Products related list — those line items are called Opportunity Products or line items. Each line item stores the quantity, unit price, and any discount. Once products are added, the Opportunity's Amount field is automatically calculated from the line item totals. Only one Price Book can be applied to a single Opportunity.
-
-For businesses with recurring revenue, Salesforce supports Revenue and Quantity Schedules. A Revenue Schedule spreads a product's revenue across multiple time periods — perfect for annual subscriptions billed monthly. A Quantity Schedule spreads units delivered over time. Schedules are enabled per product in the product record settings.
-
-Finally, Big Deal Alerts. This is a native Salesforce feature that emails a list of recipients whenever an Opportunity crosses both a dollar amount threshold AND a probability threshold simultaneously. You configure it in Setup under Big Deal Alert. Note that BOTH conditions must be true at the same time — this is a common exam question.
-
-That covers Opportunities and Products. Next, we'll look at Quotes and Contracts.
-
-## 🔔 EXAM TIPS
-- **Stage drives Probability AND Forecast Category:** Both values are configured on the Stage picklist in Object Manager → Opportunity → Stage field.
-- **Amount is calculated from Products:** Once products (line items) are added to an Opportunity, the Amount field becomes read-only and calculated.
-- **Only one Price Book per Opportunity:** You cannot mix Price Books on a single opportunity.
-- **Big Deal Alert requires BOTH thresholds:** Amount threshold AND probability threshold must both be met to trigger the alert.
-- **Opportunity Teams vs Account Teams:** Opportunity Teams are deal-specific; Account Teams persist at the account level across all deals.
-- **Schedules must be enabled per product:** Revenue/Quantity Schedules are enabled on the Product record, not org-wide.
-
-## ✅ LECTURE SUMMARY
-- Opportunity Stage, Probability, and Forecast Category are linked — Stage configuration drives the other two values
-- Stage History tracks every stage change with timestamp and amount
-- Forecast Categories: Pipeline, Best Case, Commit, Closed (Won + Lost)
-- Opportunity Teams give multiple users collaborative access to a deal with defined roles
-- Products exist in Price Books; Standard Price Book is the default; Custom Price Books allow alternate pricing
-- Opportunity Products (line items) tie Products to Opportunities; Amount auto-calculates from line items
-- Revenue/Quantity Schedules distribute a line item's value or units across time periods; must be enabled per product
-- Big Deal Alerts fire when both Amount AND Probability exceed configured thresholds
-
-## ❓ MINI QUIZ
-
-**Q1:** A sales rep changes the Stage on an Opportunity from "Proposal" to "Negotiation/Review." Which field values are automatically updated as a result?
-- A) Close Date and Amount
-- B) Probability and Forecast Category
-- C) Probability only
-- D) Forecast Category only
-**Answer:** B — Changing the Stage auto-populates both the Probability percentage and the Forecast Category based on the metadata configured for that Stage value in Object Manager.
-
-**Q2:** A sales manager reports that the Amount field on an Opportunity cannot be edited. What is the most likely reason?
-- A) The manager only has Read Only access to the Opportunity
-- B) A validation rule is preventing the edit
-- C) Products (line items) have been added to the Opportunity, making Amount a calculated field
-- D) The Opportunity is in Closed Won stage
-**Answer:** C — When Opportunity Products are added, the Amount field becomes a read-only calculated field equal to the sum of all line item totals. To change the Amount, you must modify the quantity or price of individual line items.
-
-**Q3:** An administrator wants to notify the CEO and CFO by email whenever an Opportunity exceeds $500,000 with a probability above 70%. Which feature should they configure?
-- A) Workflow Rule with Email Alert
-- B) Process Builder with Email Action
-- C) Big Deal Alert in Setup
-- D) Opportunity Assignment Rule
-**Answer:** C — Big Deal Alert is a native Salesforce feature configured in Setup that fires email notifications when an Opportunity meets both an Amount threshold and a Probability threshold simultaneously. No automation tool is needed.
+**Q:** A manager wants Opportunities where Stage = "Negotiation" to appear in the "Commit" forecast category. Where is this configured?
+**A:** Setup → Object Manager → Opportunity → Fields & Relationships → Stage → Edit each Stage value to set the Probability and Forecast Category.

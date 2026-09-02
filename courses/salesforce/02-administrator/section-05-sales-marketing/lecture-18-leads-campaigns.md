@@ -1,344 +1,129 @@
-# L18: Leads & Campaigns
+# Leads & Campaigns
 
-## 🎯 Learning Objectives
-- Describe the Lead object fields and the lead conversion process
-- Configure lead assignment rules and web-to-lead
-- Explain Campaign object features including campaign hierarchy, members, and ROI tracking
+## Exam Domain
+Sales & Marketing Apps — 12% of exam
 
-## 📊 SLIDES
+## Core Concepts
 
-### Slide 1: What Is a Lead?
-**Visual:**
+**Leads:**
+A Lead is an unqualified prospect — someone who might become a customer but hasn't been qualified yet. Once qualified, a Lead is "converted" and creates (or links to) an Account + Contact + (optionally) Opportunity.
+
+**Lead Conversion:**
+- Creates: Account (new or existing), Contact (new or existing), Opportunity (optional)
+- Lead record is marked as "Converted" — it still exists but is read-only
+- Cannot convert the same lead twice
+- Field mapping: Lead fields map to Account/Contact/Opportunity fields (configurable via Map Lead Fields)
+- Lead Source field can carry forward to converted objects
+
+**Web-to-Lead:**
+- Generates an HTML form that captures prospect info from your website directly into Salesforce as Lead records
+- Setup: Setup → Web-to-Lead → Generate HTML
+- Daily limit: 500 web leads per day (default; can request increase)
+- If limit exceeded: leads are lost (not queued) — they're dropped
+- **Default Lead Creator:** A User that "owns" incoming web leads by default (set in Web-to-Lead settings)
+
+**Lead Assignment Rules:**
+- Route newly created/updated Leads to users or queues based on criteria
+- Only ONE assignment rule can be active at a time
+- Rules have multiple entries evaluated in order (first match wins)
+- Can assign to User or Queue
+- Assignment rules run when: manual assignment requested, web-to-lead creates the lead, or lead created via API with "Assign using assignment rules" flag
+
+**Campaigns:**
+- Marketing initiatives (email blast, trade show, webinar, etc.)
+- Campaign Members = Leads or Contacts added to the Campaign
+- Status tracks where in the campaign each member is (Sent, Responded, etc.)
+- Campaign Influence: shows which campaigns contributed to closed opportunities
+- Hierarchy: Campaigns can have parent campaigns for aggregate reporting
+
+**Campaign Member Status:**
+- Each campaign has its own status values (default: Sent, Responded)
+- "Responded" = positive response; used for Campaign Responses metric
+- Custom status values can be added and one can be set as "default"
+
+## PTA / SA Relevance
+
+Campaigns and Lead management are where marketing automation integrations land. The most common architecture pattern: a Marketing Automation Platform (Pardot/Marketing Cloud, Marketo, HubSpot) creates Leads and syncs them into Salesforce Campaigns. The native Web-to-Lead is for simple scenarios; enterprise customers use the MA platform forms that write directly to Salesforce via API.
+
+**Web-to-Lead limitations in enterprise context:** The 500/day limit and lack of spam filtering make native Web-to-Lead insufficient for high-volume lead capture. Enterprise customers need a spam filtering layer (reCAPTCHA + a middleware step) before leads hit Salesforce. This is a design conversation to have early.
+
+**Lead deduplication:** The Duplicate Management module (Matching Rules + Duplicate Rules) is critical for Lead capture flows. Every web form creates duplicates if dedup isn't configured. Flag this in every implementation where Web-to-Lead or external lead capture is used.
+
+## Architecture / How It Works
+
 ```
-  ┌─────────────────────────────┐
-  │           LEAD              │
-  │ ─────────────────────────── │
-  │ First Name:  John           │
-  │ Last Name:   Smith          │
-  │ Company:     Acme Corp      │
-  │ Status:      Qualified      │
-  │ Lead Source: Web            │
-  └─────────────────┬───────────┘
-                    │  [Convert]
+Lead-to-Opportunity Pipeline
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  LEAD CAPTURE
+  ┌──────────────────────────────────────────┐
+  │  Web-to-Lead form (website)              │
+  │  Manual entry                            │
+  │  Import (Data Import Wizard)             │
+  │  API / Integration                       │
+  └─────────────────┬────────────────────────┘
+                    │ Assignment Rule
                     ▼
-        ┌───────────┴────────────┐
-        │                        │
-        ▼                        ▼
-  ┌──────────────┐        ┌──────────────┐
-  │   ACCOUNT    │        │   CONTACT    │
-  │  Acme Corp   │        │  John Smith  │
-  └──────────────┘        └──────┬───────┘
-                                 │ (optional)
-                                 ▼
-                          ┌──────────────┐
-                          │ OPPORTUNITY  │
-                          │  Acme Deal   │
-                          └──────────────┘
+  LEAD RECORD (unqualified)
+  ┌──────────────────────────────────────────┐
+  │  Status: New → Working → Qualified/Junk  │
+  │  Assigned to User or Queue               │
+  └─────────────────┬────────────────────────┘
+                    │ Convert (when qualified)
+                    ▼
+  CONVERSION CREATES:
+  ┌──────────────┐  ┌──────────┐  ┌──────────────┐
+  │  Account     │  │ Contact  │  │ Opportunity  │
+  │  (new or     │  │ (new or  │  │ (optional)   │
+  │   existing)  │  │existing) │  │              │
+  └──────────────┘  └──────────┘  └──────────────┘
+
+  CAMPAIGN → CAMPAIGN MEMBERS
+  ┌──────────────────────────────────────────┐
+  │  Campaign (trade show, email blast, etc) │
+  │    ├── Member: Lead A (Sent)             │
+  │    ├── Member: Contact B (Responded)     │
+  │    └── Member: Lead C (Sent)             │
+  └──────────────────────────────────────────┘
 ```
-**Content:**
-- A Lead represents an unqualified prospect — someone not yet confirmed as a real opportunity
-- Standard fields: First Name, Last Name, Company, Status, Lead Source, Email, Phone, Rating
-- Lead Status picklist tracks progression: Open, Working, Qualified, Unqualified, Converted
-**Speaker Notes:** Leads are the top of the sales funnel. They exist in Salesforce as unverified prospects until a salesperson qualifies them. Once qualified, the lead is converted into three records: an Account, a Contact, and optionally an Opportunity.
 
-### Slide 2: Lead Conversion Process
-**Visual:**
-```
-  ┌───────────────────────┐
-  │      Lead Record      │
-  │     (Qualified)       │
-  └──────────┬────────────┘
-             │
-             ▼
-    [Click Convert Button]
-             │
-             ▼
-  ┌───────────────────────────┐
-  │    Conversion Wizard      │
-  │  Map Lead Fields →        │
-  │  Account / Contact /      │
-  │  Opportunity Fields       │
-  │  (Setup → Lead Settings   │
-  │   → Map Lead Fields)      │
-  └──────────┬────────────────┘
-             │
-    ┌────────┴─────────────────────┐
-    │           │                  │
-    ▼           ▼                  ▼
-┌──────────┐ ┌──────────┐  ┌─────────────────┐
-│ ACCOUNT  │ │ CONTACT  │  │  OPPORTUNITY    │
-│ (Created)│ │ (Created)│  │  (Optional)     │
-└──────────┘ └──────────┘  └─────────────────┘
-             │
-             ▼
-  Lead Status → "Converted" (Read-Only, NOT deleted)
-```
-**Content:**
-- Clicking "Convert" on a Lead triggers the conversion wizard
-- Salesforce maps lead fields to Account, Contact, and Opportunity fields
-- Field mapping is configured at: Setup → Lead Settings → Map Lead Fields
-- After conversion, the original Lead record is marked "Converted" and becomes read-only
-- Custom lead fields must be manually mapped to target object fields
-**Speaker Notes:** Lead conversion is a key admin topic. Remember that converted leads are not deleted — they remain in the system with a "Converted" status. Admins control which fields carry over by configuring field mapping in Setup.
+**Limitations:**
+- Web-to-Lead: 500 leads/day default limit (leads beyond limit are dropped, not queued)
+- Web-to-Lead doesn't validate data — anything submitted creates a lead
+- Lead Assignment Rules: only ONE rule active at a time
+- Lead conversion cannot be reversed — converted leads remain as "Converted" status
+- Campaign Members can be Leads OR Contacts, but not Accounts directly
+- You cannot undo a lead conversion — the converted lead record is locked
 
-### Slide 3: Lead Assignment Rules
-**Visual:**
-```
-  Setup → Lead Assignment Rules
-  ┌──────────────────────────────────────────────────────────────┐
-  │  Rule: Default Lead Assignment Rule        Active: ✓         │
-  ├───────┬──────────────────────────────────┬───────────────────┤
-  │ Order │ Criteria                         │ Assign To         │
-  ├───────┼──────────────────────────────────┼───────────────────┤
-  │  1    │ Lead Source = Web                │ Web Sales Queue   │
-  │       │ AND State = California           │                   │
-  ├───────┼──────────────────────────────────┼───────────────────┤
-  │  2    │ Rating = Hot                     │ Enterprise Team   │
-  ├───────┼──────────────────────────────────┼───────────────────┤
-  │  3    │ Industry = Technology            │ Tech Sales Rep    │
-  ├───────┼──────────────────────────────────┼───────────────────┤
-  │  4    │ (All Others — catch-all)         │ Default Owner     │
-  └───────┴──────────────────────────────────┴───────────────────┘
-  Evaluated top-to-bottom │ First matching entry wins
-  No match → Lead goes to default owner in Lead Settings
-```
-**Content:**
-- Lead Assignment Rules automatically route new leads to users or queues
-- Only one rule can be active at a time
-- Each rule contains multiple rule entries evaluated top-to-bottom
-- Criteria can include lead source, state/province, industry, rating, and more
-- "Assign using active assignment rule" checkbox must be checked on the lead
-**Speaker Notes:** Assignment rules fire when a lead is created manually, via Web-to-Lead, or via import if the checkbox is selected. If no rule entry matches, the lead goes to the default lead owner set in Lead Settings.
+## Key Facts to Memorize
 
-### Slide 4: Web-to-Lead
-**Visual:**
-```
-  ┌──────────────────────────┐
-  │      Company Website     │
-  │  ┌────────────────────┐  │
-  │  │    Web Form        │  │
-  │  │  First Name: ____  │  │
-  │  │  Last Name:  ____  │  │
-  │  │  Email:      ____  │  │
-  │  │  Company:    ____  │  │
-  │  │    [Submit]        │  │
-  │  └─────────┬──────────┘  │
-  └────────────┼─────────────┘
-               │  HTTP POST
-               ▼
-  ┌────────────────────────────┐
-  │   Salesforce Web-to-Lead   │
-  │   Endpoint (hidden org ID) │
-  │   Limit: 500 leads/day     │
-  └────────────┬───────────────┘
-               │
-               ▼
-  ┌────────────────────────────┐
-  │    Lead Record Created     │
-  │    Status:  New            │
-  │    Origin:  Web            │
-  └────────────┬───────────────┘
-               │
-               ▼
-  Auto-Response Email ──▶ Prospect (if rule configured)
-```
-**Content:**
-- Web-to-Lead captures prospects directly from your website into Salesforce
-- Setup path: Setup → Web-to-Lead → Generate HTML
-- Limit: 500 leads per day (default); contact Salesforce to raise the limit
-- Supports auto-response rules to send confirmation emails to prospects
-- Spam protection available via reCAPTCHA integration
-**Speaker Notes:** The generated HTML form contains a hidden org ID and posts directly to Salesforce servers. Admins should configure a default lead creator and auto-response rule so prospects receive immediate confirmation after submitting the form.
+- Lead conversion creates: Account + Contact + (optional) Opportunity
+- Converted Lead = still exists, marked Converted, locked/read-only
+- Web-to-Lead daily limit = 500 (default); leads dropped if exceeded
+- One assignment rule active at a time; entries evaluated in order (first match wins)
+- Can assign leads to: User or Queue (not both simultaneously per rule entry)
+- Campaign Members = Leads + Contacts (both can be members)
+- Campaign Influence tracks which campaigns influenced won opportunities
+- Lead Source field maps to converted objects if configured
 
-### Slide 5: Lead Queues
-**Visual:**
-```
-  ┌──────────────────────────┬─────────────────────────────────────┐
-  │     USER OWNERSHIP       │        QUEUE OWNERSHIP              │
-  ├──────────────────────────┼─────────────────────────────────────┤
-  │ Owner = specific person  │ Owner = shared queue                │
-  │ (e.g., John Smith)       │ (e.g., "West Sales Queue")          │
-  ├──────────────────────────┼─────────────────────────────────────┤
-  │ Only that user sees it   │ All queue members can see it        │
-  │ in "My Leads"            │ in the queue list view              │
-  ├──────────────────────────┼─────────────────────────────────────┤
-  │ Immediate, direct        │ Pull-based: member clicks Accept    │
-  │ responsibility           │ to take ownership                   │
-  ├──────────────────────────┼─────────────────────────────────────┤
-  │ Good for: assigned       │ Good for: team triage and           │
-  │ territories              │ round-robin distribution            │
-  ├──────────────────────────┼─────────────────────────────────────┤
-  │ Risk: bottleneck if      │ Risk: leads may sit unclaimed if    │
-  │ user is unavailable      │ team doesn't monitor queue          │
-  └──────────────────────────┴─────────────────────────────────────┘
-```
-**Content:**
-- Queues are shared holding areas for leads, cases, and custom objects
-- Queue members (users, roles, public groups) can claim records from the queue
-- Leads in a queue are visible to all queue members
-- Queue email notifies the group when a new record enters
-- Assignment rules can route leads directly to queues
-**Speaker Notes:** Queues are especially useful for round-robin or team-based lead distribution. Any queue member can take ownership of a queued lead, making it a collaborative triage mechanism for sales teams.
+## Exam Traps
 
-### Slide 6: The Campaign Object
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │                    CAMPAIGN RECORD                           │
-  ├────────────────────────┬─────────────────────────────────────┤
-  │ Campaign Name          │ Q3 2025 Email Blast                 │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Type                   │ Email                               │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Status                 │ In Progress                         │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Start Date             │ 07/01/2025                          │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ End Date               │ 09/30/2025                          │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Budgeted Cost          │ $10,000                             │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Actual Cost            │ $8,500                              │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ Expected Revenue       │ $50,000                             │
-  ├────────────────────────┼─────────────────────────────────────┤
-  │ ROI (auto-calculated)  │ 488%                                │
-  └────────────────────────┴─────────────────────────────────────┘
-```
-**Content:**
-- Campaigns track marketing initiatives: email blasts, webinars, trade shows, ads
-- Key fields: Type, Status, Start Date, End Date, Budgeted Cost, Actual Cost, Expected Revenue, Leads in Campaign, Contacts in Campaign, Opportunities in Campaign
-- Campaign Status picklist: Planned, In Progress, Completed, Aborted
-- Campaign Type picklist: Email, Webinar, Conference, Direct Mail, etc.
-**Speaker Notes:** The Campaign object is the marketing team's primary tool in Salesforce. Admins control the Status and Type picklist values. Understanding what each field tracks — especially cost vs. revenue — is essential for the Admin exam.
+- **"When you convert a Lead, the Lead record is deleted"** — FALSE. Lead remains, marked as Converted.
+- **"Web-to-Lead leads are queued if the daily limit is exceeded"** — FALSE. Leads are dropped (lost).
+- **"Multiple assignment rules can be active at the same time"** — FALSE. Only one assignment rule can be active per object.
+- **"Campaign Members can include Accounts"** — FALSE. Campaign Members are Leads or Contacts, not Accounts.
+- **"Lead conversion always creates an Opportunity"** — FALSE. Opportunity creation during conversion is optional.
 
-### Slide 7: Campaign Hierarchy & Campaign Members
-**Visual:**
-```
-              ┌──────────────────────────────┐
-              │      Q3 2025 Campaign        │  ← Parent Campaign
-              │    Total Members: 4,200      │
-              │    Total Responses: 320      │
-              └───────────────┬──────────────┘
-                              │  (Parent Campaign field)
-           ┌──────────────────┼─────────────────────┐
-           │                  │                     │
-           ▼                  ▼                     ▼
-  ┌──────────────────┐ ┌──────────────┐ ┌────────────────────┐
-  │ Q3 Email Campaign│ │ Q3 Webinar   │ │ Q3 Trade Show      │
-  │ Members: 3,000   │ │ Campaign     │ │ Campaign           │
-  │ Responded: 180   │ │ Members: 1K  │ │ Members: 200       │
-  │                  │ │ Responded:100│ │ Responded: 40      │
-  └──────────────────┘ └──────────────┘ └────────────────────┘
+## Practice Questions
 
-  Roll-up fields (Members, Responses, Won Opps) aggregate to Parent
-  Hierarchy: up to 5 levels deep
-```
-**Content:**
-- Campaign Hierarchy: up to five levels deep using the Parent Campaign field
-- Hierarchy roll-up fields aggregate values (leads, contacts, opportunities) to the parent
-- Campaign Members: Leads and Contacts added to a campaign
-- Member Status field tracks response: Sent, Opened, Responded, Registered, Attended
-- Add members via: Related list, Data Import Wizard, or Reports
-**Speaker Notes:** Campaign hierarchy lets marketers see aggregate performance across a family of campaigns. For example, a "Q3 2025" parent campaign can have child campaigns for Email, Webinar, and Trade Show, with totals rolling up automatically.
+**Q:** A company's website generates 600 lead form submissions on a busy day. What happens to the leads beyond the 500/day Web-to-Lead limit?
+**A:** Leads beyond 500/day are dropped — they are not queued and are lost. The admin needs to request a limit increase or implement a different lead capture solution.
 
-### Slide 8: Campaign ROI & Campaign Influence
-**Visual:**
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │                  CAMPAIGN ROI FORMULA                        │
-  │                                                              │
-  │         Actual Revenue  −  Actual Cost                       │
-  │  ROI% = ─────────────────────────────── × 100               │
-  │                    Actual Cost                               │
-  │                                                              │
-  │  Example:                                                    │
-  │    Actual Revenue = $50,000                                  │
-  │    Actual Cost    =  $8,500                                  │
-  │                                                              │
-  │    ROI% = ($50,000 − $8,500) / $8,500 × 100  ≈  488%        │
-  │                                                              │
-  ├──────────────────────────────────────────────────────────────┤
-  │  CAMPAIGN INFLUENCE                                          │
-  │                                                              │
-  │  Campaign A ──▶ ┐                                            │
-  │  Campaign B ──▶ ├──▶ Opportunity (Closed Won $50K)           │
-  │  Campaign C ──▶ ┘                                            │
-  │                                                              │
-  │  Primary Campaign Source = single-touch attribution          │
-  │  Campaign Influence = multi-touch (all campaigns that        │
-  │  touched the Opportunity during sales cycle)                 │
-  └──────────────────────────────────────────────────────────────┘
-```
-**Content:**
-- Campaign ROI is automatically calculated on the Campaign record
-- Campaign Influence links Opportunities to Campaigns that influenced them
-- Primary Campaign Source field on Opportunity gets credit for closed revenue
-- Customizable Campaign Influence (Einstein Attribution) allows multi-touch models
-- Reports: "Campaigns with Influenced Opportunities" and "Campaign ROI Analysis"
-**Speaker Notes:** The Admin exam tests whether you know that ROI is calculated automatically and that Campaign Influence tracks which campaigns touched an opportunity during the sales cycle. The Primary Campaign Source field is the standard single-touch attribution field on the Opportunity.
+**Q:** When a Lead is converted, which records can be created?
+**A:** An Account (new or link to existing), a Contact (new or link to existing), and optionally an Opportunity.
 
-## 🎙️ RECORDING SCRIPT
+**Q:** A marketing manager wants to track which campaign members responded positively to a campaign. What feature is used?
+**A:** Campaign Member Status. Members with the "Responded" status (or any status marked as "Responded") count toward the campaign's responded metric.
 
-Welcome to Lecture 18 — Leads and Campaigns. These two objects are the engine of Salesforce's marketing and top-of-funnel sales process, and they show up consistently on the Salesforce Administrator exam.
-
-Let's start with Leads. A Lead in Salesforce is an unqualified prospect. Think of it as someone who filled out a form on your website, scanned a badge at a trade show, or called in asking about your product — but you haven't yet verified whether they're a real buyer. The Lead object stores basic information: first and last name, company, email, phone, lead source, and status.
-
-The Lead Status field is critical. Out of the box, Salesforce gives you values like Open, Working, Qualified, Unqualified, and Converted. Once a salesperson decides a lead is worth pursuing, they click the Convert button. This triggers the conversion wizard, which creates three new records: an Account for the company, a Contact for the person, and optionally an Opportunity for the potential deal. The original lead record isn't deleted — it stays in the system marked "Converted" and becomes read-only.
-
-Field mapping is something admins control. Go to Setup, search for Lead Settings, then click Map Lead Fields. Here you tell Salesforce which lead fields should populate which Account, Contact, and Opportunity fields upon conversion. Custom fields must be explicitly mapped, or their data is lost during conversion.
-
-Now let's talk about getting leads into Salesforce automatically. Web-to-Lead lets you publish an HTML form on your website. When someone submits it, Salesforce creates a lead record automatically. You set this up at Setup → Web-to-Lead → Generate HTML. There's a default limit of 500 leads per day, and you can configure an auto-response rule to send a confirmation email to the prospect right away.
-
-Lead Assignment Rules determine who gets the lead. You create a rule with multiple entries — each entry has criteria and a target user or queue. Salesforce evaluates them top to bottom, and the first matching entry wins. Only one assignment rule can be active at a time.
-
-Now let's shift to Campaigns. A Campaign represents a marketing activity — an email blast, a webinar, a conference booth, a paid ad. The Campaign object tracks your investment and results side by side. You record the budgeted cost, the actual cost, and the expected revenue. Salesforce automatically calculates ROI for you.
-
-Campaign Members are the Leads and Contacts you target with the campaign. Each member has a Member Status — something like Sent, Opened, Responded, or Attended — that you customize per campaign.
-
-Campaign Hierarchy lets you nest campaigns up to five levels. A parent campaign can roll up member counts, responses, and revenue from all its children, giving marketing managers a single view of a multi-channel initiative.
-
-Finally, Campaign Influence connects campaigns to the Opportunities they helped create. The Primary Campaign Source field on the Opportunity is the standard attribution point, but Salesforce also supports customizable multi-touch influence models through Einstein Attribution.
-
-That covers the essential Lead and Campaign concepts for the Admin exam. Next, we'll move on to Accounts and Contacts.
-
-## 🔔 EXAM TIPS
-- **Lead conversion creates three records:** Conversion always creates an Account and Contact; the Opportunity is optional (a checkbox in the conversion wizard).
-- **Converted leads are not deleted:** They remain with a "Converted" status and cannot be edited.
-- **Only one assignment rule is active:** Both Lead and Case assignment rules follow this pattern — one active rule with multiple entries evaluated top-to-bottom.
-- **Web-to-Lead daily limit:** Default is 500 leads/day. Exceeding this causes leads to be queued and processed the next day.
-- **Campaign Hierarchy rolls up to 5 levels:** Fields like Total Leads, Total Contacts, and Won Opportunities aggregate upward.
-- **Campaign Influence vs Primary Campaign Source:** Primary Campaign Source is single-touch; Campaign Influence tracks all campaigns that touched an opportunity.
-
-## ✅ LECTURE SUMMARY
-- Leads are unqualified prospects; conversion creates Account + Contact + optional Opportunity and marks the lead Converted
-- Admins configure lead field mapping at Setup → Lead Settings → Map Lead Fields
-- Web-to-Lead generates an HTML form with a 500/day default limit
-- Lead Assignment Rules route leads to users/queues; only one rule is active at a time, evaluated top-to-bottom
-- Campaigns track marketing initiatives with cost, revenue, and auto-calculated ROI
-- Campaign Members (Leads and Contacts) have a customizable Member Status
-- Campaign Hierarchy supports up to 5 levels with roll-up fields
-- Campaign Influence links opportunities to the campaigns that influenced them
-
-## ❓ MINI QUIZ
-
-**Q1:** A sales rep converts a Lead. Which records are automatically created as a result?
-- A) Account and Contact only
-- B) Account, Contact, and Opportunity (always)
-- C) Account, Contact, and optionally an Opportunity
-- D) Contact and Opportunity only
-**Answer:** C — The conversion wizard creates an Account and Contact by default. Creating an Opportunity is optional — the rep can uncheck that option in the wizard if no opportunity is warranted yet.
-
-**Q2:** An administrator wants all leads with Lead Source = "Web" and State = "California" to be assigned to a specific sales queue. What is the correct tool to configure?
-- A) Lead Auto-Response Rules
-- B) Lead Assignment Rules
-- C) Lead Queues membership settings
-- D) Workflow Field Update
-**Answer:** B — Lead Assignment Rules let administrators define criteria-based routing of leads to users or queues. Only one rule can be active; it contains entries evaluated in order.
-
-**Q3:** A marketing manager notices that a campaign's ROI field shows no value even though opportunities have been closed. What is the most likely cause?
-- A) Campaign Influence has not been enabled in Setup
-- B) The Primary Campaign Source field on the Opportunity is blank
-- C) The campaign Status is still set to Planned
-- D) The campaign has no campaign members
-**Answer:** B — Campaign ROI on the Campaign record is calculated from Opportunities where that campaign is set as the Primary Campaign Source. If that field is blank on the opportunities, Salesforce cannot attribute revenue to the campaign.
+**Q:** Multiple assignment rules have been created for Leads. Only one is set to Active. What happens to the other rules?
+**A:** They are inactive and do not evaluate. Only the one active assignment rule runs. To use a different rule, activate it and deactivate the current one.
