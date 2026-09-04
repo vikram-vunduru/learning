@@ -245,18 +245,88 @@ Data Cloud automatically adds these to every DLO row:
 
 ---
 
+### 📸 Screenshot 4 — Supported Fields Tab
+
+**What was shown:**
+- 8 fields listed with columns: Source Header, Field Label, Field API Name, Data Type
+- Row 1: account_name → account_name → account_name__c → **Text**
+- Row 2: city → city → city__c → **Text**
+- Row 3: email → email → email__c → **Text**
+- Row 4: first_name → first_name → first_name__c → **Text**
+- Row 5: last_name → last_name → last_name__c → **Text**
+- Row 6: last_purchase_date → last_purchase_date → last_purchase_date__c → **Date (yyyy-MM-dd)** ← auto-detected correctly
+- Row 7: phone → phone → phone__c → **Text**
+- Row 8: product_interest → product_interest → product_interest__c → **Text**
+- Primary Key on left panel already set to: **email**
+- Record Modified Field: "Select an Option" — grayed out (because the only Date field is last_purchase_date, but some org versions don't allow it for File Upload; left blank — OK for this lab)
+
+**Key insight:** `last_purchase_date` was auto-detected as `Date (yyyy-MM-dd)` — Data Cloud correctly parsed the ISO 8601 format from the CSV. No manual type change needed.
+
+---
+
+### 📸 Screenshot 5 — Final Deploy Step
+
+**What was shown:**
+- Screen title: "New Data Stream"
+- **Data Stream Name:** `CSV_Contacts_Lab` (already auto-populated from the DLO name)
+- **Data Space:** `default` (dropdown)
+- **Set Filters** link (skipped — we want all 8 rows)
+- Progress bar showing step 3 of 3 (both previous steps checkmarked)
+- Blue **Deploy** button bottom-right
+
+**Action taken:** Clicked Deploy.
+
+---
+
+### 📸 Screenshot 6 — Data Stream Detail Page (Post-Deploy)
+
+**What was shown:**
+- Page heading: "Data Stream — CSV_Contacts_Lab"
+- Top buttons: + Follow | Update File | Delete Data Stream | Update Status
+- Status bar: Stream Type: **Ingest** | Data Stream Status: **Active** | Last Run Status: **Success** ✅ | Last Refreshed: **9/4/2026, 5:29 PM** | Last Processed Records: **8** ✅ | Total Records: **8** ✅
+- Data Properties: Object Category: **Profile** | Data Lake Object Name: **CSV_Contacts_Lab** | Object API Name: **CSV_Contacts_Lab__dll**
+- Fields (11): 8 CSV fields + 3 system fields (Data Source Object, Internal Organization, Data Source)
+- Right panel — **Data Mapping: 0/0, READY** with "Start" button — this is where DLO→DMO mapping begins (Lab 4)
+
+**Key insight:** The `__dll` suffix on the API name is Data Cloud's auto-appended suffix for all DLO API names. The Data Mapping panel showing 0/0 confirms the DLO exists but hasn't been mapped to any DMO yet — that's the next step in Lab 4.
+
+---
+
 ### Steps Checklist
 
 - [x] Created `contacts.csv` with 8 rows including intentional duplicates
 - [x] Started New Data Stream → File Upload
 - [x] File parsed successfully — 8 rows, 8 columns visible
-- [x] Category confirmed as Profile
-- [ ] Set Primary Key = email
-- [ ] Set Record Modified Field = last_purchase_date
-- [ ] Check field types (last_purchase_date = Date, email = Email type)
-- [ ] Click Next → Deploy
-- [ ] Verify DLO created with 8 rows
-- [ ] View data in DLO, confirm system fields visible
+- [x] Category set to Profile
+- [x] Primary Key set to email
+- [x] `last_purchase_date` confirmed as Date (yyyy-MM-dd) — auto-detected correctly
+- [x] DLO renamed to CSV_Contacts_Lab
+- [x] Clicked Next → final step: Data Stream Name = CSV_Contacts_Lab, Data Space = default
+- [x] Deployed successfully
+- [x] Verified: Last Run Status = **Success**, Total Records = **8** ✅
+
+---
+
+### Lab 2 Checkpoint — Q&A
+
+**Q1: Your DLO shows 11 fields but your CSV only had 8 columns. Where did the extra 3 come from?**
+
+Data Cloud automatically adds 3 system/lineage fields to every DLO: `DataSourceObject__c` (which Data Stream produced this row), `InternalOrganization__c` (org identifier), and `DataSource__c` (source system identifier). These are part of the "Lineage Fields (3)" tab we saw during setup. They are auto-populated — you never fill them in manually.
+
+**Q2: Why didn't we need an automated refresh schedule for this Data Stream?**
+
+File Upload has no automated refresh — it's a one-time manual ingestion. Every time you want new data, you click "Update File" and upload a new CSV. For automated recurring loads, use Cloud Storage (S3) or CRM Connector instead.
+
+**Q3: If tomorrow you get a corrected file with 10 rows, how do you update the DLO?**
+
+Click the **"Update File"** button on the Data Stream detail page and upload the new CSV. Data Cloud will re-ingest using the same schema and primary key logic. New rows (new emails) will be added. Existing rows (same email = same primary key) will be updated if values changed.
+
+---
+
+---
+
+## LAB 3 — CRM Connector & Data Mapping
+**Status: ⏳ UPCOMING**
 
 ---
 
